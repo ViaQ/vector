@@ -17,8 +17,8 @@ RUN INSTALL_PKGS=" \
     rpm -V $INSTALL_PKGS && \
     yum clean all
 
-RUN mkdir -p /src
+RUN mkdir -p /tmp/src
 
-WORKDIR /src
-COPY . /src
+WORKDIR /tmp/src
+COPY . /tmp/src
 USER 0
