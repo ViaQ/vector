@@ -143,7 +143,7 @@ metrics-tracing-context = { version = "0.9.0", default-features = false }
 aws-config = { version = "0.9.0", optional = true, default-features = false, features = ["native-tls"] }
 aws-types = { version = "0.9.0", optional = true, features = ["hardcoded-credentials"]}
 aws-sdk-s3 = { version = "0.9.0", optional = true, default-features = false, features = ["native-tls"] }
-aws-sdk-sqs = { version = "0.9.0", optional = true, default-features = false, features = ["native-tls"] }
+aws-sdk-sqs = { version = "0.13.0", optional = true, default-features = false, features = ["native-tls"] }
 aws-sdk-cloudwatch = { version = "0.9.0", optional = true, default-features = false, features = ["native-tls"] }
 aws-sdk-cloudwatchlogs = { version = "0.9.0", optional = true, default-features = false, features = ["native-tls"] }
 aws-sdk-elasticsearch = {version = "0.9.0", optional = true, default-features = false, features = ["native-tls"] }
