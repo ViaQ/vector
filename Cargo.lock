@@ -3259,7 +3259,7 @@ dependencies = [
  "tokio",
  "tokio-openssl",
  "tower-layer",
- "tracing 0.1.32",
+ "tracing 0.1.36",
 ]
 
 [[package]]
