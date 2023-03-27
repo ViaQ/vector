@@ -1,4 +1,4 @@
-FROM registry.redhat.io/ubi8:8.6-754 as builder
+FROM registry.redhat.io/ubi9/ubi:9.1 as builder
 
 RUN INSTALL_PKGS=" \
       cmake \
@@ -9,15 +9,13 @@ RUN INSTALL_PKGS=" \
       openssl-devel \
       llvm-toolset \
       cyrus-sasl \
-      python36 \
       llvm \
       cyrus-sasl-devel \
       libtool \
       gcc-c++ \
       " && \
-    yum install -y $INSTALL_PKGS && \
-    rpm -V $INSTALL_PKGS && \
-    yum clean all
+    dnf install -y $INSTALL_PKGS && \
+    rpm -V $INSTALL_PKGS
 
 ENV HOME=/root
 RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.58.1 -y

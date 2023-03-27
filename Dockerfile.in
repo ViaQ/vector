@@ -1,5 +1,5 @@
-#@follow_tag(registry.redhat.io/ubi8:latest)
-FROM registry.redhat.io/ubi8:8.6-754.1655117782 AS builder
+#@follow_tag(registry.redhat.io/ubi9:latest)
+FROM registry.redhat.io/ubi9/ubi:9.1 AS builder
 
 ENV BUILD_VERSION=v0.21-rh
 ENV SOURCE_GIT_COMMIT=${CI_VECTOR_UPSTREAM_COMMIT}
@@ -20,14 +20,12 @@ RUN INSTALL_PKGS=" \
       openssl-devel \
       llvm-toolset \
       cyrus-sasl \
-      python36 \
       llvm \
       cyrus-sasl-devel \
       libtool \
       " && \
-    yum install -y $INSTALL_PKGS && \
-    rpm -V $INSTALL_PKGS && \
-    yum clean all
+    dnf install -y $INSTALL_PKGS && \
+    rpm -V $INSTALL_PKGS
 
 RUN mkdir -p /src
 
@@ -39,8 +37,8 @@ RUN PROTOC=/src/thirdparty/protoc/protoc-linux-$(arch) make build
 # Copying to /usr/bin because copying from /src/target/release/vector to next stage doesnt seem to work in OSBS with imagebuilder
 RUN cp /src/target/release/vector /usr/bin
 
-#@follow_tag(registry.redhat.io/ubi8:latest)
-FROM registry.redhat.io/ubi8:8.6-754.1655117782
+#@follow_tag(registry.redhat.io/ubi9:latest)
+FROM registry.redhat.io/ubi9/ubi:9.1
 
 COPY --from=builder /usr/bin/vector /usr/bin/
 
