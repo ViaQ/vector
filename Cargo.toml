@@ -374,8 +374,7 @@ ocp-logging = [
   "sinks-prometheus",
   "sinks-gcp",
   "sinks-splunk_hec",
-  "sinks-http",
-  "sinks-socket",
+  "sinks-http"
 ]
 # Default features for *-unknown-linux-gnu and *-apple-darwin
 default = ["api", "api-client", "enrichment-tables", "sinks", "sources", "sources-dnstap", "transforms", "unix", "rdkafka/gssapi-vendored", "vrl-cli", "enterprise"]
