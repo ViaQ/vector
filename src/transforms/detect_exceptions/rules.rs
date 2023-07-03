@@ -119,15 +119,12 @@ fn python_rules() -> Vec<Rule<'static>> {
     ]
 }
 
-/*
- * There is some error in parsing Php's regular expression, so this function is unused
- */
-fn _php_rules() -> Vec<Rule<'static>> {
+fn php_rules() -> Vec<Rule<'static>> {
     use ExceptionState::*;
     vec![
         rule(
             vec![StartState],
-            r"(?:PHP\ (?:Notice|Parse\ error|Fatal\ error|Warning):)|(?:exception\ '[^']+'\ with\ message\ ')",
+            r"(?:PHP\s(?:Notice|Parse\serror|Fatal\serror|Warning):)|(?:exception\s'[^']+'\swith\smessage\s')",
             PhpStackBegin,
         ),
         rule(vec![PhpStackBegin], r"^Stack trace:", PhpStackFrames),
@@ -211,8 +208,7 @@ fn all_rules() -> Vec<Rule<'static>> {
     [
         java_rules().as_slice(),
         python_rules().as_slice(),
-        // Uncomment when enable Php
-        //php_rules().as_slice(),
+        php_rules().as_slice(),
         go_rules().as_slice(),
         ruby_rules().as_slice(),
         dart_rules().as_slice(),
@@ -230,8 +226,7 @@ pub fn rules_by_lang() -> HashMap<ProgrammingLanguages, Vec<Rule<'static>>> {
         (ProgrammingLanguages::Csharp, java_rules()),
         (ProgrammingLanguages::Python, python_rules()),
         (ProgrammingLanguages::Py, python_rules()),
-        // Uncomment when enable Php
-        //(ProgrammingLanguages::Php, php_rules()),
+        (ProgrammingLanguages::Php, php_rules()),
         (ProgrammingLanguages::Go, go_rules()),
         (ProgrammingLanguages::Ruby, ruby_rules()),
         (ProgrammingLanguages::Rb, ruby_rules()),
