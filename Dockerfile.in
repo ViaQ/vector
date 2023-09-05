@@ -43,8 +43,10 @@ FROM registry.redhat.io/ubi9/ubi:9.1.0-1817
 
 COPY --from=builder /usr/bin/vector /usr/bin/
 
+COPY ./scripts/run-vector.sh /usr/bin
+
 WORKDIR /usr/bin
-CMD ["/usr/bin/vector"]
+CMD ["sh", "run-vector.sh"]
 
 LABEL \
         License="Apache-2.0" \

@@ -31,5 +31,6 @@ RUN PROTOC=/src/thirdparty/protoc/protoc-linux-$(arch)  make build
 FROM registry.redhat.io/ubi9/ubi:latest
 
 COPY --from=builder /src/target/release/vector /usr/bin
+COPY ./scripts/run-vector.sh /usr/bin
 WORKDIR /usr/bin
-CMD ["/usr/bin/vector"]
+CMD ["sh", "run-vector.sh"]
