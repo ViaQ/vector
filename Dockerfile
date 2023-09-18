@@ -28,7 +28,7 @@ COPY . /src
 
 RUN PROTOC=/src/thirdparty/protoc/protoc-linux-$(arch)  make build
 
-FROM registry.redhat.io/ubi9/ubi:latest
+FROM registry.access.redhat.com/ubi9/ubi-minimal
 
 COPY --from=builder /src/target/release/vector /usr/bin
 WORKDIR /usr/bin
