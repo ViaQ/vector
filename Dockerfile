@@ -30,7 +30,7 @@ RUN PROTOC=/src/thirdparty/protoc/protoc-linux-$(arch) make build
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal
 
-RUN microdnf install -y systemd && \
+RUN microdnf install -y systemd tar && \
     microdnf clean all
 
 COPY --from=builder /src/target/release/vector /usr/bin
