@@ -155,10 +155,6 @@ pub struct Config {
     #[configurable(derived)]
     node_annotation_fields: node_metadata_annotator::FieldsSpec,
 
-    /// A list of glob patterns to include while reading the files.
-    #[configurable(metadata(docs::examples = "**/include/**"))]
-    include_paths_glob_patterns: Vec<PathBuf>,
-
     /// A list of glob patterns to exclude from reading the files.
     #[configurable(metadata(docs::examples = "**/exclude/**"))]
     exclude_paths_glob_patterns: Vec<PathBuf>,
@@ -271,7 +267,6 @@ impl Default for Config {
             pod_annotation_fields: pod_metadata_annotator::FieldsSpec::default(),
             namespace_annotation_fields: namespace_metadata_annotator::FieldsSpec::default(),
             node_annotation_fields: node_metadata_annotator::FieldsSpec::default(),
-            include_paths_glob_patterns: default_path_inclusion(),
             exclude_paths_glob_patterns: default_path_exclusion(),
             read_from: default_read_from(),
             ignore_older_secs: None,
@@ -522,7 +517,6 @@ struct Source {
     namespace_label_selector: String,
     node_selector: String,
     self_node_name: String,
-    include_paths: Vec<glob::Pattern>,
     exclude_paths: Vec<glob::Pattern>,
     read_from: ReadFrom,
     ignore_older_secs: Option<u64>,
@@ -577,8 +571,6 @@ impl Source {
 
         let data_dir = globals.resolve_and_make_data_subdir(config.data_dir.as_ref(), key.id())?;
 
-        let include_paths = prepare_include_paths(config)?;
-
         let exclude_paths = prepare_exclude_paths(config)?;
 
         let glob_minimum_cooldown = config.glob_minimum_cooldown_ms;
@@ -602,7 +594,6 @@ impl Source {
             namespace_label_selector,
             node_selector,
             self_node_name,
-            include_paths,
             exclude_paths,
             read_from: ReadFrom::from(config.read_from),
             ignore_older_secs: config.ignore_older_secs,
@@ -634,7 +625,6 @@ impl Source {
             namespace_label_selector,
             node_selector,
             self_node_name,
-            include_paths,
             exclude_paths,
             read_from,
             ignore_older_secs,
@@ -713,7 +703,7 @@ impl Source {
         )));
 
         let paths_provider =
-            K8sPathsProvider::new(pod_state.clone(), ns_state.clone(), include_paths, exclude_paths);
+            K8sPathsProvider::new(pod_state.clone(), ns_state.clone(), exclude_paths);
         let annotator = PodMetadataAnnotator::new(pod_state, pod_fields_spec, log_namespace);
         let ns_annotator =
             NamespaceMetadataAnnotator::new(ns_state, namespace_fields_spec, log_namespace);
@@ -939,10 +929,6 @@ fn default_self_node_name_env_template() -> String {
     format!("${{{}}}", SELF_NODE_NAME_ENV_KEY.to_owned())
 }
 
-fn default_path_inclusion() -> Vec<PathBuf> {
-    vec![PathBuf::from("**/*")]
-}
-
 fn default_path_exclusion() -> Vec<PathBuf> {
     vec![PathBuf::from("**/*.gz"), PathBuf::from("**/*.tmp")]
 }
@@ -980,18 +966,11 @@ const fn default_rotate_wait_ms() -> Duration {
     Duration::from_millis(u64::MAX/1000)
 }
 
-fn prepare_include_paths(config: &Config) -> crate::Result<Vec<glob::Pattern>> {
-    prepare_glob_patterns(&config.include_paths_glob_patterns, "Including")
-}
-
-fn prepare_exclude_paths(config: &Config) -> crate::Result<Vec<glob::Pattern>> {
-    prepare_glob_patterns(&config.exclude_paths_glob_patterns, "Excluding")
-}
-
-// This function constructs the patterns for file watching, created
+// This function constructs the patterns we exclude from file watching, created
 // from the defaults or user provided configuration.
-fn prepare_glob_patterns(paths: &Vec<PathBuf>, op: &str) -> crate::Result<Vec<glob::Pattern>> {
-    let ret = paths
+fn prepare_exclude_paths(config: &Config) -> crate::Result<Vec<glob::Pattern>> {
+    let exclude_paths = config
+        .exclude_paths_glob_patterns
         .iter()
         .map(|pattern| {
             let pattern = pattern
@@ -1002,14 +981,14 @@ fn prepare_glob_patterns(paths: &Vec<PathBuf>, op: &str) -> crate::Result<Vec<gl
         .collect::<crate::Result<Vec<_>>>()?;
 
     info!(
-        message = format!("{op} matching files."),
-        ret = ?ret
+        message = "Excluding matching files.",
+        exclude_paths = ?exclude_paths
             .iter()
             .map(glob::Pattern::as_str)
             .collect::<Vec<_>>()
     );
 
-    Ok(ret)
+    Ok(exclude_paths)
 }
 
 // This function constructs the effective field selector to use, based on
