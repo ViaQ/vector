@@ -1,4 +1,4 @@
-FROM registry.redhat.io/ubi8:8.6-754 as builder
+FROM registry.redhat.io/ubi8:latest as builder
 
 RUN INSTALL_PKGS=" \
       rust-toolset \
@@ -26,7 +26,7 @@ COPY . /src
 RUN PROTOC=/src/thirdparty/protoc/protoc-linux-$(arch)  make build
 
 
-FROM registry.redhat.io/ubi8:8.6-754
+FROM registry.redhat.io/ubi8:latest
 
 COPY --from=builder /src/target/release/vector /usr/bin
 WORKDIR /usr/bin

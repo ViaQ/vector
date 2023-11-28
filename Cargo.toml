@@ -337,6 +337,7 @@ chrono = { git = "https://github.com/vectordotdev/chrono.git", branch = "no-defa
 aws-config = { path = "patch/aws-config" }
 aws-sigv4 = { path = "patch/aws-sigv4" }
 hyper-openssl = { path = "patch/hyper-openssl" }
+onig_sys = { path = "patch/onig_sys" }
 
 [features]
 ocp-logging = [

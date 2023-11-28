@@ -780,7 +780,7 @@ typedef enum {
 typedef union {
   long l;
   OnigCodePoint c;
-  struct {
+  struct Anon {
     OnigUChar* start;
     OnigUChar* end;
   } s;

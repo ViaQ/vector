@@ -1,4 +1,4 @@
-FROM registry.redhat.io/ubi8:6-754 as builder
+FROM registry.redhat.io/ubi8:latest as builder
 
 RUN INSTALL_PKGS=" \
       cmake \
@@ -18,7 +18,7 @@ RUN INSTALL_PKGS=" \
     yum clean all
 
 ENV HOME=/root
-RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.58.1 -y
+RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.71.1 -y
 ENV CARGO_HOME=$HOME/.cargo
 ENV PATH=$CARGO_HOME/bin:$PATH
 

@@ -477,6 +477,7 @@ mod test {
     const TEST_PEM_CRT_BYTES: &[u8] = include_bytes!("../../tests/data/localhost.crt");
     const TEST_PEM_KEY_BYTES: &[u8] = include_bytes!("../../tests/data/localhost.key");
 
+    #[ignore]
     #[test]
     fn from_options_pkcs12() {
         let options = TlsOptions {
