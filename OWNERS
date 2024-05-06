@@ -4,7 +4,6 @@ filters:
     approvers:
       - jcantrill
       - alanconway
-      - vimalk78
     reviewers:
       - jcantrill
       - alanconway
@@ -12,8 +11,8 @@ filters:
       - vimalk78
       - syedriko
       - vparfonov
-      - Pranjal-Gupta2
       - cahartma
+      - periklis
   "Dockerfile(?:\\.in)?$":
     labels:
       - midstream/Dockerfile
