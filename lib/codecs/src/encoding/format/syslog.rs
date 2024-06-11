@@ -149,7 +149,7 @@ impl Encoder<Event> for SyslogSerializer {
                 match self.config.rfc {
                     SyslogRFC::Rfc3164 => {
                         let timestamp = get_timestamp(&log);
-                        let formatted_timestamp = format!(" {} ", timestamp.format("%b %e %H:%M:%S"));
+                        let formatted_timestamp = format!("{} ", timestamp.format("%b %e %H:%M:%S"));
                         buf.push_str(&formatted_timestamp);
                         buf.push_str(&get_field("hostname", &log));
                         buf.push(' ');
@@ -191,36 +191,6 @@ impl Encoder<Event> for SyslogSerializer {
         Ok(())
     }
 }
-
-
-/*
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub struct SyslogConf {
-    #[serde(default)]
-    rfc: SyslogRFC,
-    #[serde(default = "default_facility")]
-    #[serde(deserialize_with = "deserialize_facility")]
-    facility: Facility,
-    #[serde(default = "default_severity")]
-    #[serde(deserialize_with = "deserialize_severity")]
-    severity: Severity,
-    #[serde(default)]
-    tag: String,
-    trim_prefix: Option<String>,
-    #[serde(default)]
-    payload_key: String,
-    #[serde(default)]
-    add_log_source: bool,
-    // rfc5424 only
-    #[serde(default = "default_app_name")]
-    app_name: String,
-    #[serde(default = "default_nilvalue")]
-    proc_id: String,
-    #[serde(default = "default_nilvalue")]
-    msg_id: String
-}
-*/
 
 fn deserialize_facility<'de, D>(d: D) -> Result<Facility, D::Error>
     where D: de::Deserializer<'de>
@@ -474,3 +444,66 @@ fn get_timestamp(log: &LogEvent) -> DateTime::<Local> {
     }
 }
 
+#[cfg(test)]
+mod tests {
+
+    use std::env;
+    use std::ffi::OsString;
+    use super::*;
+
+    #[test]
+    fn serialize_to_rfc3164() {
+        serialize_to_syslog(SyslogRFC::Rfc3164, "<14>Jan  1 00:00:00 - :")
+    }
+
+    #[test]
+    fn serialize_to_rfc5424() {
+        serialize_to_syslog(SyslogRFC::Rfc5424, "<14>1 1970-01-01T00:00:00.000Z -    -")
+    }
+
+    // set the local timezone to UTC for the duration of a scope
+    // in order to get predictable event timestamp
+    // from get_timestamp()
+    //
+    struct TZScope{
+        tz: Option<OsString>,
+    }
+
+    impl TZScope {
+        pub fn new() -> TZScope {
+            let ret = Self{tz: env::var_os("TZ")};
+            env::set_var("TZ", "UTC");
+            ret
+        }
+    }
+
+    impl Drop for TZScope {
+        fn drop(&mut self) {
+            match &self.tz {
+                Some(val) => env::set_var("TZ", val),
+                None => env::remove_var("TZ"),
+            }
+        }
+    }
+
+    fn serialize_to_syslog(rfc: SyslogRFC, preamble: &str) {
+        let _tz_scope = TZScope::new();
+        let config = SyslogSerializerConfig{
+            rfc: rfc,
+            ..Default::default()
+        };
+        let mut serializer = config.build();
+        let mut log_event = LogEvent::from_str_legacy("barbaz");
+        log_event.insert(event_path!("@timestamp"), Value::Timestamp(DateTime::from_timestamp(0, 0).unwrap()));
+        let event = Event::Log(log_event);
+        let mut buffer = BytesMut::new();
+        let res = serializer.encode(event, &mut buffer);
+        assert!(res.is_ok());
+
+        let syslog = String::from_utf8((&buffer.freeze()[..]).to_vec()).unwrap();
+        assert!(
+            syslog.starts_with(preamble),
+            "syslog message: '{}' did not start with expected preamble '{}'", syslog, preamble
+        );
+    }
+}
