@@ -27,7 +27,7 @@ use crate::{
 // - "SECRET[secret_name]" will not match
 // - "SECRET[.secret.name]" will not match
 pub static COLLECTOR: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"SECRET\[([[:word:]]+)\.([[:word:].]+)\]").unwrap());
+    Lazy::new(|| Regex::new(r"SECRET\[([[:word:]]+)\.([[:word:].#/-]+)\]").unwrap());
 
 /// Helper type for specifically deserializing secrets backends.
 #[derive(Debug, Default, Deserialize, Serialize)]
@@ -203,6 +203,7 @@ mod tests {
             SECRET[second_backend.secret.key]
             SECRET[first_backend.a_third.secret_key]
             SECRET[first_backend...an_extra_secret_key]
+            SECRET[first_backend.a-more/complex#key]
             SECRET[non_matching_syntax]
             SECRET[.non.matching.syntax]
         "#},
@@ -213,11 +214,12 @@ mod tests {
         assert!(keys.contains_key("second_backend"));
 
         let first_backend_keys = keys.get("first_backend").unwrap();
-        assert_eq!(first_backend_keys.len(), 4);
+        assert_eq!(first_backend_keys.len(), 5);
         assert!(first_backend_keys.contains("secret_key"));
         assert!(first_backend_keys.contains("another_secret_key"));
         assert!(first_backend_keys.contains("a_third.secret_key"));
         assert!(first_backend_keys.contains("..an_extra_secret_key"));
+        assert!(first_backend_keys.contains("a-more/complex#key"));
 
         let second_backend_keys = keys.get("second_backend").unwrap();
         assert_eq!(second_backend_keys.len(), 2);
