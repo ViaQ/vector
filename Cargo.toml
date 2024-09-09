@@ -409,6 +409,7 @@ ocp-logging = [
   "sources-journald",
   "sources-kubernetes_logs",
   "sources-prometheus",
+  "sources-internal_logs",
   "sources-internal_metrics",
   "sources-demo_logs",
   "sources-http_server",
