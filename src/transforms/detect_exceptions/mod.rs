@@ -16,9 +16,12 @@ use futures::{stream, Stream, StreamExt};
 use std::{collections::HashMap, pin::Pin, time::Duration};
 use vector_lib::{
     configurable::configurable_component,
-    config::{LogNamespace, clone_input_definitions},
-    enrichment
+    config::{log_schema,LogNamespace, clone_input_definitions},
+    enrichment,
 };
+
+use vector_lib::lookup::path::OwnedTargetPath;
+use vector_lib::lookup::path::parse_target_path;
 
 /// ProgrammingLanguages
 #[configurable_component]
@@ -63,7 +66,7 @@ pub enum ProgrammingLanguages {
 #[configurable_component(transform("detect_exceptions"))]
 #[derive(Debug, Clone)]
 #[serde(deny_unknown_fields, default)]
-pub struct DetectExceptionsConfig {
+pub struct DetectExceptionsConfig{
     /// Programming Languages for which to detect Exceptions
     ///
     /// Supported languages are
@@ -99,6 +102,9 @@ pub struct DetectExceptionsConfig {
     #[serde(default)]
     pub group_by: Vec<String>,
 
+    /// The key path to use to find the message of a log event
+    pub message_key: String,
+
     /// The interval of flushing the buffer for multiline exceptions.
     #[serde(default = "default_multiline_flush_interval_ms")]
     #[serde_as(as = "serde_with::DurationMilliSeconds<u64>")]
@@ -122,6 +128,7 @@ impl Default for DetectExceptionsConfig {
             multiline_flush_interval_ms: default_multiline_flush_interval_ms(),
             max_bytes: default_max_bytes_size(),
             max_lines: default_max_lines_num(),
+            message_key: log_schema().owned_message_path().to_string(),
             group_by: vec![],
         }
     }
@@ -188,6 +195,7 @@ pub struct DetectExceptions {
     multiline_flush_interval: Duration,
     max_bytes: usize,
     max_lines: usize,
+    message_key: OwnedTargetPath,
     group_by: Vec<String>,
 }
 
@@ -196,6 +204,14 @@ impl DetectExceptions {
         if config.languages.is_empty() {
             return Err("languages cannot be empty".into());
         }
+        let owned_target_path: OwnedTargetPath;
+        match parse_target_path(config.message_key.as_str()){
+            Err(e) => return Err(e.into()),
+            Ok(value) =>{
+                owned_target_path = value
+            },
+        };
+
         Ok(DetectExceptions {
             accumulators: HashMap::new(),
             languages: config.languages.clone(),
@@ -204,6 +220,7 @@ impl DetectExceptions {
             multiline_flush_interval: config.multiline_flush_interval_ms,
             max_bytes: config.max_bytes,
             max_lines: config.max_lines,
+            message_key: owned_target_path,
             flush_period: config.flush_period_ms,
         })
     }
@@ -220,6 +237,7 @@ impl DetectExceptions {
                     self.multiline_flush_interval,
                     self.max_bytes,
                     self.max_lines,
+                    self.message_key.clone(),
                 ),
             );
         }
