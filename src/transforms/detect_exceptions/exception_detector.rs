@@ -3,10 +3,11 @@ use std::usize;
 use chrono::{DateTime, Utc};
 use regex::Regex;
 use crate::{
-    config::log_schema, event::LogEvent, event::Value,
+    event::LogEvent, event::Value,
     internal_events::detect_exceptions::DetectExceptionsStaleEventFlushed,
     transforms::detect_exceptions::*,
 };
+use vector_lib::lookup::path::OwnedTargetPath;
 
 #[derive(Debug, Clone)]
 pub struct RuleTarget {
@@ -52,6 +53,7 @@ pub enum DetectionStatus {
 pub struct TraceAccumulator {
     max_bytes: usize,
     max_lines: usize,
+    message_key: OwnedTargetPath,
     multiline_flush_interval: Duration,
     first_event: LogEvent,
     buffer_size: usize,
@@ -66,11 +68,13 @@ impl TraceAccumulator {
         multiline_flush_interval: Duration,
         max_bytes: usize,
         max_lines: usize,
+        message_key: OwnedTargetPath,
     ) -> TraceAccumulator {
         TraceAccumulator {
             buffer_size: 0,
             max_bytes,
             max_lines,
+            message_key,
             multiline_flush_interval,
             first_event: LogEvent::default(),
             buffer_start_time: Utc::now(),
@@ -84,7 +88,7 @@ impl TraceAccumulator {
 
     pub fn push(&mut self, le: &LogEvent, output: &mut Vec<Event>) {
         let mut detection_status = DetectionStatus::NoTrace;
-        let message = le.get(log_schema().message_key_target_path().unwrap());
+        let message = le.get(&self.message_key);
         let message_copy = message.clone();
 
         match message {
@@ -161,7 +165,7 @@ impl TraceAccumulator {
             }
             _ => {
                 self.first_event.insert(
-                    log_schema().message_key_target_path().unwrap(),
+                    &self.message_key,
                     self.accumulated_messages.join("\n"),
                 );
                 output.push(Event::Log(self.first_event.clone()));
@@ -241,7 +245,7 @@ mod exception_detector_tests {
         detector: &mut ExceptionDetector,
         expected_first: DetectionStatus,
         expected_last: DetectionStatus,
-        multiline: Vec<&str>,
+        multiline: Vec<&str>
     ) {
         let last_index = multiline.len() - 1;
         let mut index = 0;

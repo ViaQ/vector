@@ -130,6 +130,7 @@ define ENVIRONMENT_EXEC
 			$(if $(findstring true,$(ENVIRONMENT_TTY)),--tty,) \
 			--init \
 			--interactive \
+			--privileged \
 			--env INSIDE_ENVIRONMENT=true \
 			$(if $(ENVIRONMENT_NETWORK),--network $(ENVIRONMENT_NETWORK),) \
 			--mount type=bind,source=${CURRENT_DIR},target=/git/vectordotdev/vector \
