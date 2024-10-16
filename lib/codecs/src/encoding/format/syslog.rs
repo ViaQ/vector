@@ -6,6 +6,7 @@ use vrl::{event_path, value::Value};
 use serde::{de, Deserialize};
 use vector_config::configurable_component;
 
+
 const NILVALUE: &'static str = "-";
 
 /// Syslog RFC
@@ -293,27 +294,35 @@ fn default_nilvalue() -> String {
 }
 
 fn add_log_source(log: &LogEvent, buf: &mut String) {
+    let namespace_name = log.get(event_path!("kubernetes", "namespace_name"));
+    let container_name = log.get(event_path!("kubernetes", "container_name"));
+    let pod_name = log.get(event_path!("kubernetes", "pod_name"));
+
+    if namespace_name.is_none() && container_name.is_none() && pod_name.is_none() {
+        return
+    }
+
+
     buf.push_str("namespace_name=");
     buf.push_str(&String::from_utf8(
-        log
-        .get(event_path!("kubernetes", "namespace_name"))
+        namespace_name
         .map(|h| h.coerce_to_bytes())
-        .unwrap_or_default().to_vec()
-    ).unwrap());
+        .unwrap_or_default().to_vec()).unwrap());
+
+
     buf.push_str(", container_name=");
     buf.push_str(&String::from_utf8(
-        log
-        .get(event_path!("kubernetes", "container_name"))
+        container_name
         .map(|h| h.coerce_to_bytes())
-        .unwrap_or_default().to_vec()
-    ).unwrap());
-    buf.push_str(", pod_name=");
+        .unwrap_or_default().to_vec()).unwrap());
+
+
+    buf.push_str(", pod_name=");    
     buf.push_str(&String::from_utf8(
-        log
-        .get(event_path!("kubernetes", "pod_name"))
+        pod_name
         .map(|h| h.coerce_to_bytes())
-        .unwrap_or_default().to_vec()
-    ).unwrap());
+        .unwrap_or_default().to_vec()).unwrap());
+
     buf.push_str(", message=");
 }
 
@@ -450,15 +459,54 @@ mod tests {
     use std::env;
     use std::ffi::OsString;
     use super::*;
+    use regex::Regex;
 
     #[test]
     fn serialize_to_rfc3164() {
-        serialize_to_syslog(SyslogRFC::Rfc3164, "<14>Jan  1 00:00:00 - :")
+        let preamble = "<14>Jan  1 00:00:00 - :";
+        let serialized = serialize_to_syslog(SyslogRFC::Rfc3164, false, false);
+        assert!(
+            serialized.starts_with(preamble),
+            "syslog message: '{}' did not start with expected preamble '{}'", serialized, preamble
+        );
     }
 
     #[test]
     fn serialize_to_rfc5424() {
-        serialize_to_syslog(SyslogRFC::Rfc5424, "<14>1 1970-01-01T00:00:00.000Z -    -")
+        let preamble = "<14>1 1970-01-01T00:00:00.000Z -    -";
+        let serialized = serialize_to_syslog(SyslogRFC::Rfc5424, false, false);
+        assert!(
+            serialized.starts_with(preamble),
+            "syslog message: '{}' did not start with expected preamble '{}'", serialized, preamble
+        );
+    }
+
+    #[test]
+    fn add_log_source_true() {
+        let serialized = serialize_to_syslog(SyslogRFC::Rfc5424, true, true);
+
+        // Check for presence of log source namespace_name, container_name, pod_name
+        let namespace_regex = Regex::new(r"namespace_name=[^\s,]+").unwrap();
+        let container_regex = Regex::new(r"container_name=[^\s,]+").unwrap();
+        let pod_regex = Regex::new(r"pod_name=[^\s,]+").unwrap();
+
+        assert!(namespace_regex.is_match(serialized.as_str()), "namespace_name field not found");
+        assert!(container_regex.is_match(serialized.as_str()), "container_name field not found");
+        assert!(pod_regex.is_match(serialized.as_str()), "pod_name field not found");
+    }
+
+    #[test]
+    fn add_log_source_true_with_no_log_source_event_data() {
+        let serialized = serialize_to_syslog(SyslogRFC::Rfc5424, true, false);
+
+        // Check for absence of log source namespace_name=, container_name=, pod_name=
+        let namespace_regex = Regex::new(r"namespace_name=").unwrap();
+        let container_regex = Regex::new(r"container_name=").unwrap();
+        let pod_regex = Regex::new(r"pod_name=").unwrap();
+
+        assert_eq!(namespace_regex.is_match(serialized.as_str()), false, "namespace_name= field was found");
+        assert_eq!(container_regex.is_match(serialized.as_str()), false,"container_name= field was found");
+        assert_eq!(pod_regex.is_match(serialized.as_str()), false,"pod_name= field was found");
     }
 
     // set the local timezone to UTC for the duration of a scope
@@ -486,24 +534,26 @@ mod tests {
         }
     }
 
-    fn serialize_to_syslog(rfc: SyslogRFC, preamble: &str) {
+    fn serialize_to_syslog(rfc: SyslogRFC, add_log_source: bool, add_event_data: bool) -> String {
         let _tz_scope = TZScope::new();
         let config = SyslogSerializerConfig{
+            add_log_source: add_log_source,
             rfc: rfc,
             ..Default::default()
         };
         let mut serializer = config.build();
         let mut log_event = LogEvent::from_str_legacy("barbaz");
         log_event.insert(event_path!("@timestamp"), Value::Timestamp(DateTime::from_timestamp(0, 0).unwrap()));
+        if add_event_data {
+            log_event.insert(event_path!("kubernetes", "namespace_name"), "foo_namespace");
+            log_event.insert(event_path!("kubernetes", "container_name"), "bar_container");
+            log_event.insert(event_path!("kubernetes", "pod_name"), "baz_pod");
+        }
         let event = Event::Log(log_event);
         let mut buffer = BytesMut::new();
         let res = serializer.encode(event, &mut buffer);
         assert!(res.is_ok());
 
-        let syslog = String::from_utf8((&buffer.freeze()[..]).to_vec()).unwrap();
-        assert!(
-            syslog.starts_with(preamble),
-            "syslog message: '{}' did not start with expected preamble '{}'", syslog, preamble
-        );
+        return String::from_utf8((&buffer.freeze()[..]).to_vec()).unwrap();
     }
 }
