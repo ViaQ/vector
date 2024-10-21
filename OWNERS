@@ -4,15 +4,11 @@ filters:
     approvers:
       - jcantrill
       - alanconway
-      - vimalk78
     reviewers:
       - jcantrill
       - alanconway
       - Clee2691
-      - vimalk78
-      - syedriko
       - vparfonov
-      - Pranjal-Gupta2
       - cahartma
   "Dockerfile(?:\\.in)?$":
     labels:
