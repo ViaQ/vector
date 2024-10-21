@@ -5,7 +5,7 @@ use chrono::{DateTime, SecondsFormat, Local};
 use vrl::{event_path, value::Value};
 use serde::{de, Deserialize};
 use vector_config::configurable_component;
-
+use lookup::lookup_v2::parse_target_path;
 
 const NILVALUE: &'static str = "-";
 
@@ -94,6 +94,18 @@ pub struct SyslogSerializerConfig {
     #[serde(default)]
     add_log_source: bool,
 
+    /// Namespace_name key
+    #[serde(default = "default_namespace_name_key")]
+    namespace_name_key: String,
+    
+    /// Container_name key
+    #[serde(default = "default_container_name_key")]
+    container_name_key: String,
+
+    /// Pod_name key
+    #[serde(default = "default_pod_name_key")]
+    pod_name_key: String,
+
     /// App Name, RFC 5424 only
     #[serde(default = "default_app_name")]
     app_name: String,
@@ -157,7 +169,10 @@ impl Encoder<Event> for SyslogSerializer {
                         buf.push_str(&get_field_or_config(&self.config.tag, &log));
                         buf.push_str(": ");
                         if self.config.add_log_source {
-                            add_log_source(&log, &mut buf);
+                            add_log_source(&log, &mut buf, 
+                                &&self.config.namespace_name_key,
+                                &&self.config.container_name_key,
+                                &&self.config.pod_name_key);
                         }
                     },
                     SyslogRFC::Rfc5424 => {
@@ -174,7 +189,10 @@ impl Encoder<Event> for SyslogSerializer {
                         buf.push_str(&get_field_or_config(&&self.config.msg_id, &log));
                         buf.push_str(" - "); // no structured data
                         if self.config.add_log_source {
-                            add_log_source(&log, &mut buf);
+                            add_log_source(&log, &mut buf,
+                                &&self.config.namespace_name_key,
+                                &&self.config.container_name_key,
+                                &&self.config.pod_name_key);
                         }
                     }
                 }
@@ -289,39 +307,48 @@ fn default_app_name() -> String {
     String::from("vector")
 }
 
+fn default_namespace_name_key() -> String {
+    String::from(".kubernetes.namespace_name")
+}
+
+fn default_container_name_key() -> String {
+    String::from(".kubernetes.container_name")
+}
+
+fn default_pod_name_key() -> String {
+    String::from(".kubernetes.pod_name")
+}
+
 fn default_nilvalue() -> String {
     String::from(NILVALUE)
 }
 
-fn add_log_source(log: &LogEvent, buf: &mut String) {
-    let namespace_name = log.get(event_path!("kubernetes", "namespace_name"));
-    let container_name = log.get(event_path!("kubernetes", "container_name"));
-    let pod_name = log.get(event_path!("kubernetes", "pod_name"));
+fn get_value_from_path(log: &LogEvent, path: &String, default: &String) -> String {
+    let parsed_path = parse_target_path(&path).unwrap_or_else(|_| parse_target_path(&default).unwrap());
+    if let Some(field_value) = log.get(&parsed_path) {
+        return String::from_utf8(field_value.coerce_to_bytes().to_vec()).unwrap_or_default();
+    } else {
+        return NILVALUE.to_string();
+    }
+}
 
-    if namespace_name.is_none() && container_name.is_none() && pod_name.is_none() {
+fn add_log_source(log: &LogEvent, buf: &mut String, namespace_name_path: &String, container_name_path: &String, pod_name_path: &String) {
+    let namespace = get_value_from_path(log, namespace_name_path, &default_namespace_name_key());
+    let container = get_value_from_path(log, container_name_path, &default_container_name_key());
+    let pod = get_value_from_path(log, pod_name_path, &default_pod_name_key());
+
+    if namespace == NILVALUE && container == NILVALUE && pod == NILVALUE {
         return
     }
 
-
     buf.push_str("namespace_name=");
-    buf.push_str(&String::from_utf8(
-        namespace_name
-        .map(|h| h.coerce_to_bytes())
-        .unwrap_or_default().to_vec()).unwrap());
-
+    buf.push_str(&namespace);
 
     buf.push_str(", container_name=");
-    buf.push_str(&String::from_utf8(
-        container_name
-        .map(|h| h.coerce_to_bytes())
-        .unwrap_or_default().to_vec()).unwrap());
+    buf.push_str(&container);
 
-
-    buf.push_str(", pod_name=");    
-    buf.push_str(&String::from_utf8(
-        pod_name
-        .map(|h| h.coerce_to_bytes())
-        .unwrap_or_default().to_vec()).unwrap());
+    buf.push_str(", pod_name=");
+    buf.push_str(&pod);
 
     buf.push_str(", message=");
 }
@@ -463,8 +490,11 @@ mod tests {
 
     #[test]
     fn serialize_to_rfc3164() {
+        let mut log_event = LogEvent::from_str_legacy("barbaz");
+        log_event.insert(event_path!("@timestamp"), Value::Timestamp(DateTime::from_timestamp(0, 0).unwrap()));
+
         let preamble = "<14>Jan  1 00:00:00 - :";
-        let serialized = serialize_to_syslog(SyslogRFC::Rfc3164, false, false);
+        let serialized = serialize_to_syslog(SyslogRFC::Rfc3164, false, log_event, NILVALUE.to_string(), NILVALUE.to_string(), NILVALUE.to_string());
         assert!(
             serialized.starts_with(preamble),
             "syslog message: '{}' did not start with expected preamble '{}'", serialized, preamble
@@ -473,8 +503,11 @@ mod tests {
 
     #[test]
     fn serialize_to_rfc5424() {
+        let mut log_event = LogEvent::from_str_legacy("barbaz");
+        log_event.insert(event_path!("@timestamp"), Value::Timestamp(DateTime::from_timestamp(0, 0).unwrap()));
+
         let preamble = "<14>1 1970-01-01T00:00:00.000Z -    -";
-        let serialized = serialize_to_syslog(SyslogRFC::Rfc5424, false, false);
+        let serialized = serialize_to_syslog(SyslogRFC::Rfc5424, false, log_event, NILVALUE.to_string(), NILVALUE.to_string(), NILVALUE.to_string());
         assert!(
             serialized.starts_with(preamble),
             "syslog message: '{}' did not start with expected preamble '{}'", serialized, preamble
@@ -483,12 +516,18 @@ mod tests {
 
     #[test]
     fn add_log_source_true() {
-        let serialized = serialize_to_syslog(SyslogRFC::Rfc5424, true, true);
+        let mut log_event = LogEvent::from_str_legacy("barbaz");
+        log_event.insert(event_path!("@timestamp"), Value::Timestamp(DateTime::from_timestamp(0, 0).unwrap()));
+        log_event.insert(event_path!("kubernetes", "namespace_name"), "foo_namespace");
+        log_event.insert(event_path!("kubernetes", "container_name"), "bar_container");
+        log_event.insert(event_path!("kubernetes", "pod_name"), "baz_pod");
+
+        let serialized = serialize_to_syslog(SyslogRFC::Rfc5424, true, log_event, default_namespace_name_key(), default_container_name_key(), default_pod_name_key());
 
         // Check for presence of log source namespace_name, container_name, pod_name
-        let namespace_regex = Regex::new(r"namespace_name=[^\s,]+").unwrap();
-        let container_regex = Regex::new(r"container_name=[^\s,]+").unwrap();
-        let pod_regex = Regex::new(r"pod_name=[^\s,]+").unwrap();
+        let namespace_regex = Regex::new(r"namespace_name=foo_namespace").unwrap();
+        let container_regex = Regex::new(r"container_name=bar_container").unwrap();
+        let pod_regex = Regex::new(r"pod_name=baz_pod").unwrap();
 
         assert!(namespace_regex.is_match(serialized.as_str()), "namespace_name field not found");
         assert!(container_regex.is_match(serialized.as_str()), "container_name field not found");
@@ -497,7 +536,10 @@ mod tests {
 
     #[test]
     fn add_log_source_true_with_no_log_source_event_data() {
-        let serialized = serialize_to_syslog(SyslogRFC::Rfc5424, true, false);
+        let mut log_event = LogEvent::from_str_legacy("barbaz");
+        log_event.insert(event_path!("@timestamp"), Value::Timestamp(DateTime::from_timestamp(0, 0).unwrap()));
+
+        let serialized = serialize_to_syslog(SyslogRFC::Rfc5424, true, log_event, NILVALUE.to_string(), NILVALUE.to_string(), NILVALUE.to_string());
 
         // Check for absence of log source namespace_name=, container_name=, pod_name=
         let namespace_regex = Regex::new(r"namespace_name=").unwrap();
@@ -507,6 +549,26 @@ mod tests {
         assert_eq!(namespace_regex.is_match(serialized.as_str()), false, "namespace_name= field was found");
         assert_eq!(container_regex.is_match(serialized.as_str()), false,"container_name= field was found");
         assert_eq!(pod_regex.is_match(serialized.as_str()), false,"pod_name= field was found");
+    }
+
+    #[test]
+    fn add_log_source_true_custom_enrichment_paths() {
+        let mut log_event = LogEvent::from_str_legacy("barbaz");
+        log_event.insert(event_path!("@timestamp"), Value::Timestamp(DateTime::from_timestamp(0, 0).unwrap()));
+        log_event.insert(event_path!("k8s", "namespace"), "k8s_name");
+        log_event.insert(event_path!("k8s", "container"), "k8s_cont");
+        log_event.insert(event_path!("k8s","pod"), "k8s_pod");
+
+        let serialized = serialize_to_syslog(SyslogRFC::Rfc5424, true, log_event, String::from(".k8s.namespace"), String::from(".k8s.container"), String::from("k8s.pod"));
+
+        // Check for presence of log source namespace_name, container_name, pod_name
+        let namespace_regex = Regex::new(r"namespace_name=k8s_name").unwrap();
+        let container_regex = Regex::new(r"container_name=k8s_cont").unwrap();
+        let pod_regex = Regex::new(r"pod_name=k8s_pod").unwrap();
+
+        assert!(namespace_regex.is_match(serialized.as_str()), "namespace_name field not found");
+        assert!(container_regex.is_match(serialized.as_str()), "container_name field not found");
+        assert!(pod_regex.is_match(serialized.as_str()), "pod_name field not found");
     }
 
     // set the local timezone to UTC for the duration of a scope
@@ -534,21 +596,18 @@ mod tests {
         }
     }
 
-    fn serialize_to_syslog(rfc: SyslogRFC, add_log_source: bool, add_event_data: bool) -> String {
+    fn serialize_to_syslog(rfc: SyslogRFC, add_log_source: bool, log_event: LogEvent, namespace_key: String, container_key: String, pod_key: String) -> String {
         let _tz_scope = TZScope::new();
         let config = SyslogSerializerConfig{
             add_log_source: add_log_source,
             rfc: rfc,
+            namespace_name_key: namespace_key,
+            container_name_key: container_key,
+            pod_name_key: pod_key,
             ..Default::default()
         };
+
         let mut serializer = config.build();
-        let mut log_event = LogEvent::from_str_legacy("barbaz");
-        log_event.insert(event_path!("@timestamp"), Value::Timestamp(DateTime::from_timestamp(0, 0).unwrap()));
-        if add_event_data {
-            log_event.insert(event_path!("kubernetes", "namespace_name"), "foo_namespace");
-            log_event.insert(event_path!("kubernetes", "container_name"), "bar_container");
-            log_event.insert(event_path!("kubernetes", "pod_name"), "baz_pod");
-        }
         let event = Event::Log(log_event);
         let mut buffer = BytesMut::new();
         let res = serializer.encode(event, &mut buffer);
