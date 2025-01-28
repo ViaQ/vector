@@ -154,6 +154,7 @@ Vector is an end-to-end, unified, open data platform.
   Developed with ❤️ by <strong><a href="https://datadoghq.com">Datadog</a></strong> - <a href="https://github.com/vectordotdev/vector/security/policy">Security Policy</a> - <a href="https://github.com/vectordotdev/vector/blob/master/PRIVACY.md">Privacy Policy</a>
 </p>
 
+
 [docs.about.concepts]: https://vector.dev/docs/about/concepts/
 [docs.about.under-the-hood]: https://vector.dev/docs/about/under-the-hood/
 [docs.administration.monitoring]: https://vector.dev/docs/administration/monitoring/
