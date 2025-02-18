@@ -6,9 +6,9 @@ The `main` branch is empty except for this file.  The branches used by various R
 
 | Release | Branch | Vector Version | Status |
 | --------|--------|----------------|--------|
-| 6.2 | v0.43.1-rh | v0.43.1 | Pending |
-| 6.1 | release-6.1 | v0.37.1 | Current |
-| 6.0 | release-6.0 | v0.37.1 | Current |
+| 6.2 | v0.37.1-rh | v0.37.1 | Pending |
+| 6.1 | v0.37.1-rh | v0.37.1 | Current |
+| 6.0 | v0.37.1-rh | v0.37.1 | Current |
 | 5.9 | release-5.9 | v0.34.1 | Current |
 | 5.8 | release-5.8 | v0.28.1 | Current |
 | 5.7 | release-5.7 | v0.21.0 | EOL |
@@ -23,6 +23,7 @@ This project varies from the upstream with the following features:
 ||[Add syslog sink](https://github.com/ViaQ/vector/pull/133) |5.7| [Open](https://github.com/vectordotdev/vector/pull/17668) |
 |LOG-3949|[Add file rotate wait](https://github.com/ViaQ/vector/pull/154)|5.8|[Accepted](https://github.com/vectordotdev/vector/pull/18904)|
 |LOG-4739|[Add Support for include_paths_glob_pattern](https://github.com/ViaQ/vector/pull/167)|5.9|[Accepted](https://github.com/vectordotdev/vector/pull/19521)|
+|LOG-6155|[Allow config of message key for multiline exception transform](https://github.com/ViaQ/vector/pull/183)|6.2| N/A |
 
 ## Issues
 
