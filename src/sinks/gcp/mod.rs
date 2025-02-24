@@ -6,6 +6,7 @@ use vector_lib::configurable::configurable_component;
 pub mod cloud_storage;
 pub mod pubsub;
 pub mod stackdriver;
+pub mod token_source;
 
 /// A monitored resource.
 ///
