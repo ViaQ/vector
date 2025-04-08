@@ -451,6 +451,7 @@ impl fmt::Debug for Body {
         #[derive(Debug)]
         struct Empty;
         #[derive(Debug)]
+        #[allow(dead_code)]
         struct Full<'a>(&'a Bytes);
 
         let mut builder = f.debug_tuple("Body");
