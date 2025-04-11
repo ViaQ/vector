@@ -444,6 +444,7 @@ ocp-logging = [
   "sources-demo_logs",
   "sources-http_server",
   "sources-syslog",
+  "sources-opentelemetry",
 
   "transforms-route",
   "transforms-dedupe",
@@ -467,6 +468,7 @@ ocp-logging = [
   "sinks-splunk_hec",
   "sinks-http",
   "sinks-socket",
+  "sinks-opentelemetry",
 
   "api",
   "api-client",
