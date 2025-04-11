@@ -18,6 +18,7 @@ use tokio::{
     net::{TcpListener, TcpStream},
 };
 use tokio_openssl::SslStream;
+use tonic::transport::{server::Connected, Certificate};
 
 use super::{
     CreateAcceptorSnafu, HandshakeSnafu, IncomingListenerSnafu, MaybeTlsSettings, MaybeTlsStream,
@@ -442,6 +443,31 @@ impl From<X509> for CertificateMetadata {
             organization_name: subject_metadata.get("organizationName").cloned(),
             organizational_unit_name: subject_metadata.get("organizationalUnitName").cloned(),
             common_name: subject_metadata.get("commonName").cloned(),
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct MaybeTlsConnectInfo {
+    pub remote_addr: SocketAddr,
+    pub peer_certs: Option<Vec<Certificate>>,
+}
+
+impl Connected for MaybeTlsIncomingStream<TcpStream> {
+    type ConnectInfo = MaybeTlsConnectInfo;
+
+    fn connect_info(&self) -> Self::ConnectInfo {
+        MaybeTlsConnectInfo {
+            remote_addr: self.peer_addr(),
+            peer_certs: self
+                .ssl_stream()
+                .and_then(|s| s.ssl().peer_cert_chain())
+                .map(|s| {
+                    s.into_iter()
+                        .filter_map(|c| c.to_pem().ok())
+                        .map(Certificate::from_pem)
+                        .collect()
+                }),
         }
     }
 }
