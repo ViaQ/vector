@@ -207,7 +207,7 @@ fn deserialize_facility<'de, D>(d: D) -> Result<Facility, D::Error>
             }
         }
         Err(_) => {
-            if let Some(field_name) = value.strip_prefix("$.message.") {
+            if let Some(field_name) = value.strip_prefix("$.") {
                 return Ok(Facility::Field(field_name.to_string()));
             } else {
                 let num = match value.to_uppercase().as_str() {
@@ -261,7 +261,7 @@ fn deserialize_severity<'de, D>(d: D) -> Result<Severity, D::Error>
             }
         }
         Err(_) => {
-            if let Some(field_name) = value.strip_prefix("$.message.") {
+            if let Some(field_name) = value.strip_prefix("$.") {
                 return Ok(Severity::Field(field_name.to_string()));
             } else {
                 let num = match value.to_uppercase().as_str() {
@@ -328,117 +328,91 @@ fn add_log_source(log: &LogEvent, buf: &mut String) {
 
 fn get_num_facility(config_facility: &Facility, log: &LogEvent) -> u8 {
     match config_facility {
-        Facility::Fixed(num) => return *num,
+        Facility::Fixed(num) => *num,
         Facility::Field(field_name) => {
-            if let Some(field_value) = log.get(event_path!(field_name.as_str())) {
-                let field_value_string = String::from_utf8(field_value.coerce_to_bytes().to_vec()).unwrap_or_default();
-                let num_value = field_value_string.parse::<u8>();
-                match num_value {
-                    Ok(num) => {
-                        if num > 23 {
-                            return 1 // USER
-                        } else {
-                            return num
-                        }
-                    }
-                    Err(_) => {
-                            let num = match field_value_string.to_uppercase().as_str() {
-                                "KERN" => 0,
-                                "USER" => 1,
-                                "MAIL" => 2,
-                                "DAEMON" => 3,
-                                "AUTH" => 4,
-                                "SYSLOG" => 5,
-                                "LPR" => 6,
-                                "NEWS" => 7,
-                                "UUCP" => 8,
-                                "CRON" => 9,
-                                "AUTHPRIV" => 10,
-                                "FTP" => 11,
-                                "NTP" => 12,
-                                "SECURITY" => 13,
-                                "CONSOLE" => 14,
-                                "SOLARIS-CRON" => 15,
-                                "LOCAL0" => 16,
-                                "LOCAL1" => 17,
-                                "LOCAL2" => 18,
-                                "LOCAL3" => 19,
-                                "LOCAL4" => 20,
-                                "LOCAL5" => 21,
-                                "LOCAL6" => 22,
-                                "LOCAL7" => 23,
-                                _ => 24,
-                            };
-                            if num > 23 {
-                                return 1 // USER
-                            } else {
-                                return num
-                            }
-                        }
-                    }
-            } else {
-                return 1 // USER
-            }
+            let field_name = field_name.strip_prefix("$.").unwrap_or(field_name);
+            let raw_value = get_field(field_name, log);
+            parse_facility_or_default(&raw_value)
         }
     }
 }
 
 fn get_num_severity(config_severity: &Severity, log: &LogEvent) -> u8 {
     match config_severity {
-        Severity::Fixed(num) => return *num,
+        Severity::Fixed(num) => *num,
         Severity::Field(field_name) => {
-            if let Some(field_value) = log.get(event_path!(field_name.as_str())) {
-                let field_value_string = String::from_utf8(field_value.coerce_to_bytes().to_vec()).unwrap_or_default();
-                let num_value = field_value_string.parse::<u8>();
-                match num_value {
-                    Ok(num) => {
-                        if num > 7 {
-                            return 6 // INFORMATIONAL
-                        } else {
-                            return num
-                        }
-                    }
-                    Err(_) => {
-                            let num = match field_value_string.to_uppercase().as_str() {
-                                "EMERGENCY" => 0,
-                                "ALERT" => 1,
-                                "CRITICAL" => 2,
-                                "ERROR" => 3,
-                                "WARNING" => 4,
-                                "NOTICE" => 5,
-                                "INFORMATIONAL" => 6,
-                                "DEBUG" => 7,
-                                _ => 8,
-                            };
-                            if num > 7 {
-                                return 6 // INFORMATIONAL
-                            } else {
-                                return num
-                            }
-                        }
-                    }
-            } else {
-                return 6 // INFORMATIONAL
-            }
+            let field_name = field_name.strip_prefix("$.").unwrap_or(field_name);
+            let raw_value = get_field(field_name, log);
+            parse_severity_or_default(&raw_value)
         }
     }
 }
 
 fn get_field_or_config(config_name: &String, log: &LogEvent) -> String {
-    if let Some(field_name) = config_name.strip_prefix("$.message.") {
-        return get_field(field_name, log)
-    } else {
-        return config_name.clone()
-    }
+    config_name
+        .strip_prefix("$.")
+        .map(|field| get_field(field, log))
+        .unwrap_or_else(|| config_name.clone())
 }
 
 fn get_field(field_name: &str, log: &LogEvent) -> String {
-    if let Some(field_value) = log.get(event_path!(field_name)) {
-        return String::from_utf8(field_value.coerce_to_bytes().to_vec()).unwrap_or_default();
-    } else {
-        return NILVALUE.to_string()
+    log.parse_path_and_get_value(field_name)
+        .ok()
+        .flatten()
+        .map(|v| String::from_utf8(v.coerce_to_bytes().to_vec()).unwrap_or_default())
+        .unwrap_or_else(|| NILVALUE.to_string())
+}
+
+fn parse_facility_or_default(value: &str) -> u8 {
+    match value.parse::<u8>() {
+        Ok(num) if num <= 23 => num,
+        _ => match value.to_uppercase().as_str() {
+            "KERN" => 0,
+            "USER" => 1,
+            "MAIL" => 2,
+            "DAEMON" => 3,
+            "AUTH" => 4,
+            "SYSLOG" => 5,
+            "LPR" => 6,
+            "NEWS" => 7,
+            "UUCP" => 8,
+            "CRON" => 9,
+            "AUTHPRIV" => 10,
+            "FTP" => 11,
+            "NTP" => 12,
+            "SECURITY" => 13,
+            "CONSOLE" => 14,
+            "SOLARIS-CRON" => 15,
+            "LOCAL0" => 16,
+            "LOCAL1" => 17,
+            "LOCAL2" => 18,
+            "LOCAL3" => 19,
+            "LOCAL4" => 20,
+            "LOCAL5" => 21,
+            "LOCAL6" => 22,
+            "LOCAL7" => 23,
+            _ => 1, // default to USER
+        },
     }
 }
+
+fn parse_severity_or_default(value: &str) -> u8 {
+    match value.parse::<u8>() {
+        Ok(num) if num <= 7 => num,
+        _ => match value.to_uppercase().as_str() {
+            "EMERGENCY" => 0,
+            "ALERT" => 1,
+            "CRITICAL" => 2,
+            "ERROR" => 3,
+            "WARNING" => 4,
+            "NOTICE" => 5,
+            "INFORMATIONAL" => 6,
+            "DEBUG" => 7,
+            _ => 6, // default to INFORMATIONAL
+        },
+    }
+}
+
 
 fn get_timestamp(log: &LogEvent) -> DateTime::<Local> {
     match log.get(event_path!("@timestamp")) {
@@ -481,6 +455,119 @@ mod tests {
         );
     }
 
+    fn dummy_log_event_with_field() -> LogEvent {
+        let json_str = r#"{
+  "level": "default",
+  "log_type": "application",
+  "facility_num": 7,
+  "facility_invalid": "invalid",
+  "severity_invalid": "bad_severity",
+  "severity_num": 4,
+  "message": {
+    "appname_key": "rec_appname",
+    "msgcontent": "My life is my message",
+    "msgid_key": "rec_msgid",
+    "procid_key": "rec_procid",
+    "timestamp": "2021-02-16 18:55:01",
+    "facility_key": "syslog",
+    "severity_key": "critical"
+  }
+}"#;
+        let value: Value = serde_json::from_str(json_str).unwrap();
+        let log = LogEvent::from(value);
+        log
+    }
+
+    #[test]
+    fn get_field_test()  {
+        let log = dummy_log_event_with_field();
+        let str = get_field(&"message.appname_key".to_string(), &log);
+        assert_eq!(str, "rec_appname");
+        let str = get_field(&"message.facility_key".to_string(), &log);
+        assert_eq!(str, "syslog");
+    }
+
+    #[test]
+    fn get_field_or_config_prefixed_test() {
+        let log = dummy_log_event_with_field();
+        let config_name = "$.level".to_string();
+        let result = get_field_or_config(&config_name, &log);
+        assert_eq!(result, "default");
+    }
+
+    #[test]
+    fn get_field_or_config_no_prefix_test() { 
+        let log = LogEvent::default();
+        let config_name = "log_type".to_string();
+        let result = get_field_or_config(&config_name, &log);
+        assert_eq!(result, "log_type");
+    }
+
+    #[test]
+    fn test_fallback_when_field_missing() {
+        let log = dummy_log_event_with_field();
+        let config_name = "$.missing_key".to_string();
+        let result = get_field_or_config(&config_name, &log);
+        assert_eq!(result, "-");
+    }
+    
+
+    #[test]
+    fn test_fixed_facility() {
+        let log = LogEvent::default();
+        let facility = Facility::Fixed(5);
+        assert_eq!(get_num_facility(&facility, &log), 5);
+    }
+
+    #[test]
+    fn test_field_facility_numeric() {
+        let log = dummy_log_event_with_field();
+        let facility = Facility::Field("$.facility_num".to_string());
+        assert_eq!(get_num_facility(&facility, &log), 7);
+    }
+
+    #[test]
+    fn test_field_facility() {
+        let log = dummy_log_event_with_field();
+        let facility = Facility::Field("$.message.facility_key".to_string()); 
+        assert_eq!(get_num_facility(&facility, &log), 5); // SYSLOG = 5
+    }
+
+    #[test]
+    fn test_field_facility_invalid() {
+        let log = dummy_log_event_with_field();
+        let facility = Facility::Field("facility_invalid".to_string());
+        assert_eq!(get_num_facility(&facility, &log), 1); // falls back to default USER = 1
+    }
+    
+    #[test]
+    fn test_fixed_severity() {
+        let log = LogEvent::default();
+        let severity = Severity::Fixed(3);
+        assert_eq!(get_num_severity(&severity, &log), 3);
+    }
+
+    #[test]
+    fn test_field_severity_numeric() {
+        let log = dummy_log_event_with_field();
+        let severity = Severity::Field("$.severity_num".to_string());
+        assert_eq!(get_num_severity(&severity, &log), 4);
+    }
+
+    #[test]
+    fn test_field_severity() {
+        let log = dummy_log_event_with_field();
+        let severity = Severity::Field("$.message.severity_key".to_string());
+        assert_eq!(get_num_severity(&severity, &log), 2); // CRITICAL = 2
+    }
+
+    #[test]
+    fn test_field_severity_invalid() {
+        let log = dummy_log_event_with_field();
+        let severity = Severity::Field("severity_invalid".to_string());
+        assert_eq!(get_num_severity(&severity, &log), 6); // falls back to default INFORMATIONAL = 6
+    }
+    
     #[test]
     fn add_log_source_true() {
         let serialized = serialize_to_syslog(SyslogRFC::Rfc5424, true, true);
