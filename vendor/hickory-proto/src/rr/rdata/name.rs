@@ -30,14 +30,14 @@
 //! the description of name server logic in [RFC-1034] for details.
 //! ```
 
-use std::{fmt, ops::Deref};
+use core::{fmt, ops::Deref};
 
-#[cfg(feature = "serde-config")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::{
     error::ProtoResult,
-    rr::{domain::Name, RData, RecordData, RecordType},
+    rr::{RData, RecordData, RecordType, domain::Name},
     serialize::binary::*,
 };
 
@@ -75,7 +75,7 @@ pub fn emit(encoder: &mut BinEncoder<'_>, name_data: &Name) -> ProtoResult<()> {
 macro_rules! name_rdata {
     ($name: ident) => {
         #[doc = stringify!(new type for the RecordData of $name)]
-        #[cfg_attr(feature = "serde-config", derive(Deserialize, Serialize))]
+        #[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
         #[derive(Debug, PartialEq, Eq, Hash, Clone)]
         pub struct $name(pub Name);
 
@@ -139,6 +139,10 @@ name_rdata!(ANAME);
 #[cfg(test)]
 mod tests {
 
+    use alloc::{string::ToString, vec::Vec};
+    #[cfg(feature = "std")]
+    use std::println;
+
     use super::*;
 
     #[test]
@@ -153,13 +157,14 @@ mod tests {
         let rdata = Name::from_ascii("WWW.example.com.").unwrap();
 
         let mut bytes = Vec::new();
-        let mut encoder: BinEncoder<'_> = BinEncoder::new(&mut bytes);
+        let mut encoder = BinEncoder::new(&mut bytes);
         assert!(emit(&mut encoder, &rdata).is_ok());
         let bytes = encoder.into_bytes();
 
+        #[cfg(feature = "std")]
         println!("bytes: {bytes:?}");
 
-        let mut decoder: BinDecoder<'_> = BinDecoder::new(bytes);
+        let mut decoder = BinDecoder::new(bytes);
         let read_rdata = read(&mut decoder).expect("Decoding error");
         assert_eq!(rdata, read_rdata);
     }

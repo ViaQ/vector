@@ -3,7 +3,7 @@ pub use crate::operation::delete_data_protection_policy::_delete_data_protection
 
 pub use crate::operation::delete_data_protection_policy::_delete_data_protection_policy_input::DeleteDataProtectionPolicyInputBuilder;
 
-impl DeleteDataProtectionPolicyInputBuilder {
+impl crate::operation::delete_data_protection_policy::builders::DeleteDataProtectionPolicyInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,7 +22,7 @@ impl DeleteDataProtectionPolicyInputBuilder {
 }
 /// Fluent builder constructing a request to `DeleteDataProtectionPolicy`.
 ///
-/// <p>Deletes the data protection policy from the specified log group. </p>
+/// <p>Deletes the data protection policy from the specified log group.</p>
 /// <p>For more information about data protection policies, see <a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDataProtectionPolicy.html">PutDataProtectionPolicy</a>.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct DeleteDataProtectionPolicyFluentBuilder {
@@ -49,7 +49,7 @@ impl
     }
 }
 impl DeleteDataProtectionPolicyFluentBuilder {
-    /// Creates a new `DeleteDataProtectionPolicy`.
+    /// Creates a new `DeleteDataProtectionPolicyFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -100,12 +100,12 @@ impl DeleteDataProtectionPolicyFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

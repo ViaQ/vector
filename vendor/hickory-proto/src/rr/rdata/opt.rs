@@ -8,13 +8,16 @@
 //! option record for passing protocol options between the client and server
 #![allow(clippy::use_self)]
 
+use alloc::vec::Vec;
+use core::fmt;
+#[cfg(not(feature = "std"))]
+use core::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use core::str::FromStr;
+#[cfg(feature = "std")]
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
-use std::str::FromStr;
-use std::{collections::HashMap, fmt};
 
-#[cfg(feature = "serde-config")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
-
 use tracing::warn;
 
 use crate::{
@@ -23,13 +26,15 @@ use crate::{
     serialize::binary::{BinDecodable, BinDecoder, BinEncodable, BinEncoder, Restrict},
 };
 
-#[cfg(feature = "dnssec")]
-use crate::rr::dnssec::SupportedAlgorithms;
+#[cfg(feature = "__dnssec")]
+use crate::dnssec::SupportedAlgorithms;
 
 /// The OPT record type is used for ExtendedDNS records.
 ///
 /// These allow for additional information to be associated with the DNS request that otherwise
 /// would require changes to the DNS protocol.
+///
+/// Multiple options with the same code are allowed to appear in this record
 ///
 /// [RFC 6891, EDNS(0) Extensions, April 2013](https://tools.ietf.org/html/rfc6891#section-6)
 ///
@@ -162,10 +167,10 @@ use crate::rr::dnssec::SupportedAlgorithms;
 ///       Set to zero by senders and ignored by receivers, unless modified
 ///       in a subsequent specification.
 /// ```
-#[cfg_attr(feature = "serde-config", derive(Deserialize, Serialize))]
-#[derive(Default, Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[derive(Default, Debug, Clone)]
 pub struct OPT {
-    options: HashMap<EdnsCode, EdnsOption>,
+    options: Vec<(EdnsCode, EdnsOption)>,
 }
 
 impl OPT {
@@ -173,45 +178,63 @@ impl OPT {
     ///
     /// # Arguments
     ///
-    /// * `options` - A map of the codes and record types
+    /// * `options` - List of code and record type tuples
     ///
     /// # Return value
     ///
     /// The newly created OPT data
-    pub fn new(options: HashMap<EdnsCode, EdnsOption>) -> Self {
+    pub fn new(options: Vec<(EdnsCode, EdnsOption)>) -> Self {
         Self { options }
-    }
-
-    #[deprecated(note = "Please use as_ref() or as_mut() for shared/mutable references")]
-    /// The entire map of options
-    pub fn options(&self) -> &HashMap<EdnsCode, EdnsOption> {
-        &self.options
     }
 
     /// Get a single option based on the code
     pub fn get(&self, code: EdnsCode) -> Option<&EdnsOption> {
-        self.options.get(&code)
+        self.options
+            .iter()
+            .find_map(|(c, option)| if code == *c { Some(option) } else { None })
+    }
+
+    /// Get all options based on the code
+    pub fn get_all(&self, code: EdnsCode) -> Vec<&EdnsOption> {
+        self.options
+            .iter()
+            .filter_map(|(c, option)| if code == *c { Some(option) } else { None })
+            .collect()
     }
 
     /// Insert a new option, the key is derived from the `EdnsOption`
     pub fn insert(&mut self, option: EdnsOption) {
-        self.options.insert((&option).into(), option);
+        self.options.push(((&option).into(), option));
     }
 
-    /// Remove an option, the key is derived from the `EdnsOption`
+    /// Removes all options based on the code
     pub fn remove(&mut self, option: EdnsCode) {
-        self.options.remove(&option);
+        self.options.retain(|(c, _)| *c != option)
     }
 }
 
-impl AsMut<HashMap<EdnsCode, EdnsOption>> for OPT {
-    fn as_mut(&mut self) -> &mut HashMap<EdnsCode, EdnsOption> {
+impl PartialEq for OPT {
+    fn eq(&self, other: &Self) -> bool {
+        let matching_elements_count = self
+            .options
+            .iter()
+            .filter(|entry| other.options.contains(entry))
+            .count();
+        matching_elements_count == self.options.len()
+            && matching_elements_count == other.options.len()
+    }
+}
+
+impl Eq for OPT {}
+
+impl AsMut<Vec<(EdnsCode, EdnsOption)>> for OPT {
+    fn as_mut(&mut self) -> &mut Vec<(EdnsCode, EdnsOption)> {
         &mut self.options
     }
 }
 
-impl AsRef<HashMap<EdnsCode, EdnsOption>> for OPT {
-    fn as_ref(&self) -> &HashMap<EdnsCode, EdnsOption> {
+impl AsRef<[(EdnsCode, EdnsOption)]> for OPT {
+    fn as_ref(&self) -> &[(EdnsCode, EdnsOption)] {
         &self.options
     }
 }
@@ -230,7 +253,7 @@ impl BinEncodable for OPT {
 impl<'r> RecordDataDecodable<'r> for OPT {
     fn read_data(decoder: &mut BinDecoder<'r>, length: Restrict<u16>) -> ProtoResult<Self> {
         let mut state: OptReadState = OptReadState::ReadCode;
-        let mut options: HashMap<EdnsCode, EdnsOption> = HashMap::new();
+        let mut options: Vec<(EdnsCode, EdnsOption)> = Vec::new();
         let start_idx = decoder.index();
 
         // There is no unsafe direct use of the rdata length after this point
@@ -255,7 +278,7 @@ impl<'r> RecordDataDecodable<'r> for OPT {
                     // The data state does not process 0-length correctly, since it always reads at
                     // least 1 byte, thus making the length check fail.
                     state = if length == 0 {
-                        options.insert(code, (code, &[] as &[u8]).try_into()?);
+                        options.push((code, (code, &[] as &[u8]).try_into()?));
                         OptReadState::ReadCode
                     } else {
                         OptReadState::Data {
@@ -275,7 +298,7 @@ impl<'r> RecordDataDecodable<'r> for OPT {
                     // TODO: can this be replaced by read_slice()?
                     collected.push(decoder.pop()?.unverified(/*byte array is safe*/));
                     if length == collected.len() {
-                        options.insert(code, (code, &collected as &[u8]).try_into()?);
+                        options.push((code, (code, &collected as &[u8]).try_into()?));
                         state = OptReadState::ReadCode;
                     } else {
                         state = OptReadState::Data {
@@ -344,14 +367,14 @@ enum OptReadState {
 }
 
 /// The code of the EDNS data option
-#[cfg_attr(feature = "serde-config", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Hash, Debug, Copy, Clone, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum EdnsCode {
     /// [RFC 6891, Reserved](https://tools.ietf.org/html/rfc6891)
     Zero,
 
-    /// [RFC 8764l, Apple's Long-Lived Queries, Optional](https://tools.ietf.org/html/rfc8764)
+    /// [RFC 8764, Apple's Long-Lived Queries, Optional](https://tools.ietf.org/html/rfc8764)
     LLQ,
 
     /// [UL On-hold](https://files.dns-sd.org/draft-sekar-dns-ul.txt)
@@ -441,24 +464,13 @@ impl From<EdnsCode> for u16 {
 /// `note: Not all EdnsOptions are supported at this time.`
 ///
 /// <https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-13>
-#[cfg_attr(feature = "serde-config", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Debug, PartialOrd, PartialEq, Eq, Clone, Hash)]
 #[non_exhaustive]
 pub enum EdnsOption {
     /// [RFC 6975, DNSSEC Algorithm Understood](https://tools.ietf.org/html/rfc6975)
-    #[cfg(feature = "dnssec")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "dnssec")))]
+    #[cfg(feature = "__dnssec")]
     DAU(SupportedAlgorithms),
-
-    /// [RFC 6975, DS Hash Understood](https://tools.ietf.org/html/rfc6975)
-    #[cfg(feature = "dnssec")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "dnssec")))]
-    DHU(SupportedAlgorithms),
-
-    /// [RFC 6975, NSEC3 Hash Understood](https://tools.ietf.org/html/rfc6975)
-    #[cfg(feature = "dnssec")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "dnssec")))]
-    N3U(SupportedAlgorithms),
 
     /// [RFC 7871, Client Subnet, Optional](https://tools.ietf.org/html/rfc7871)
     Subnet(ClientSubnet),
@@ -470,38 +482,32 @@ pub enum EdnsOption {
 impl EdnsOption {
     /// Returns the length in bytes of the EdnsOption
     pub fn len(&self) -> u16 {
-        match *self {
-            #[cfg(feature = "dnssec")]
-            EdnsOption::DAU(ref algorithms)
-            | EdnsOption::DHU(ref algorithms)
-            | EdnsOption::N3U(ref algorithms) => algorithms.len(),
-            EdnsOption::Subnet(ref subnet) => subnet.len(),
-            EdnsOption::Unknown(_, ref data) => data.len() as u16, // TODO: should we verify?
+        match self {
+            #[cfg(feature = "__dnssec")]
+            EdnsOption::DAU(algorithms) => algorithms.len(),
+            EdnsOption::Subnet(subnet) => subnet.len(),
+            EdnsOption::Unknown(_, data) => data.len() as u16, // TODO: should we verify?
         }
     }
 
     /// Returns `true` if the length in bytes of the EdnsOption is 0
     pub fn is_empty(&self) -> bool {
-        match *self {
-            #[cfg(feature = "dnssec")]
-            EdnsOption::DAU(ref algorithms)
-            | EdnsOption::DHU(ref algorithms)
-            | EdnsOption::N3U(ref algorithms) => algorithms.is_empty(),
-            EdnsOption::Subnet(ref subnet) => subnet.is_empty(),
-            EdnsOption::Unknown(_, ref data) => data.is_empty(),
+        match self {
+            #[cfg(feature = "__dnssec")]
+            EdnsOption::DAU(algorithms) => algorithms.is_empty(),
+            EdnsOption::Subnet(subnet) => subnet.is_empty(),
+            EdnsOption::Unknown(_, data) => data.is_empty(),
         }
     }
 }
 
 impl BinEncodable for EdnsOption {
     fn emit(&self, encoder: &mut BinEncoder<'_>) -> ProtoResult<()> {
-        match *self {
-            #[cfg(feature = "dnssec")]
-            EdnsOption::DAU(ref algorithms)
-            | EdnsOption::DHU(ref algorithms)
-            | EdnsOption::N3U(ref algorithms) => algorithms.emit(encoder),
-            EdnsOption::Subnet(ref subnet) => subnet.emit(encoder),
-            EdnsOption::Unknown(_, ref data) => encoder.emit_vec(data), // gah, clone needed or make a crazy api.
+        match self {
+            #[cfg(feature = "__dnssec")]
+            EdnsOption::DAU(algorithms) => algorithms.emit(encoder),
+            EdnsOption::Subnet(subnet) => subnet.emit(encoder),
+            EdnsOption::Unknown(_, data) => encoder.emit_vec(data), // gah, clone needed or make a crazy api.
         }
     }
 }
@@ -513,12 +519,8 @@ impl<'a> TryFrom<(EdnsCode, &'a [u8])> for EdnsOption {
     #[allow(clippy::match_single_binding)]
     fn try_from(value: (EdnsCode, &'a [u8])) -> Result<Self, Self::Error> {
         Ok(match value.0 {
-            #[cfg(feature = "dnssec")]
+            #[cfg(feature = "__dnssec")]
             EdnsCode::DAU => Self::DAU(value.1.into()),
-            #[cfg(feature = "dnssec")]
-            EdnsCode::DHU => Self::DHU(value.1.into()),
-            #[cfg(feature = "dnssec")]
-            EdnsCode::N3U => Self::N3U(value.1.into()),
             EdnsCode::Subnet => Self::Subnet(value.1.try_into()?),
             _ => Self::Unknown(value.0.into(), value.1.to_vec()),
         })
@@ -529,34 +531,29 @@ impl<'a> TryFrom<&'a EdnsOption> for Vec<u8> {
     type Error = ProtoError;
 
     fn try_from(value: &'a EdnsOption) -> Result<Self, Self::Error> {
-        Ok(match *value {
-            #[cfg(feature = "dnssec")]
-            EdnsOption::DAU(ref algorithms)
-            | EdnsOption::DHU(ref algorithms)
-            | EdnsOption::N3U(ref algorithms) => algorithms.into(),
-            EdnsOption::Subnet(ref subnet) => subnet.try_into()?,
-            EdnsOption::Unknown(_, ref data) => data.clone(), // gah, clone needed or make a crazy api.
+        Ok(match value {
+            #[cfg(feature = "__dnssec")]
+            EdnsOption::DAU(algorithms) => algorithms.into(),
+            EdnsOption::Subnet(subnet) => subnet.try_into()?,
+            EdnsOption::Unknown(_, data) => data.clone(), // gah, clone needed or make a crazy api.
         })
     }
 }
 
 impl<'a> From<&'a EdnsOption> for EdnsCode {
     fn from(value: &'a EdnsOption) -> Self {
-        match *value {
-            #[cfg(feature = "dnssec")]
+        match value {
+            #[cfg(feature = "__dnssec")]
             EdnsOption::DAU(..) => Self::DAU,
-            #[cfg(feature = "dnssec")]
-            EdnsOption::DHU(..) => Self::DHU,
-            #[cfg(feature = "dnssec")]
-            EdnsOption::N3U(..) => Self::N3U,
             EdnsOption::Subnet(..) => Self::Subnet,
-            EdnsOption::Unknown(code, _) => code.into(),
+            EdnsOption::Unknown(code, _) => (*code).into(),
         }
     }
 }
 
 /// [RFC 7871, Client Subnet, Optional](https://tools.ietf.org/html/rfc7871)
 ///
+/// ```text
 /// +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
 /// 0: |                            FAMILY                             |
 ///    +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
@@ -583,7 +580,8 @@ impl<'a> From<&'a EdnsOption> for EdnsCode {
 ///    SOURCE PREFIX-LENGTH, SHOULD return FORMERR to reject the packet,
 ///    as a signal to the software developer making the request to fix
 ///    their implementation.
-#[cfg_attr(feature = "serde-config", derive(Deserialize, Serialize))]
+/// ```
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Debug, PartialOrd, PartialEq, Eq, Clone, Copy, Hash)]
 pub struct ClientSubnet {
     address: IpAddr,
@@ -614,6 +612,35 @@ impl ClientSubnet {
     #[inline]
     pub fn is_empty(&self) -> bool {
         false
+    }
+
+    /// returns the ip address
+    pub fn addr(&self) -> IpAddr {
+        self.address
+    }
+
+    /// set the ip address
+    pub fn set_addr(&mut self, addr: IpAddr) {
+        self.address = addr;
+    }
+
+    /// returns the source prefix
+    pub fn source_prefix(&self) -> u8 {
+        self.source_prefix
+    }
+
+    /// returns the source prefix
+    pub fn set_source_prefix(&mut self, source_prefix: u8) {
+        self.source_prefix = source_prefix;
+    }
+
+    /// returns the scope prefix
+    pub fn scope_prefix(&self) -> u8 {
+        self.scope_prefix
+    }
+    /// returns the scope prefix
+    pub fn set_scope_prefix(&mut self, scope_prefix: u8) {
+        self.scope_prefix = scope_prefix;
     }
 
     fn addr_len(&self) -> u16 {
@@ -758,10 +785,13 @@ impl FromStr for ClientSubnet {
 mod tests {
     #![allow(clippy::dbg_macro, clippy::print_stdout)]
 
+    #[cfg(feature = "std")]
+    use std::println;
+
     use super::*;
 
     #[test]
-    #[cfg(feature = "dnssec")]
+    #[cfg(feature = "__dnssec")]
     fn test() {
         let mut rdata = OPT::default();
         rdata.insert(EdnsOption::DAU(SupportedAlgorithms::all()));
@@ -771,6 +801,7 @@ mod tests {
         assert!(rdata.emit(&mut encoder).is_ok());
         let bytes = encoder.into_bytes();
 
+        #[cfg(feature = "std")]
         println!("bytes: {bytes:?}");
 
         let mut decoder: BinDecoder<'_> = BinDecoder::new(bytes);
@@ -795,16 +826,53 @@ mod tests {
         );
 
         let opt = read_rdata.unwrap();
-        let mut options = HashMap::default();
-        options.insert(
-            EdnsCode::Subnet,
-            EdnsOption::Subnet("0.0.0.0/0".parse().unwrap()),
+        let options = vec![
+            (
+                EdnsCode::Subnet,
+                EdnsOption::Subnet("0.0.0.0/0".parse().unwrap()),
+            ),
+            (
+                EdnsCode::Cookie,
+                EdnsOption::Unknown(10, vec![0x0b, 0x64, 0xb4, 0xdc, 0xd7, 0xb0, 0xcc, 0x8f]),
+            ),
+            (EdnsCode::Keepalive, EdnsOption::Unknown(11, vec![])),
+        ];
+        let options = OPT::new(options);
+        assert_eq!(opt, options);
+    }
+
+    #[test]
+    fn test_multiple_options_with_same_code() {
+        let bytes: Vec<u8> = vec![
+            0x00, 0x0f, 0x00, 0x02, 0x00, 0x06, 0x00, 0x0f, 0x00, 0x0f, 0x00, 0x09, 0x55, 0x6E,
+            0x6B, 0x6E, 0x6F, 0x77, 0x6E, 0x20, 0x65, 0x72, 0x72, 0x6F, 0x72,
+        ];
+
+        let mut decoder: BinDecoder<'_> = BinDecoder::new(&bytes);
+        let read_rdata = OPT::read_data(&mut decoder, Restrict::new(bytes.len() as u16));
+        assert!(
+            read_rdata.is_ok(),
+            "error decoding: {:?}",
+            read_rdata.unwrap_err()
         );
-        options.insert(
-            EdnsCode::Cookie,
-            EdnsOption::Unknown(10, vec![0x0b, 0x64, 0xb4, 0xdc, 0xd7, 0xb0, 0xcc, 0x8f]),
-        );
-        options.insert(EdnsCode::Keepalive, EdnsOption::Unknown(11, vec![]));
+
+        let opt = read_rdata.unwrap();
+        let options = vec![
+            (
+                EdnsCode::Unknown(15u16),
+                EdnsOption::Unknown(15u16, vec![0x00, 0x06]),
+            ),
+            (
+                EdnsCode::Unknown(15u16),
+                EdnsOption::Unknown(
+                    15u16,
+                    vec![
+                        0x00, 0x09, 0x55, 0x6E, 0x6B, 0x6E, 0x6F, 0x77, 0x6E, 0x20, 0x65, 0x72,
+                        0x72, 0x6F, 0x72,
+                    ],
+                ),
+            ),
+        ];
         let options = OPT::new(options);
         assert_eq!(opt, options);
     }
@@ -814,6 +882,7 @@ mod tests {
         let expected_bytes: Vec<u8> = vec![0x00, 0x01, 0x18, 0x00, 0xac, 0x01, 0x01];
         let ecs: ClientSubnet = "172.1.1.1/24".parse().unwrap();
         let bytes = Vec::<u8>::try_from(&ecs).unwrap();
+        #[cfg(feature = "std")]
         println!("bytes: {bytes:?}");
         assert_eq!(bytes, expected_bytes);
     }

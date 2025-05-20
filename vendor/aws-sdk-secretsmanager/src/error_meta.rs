@@ -3,7 +3,7 @@
 #[non_exhaustive]
 #[derive(::std::fmt::Debug)]
 pub enum Error {
-    /// <p>Secrets Manager can't decrypt the protected secret text using the provided KMS key. </p>
+    /// <p>Secrets Manager can't decrypt the protected secret text using the provided KMS key.</p>
     DecryptionFailure(crate::types::error::DecryptionFailure),
     /// <p>Secrets Manager can't encrypt the protected secret text using the provided KMS key. Check that the KMS key is available, enabled, and not in an invalid state. For more information, see <a href="https://docs.aws.amazon.com/kms/latest/developerguide/key-state.html">Key state: Effect on your KMS key</a>.</p>
     EncryptionFailure(crate::types::error::EncryptionFailure),
@@ -16,9 +16,12 @@ pub enum Error {
     /// <p>A parameter value is not valid for the current state of the resource.</p>
     /// <p>Possible causes:</p>
     /// <ul>
-    /// <li> <p>The secret is scheduled for deletion.</p> </li>
-    /// <li> <p>You tried to enable rotation on a secret that doesn't already have a Lambda function ARN configured and you didn't include such an ARN as a parameter in this call. </p> </li>
-    /// <li> <p>The secret is managed by another service, and you must use that service to update it. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/service-linked-secrets.html">Secrets managed by other Amazon Web Services services</a>.</p> </li>
+    /// <li>
+    /// <p>The secret is scheduled for deletion.</p></li>
+    /// <li>
+    /// <p>You tried to enable rotation on a secret that doesn't already have a Lambda function ARN configured and you didn't include such an ARN as a parameter in this call.</p></li>
+    /// <li>
+    /// <p>The secret is managed by another service, and you must use that service to update it. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/service-linked-secrets.html">Secrets managed by other Amazon Web Services services</a>.</p></li>
     /// </ul>
     InvalidRequestException(crate::types::error::InvalidRequestException),
     /// <p>The request failed because it would exceed one of the Secrets Manager quotas.</p>
@@ -91,6 +94,41 @@ impl ::aws_smithy_types::error::metadata::ProvideErrorMetadata for Error {
             Self::ResourceExistsException(inner) => inner.meta(),
             Self::ResourceNotFoundException(inner) => inner.meta(),
             Self::Unhandled(inner) => &inner.meta,
+        }
+    }
+}
+impl<R> From<::aws_smithy_runtime_api::client::result::SdkError<crate::operation::batch_get_secret_value::BatchGetSecretValueError, R>> for Error
+where
+    R: Send + Sync + std::fmt::Debug + 'static,
+{
+    fn from(err: ::aws_smithy_runtime_api::client::result::SdkError<crate::operation::batch_get_secret_value::BatchGetSecretValueError, R>) -> Self {
+        match err {
+            ::aws_smithy_runtime_api::client::result::SdkError::ServiceError(context) => Self::from(context.into_err()),
+            _ => Error::Unhandled(crate::error::sealed_unhandled::Unhandled {
+                meta: ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(&err).clone(),
+                source: err.into(),
+            }),
+        }
+    }
+}
+impl From<crate::operation::batch_get_secret_value::BatchGetSecretValueError> for Error {
+    fn from(err: crate::operation::batch_get_secret_value::BatchGetSecretValueError) -> Self {
+        match err {
+            crate::operation::batch_get_secret_value::BatchGetSecretValueError::DecryptionFailure(inner) => Error::DecryptionFailure(inner),
+            crate::operation::batch_get_secret_value::BatchGetSecretValueError::InternalServiceError(inner) => Error::InternalServiceError(inner),
+            crate::operation::batch_get_secret_value::BatchGetSecretValueError::InvalidNextTokenException(inner) => {
+                Error::InvalidNextTokenException(inner)
+            }
+            crate::operation::batch_get_secret_value::BatchGetSecretValueError::InvalidParameterException(inner) => {
+                Error::InvalidParameterException(inner)
+            }
+            crate::operation::batch_get_secret_value::BatchGetSecretValueError::InvalidRequestException(inner) => {
+                Error::InvalidRequestException(inner)
+            }
+            crate::operation::batch_get_secret_value::BatchGetSecretValueError::ResourceNotFoundException(inner) => {
+                Error::ResourceNotFoundException(inner)
+            }
+            crate::operation::batch_get_secret_value::BatchGetSecretValueError::Unhandled(inner) => Error::Unhandled(inner),
         }
     }
 }

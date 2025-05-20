@@ -36,6 +36,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -98,6 +99,16 @@ impl OrcCompression {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for OrcCompression {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            OrcCompression::None => write!(f, "NONE"),
+            OrcCompression::Snappy => write!(f, "SNAPPY"),
+            OrcCompression::Zlib => write!(f, "ZLIB"),
+            OrcCompression::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

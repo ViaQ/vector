@@ -3,7 +3,7 @@ pub use crate::operation::delete_bucket_inventory_configuration::_delete_bucket_
 
 pub use crate::operation::delete_bucket_inventory_configuration::_delete_bucket_inventory_configuration_input::DeleteBucketInventoryConfigurationInputBuilder;
 
-impl DeleteBucketInventoryConfigurationInputBuilder {
+impl crate::operation::delete_bucket_inventory_configuration::builders::DeleteBucketInventoryConfigurationInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -23,16 +23,19 @@ impl DeleteBucketInventoryConfigurationInputBuilder {
 /// Fluent builder constructing a request to `DeleteBucketInventoryConfiguration`.
 ///
 /// <note>
-/// <p>This operation is not supported by directory buckets.</p>
+/// <p>This operation is not supported for directory buckets.</p>
 /// </note>
 /// <p>Deletes an inventory configuration (identified by the inventory ID) from the bucket.</p>
 /// <p>To use this operation, you must have permissions to perform the <code>s3:PutInventoryConfiguration</code> action. The bucket owner has this permission by default. The bucket owner can grant this permission to others. For more information about permissions, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-with-s3-actions.html#using-with-s3-actions-related-to-bucket-subresources">Permissions Related to Bucket Subresource Operations</a> and <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-access-control.html">Managing Access Permissions to Your Amazon S3 Resources</a>.</p>
 /// <p>For information about the Amazon S3 inventory feature, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/dev/storage-inventory.html">Amazon S3 Inventory</a>.</p>
-/// <p>Operations related to <code>DeleteBucketInventoryConfiguration</code> include: </p>
+/// <p>Operations related to <code>DeleteBucketInventoryConfiguration</code> include:</p>
 /// <ul>
-/// <li> <p> <a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketInventoryConfiguration.html">GetBucketInventoryConfiguration</a> </p> </li>
-/// <li> <p> <a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketInventoryConfiguration.html">PutBucketInventoryConfiguration</a> </p> </li>
-/// <li> <p> <a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListBucketInventoryConfigurations.html">ListBucketInventoryConfigurations</a> </p> </li>
+/// <li>
+/// <p><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetBucketInventoryConfiguration.html">GetBucketInventoryConfiguration</a></p></li>
+/// <li>
+/// <p><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketInventoryConfiguration.html">PutBucketInventoryConfiguration</a></p></li>
+/// <li>
+/// <p><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListBucketInventoryConfigurations.html">ListBucketInventoryConfigurations</a></p></li>
 /// </ul>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct DeleteBucketInventoryConfigurationFluentBuilder {
@@ -59,7 +62,7 @@ impl
     }
 }
 impl DeleteBucketInventoryConfigurationFluentBuilder {
-    /// Creates a new `DeleteBucketInventoryConfiguration`.
+    /// Creates a new `DeleteBucketInventoryConfigurationFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -110,12 +113,12 @@ impl DeleteBucketInventoryConfigurationFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

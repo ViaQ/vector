@@ -3,7 +3,7 @@ pub use crate::operation::get_endpoint_attributes::_get_endpoint_attributes_outp
 
 pub use crate::operation::get_endpoint_attributes::_get_endpoint_attributes_input::GetEndpointAttributesInputBuilder;
 
-impl GetEndpointAttributesInputBuilder {
+impl crate::operation::get_endpoint_attributes::builders::GetEndpointAttributesInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,7 +22,7 @@ impl GetEndpointAttributesInputBuilder {
 }
 /// Fluent builder constructing a request to `GetEndpointAttributes`.
 ///
-/// <p>Retrieves the endpoint attributes for a device on one of the supported push notification services, such as GCM (Firebase Cloud Messaging) and APNS. For more information, see <a href="https://docs.aws.amazon.com/sns/latest/dg/SNSMobilePush.html">Using Amazon SNS Mobile Push Notifications</a>. </p>
+/// <p>Retrieves the endpoint attributes for a device on one of the supported push notification services, such as GCM (Firebase Cloud Messaging) and APNS. For more information, see <a href="https://docs.aws.amazon.com/sns/latest/dg/SNSMobilePush.html">Using Amazon SNS Mobile Push Notifications</a>.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct GetEndpointAttributesFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -48,7 +48,7 @@ impl
     }
 }
 impl GetEndpointAttributesFluentBuilder {
-    /// Creates a new `GetEndpointAttributes`.
+    /// Creates a new `GetEndpointAttributesFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -99,26 +99,26 @@ impl GetEndpointAttributesFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
-    /// <p>EndpointArn for GetEndpointAttributes input.</p>
+    /// <p><code>EndpointArn</code> for <code>GetEndpointAttributes</code> input.</p>
     pub fn endpoint_arn(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.endpoint_arn(input.into());
         self
     }
-    /// <p>EndpointArn for GetEndpointAttributes input.</p>
+    /// <p><code>EndpointArn</code> for <code>GetEndpointAttributes</code> input.</p>
     pub fn set_endpoint_arn(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_endpoint_arn(input);
         self
     }
-    /// <p>EndpointArn for GetEndpointAttributes input.</p>
+    /// <p><code>EndpointArn</code> for <code>GetEndpointAttributes</code> input.</p>
     pub fn get_endpoint_arn(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_endpoint_arn()
     }

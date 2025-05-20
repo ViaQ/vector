@@ -3,7 +3,7 @@ pub use crate::operation::describe_queries::_describe_queries_output::DescribeQu
 
 pub use crate::operation::describe_queries::_describe_queries_input::DescribeQueriesInputBuilder;
 
-impl DescribeQueriesInputBuilder {
+impl crate::operation::describe_queries::builders::DescribeQueriesInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -48,7 +48,7 @@ impl
     }
 }
 impl DescribeQueriesFluentBuilder {
-    /// Creates a new `DescribeQueries`.
+    /// Creates a new `DescribeQueriesFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -99,12 +99,12 @@ impl DescribeQueriesFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -163,5 +163,19 @@ impl DescribeQueriesFluentBuilder {
     /// <p>The token for the next set of items to return. The token expires after 24 hours.</p>
     pub fn get_next_token(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_next_token()
+    }
+    /// <p>Limits the returned queries to only the queries that use the specified query language.</p>
+    pub fn query_language(mut self, input: crate::types::QueryLanguage) -> Self {
+        self.inner = self.inner.query_language(input);
+        self
+    }
+    /// <p>Limits the returned queries to only the queries that use the specified query language.</p>
+    pub fn set_query_language(mut self, input: ::std::option::Option<crate::types::QueryLanguage>) -> Self {
+        self.inner = self.inner.set_query_language(input);
+        self
+    }
+    /// <p>Limits the returned queries to only the queries that use the specified query language.</p>
+    pub fn get_query_language(&self) -> &::std::option::Option<crate::types::QueryLanguage> {
+        self.inner.get_query_language()
     }
 }

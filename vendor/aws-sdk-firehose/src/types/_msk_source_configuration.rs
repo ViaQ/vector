@@ -6,10 +6,13 @@
 pub struct MskSourceConfiguration {
     /// <p>The ARN of the Amazon MSK cluster.</p>
     pub msk_cluster_arn: ::std::string::String,
-    /// <p>The topic name within the Amazon MSK cluster. </p>
+    /// <p>The topic name within the Amazon MSK cluster.</p>
     pub topic_name: ::std::string::String,
     /// <p>The authentication configuration of the Amazon MSK cluster.</p>
     pub authentication_configuration: ::std::option::Option<crate::types::AuthenticationConfiguration>,
+    /// <p>The start date and time in UTC for the offset position within your MSK topic from where Firehose begins to read. By default, this is set to timestamp when Firehose becomes Active.</p>
+    /// <p>If you want to create a Firehose stream with Earliest start position from SDK or CLI, you need to set the <code>ReadFromTimestamp</code> parameter to Epoch (1970-01-01T00:00:00Z).</p>
+    pub read_from_timestamp: ::std::option::Option<::aws_smithy_types::DateTime>,
 }
 impl MskSourceConfiguration {
     /// <p>The ARN of the Amazon MSK cluster.</p>
@@ -17,7 +20,7 @@ impl MskSourceConfiguration {
         use std::ops::Deref;
         self.msk_cluster_arn.deref()
     }
-    /// <p>The topic name within the Amazon MSK cluster. </p>
+    /// <p>The topic name within the Amazon MSK cluster.</p>
     pub fn topic_name(&self) -> &str {
         use std::ops::Deref;
         self.topic_name.deref()
@@ -25,6 +28,11 @@ impl MskSourceConfiguration {
     /// <p>The authentication configuration of the Amazon MSK cluster.</p>
     pub fn authentication_configuration(&self) -> ::std::option::Option<&crate::types::AuthenticationConfiguration> {
         self.authentication_configuration.as_ref()
+    }
+    /// <p>The start date and time in UTC for the offset position within your MSK topic from where Firehose begins to read. By default, this is set to timestamp when Firehose becomes Active.</p>
+    /// <p>If you want to create a Firehose stream with Earliest start position from SDK or CLI, you need to set the <code>ReadFromTimestamp</code> parameter to Epoch (1970-01-01T00:00:00Z).</p>
+    pub fn read_from_timestamp(&self) -> ::std::option::Option<&::aws_smithy_types::DateTime> {
+        self.read_from_timestamp.as_ref()
     }
 }
 impl MskSourceConfiguration {
@@ -35,12 +43,13 @@ impl MskSourceConfiguration {
 }
 
 /// A builder for [`MskSourceConfiguration`](crate::types::MskSourceConfiguration).
-#[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::default::Default, ::std::fmt::Debug)]
+#[non_exhaustive]
 pub struct MskSourceConfigurationBuilder {
     pub(crate) msk_cluster_arn: ::std::option::Option<::std::string::String>,
     pub(crate) topic_name: ::std::option::Option<::std::string::String>,
     pub(crate) authentication_configuration: ::std::option::Option<crate::types::AuthenticationConfiguration>,
+    pub(crate) read_from_timestamp: ::std::option::Option<::aws_smithy_types::DateTime>,
 }
 impl MskSourceConfigurationBuilder {
     /// <p>The ARN of the Amazon MSK cluster.</p>
@@ -58,18 +67,18 @@ impl MskSourceConfigurationBuilder {
     pub fn get_msk_cluster_arn(&self) -> &::std::option::Option<::std::string::String> {
         &self.msk_cluster_arn
     }
-    /// <p>The topic name within the Amazon MSK cluster. </p>
+    /// <p>The topic name within the Amazon MSK cluster.</p>
     /// This field is required.
     pub fn topic_name(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.topic_name = ::std::option::Option::Some(input.into());
         self
     }
-    /// <p>The topic name within the Amazon MSK cluster. </p>
+    /// <p>The topic name within the Amazon MSK cluster.</p>
     pub fn set_topic_name(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.topic_name = input;
         self
     }
-    /// <p>The topic name within the Amazon MSK cluster. </p>
+    /// <p>The topic name within the Amazon MSK cluster.</p>
     pub fn get_topic_name(&self) -> &::std::option::Option<::std::string::String> {
         &self.topic_name
     }
@@ -87,6 +96,23 @@ impl MskSourceConfigurationBuilder {
     /// <p>The authentication configuration of the Amazon MSK cluster.</p>
     pub fn get_authentication_configuration(&self) -> &::std::option::Option<crate::types::AuthenticationConfiguration> {
         &self.authentication_configuration
+    }
+    /// <p>The start date and time in UTC for the offset position within your MSK topic from where Firehose begins to read. By default, this is set to timestamp when Firehose becomes Active.</p>
+    /// <p>If you want to create a Firehose stream with Earliest start position from SDK or CLI, you need to set the <code>ReadFromTimestamp</code> parameter to Epoch (1970-01-01T00:00:00Z).</p>
+    pub fn read_from_timestamp(mut self, input: ::aws_smithy_types::DateTime) -> Self {
+        self.read_from_timestamp = ::std::option::Option::Some(input);
+        self
+    }
+    /// <p>The start date and time in UTC for the offset position within your MSK topic from where Firehose begins to read. By default, this is set to timestamp when Firehose becomes Active.</p>
+    /// <p>If you want to create a Firehose stream with Earliest start position from SDK or CLI, you need to set the <code>ReadFromTimestamp</code> parameter to Epoch (1970-01-01T00:00:00Z).</p>
+    pub fn set_read_from_timestamp(mut self, input: ::std::option::Option<::aws_smithy_types::DateTime>) -> Self {
+        self.read_from_timestamp = input;
+        self
+    }
+    /// <p>The start date and time in UTC for the offset position within your MSK topic from where Firehose begins to read. By default, this is set to timestamp when Firehose becomes Active.</p>
+    /// <p>If you want to create a Firehose stream with Earliest start position from SDK or CLI, you need to set the <code>ReadFromTimestamp</code> parameter to Epoch (1970-01-01T00:00:00Z).</p>
+    pub fn get_read_from_timestamp(&self) -> &::std::option::Option<::aws_smithy_types::DateTime> {
+        &self.read_from_timestamp
     }
     /// Consumes the builder and constructs a [`MskSourceConfiguration`](crate::types::MskSourceConfiguration).
     /// This method will fail if any of the following fields are not set:
@@ -107,6 +133,7 @@ impl MskSourceConfigurationBuilder {
                 )
             })?,
             authentication_configuration: self.authentication_configuration,
+            read_from_timestamp: self.read_from_timestamp,
         })
     }
 }

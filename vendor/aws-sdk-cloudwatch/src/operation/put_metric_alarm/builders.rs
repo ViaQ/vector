@@ -3,7 +3,7 @@ pub use crate::operation::put_metric_alarm::_put_metric_alarm_output::PutMetricA
 
 pub use crate::operation::put_metric_alarm::_put_metric_alarm_input::PutMetricAlarmInputBuilder;
 
-impl PutMetricAlarmInputBuilder {
+impl crate::operation::put_metric_alarm::builders::PutMetricAlarmInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -28,16 +28,20 @@ impl PutMetricAlarmInputBuilder {
 /// <p>When you update an existing alarm, its state is left unchanged, but the update completely overwrites the previous configuration of the alarm.</p>
 /// <p>If you are an IAM user, you must have Amazon EC2 permissions for some alarm operations:</p>
 /// <ul>
-/// <li> <p>The <code>iam:CreateServiceLinkedRole</code> permission for all alarms with EC2 actions</p> </li>
-/// <li> <p>The <code>iam:CreateServiceLinkedRole</code> permissions to create an alarm with Systems Manager OpsItem or response plan actions.</p> </li>
+/// <li>
+/// <p>The <code>iam:CreateServiceLinkedRole</code> permission for all alarms with EC2 actions</p></li>
+/// <li>
+/// <p>The <code>iam:CreateServiceLinkedRole</code> permissions to create an alarm with Systems Manager OpsItem or response plan actions.</p></li>
 /// </ul>
 /// <p>The first time you create an alarm in the Amazon Web Services Management Console, the CLI, or by using the PutMetricAlarm API, CloudWatch creates the necessary service-linked role for you. The service-linked roles are called <code>AWSServiceRoleForCloudWatchEvents</code> and <code>AWSServiceRoleForCloudWatchAlarms_ActionSSM</code>. For more information, see <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_terms-and-concepts.html#iam-term-service-linked-role">Amazon Web Services service-linked role</a>.</p>
 /// <p>Each <code>PutMetricAlarm</code> action has a maximum uncompressed payload of 120 KB.</p>
-/// <p> <b>Cross-account alarms</b> </p>
+/// <p><b>Cross-account alarms</b></p>
 /// <p>You can set an alarm on metrics in the current account, or in another account. To create a cross-account alarm that watches a metric in a different account, you must have completed the following pre-requisites:</p>
 /// <ul>
-/// <li> <p>The account where the metrics are located (the <i>sharing account</i>) must already have a sharing role named <b>CloudWatch-CrossAccountSharingRole</b>. If it does not already have this role, you must create it using the instructions in <b>Set up a sharing account</b> in <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Cross-Account-Cross-Region.html#enable-cross-account-cross-Region"> Cross-account cross-Region CloudWatch console</a>. The policy for that role must grant access to the ID of the account where you are creating the alarm. </p> </li>
-/// <li> <p>The account where you are creating the alarm (the <i>monitoring account</i>) must already have a service-linked role named <b>AWSServiceRoleForCloudWatchCrossAccount</b> to allow CloudWatch to assume the sharing role in the sharing account. If it does not, you must create it following the directions in <b>Set up a monitoring account</b> in <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Cross-Account-Cross-Region.html#enable-cross-account-cross-Region"> Cross-account cross-Region CloudWatch console</a>.</p> </li>
+/// <li>
+/// <p>The account where the metrics are located (the <i>sharing account</i>) must already have a sharing role named <b>CloudWatch-CrossAccountSharingRole</b>. If it does not already have this role, you must create it using the instructions in <b>Set up a sharing account</b> in <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Cross-Account-Cross-Region.html#enable-cross-account-cross-Region"> Cross-account cross-Region CloudWatch console</a>. The policy for that role must grant access to the ID of the account where you are creating the alarm.</p></li>
+/// <li>
+/// <p>The account where you are creating the alarm (the <i>monitoring account</i>) must already have a service-linked role named <b>AWSServiceRoleForCloudWatchCrossAccount</b> to allow CloudWatch to assume the sharing role in the sharing account. If it does not, you must create it following the directions in <b>Set up a monitoring account</b> in <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Cross-Account-Cross-Region.html#enable-cross-account-cross-Region"> Cross-account cross-Region CloudWatch console</a>.</p></li>
 /// </ul>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct PutMetricAlarmFluentBuilder {
@@ -64,7 +68,7 @@ impl
     }
 }
 impl PutMetricAlarmFluentBuilder {
-    /// Creates a new `PutMetricAlarm`.
+    /// Creates a new `PutMetricAlarmFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -115,12 +119,12 @@ impl PutMetricAlarmFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -169,290 +173,488 @@ impl PutMetricAlarmFluentBuilder {
     pub fn get_actions_enabled(&self) -> &::std::option::Option<bool> {
         self.inner.get_actions_enabled()
     }
+    ///
     /// Appends an item to `OKActions`.
     ///
     /// To override the contents of this collection use [`set_ok_actions`](Self::set_ok_actions).
     ///
     /// <p>The actions to execute when this alarm transitions to an <code>OK</code> state from any other state. Each action is specified as an Amazon Resource Name (ARN). Valid values:</p>
-    /// <p> <b>EC2 actions:</b> </p>
+    /// <p><b>EC2 actions:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:stop</code> </p> </li>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:terminate</code> </p> </li>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:reboot</code> </p> </li>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:recover</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Stop/1.0</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Terminate/1.0</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Reboot/1.0</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Recover/1.0</code> </p> </li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:stop</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:terminate</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:reboot</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:recover</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Stop/1.0</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Terminate/1.0</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Reboot/1.0</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Recover/1.0</code></p></li>
     /// </ul>
-    /// <p> <b>Autoscaling action:</b> </p>
+    /// <p><b>Autoscaling action:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:autoscaling:<i>region</i>:<i>account-id</i>:scalingPolicy:<i>policy-id</i>:autoScalingGroupName/<i>group-friendly-name</i>:policyName/<i>policy-friendly-name</i> </code> </p> </li>
+    /// <li>
+    /// <p><code>arn:aws:autoscaling:<i>region</i>:<i>account-id</i>:scalingPolicy:<i>policy-id</i>:autoScalingGroupName/<i>group-friendly-name</i>:policyName/<i>policy-friendly-name</i> </code></p></li>
     /// </ul>
-    /// <p> <b>SNS notification action:</b> </p>
+    /// <p><b>Lambda actions:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i>:autoScalingGroupName/<i>group-friendly-name</i>:policyName/<i>policy-friendly-name</i> </code> </p> </li>
+    /// <li>
+    /// <p>Invoke the latest version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a specific version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>version-number</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a function by using an alias Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>alias-name</i> </code></p></li>
     /// </ul>
-    /// <p> <b>SSM integration actions:</b> </p>
+    /// <p><b>SNS notification action:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:ssm:<i>region</i>:<i>account-id</i>:opsitem:<i>severity</i>#CATEGORY=<i>category-name</i> </code> </p> </li>
-    /// <li> <p> <code>arn:aws:ssm-incidents::<i>account-id</i>:responseplan/<i>response-plan-name</i> </code> </p> </li>
+    /// <li>
+    /// <p><code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i> </code></p></li>
+    /// </ul>
+    /// <p><b>SSM integration actions:</b></p>
+    /// <ul>
+    /// <li>
+    /// <p><code>arn:aws:ssm:<i>region</i>:<i>account-id</i>:opsitem:<i>severity</i>#CATEGORY=<i>category-name</i> </code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:ssm-incidents::<i>account-id</i>:responseplan/<i>response-plan-name</i> </code></p></li>
     /// </ul>
     pub fn ok_actions(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.ok_actions(input.into());
         self
     }
     /// <p>The actions to execute when this alarm transitions to an <code>OK</code> state from any other state. Each action is specified as an Amazon Resource Name (ARN). Valid values:</p>
-    /// <p> <b>EC2 actions:</b> </p>
+    /// <p><b>EC2 actions:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:stop</code> </p> </li>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:terminate</code> </p> </li>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:reboot</code> </p> </li>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:recover</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Stop/1.0</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Terminate/1.0</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Reboot/1.0</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Recover/1.0</code> </p> </li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:stop</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:terminate</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:reboot</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:recover</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Stop/1.0</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Terminate/1.0</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Reboot/1.0</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Recover/1.0</code></p></li>
     /// </ul>
-    /// <p> <b>Autoscaling action:</b> </p>
+    /// <p><b>Autoscaling action:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:autoscaling:<i>region</i>:<i>account-id</i>:scalingPolicy:<i>policy-id</i>:autoScalingGroupName/<i>group-friendly-name</i>:policyName/<i>policy-friendly-name</i> </code> </p> </li>
+    /// <li>
+    /// <p><code>arn:aws:autoscaling:<i>region</i>:<i>account-id</i>:scalingPolicy:<i>policy-id</i>:autoScalingGroupName/<i>group-friendly-name</i>:policyName/<i>policy-friendly-name</i> </code></p></li>
     /// </ul>
-    /// <p> <b>SNS notification action:</b> </p>
+    /// <p><b>Lambda actions:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i>:autoScalingGroupName/<i>group-friendly-name</i>:policyName/<i>policy-friendly-name</i> </code> </p> </li>
+    /// <li>
+    /// <p>Invoke the latest version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a specific version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>version-number</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a function by using an alias Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>alias-name</i> </code></p></li>
     /// </ul>
-    /// <p> <b>SSM integration actions:</b> </p>
+    /// <p><b>SNS notification action:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:ssm:<i>region</i>:<i>account-id</i>:opsitem:<i>severity</i>#CATEGORY=<i>category-name</i> </code> </p> </li>
-    /// <li> <p> <code>arn:aws:ssm-incidents::<i>account-id</i>:responseplan/<i>response-plan-name</i> </code> </p> </li>
+    /// <li>
+    /// <p><code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i> </code></p></li>
+    /// </ul>
+    /// <p><b>SSM integration actions:</b></p>
+    /// <ul>
+    /// <li>
+    /// <p><code>arn:aws:ssm:<i>region</i>:<i>account-id</i>:opsitem:<i>severity</i>#CATEGORY=<i>category-name</i> </code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:ssm-incidents::<i>account-id</i>:responseplan/<i>response-plan-name</i> </code></p></li>
     /// </ul>
     pub fn set_ok_actions(mut self, input: ::std::option::Option<::std::vec::Vec<::std::string::String>>) -> Self {
         self.inner = self.inner.set_ok_actions(input);
         self
     }
     /// <p>The actions to execute when this alarm transitions to an <code>OK</code> state from any other state. Each action is specified as an Amazon Resource Name (ARN). Valid values:</p>
-    /// <p> <b>EC2 actions:</b> </p>
+    /// <p><b>EC2 actions:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:stop</code> </p> </li>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:terminate</code> </p> </li>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:reboot</code> </p> </li>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:recover</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Stop/1.0</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Terminate/1.0</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Reboot/1.0</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Recover/1.0</code> </p> </li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:stop</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:terminate</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:reboot</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:recover</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Stop/1.0</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Terminate/1.0</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Reboot/1.0</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Recover/1.0</code></p></li>
     /// </ul>
-    /// <p> <b>Autoscaling action:</b> </p>
+    /// <p><b>Autoscaling action:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:autoscaling:<i>region</i>:<i>account-id</i>:scalingPolicy:<i>policy-id</i>:autoScalingGroupName/<i>group-friendly-name</i>:policyName/<i>policy-friendly-name</i> </code> </p> </li>
+    /// <li>
+    /// <p><code>arn:aws:autoscaling:<i>region</i>:<i>account-id</i>:scalingPolicy:<i>policy-id</i>:autoScalingGroupName/<i>group-friendly-name</i>:policyName/<i>policy-friendly-name</i> </code></p></li>
     /// </ul>
-    /// <p> <b>SNS notification action:</b> </p>
+    /// <p><b>Lambda actions:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i>:autoScalingGroupName/<i>group-friendly-name</i>:policyName/<i>policy-friendly-name</i> </code> </p> </li>
+    /// <li>
+    /// <p>Invoke the latest version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a specific version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>version-number</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a function by using an alias Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>alias-name</i> </code></p></li>
     /// </ul>
-    /// <p> <b>SSM integration actions:</b> </p>
+    /// <p><b>SNS notification action:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:ssm:<i>region</i>:<i>account-id</i>:opsitem:<i>severity</i>#CATEGORY=<i>category-name</i> </code> </p> </li>
-    /// <li> <p> <code>arn:aws:ssm-incidents::<i>account-id</i>:responseplan/<i>response-plan-name</i> </code> </p> </li>
+    /// <li>
+    /// <p><code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i> </code></p></li>
+    /// </ul>
+    /// <p><b>SSM integration actions:</b></p>
+    /// <ul>
+    /// <li>
+    /// <p><code>arn:aws:ssm:<i>region</i>:<i>account-id</i>:opsitem:<i>severity</i>#CATEGORY=<i>category-name</i> </code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:ssm-incidents::<i>account-id</i>:responseplan/<i>response-plan-name</i> </code></p></li>
     /// </ul>
     pub fn get_ok_actions(&self) -> &::std::option::Option<::std::vec::Vec<::std::string::String>> {
         self.inner.get_ok_actions()
     }
+    ///
     /// Appends an item to `AlarmActions`.
     ///
     /// To override the contents of this collection use [`set_alarm_actions`](Self::set_alarm_actions).
     ///
     /// <p>The actions to execute when this alarm transitions to the <code>ALARM</code> state from any other state. Each action is specified as an Amazon Resource Name (ARN). Valid values:</p>
-    /// <p> <b>EC2 actions:</b> </p>
+    /// <p><b>EC2 actions:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:stop</code> </p> </li>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:terminate</code> </p> </li>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:reboot</code> </p> </li>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:recover</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Stop/1.0</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Terminate/1.0</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Reboot/1.0</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Recover/1.0</code> </p> </li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:stop</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:terminate</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:reboot</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:recover</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Stop/1.0</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Terminate/1.0</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Reboot/1.0</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Recover/1.0</code></p></li>
     /// </ul>
-    /// <p> <b>Autoscaling action:</b> </p>
+    /// <p><b>Autoscaling action:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:autoscaling:<i>region</i>:<i>account-id</i>:scalingPolicy:<i>policy-id</i>:autoScalingGroupName/<i>group-friendly-name</i>:policyName/<i>policy-friendly-name</i> </code> </p> </li>
+    /// <li>
+    /// <p><code>arn:aws:autoscaling:<i>region</i>:<i>account-id</i>:scalingPolicy:<i>policy-id</i>:autoScalingGroupName/<i>group-friendly-name</i>:policyName/<i>policy-friendly-name</i> </code></p></li>
     /// </ul>
-    /// <p> <b>SNS notification action:</b> </p>
+    /// <p><b>Lambda actions:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i>:autoScalingGroupName/<i>group-friendly-name</i>:policyName/<i>policy-friendly-name</i> </code> </p> </li>
+    /// <li>
+    /// <p>Invoke the latest version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a specific version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>version-number</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a function by using an alias Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>alias-name</i> </code></p></li>
     /// </ul>
-    /// <p> <b>SSM integration actions:</b> </p>
+    /// <p><b>SNS notification action:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:ssm:<i>region</i>:<i>account-id</i>:opsitem:<i>severity</i>#CATEGORY=<i>category-name</i> </code> </p> </li>
-    /// <li> <p> <code>arn:aws:ssm-incidents::<i>account-id</i>:responseplan/<i>response-plan-name</i> </code> </p> </li>
+    /// <li>
+    /// <p><code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i> </code></p></li>
     /// </ul>
+    /// <p><b>SSM integration actions:</b></p>
+    /// <ul>
+    /// <li>
+    /// <p><code>arn:aws:ssm:<i>region</i>:<i>account-id</i>:opsitem:<i>severity</i>#CATEGORY=<i>category-name</i> </code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:ssm-incidents::<i>account-id</i>:responseplan/<i>response-plan-name</i> </code></p></li>
+    /// </ul>
+    /// <p><b>Start a Amazon Q Developer operational investigation</b></p>
+    /// <p><code>arn:aws:aiops:<i>region</i>:<i>account-id</i>:investigation-group:<i>ingestigation-group-id</i> </code></p>
     pub fn alarm_actions(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.alarm_actions(input.into());
         self
     }
     /// <p>The actions to execute when this alarm transitions to the <code>ALARM</code> state from any other state. Each action is specified as an Amazon Resource Name (ARN). Valid values:</p>
-    /// <p> <b>EC2 actions:</b> </p>
+    /// <p><b>EC2 actions:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:stop</code> </p> </li>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:terminate</code> </p> </li>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:reboot</code> </p> </li>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:recover</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Stop/1.0</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Terminate/1.0</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Reboot/1.0</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Recover/1.0</code> </p> </li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:stop</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:terminate</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:reboot</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:recover</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Stop/1.0</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Terminate/1.0</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Reboot/1.0</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Recover/1.0</code></p></li>
     /// </ul>
-    /// <p> <b>Autoscaling action:</b> </p>
+    /// <p><b>Autoscaling action:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:autoscaling:<i>region</i>:<i>account-id</i>:scalingPolicy:<i>policy-id</i>:autoScalingGroupName/<i>group-friendly-name</i>:policyName/<i>policy-friendly-name</i> </code> </p> </li>
+    /// <li>
+    /// <p><code>arn:aws:autoscaling:<i>region</i>:<i>account-id</i>:scalingPolicy:<i>policy-id</i>:autoScalingGroupName/<i>group-friendly-name</i>:policyName/<i>policy-friendly-name</i> </code></p></li>
     /// </ul>
-    /// <p> <b>SNS notification action:</b> </p>
+    /// <p><b>Lambda actions:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i>:autoScalingGroupName/<i>group-friendly-name</i>:policyName/<i>policy-friendly-name</i> </code> </p> </li>
+    /// <li>
+    /// <p>Invoke the latest version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a specific version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>version-number</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a function by using an alias Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>alias-name</i> </code></p></li>
     /// </ul>
-    /// <p> <b>SSM integration actions:</b> </p>
+    /// <p><b>SNS notification action:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:ssm:<i>region</i>:<i>account-id</i>:opsitem:<i>severity</i>#CATEGORY=<i>category-name</i> </code> </p> </li>
-    /// <li> <p> <code>arn:aws:ssm-incidents::<i>account-id</i>:responseplan/<i>response-plan-name</i> </code> </p> </li>
+    /// <li>
+    /// <p><code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i> </code></p></li>
     /// </ul>
+    /// <p><b>SSM integration actions:</b></p>
+    /// <ul>
+    /// <li>
+    /// <p><code>arn:aws:ssm:<i>region</i>:<i>account-id</i>:opsitem:<i>severity</i>#CATEGORY=<i>category-name</i> </code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:ssm-incidents::<i>account-id</i>:responseplan/<i>response-plan-name</i> </code></p></li>
+    /// </ul>
+    /// <p><b>Start a Amazon Q Developer operational investigation</b></p>
+    /// <p><code>arn:aws:aiops:<i>region</i>:<i>account-id</i>:investigation-group:<i>ingestigation-group-id</i> </code></p>
     pub fn set_alarm_actions(mut self, input: ::std::option::Option<::std::vec::Vec<::std::string::String>>) -> Self {
         self.inner = self.inner.set_alarm_actions(input);
         self
     }
     /// <p>The actions to execute when this alarm transitions to the <code>ALARM</code> state from any other state. Each action is specified as an Amazon Resource Name (ARN). Valid values:</p>
-    /// <p> <b>EC2 actions:</b> </p>
+    /// <p><b>EC2 actions:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:stop</code> </p> </li>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:terminate</code> </p> </li>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:reboot</code> </p> </li>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:recover</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Stop/1.0</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Terminate/1.0</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Reboot/1.0</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Recover/1.0</code> </p> </li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:stop</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:terminate</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:reboot</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:recover</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Stop/1.0</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Terminate/1.0</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Reboot/1.0</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Recover/1.0</code></p></li>
     /// </ul>
-    /// <p> <b>Autoscaling action:</b> </p>
+    /// <p><b>Autoscaling action:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:autoscaling:<i>region</i>:<i>account-id</i>:scalingPolicy:<i>policy-id</i>:autoScalingGroupName/<i>group-friendly-name</i>:policyName/<i>policy-friendly-name</i> </code> </p> </li>
+    /// <li>
+    /// <p><code>arn:aws:autoscaling:<i>region</i>:<i>account-id</i>:scalingPolicy:<i>policy-id</i>:autoScalingGroupName/<i>group-friendly-name</i>:policyName/<i>policy-friendly-name</i> </code></p></li>
     /// </ul>
-    /// <p> <b>SNS notification action:</b> </p>
+    /// <p><b>Lambda actions:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i>:autoScalingGroupName/<i>group-friendly-name</i>:policyName/<i>policy-friendly-name</i> </code> </p> </li>
+    /// <li>
+    /// <p>Invoke the latest version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a specific version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>version-number</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a function by using an alias Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>alias-name</i> </code></p></li>
     /// </ul>
-    /// <p> <b>SSM integration actions:</b> </p>
+    /// <p><b>SNS notification action:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:ssm:<i>region</i>:<i>account-id</i>:opsitem:<i>severity</i>#CATEGORY=<i>category-name</i> </code> </p> </li>
-    /// <li> <p> <code>arn:aws:ssm-incidents::<i>account-id</i>:responseplan/<i>response-plan-name</i> </code> </p> </li>
+    /// <li>
+    /// <p><code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i> </code></p></li>
     /// </ul>
+    /// <p><b>SSM integration actions:</b></p>
+    /// <ul>
+    /// <li>
+    /// <p><code>arn:aws:ssm:<i>region</i>:<i>account-id</i>:opsitem:<i>severity</i>#CATEGORY=<i>category-name</i> </code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:ssm-incidents::<i>account-id</i>:responseplan/<i>response-plan-name</i> </code></p></li>
+    /// </ul>
+    /// <p><b>Start a Amazon Q Developer operational investigation</b></p>
+    /// <p><code>arn:aws:aiops:<i>region</i>:<i>account-id</i>:investigation-group:<i>ingestigation-group-id</i> </code></p>
     pub fn get_alarm_actions(&self) -> &::std::option::Option<::std::vec::Vec<::std::string::String>> {
         self.inner.get_alarm_actions()
     }
+    ///
     /// Appends an item to `InsufficientDataActions`.
     ///
     /// To override the contents of this collection use [`set_insufficient_data_actions`](Self::set_insufficient_data_actions).
     ///
     /// <p>The actions to execute when this alarm transitions to the <code>INSUFFICIENT_DATA</code> state from any other state. Each action is specified as an Amazon Resource Name (ARN). Valid values:</p>
-    /// <p> <b>EC2 actions:</b> </p>
+    /// <p><b>EC2 actions:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:stop</code> </p> </li>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:terminate</code> </p> </li>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:reboot</code> </p> </li>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:recover</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Stop/1.0</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Terminate/1.0</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Reboot/1.0</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Recover/1.0</code> </p> </li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:stop</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:terminate</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:reboot</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:recover</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Stop/1.0</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Terminate/1.0</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Reboot/1.0</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Recover/1.0</code></p></li>
     /// </ul>
-    /// <p> <b>Autoscaling action:</b> </p>
+    /// <p><b>Autoscaling action:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:autoscaling:<i>region</i>:<i>account-id</i>:scalingPolicy:<i>policy-id</i>:autoScalingGroupName/<i>group-friendly-name</i>:policyName/<i>policy-friendly-name</i> </code> </p> </li>
+    /// <li>
+    /// <p><code>arn:aws:autoscaling:<i>region</i>:<i>account-id</i>:scalingPolicy:<i>policy-id</i>:autoScalingGroupName/<i>group-friendly-name</i>:policyName/<i>policy-friendly-name</i> </code></p></li>
     /// </ul>
-    /// <p> <b>SNS notification action:</b> </p>
+    /// <p><b>Lambda actions:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i>:autoScalingGroupName/<i>group-friendly-name</i>:policyName/<i>policy-friendly-name</i> </code> </p> </li>
+    /// <li>
+    /// <p>Invoke the latest version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a specific version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>version-number</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a function by using an alias Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>alias-name</i> </code></p></li>
     /// </ul>
-    /// <p> <b>SSM integration actions:</b> </p>
+    /// <p><b>SNS notification action:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:ssm:<i>region</i>:<i>account-id</i>:opsitem:<i>severity</i>#CATEGORY=<i>category-name</i> </code> </p> </li>
-    /// <li> <p> <code>arn:aws:ssm-incidents::<i>account-id</i>:responseplan/<i>response-plan-name</i> </code> </p> </li>
+    /// <li>
+    /// <p><code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i> </code></p></li>
+    /// </ul>
+    /// <p><b>SSM integration actions:</b></p>
+    /// <ul>
+    /// <li>
+    /// <p><code>arn:aws:ssm:<i>region</i>:<i>account-id</i>:opsitem:<i>severity</i>#CATEGORY=<i>category-name</i> </code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:ssm-incidents::<i>account-id</i>:responseplan/<i>response-plan-name</i> </code></p></li>
     /// </ul>
     pub fn insufficient_data_actions(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.insufficient_data_actions(input.into());
         self
     }
     /// <p>The actions to execute when this alarm transitions to the <code>INSUFFICIENT_DATA</code> state from any other state. Each action is specified as an Amazon Resource Name (ARN). Valid values:</p>
-    /// <p> <b>EC2 actions:</b> </p>
+    /// <p><b>EC2 actions:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:stop</code> </p> </li>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:terminate</code> </p> </li>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:reboot</code> </p> </li>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:recover</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Stop/1.0</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Terminate/1.0</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Reboot/1.0</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Recover/1.0</code> </p> </li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:stop</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:terminate</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:reboot</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:recover</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Stop/1.0</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Terminate/1.0</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Reboot/1.0</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Recover/1.0</code></p></li>
     /// </ul>
-    /// <p> <b>Autoscaling action:</b> </p>
+    /// <p><b>Autoscaling action:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:autoscaling:<i>region</i>:<i>account-id</i>:scalingPolicy:<i>policy-id</i>:autoScalingGroupName/<i>group-friendly-name</i>:policyName/<i>policy-friendly-name</i> </code> </p> </li>
+    /// <li>
+    /// <p><code>arn:aws:autoscaling:<i>region</i>:<i>account-id</i>:scalingPolicy:<i>policy-id</i>:autoScalingGroupName/<i>group-friendly-name</i>:policyName/<i>policy-friendly-name</i> </code></p></li>
     /// </ul>
-    /// <p> <b>SNS notification action:</b> </p>
+    /// <p><b>Lambda actions:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i>:autoScalingGroupName/<i>group-friendly-name</i>:policyName/<i>policy-friendly-name</i> </code> </p> </li>
+    /// <li>
+    /// <p>Invoke the latest version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a specific version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>version-number</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a function by using an alias Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>alias-name</i> </code></p></li>
     /// </ul>
-    /// <p> <b>SSM integration actions:</b> </p>
+    /// <p><b>SNS notification action:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:ssm:<i>region</i>:<i>account-id</i>:opsitem:<i>severity</i>#CATEGORY=<i>category-name</i> </code> </p> </li>
-    /// <li> <p> <code>arn:aws:ssm-incidents::<i>account-id</i>:responseplan/<i>response-plan-name</i> </code> </p> </li>
+    /// <li>
+    /// <p><code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i> </code></p></li>
+    /// </ul>
+    /// <p><b>SSM integration actions:</b></p>
+    /// <ul>
+    /// <li>
+    /// <p><code>arn:aws:ssm:<i>region</i>:<i>account-id</i>:opsitem:<i>severity</i>#CATEGORY=<i>category-name</i> </code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:ssm-incidents::<i>account-id</i>:responseplan/<i>response-plan-name</i> </code></p></li>
     /// </ul>
     pub fn set_insufficient_data_actions(mut self, input: ::std::option::Option<::std::vec::Vec<::std::string::String>>) -> Self {
         self.inner = self.inner.set_insufficient_data_actions(input);
         self
     }
     /// <p>The actions to execute when this alarm transitions to the <code>INSUFFICIENT_DATA</code> state from any other state. Each action is specified as an Amazon Resource Name (ARN). Valid values:</p>
-    /// <p> <b>EC2 actions:</b> </p>
+    /// <p><b>EC2 actions:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:stop</code> </p> </li>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:terminate</code> </p> </li>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:reboot</code> </p> </li>
-    /// <li> <p> <code>arn:aws:automate:<i>region</i>:ec2:recover</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Stop/1.0</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Terminate/1.0</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Reboot/1.0</code> </p> </li>
-    /// <li> <p> <code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Recover/1.0</code> </p> </li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:stop</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:terminate</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:reboot</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:automate:<i>region</i>:ec2:recover</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Stop/1.0</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Terminate/1.0</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Reboot/1.0</code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:swf:<i>region</i>:<i>account-id</i>:action/actions/AWS_EC2.InstanceId.Recover/1.0</code></p></li>
     /// </ul>
-    /// <p> <b>Autoscaling action:</b> </p>
+    /// <p><b>Autoscaling action:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:autoscaling:<i>region</i>:<i>account-id</i>:scalingPolicy:<i>policy-id</i>:autoScalingGroupName/<i>group-friendly-name</i>:policyName/<i>policy-friendly-name</i> </code> </p> </li>
+    /// <li>
+    /// <p><code>arn:aws:autoscaling:<i>region</i>:<i>account-id</i>:scalingPolicy:<i>policy-id</i>:autoScalingGroupName/<i>group-friendly-name</i>:policyName/<i>policy-friendly-name</i> </code></p></li>
     /// </ul>
-    /// <p> <b>SNS notification action:</b> </p>
+    /// <p><b>Lambda actions:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i>:autoScalingGroupName/<i>group-friendly-name</i>:policyName/<i>policy-friendly-name</i> </code> </p> </li>
+    /// <li>
+    /// <p>Invoke the latest version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a specific version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>version-number</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a function by using an alias Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>alias-name</i> </code></p></li>
     /// </ul>
-    /// <p> <b>SSM integration actions:</b> </p>
+    /// <p><b>SNS notification action:</b></p>
     /// <ul>
-    /// <li> <p> <code>arn:aws:ssm:<i>region</i>:<i>account-id</i>:opsitem:<i>severity</i>#CATEGORY=<i>category-name</i> </code> </p> </li>
-    /// <li> <p> <code>arn:aws:ssm-incidents::<i>account-id</i>:responseplan/<i>response-plan-name</i> </code> </p> </li>
+    /// <li>
+    /// <p><code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i> </code></p></li>
+    /// </ul>
+    /// <p><b>SSM integration actions:</b></p>
+    /// <ul>
+    /// <li>
+    /// <p><code>arn:aws:ssm:<i>region</i>:<i>account-id</i>:opsitem:<i>severity</i>#CATEGORY=<i>category-name</i> </code></p></li>
+    /// <li>
+    /// <p><code>arn:aws:ssm-incidents::<i>account-id</i>:responseplan/<i>response-plan-name</i> </code></p></li>
     /// </ul>
     pub fn get_insufficient_data_actions(&self) -> &::std::option::Option<::std::vec::Vec<::std::string::String>> {
         self.inner.get_insufficient_data_actions()
     }
     /// <p>The name for the metric associated with the alarm. For each <code>PutMetricAlarm</code> operation, you must specify either <code>MetricName</code> or a <code>Metrics</code> array.</p>
-    /// <p>If you are creating an alarm based on a math expression, you cannot specify this parameter, or any of the <code>Dimensions</code>, <code>Period</code>, <code>Namespace</code>, <code>Statistic</code>, or <code>ExtendedStatistic</code> parameters. Instead, you specify all this information in the <code>Metrics</code> array.</p>
+    /// <p>If you are creating an alarm based on a math expression, you cannot specify this parameter, or any of the <code>Namespace</code>, <code>Dimensions</code>, <code>Period</code>, <code>Unit</code>, <code>Statistic</code>, or <code>ExtendedStatistic</code> parameters. Instead, you specify all this information in the <code>Metrics</code> array.</p>
     pub fn metric_name(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.metric_name(input.into());
         self
     }
     /// <p>The name for the metric associated with the alarm. For each <code>PutMetricAlarm</code> operation, you must specify either <code>MetricName</code> or a <code>Metrics</code> array.</p>
-    /// <p>If you are creating an alarm based on a math expression, you cannot specify this parameter, or any of the <code>Dimensions</code>, <code>Period</code>, <code>Namespace</code>, <code>Statistic</code>, or <code>ExtendedStatistic</code> parameters. Instead, you specify all this information in the <code>Metrics</code> array.</p>
+    /// <p>If you are creating an alarm based on a math expression, you cannot specify this parameter, or any of the <code>Namespace</code>, <code>Dimensions</code>, <code>Period</code>, <code>Unit</code>, <code>Statistic</code>, or <code>ExtendedStatistic</code> parameters. Instead, you specify all this information in the <code>Metrics</code> array.</p>
     pub fn set_metric_name(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_metric_name(input);
         self
     }
     /// <p>The name for the metric associated with the alarm. For each <code>PutMetricAlarm</code> operation, you must specify either <code>MetricName</code> or a <code>Metrics</code> array.</p>
-    /// <p>If you are creating an alarm based on a math expression, you cannot specify this parameter, or any of the <code>Dimensions</code>, <code>Period</code>, <code>Namespace</code>, <code>Statistic</code>, or <code>ExtendedStatistic</code> parameters. Instead, you specify all this information in the <code>Metrics</code> array.</p>
+    /// <p>If you are creating an alarm based on a math expression, you cannot specify this parameter, or any of the <code>Namespace</code>, <code>Dimensions</code>, <code>Period</code>, <code>Unit</code>, <code>Statistic</code>, or <code>ExtendedStatistic</code> parameters. Instead, you specify all this information in the <code>Metrics</code> array.</p>
     pub fn get_metric_name(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_metric_name()
     }
@@ -487,17 +689,28 @@ impl PutMetricAlarmFluentBuilder {
     /// <p>The extended statistic for the metric specified in <code>MetricName</code>. When you call <code>PutMetricAlarm</code> and specify a <code>MetricName</code>, you must specify either <code>Statistic</code> or <code>ExtendedStatistic</code> but not both.</p>
     /// <p>If you specify <code>ExtendedStatistic</code>, the following are valid values:</p>
     /// <ul>
-    /// <li> <p> <code>p90</code> </p> </li>
-    /// <li> <p> <code>tm90</code> </p> </li>
-    /// <li> <p> <code>tc90</code> </p> </li>
-    /// <li> <p> <code>ts90</code> </p> </li>
-    /// <li> <p> <code>wm90</code> </p> </li>
-    /// <li> <p> <code>IQM</code> </p> </li>
-    /// <li> <p> <code>PR(<i>n</i>:<i>m</i>)</code> where n and m are values of the metric</p> </li>
-    /// <li> <p> <code>TC(<i>X</i>%:<i>X</i>%)</code> where X is between 10 and 90 inclusive.</p> </li>
-    /// <li> <p> <code>TM(<i>X</i>%:<i>X</i>%)</code> where X is between 10 and 90 inclusive.</p> </li>
-    /// <li> <p> <code>TS(<i>X</i>%:<i>X</i>%)</code> where X is between 10 and 90 inclusive.</p> </li>
-    /// <li> <p> <code>WM(<i>X</i>%:<i>X</i>%)</code> where X is between 10 and 90 inclusive.</p> </li>
+    /// <li>
+    /// <p><code>p90</code></p></li>
+    /// <li>
+    /// <p><code>tm90</code></p></li>
+    /// <li>
+    /// <p><code>tc90</code></p></li>
+    /// <li>
+    /// <p><code>ts90</code></p></li>
+    /// <li>
+    /// <p><code>wm90</code></p></li>
+    /// <li>
+    /// <p><code>IQM</code></p></li>
+    /// <li>
+    /// <p><code>PR(<i>n</i>:<i>m</i>)</code> where n and m are values of the metric</p></li>
+    /// <li>
+    /// <p><code>TC(<i>X</i>%:<i>X</i>%)</code> where X is between 10 and 90 inclusive.</p></li>
+    /// <li>
+    /// <p><code>TM(<i>X</i>%:<i>X</i>%)</code> where X is between 10 and 90 inclusive.</p></li>
+    /// <li>
+    /// <p><code>TS(<i>X</i>%:<i>X</i>%)</code> where X is between 10 and 90 inclusive.</p></li>
+    /// <li>
+    /// <p><code>WM(<i>X</i>%:<i>X</i>%)</code> where X is between 10 and 90 inclusive.</p></li>
     /// </ul>
     /// <p>For more information about these extended statistics, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Statistics-definitions.html">CloudWatch statistics definitions</a>.</p>
     pub fn extended_statistic(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
@@ -507,17 +720,28 @@ impl PutMetricAlarmFluentBuilder {
     /// <p>The extended statistic for the metric specified in <code>MetricName</code>. When you call <code>PutMetricAlarm</code> and specify a <code>MetricName</code>, you must specify either <code>Statistic</code> or <code>ExtendedStatistic</code> but not both.</p>
     /// <p>If you specify <code>ExtendedStatistic</code>, the following are valid values:</p>
     /// <ul>
-    /// <li> <p> <code>p90</code> </p> </li>
-    /// <li> <p> <code>tm90</code> </p> </li>
-    /// <li> <p> <code>tc90</code> </p> </li>
-    /// <li> <p> <code>ts90</code> </p> </li>
-    /// <li> <p> <code>wm90</code> </p> </li>
-    /// <li> <p> <code>IQM</code> </p> </li>
-    /// <li> <p> <code>PR(<i>n</i>:<i>m</i>)</code> where n and m are values of the metric</p> </li>
-    /// <li> <p> <code>TC(<i>X</i>%:<i>X</i>%)</code> where X is between 10 and 90 inclusive.</p> </li>
-    /// <li> <p> <code>TM(<i>X</i>%:<i>X</i>%)</code> where X is between 10 and 90 inclusive.</p> </li>
-    /// <li> <p> <code>TS(<i>X</i>%:<i>X</i>%)</code> where X is between 10 and 90 inclusive.</p> </li>
-    /// <li> <p> <code>WM(<i>X</i>%:<i>X</i>%)</code> where X is between 10 and 90 inclusive.</p> </li>
+    /// <li>
+    /// <p><code>p90</code></p></li>
+    /// <li>
+    /// <p><code>tm90</code></p></li>
+    /// <li>
+    /// <p><code>tc90</code></p></li>
+    /// <li>
+    /// <p><code>ts90</code></p></li>
+    /// <li>
+    /// <p><code>wm90</code></p></li>
+    /// <li>
+    /// <p><code>IQM</code></p></li>
+    /// <li>
+    /// <p><code>PR(<i>n</i>:<i>m</i>)</code> where n and m are values of the metric</p></li>
+    /// <li>
+    /// <p><code>TC(<i>X</i>%:<i>X</i>%)</code> where X is between 10 and 90 inclusive.</p></li>
+    /// <li>
+    /// <p><code>TM(<i>X</i>%:<i>X</i>%)</code> where X is between 10 and 90 inclusive.</p></li>
+    /// <li>
+    /// <p><code>TS(<i>X</i>%:<i>X</i>%)</code> where X is between 10 and 90 inclusive.</p></li>
+    /// <li>
+    /// <p><code>WM(<i>X</i>%:<i>X</i>%)</code> where X is between 10 and 90 inclusive.</p></li>
     /// </ul>
     /// <p>For more information about these extended statistics, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Statistics-definitions.html">CloudWatch statistics definitions</a>.</p>
     pub fn set_extended_statistic(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
@@ -527,22 +751,34 @@ impl PutMetricAlarmFluentBuilder {
     /// <p>The extended statistic for the metric specified in <code>MetricName</code>. When you call <code>PutMetricAlarm</code> and specify a <code>MetricName</code>, you must specify either <code>Statistic</code> or <code>ExtendedStatistic</code> but not both.</p>
     /// <p>If you specify <code>ExtendedStatistic</code>, the following are valid values:</p>
     /// <ul>
-    /// <li> <p> <code>p90</code> </p> </li>
-    /// <li> <p> <code>tm90</code> </p> </li>
-    /// <li> <p> <code>tc90</code> </p> </li>
-    /// <li> <p> <code>ts90</code> </p> </li>
-    /// <li> <p> <code>wm90</code> </p> </li>
-    /// <li> <p> <code>IQM</code> </p> </li>
-    /// <li> <p> <code>PR(<i>n</i>:<i>m</i>)</code> where n and m are values of the metric</p> </li>
-    /// <li> <p> <code>TC(<i>X</i>%:<i>X</i>%)</code> where X is between 10 and 90 inclusive.</p> </li>
-    /// <li> <p> <code>TM(<i>X</i>%:<i>X</i>%)</code> where X is between 10 and 90 inclusive.</p> </li>
-    /// <li> <p> <code>TS(<i>X</i>%:<i>X</i>%)</code> where X is between 10 and 90 inclusive.</p> </li>
-    /// <li> <p> <code>WM(<i>X</i>%:<i>X</i>%)</code> where X is between 10 and 90 inclusive.</p> </li>
+    /// <li>
+    /// <p><code>p90</code></p></li>
+    /// <li>
+    /// <p><code>tm90</code></p></li>
+    /// <li>
+    /// <p><code>tc90</code></p></li>
+    /// <li>
+    /// <p><code>ts90</code></p></li>
+    /// <li>
+    /// <p><code>wm90</code></p></li>
+    /// <li>
+    /// <p><code>IQM</code></p></li>
+    /// <li>
+    /// <p><code>PR(<i>n</i>:<i>m</i>)</code> where n and m are values of the metric</p></li>
+    /// <li>
+    /// <p><code>TC(<i>X</i>%:<i>X</i>%)</code> where X is between 10 and 90 inclusive.</p></li>
+    /// <li>
+    /// <p><code>TM(<i>X</i>%:<i>X</i>%)</code> where X is between 10 and 90 inclusive.</p></li>
+    /// <li>
+    /// <p><code>TS(<i>X</i>%:<i>X</i>%)</code> where X is between 10 and 90 inclusive.</p></li>
+    /// <li>
+    /// <p><code>WM(<i>X</i>%:<i>X</i>%)</code> where X is between 10 and 90 inclusive.</p></li>
     /// </ul>
     /// <p>For more information about these extended statistics, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/Statistics-definitions.html">CloudWatch statistics definitions</a>.</p>
     pub fn get_extended_statistic(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_extended_statistic()
     }
+    ///
     /// Appends an item to `Dimensions`.
     ///
     /// To override the contents of this collection use [`set_dimensions`](Self::set_dimensions).
@@ -562,7 +798,7 @@ impl PutMetricAlarmFluentBuilder {
         self.inner.get_dimensions()
     }
     /// <p>The length, in seconds, used each time the metric specified in <code>MetricName</code> is evaluated. Valid values are 10, 30, and any multiple of 60.</p>
-    /// <p> <code>Period</code> is required for alarms based on static thresholds. If you are creating an alarm based on a metric math expression, you specify the period for each metric within the objects in the <code>Metrics</code> array.</p>
+    /// <p><code>Period</code> is required for alarms based on static thresholds. If you are creating an alarm based on a metric math expression, you specify the period for each metric within the objects in the <code>Metrics</code> array.</p>
     /// <p>Be sure to specify 10 or 30 only for metrics that are stored by a <code>PutMetricData</code> call with a <code>StorageResolution</code> of 1. If you specify a period of 10 or 30 for a metric that does not have sub-minute resolution, the alarm still attempts to gather data at the period rate that you specify. In this case, it does not receive data for the attempts that do not correspond to a one-minute data resolution, and the alarm might often lapse into INSUFFICENT_DATA status. Specifying 10 or 30 also sets this alarm as a high-resolution alarm, which has a higher charge than other alarms. For more information about pricing, see <a href="https://aws.amazon.com/cloudwatch/pricing/">Amazon CloudWatch Pricing</a>.</p>
     /// <p>An alarm's total current evaluation period can be no longer than one day, so <code>Period</code> multiplied by <code>EvaluationPeriods</code> cannot be more than 86,400 seconds.</p>
     pub fn period(mut self, input: i32) -> Self {
@@ -570,7 +806,7 @@ impl PutMetricAlarmFluentBuilder {
         self
     }
     /// <p>The length, in seconds, used each time the metric specified in <code>MetricName</code> is evaluated. Valid values are 10, 30, and any multiple of 60.</p>
-    /// <p> <code>Period</code> is required for alarms based on static thresholds. If you are creating an alarm based on a metric math expression, you specify the period for each metric within the objects in the <code>Metrics</code> array.</p>
+    /// <p><code>Period</code> is required for alarms based on static thresholds. If you are creating an alarm based on a metric math expression, you specify the period for each metric within the objects in the <code>Metrics</code> array.</p>
     /// <p>Be sure to specify 10 or 30 only for metrics that are stored by a <code>PutMetricData</code> call with a <code>StorageResolution</code> of 1. If you specify a period of 10 or 30 for a metric that does not have sub-minute resolution, the alarm still attempts to gather data at the period rate that you specify. In this case, it does not receive data for the attempts that do not correspond to a one-minute data resolution, and the alarm might often lapse into INSUFFICENT_DATA status. Specifying 10 or 30 also sets this alarm as a high-resolution alarm, which has a higher charge than other alarms. For more information about pricing, see <a href="https://aws.amazon.com/cloudwatch/pricing/">Amazon CloudWatch Pricing</a>.</p>
     /// <p>An alarm's total current evaluation period can be no longer than one day, so <code>Period</code> multiplied by <code>EvaluationPeriods</code> cannot be more than 86,400 seconds.</p>
     pub fn set_period(mut self, input: ::std::option::Option<i32>) -> Self {
@@ -578,13 +814,13 @@ impl PutMetricAlarmFluentBuilder {
         self
     }
     /// <p>The length, in seconds, used each time the metric specified in <code>MetricName</code> is evaluated. Valid values are 10, 30, and any multiple of 60.</p>
-    /// <p> <code>Period</code> is required for alarms based on static thresholds. If you are creating an alarm based on a metric math expression, you specify the period for each metric within the objects in the <code>Metrics</code> array.</p>
+    /// <p><code>Period</code> is required for alarms based on static thresholds. If you are creating an alarm based on a metric math expression, you specify the period for each metric within the objects in the <code>Metrics</code> array.</p>
     /// <p>Be sure to specify 10 or 30 only for metrics that are stored by a <code>PutMetricData</code> call with a <code>StorageResolution</code> of 1. If you specify a period of 10 or 30 for a metric that does not have sub-minute resolution, the alarm still attempts to gather data at the period rate that you specify. In this case, it does not receive data for the attempts that do not correspond to a one-minute data resolution, and the alarm might often lapse into INSUFFICENT_DATA status. Specifying 10 or 30 also sets this alarm as a high-resolution alarm, which has a higher charge than other alarms. For more information about pricing, see <a href="https://aws.amazon.com/cloudwatch/pricing/">Amazon CloudWatch Pricing</a>.</p>
     /// <p>An alarm's total current evaluation period can be no longer than one day, so <code>Period</code> multiplied by <code>EvaluationPeriods</code> cannot be more than 86,400 seconds.</p>
     pub fn get_period(&self) -> &::std::option::Option<i32> {
         self.inner.get_period()
     }
-    /// <p>The unit of measure for the statistic. For example, the units for the Amazon EC2 NetworkIn metric are Bytes because NetworkIn tracks the number of bytes that an instance receives on all network interfaces. You can also specify a unit when you create a custom metric. Units help provide conceptual meaning to your data. Metric data points that specify a unit of measure, such as Percent, are aggregated separately.</p>
+    /// <p>The unit of measure for the statistic. For example, the units for the Amazon EC2 NetworkIn metric are Bytes because NetworkIn tracks the number of bytes that an instance receives on all network interfaces. You can also specify a unit when you create a custom metric. Units help provide conceptual meaning to your data. Metric data points that specify a unit of measure, such as Percent, are aggregated separately. If you are creating an alarm based on a metric math expression, you can specify the unit for each metric (if needed) within the objects in the <code>Metrics</code> array.</p>
     /// <p>If you don't specify <code>Unit</code>, CloudWatch retrieves all unit types that have been published for the metric and attempts to evaluate the alarm. Usually, metrics are published with only one unit, so the alarm works as intended.</p>
     /// <p>However, if the metric is published with multiple types of units and you don't specify a unit, the alarm's behavior is not defined and it behaves unpredictably.</p>
     /// <p>We recommend omitting <code>Unit</code> so that you don't inadvertently specify an incorrect unit that is not published for this metric. Doing so causes the alarm to be stuck in the <code>INSUFFICIENT DATA</code> state.</p>
@@ -592,7 +828,7 @@ impl PutMetricAlarmFluentBuilder {
         self.inner = self.inner.unit(input);
         self
     }
-    /// <p>The unit of measure for the statistic. For example, the units for the Amazon EC2 NetworkIn metric are Bytes because NetworkIn tracks the number of bytes that an instance receives on all network interfaces. You can also specify a unit when you create a custom metric. Units help provide conceptual meaning to your data. Metric data points that specify a unit of measure, such as Percent, are aggregated separately.</p>
+    /// <p>The unit of measure for the statistic. For example, the units for the Amazon EC2 NetworkIn metric are Bytes because NetworkIn tracks the number of bytes that an instance receives on all network interfaces. You can also specify a unit when you create a custom metric. Units help provide conceptual meaning to your data. Metric data points that specify a unit of measure, such as Percent, are aggregated separately. If you are creating an alarm based on a metric math expression, you can specify the unit for each metric (if needed) within the objects in the <code>Metrics</code> array.</p>
     /// <p>If you don't specify <code>Unit</code>, CloudWatch retrieves all unit types that have been published for the metric and attempts to evaluate the alarm. Usually, metrics are published with only one unit, so the alarm works as intended.</p>
     /// <p>However, if the metric is published with multiple types of units and you don't specify a unit, the alarm's behavior is not defined and it behaves unpredictably.</p>
     /// <p>We recommend omitting <code>Unit</code> so that you don't inadvertently specify an incorrect unit that is not published for this metric. Doing so causes the alarm to be stuck in the <code>INSUFFICIENT DATA</code> state.</p>
@@ -600,7 +836,7 @@ impl PutMetricAlarmFluentBuilder {
         self.inner = self.inner.set_unit(input);
         self
     }
-    /// <p>The unit of measure for the statistic. For example, the units for the Amazon EC2 NetworkIn metric are Bytes because NetworkIn tracks the number of bytes that an instance receives on all network interfaces. You can also specify a unit when you create a custom metric. Units help provide conceptual meaning to your data. Metric data points that specify a unit of measure, such as Percent, are aggregated separately.</p>
+    /// <p>The unit of measure for the statistic. For example, the units for the Amazon EC2 NetworkIn metric are Bytes because NetworkIn tracks the number of bytes that an instance receives on all network interfaces. You can also specify a unit when you create a custom metric. Units help provide conceptual meaning to your data. Metric data points that specify a unit of measure, such as Percent, are aggregated separately. If you are creating an alarm based on a metric math expression, you can specify the unit for each metric (if needed) within the objects in the <code>Metrics</code> array.</p>
     /// <p>If you don't specify <code>Unit</code>, CloudWatch retrieves all unit types that have been published for the metric and attempts to evaluate the alarm. Usually, metrics are published with only one unit, so the alarm works as intended.</p>
     /// <p>However, if the metric is published with multiple types of units and you don't specify a unit, the alarm's behavior is not defined and it behaves unpredictably.</p>
     /// <p>We recommend omitting <code>Unit</code> so that you don't inadvertently specify an incorrect unit that is not published for this metric. Doing so causes the alarm to be stuck in the <code>INSUFFICIENT DATA</code> state.</p>
@@ -655,63 +891,64 @@ impl PutMetricAlarmFluentBuilder {
     pub fn get_threshold(&self) -> &::std::option::Option<f64> {
         self.inner.get_threshold()
     }
-    /// <p> The arithmetic operation to use when comparing the specified statistic and threshold. The specified statistic value is used as the first operand.</p>
+    /// <p>The arithmetic operation to use when comparing the specified statistic and threshold. The specified statistic value is used as the first operand.</p>
     /// <p>The values <code>LessThanLowerOrGreaterThanUpperThreshold</code>, <code>LessThanLowerThreshold</code>, and <code>GreaterThanUpperThreshold</code> are used only for alarms based on anomaly detection models.</p>
     pub fn comparison_operator(mut self, input: crate::types::ComparisonOperator) -> Self {
         self.inner = self.inner.comparison_operator(input);
         self
     }
-    /// <p> The arithmetic operation to use when comparing the specified statistic and threshold. The specified statistic value is used as the first operand.</p>
+    /// <p>The arithmetic operation to use when comparing the specified statistic and threshold. The specified statistic value is used as the first operand.</p>
     /// <p>The values <code>LessThanLowerOrGreaterThanUpperThreshold</code>, <code>LessThanLowerThreshold</code>, and <code>GreaterThanUpperThreshold</code> are used only for alarms based on anomaly detection models.</p>
     pub fn set_comparison_operator(mut self, input: ::std::option::Option<crate::types::ComparisonOperator>) -> Self {
         self.inner = self.inner.set_comparison_operator(input);
         self
     }
-    /// <p> The arithmetic operation to use when comparing the specified statistic and threshold. The specified statistic value is used as the first operand.</p>
+    /// <p>The arithmetic operation to use when comparing the specified statistic and threshold. The specified statistic value is used as the first operand.</p>
     /// <p>The values <code>LessThanLowerOrGreaterThanUpperThreshold</code>, <code>LessThanLowerThreshold</code>, and <code>GreaterThanUpperThreshold</code> are used only for alarms based on anomaly detection models.</p>
     pub fn get_comparison_operator(&self) -> &::std::option::Option<crate::types::ComparisonOperator> {
         self.inner.get_comparison_operator()
     }
-    /// <p> Sets how this alarm is to handle missing data points. If <code>TreatMissingData</code> is omitted, the default behavior of <code>missing</code> is used. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html#alarms-and-missing-data">Configuring How CloudWatch Alarms Treats Missing Data</a>.</p>
-    /// <p>Valid Values: <code>breaching | notBreaching | ignore | missing</code> </p> <note>
+    /// <p>Sets how this alarm is to handle missing data points. If <code>TreatMissingData</code> is omitted, the default behavior of <code>missing</code> is used. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html#alarms-and-missing-data">Configuring How CloudWatch Alarms Treats Missing Data</a>.</p>
+    /// <p>Valid Values: <code>breaching | notBreaching | ignore | missing</code></p><note>
     /// <p>Alarms that evaluate metrics in the <code>AWS/DynamoDB</code> namespace always <code>ignore</code> missing data even if you choose a different option for <code>TreatMissingData</code>. When an <code>AWS/DynamoDB</code> metric has missing data, alarms that evaluate that metric remain in their current state.</p>
     /// </note>
     pub fn treat_missing_data(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.treat_missing_data(input.into());
         self
     }
-    /// <p> Sets how this alarm is to handle missing data points. If <code>TreatMissingData</code> is omitted, the default behavior of <code>missing</code> is used. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html#alarms-and-missing-data">Configuring How CloudWatch Alarms Treats Missing Data</a>.</p>
-    /// <p>Valid Values: <code>breaching | notBreaching | ignore | missing</code> </p> <note>
+    /// <p>Sets how this alarm is to handle missing data points. If <code>TreatMissingData</code> is omitted, the default behavior of <code>missing</code> is used. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html#alarms-and-missing-data">Configuring How CloudWatch Alarms Treats Missing Data</a>.</p>
+    /// <p>Valid Values: <code>breaching | notBreaching | ignore | missing</code></p><note>
     /// <p>Alarms that evaluate metrics in the <code>AWS/DynamoDB</code> namespace always <code>ignore</code> missing data even if you choose a different option for <code>TreatMissingData</code>. When an <code>AWS/DynamoDB</code> metric has missing data, alarms that evaluate that metric remain in their current state.</p>
     /// </note>
     pub fn set_treat_missing_data(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_treat_missing_data(input);
         self
     }
-    /// <p> Sets how this alarm is to handle missing data points. If <code>TreatMissingData</code> is omitted, the default behavior of <code>missing</code> is used. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html#alarms-and-missing-data">Configuring How CloudWatch Alarms Treats Missing Data</a>.</p>
-    /// <p>Valid Values: <code>breaching | notBreaching | ignore | missing</code> </p> <note>
+    /// <p>Sets how this alarm is to handle missing data points. If <code>TreatMissingData</code> is omitted, the default behavior of <code>missing</code> is used. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html#alarms-and-missing-data">Configuring How CloudWatch Alarms Treats Missing Data</a>.</p>
+    /// <p>Valid Values: <code>breaching | notBreaching | ignore | missing</code></p><note>
     /// <p>Alarms that evaluate metrics in the <code>AWS/DynamoDB</code> namespace always <code>ignore</code> missing data even if you choose a different option for <code>TreatMissingData</code>. When an <code>AWS/DynamoDB</code> metric has missing data, alarms that evaluate that metric remain in their current state.</p>
     /// </note>
     pub fn get_treat_missing_data(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_treat_missing_data()
     }
-    /// <p> Used only for alarms based on percentiles. If you specify <code>ignore</code>, the alarm state does not change during periods with too few data points to be statistically significant. If you specify <code>evaluate</code> or omit this parameter, the alarm is always evaluated and possibly changes state no matter how many data points are available. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html#percentiles-with-low-samples">Percentile-Based CloudWatch Alarms and Low Data Samples</a>.</p>
-    /// <p>Valid Values: <code>evaluate | ignore</code> </p>
+    /// <p>Used only for alarms based on percentiles. If you specify <code>ignore</code>, the alarm state does not change during periods with too few data points to be statistically significant. If you specify <code>evaluate</code> or omit this parameter, the alarm is always evaluated and possibly changes state no matter how many data points are available. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html#percentiles-with-low-samples">Percentile-Based CloudWatch Alarms and Low Data Samples</a>.</p>
+    /// <p>Valid Values: <code>evaluate | ignore</code></p>
     pub fn evaluate_low_sample_count_percentile(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.evaluate_low_sample_count_percentile(input.into());
         self
     }
-    /// <p> Used only for alarms based on percentiles. If you specify <code>ignore</code>, the alarm state does not change during periods with too few data points to be statistically significant. If you specify <code>evaluate</code> or omit this parameter, the alarm is always evaluated and possibly changes state no matter how many data points are available. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html#percentiles-with-low-samples">Percentile-Based CloudWatch Alarms and Low Data Samples</a>.</p>
-    /// <p>Valid Values: <code>evaluate | ignore</code> </p>
+    /// <p>Used only for alarms based on percentiles. If you specify <code>ignore</code>, the alarm state does not change during periods with too few data points to be statistically significant. If you specify <code>evaluate</code> or omit this parameter, the alarm is always evaluated and possibly changes state no matter how many data points are available. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html#percentiles-with-low-samples">Percentile-Based CloudWatch Alarms and Low Data Samples</a>.</p>
+    /// <p>Valid Values: <code>evaluate | ignore</code></p>
     pub fn set_evaluate_low_sample_count_percentile(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_evaluate_low_sample_count_percentile(input);
         self
     }
-    /// <p> Used only for alarms based on percentiles. If you specify <code>ignore</code>, the alarm state does not change during periods with too few data points to be statistically significant. If you specify <code>evaluate</code> or omit this parameter, the alarm is always evaluated and possibly changes state no matter how many data points are available. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html#percentiles-with-low-samples">Percentile-Based CloudWatch Alarms and Low Data Samples</a>.</p>
-    /// <p>Valid Values: <code>evaluate | ignore</code> </p>
+    /// <p>Used only for alarms based on percentiles. If you specify <code>ignore</code>, the alarm state does not change during periods with too few data points to be statistically significant. If you specify <code>evaluate</code> or omit this parameter, the alarm is always evaluated and possibly changes state no matter how many data points are available. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/AlarmThatSendsEmail.html#percentiles-with-low-samples">Percentile-Based CloudWatch Alarms and Low Data Samples</a>.</p>
+    /// <p>Valid Values: <code>evaluate | ignore</code></p>
     pub fn get_evaluate_low_sample_count_percentile(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_evaluate_low_sample_count_percentile()
     }
+    ///
     /// Appends an item to `Metrics`.
     ///
     /// To override the contents of this collection use [`set_metrics`](Self::set_metrics).
@@ -719,7 +956,7 @@ impl PutMetricAlarmFluentBuilder {
     /// <p>An array of <code>MetricDataQuery</code> structures that enable you to create an alarm based on the result of a metric math expression. For each <code>PutMetricAlarm</code> operation, you must specify either <code>MetricName</code> or a <code>Metrics</code> array.</p>
     /// <p>Each item in the <code>Metrics</code> array either retrieves a metric or performs a math expression.</p>
     /// <p>One item in the <code>Metrics</code> array is the expression that the alarm watches. You designate this expression by setting <code>ReturnData</code> to true for this object in the array. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_MetricDataQuery.html">MetricDataQuery</a>.</p>
-    /// <p>If you use the <code>Metrics</code> parameter, you cannot include the <code>MetricName</code>, <code>Dimensions</code>, <code>Period</code>, <code>Namespace</code>, <code>Statistic</code>, or <code>ExtendedStatistic</code> parameters of <code>PutMetricAlarm</code> in the same operation. Instead, you retrieve the metrics you are using in your math expression as part of the <code>Metrics</code> array.</p>
+    /// <p>If you use the <code>Metrics</code> parameter, you cannot include the <code>Namespace</code>, <code>MetricName</code>, <code>Dimensions</code>, <code>Period</code>, <code>Unit</code>, <code>Statistic</code>, or <code>ExtendedStatistic</code> parameters of <code>PutMetricAlarm</code> in the same operation. Instead, you retrieve the metrics you are using in your math expression as part of the <code>Metrics</code> array.</p>
     pub fn metrics(mut self, input: crate::types::MetricDataQuery) -> Self {
         self.inner = self.inner.metrics(input);
         self
@@ -727,7 +964,7 @@ impl PutMetricAlarmFluentBuilder {
     /// <p>An array of <code>MetricDataQuery</code> structures that enable you to create an alarm based on the result of a metric math expression. For each <code>PutMetricAlarm</code> operation, you must specify either <code>MetricName</code> or a <code>Metrics</code> array.</p>
     /// <p>Each item in the <code>Metrics</code> array either retrieves a metric or performs a math expression.</p>
     /// <p>One item in the <code>Metrics</code> array is the expression that the alarm watches. You designate this expression by setting <code>ReturnData</code> to true for this object in the array. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_MetricDataQuery.html">MetricDataQuery</a>.</p>
-    /// <p>If you use the <code>Metrics</code> parameter, you cannot include the <code>MetricName</code>, <code>Dimensions</code>, <code>Period</code>, <code>Namespace</code>, <code>Statistic</code>, or <code>ExtendedStatistic</code> parameters of <code>PutMetricAlarm</code> in the same operation. Instead, you retrieve the metrics you are using in your math expression as part of the <code>Metrics</code> array.</p>
+    /// <p>If you use the <code>Metrics</code> parameter, you cannot include the <code>Namespace</code>, <code>MetricName</code>, <code>Dimensions</code>, <code>Period</code>, <code>Unit</code>, <code>Statistic</code>, or <code>ExtendedStatistic</code> parameters of <code>PutMetricAlarm</code> in the same operation. Instead, you retrieve the metrics you are using in your math expression as part of the <code>Metrics</code> array.</p>
     pub fn set_metrics(mut self, input: ::std::option::Option<::std::vec::Vec<crate::types::MetricDataQuery>>) -> Self {
         self.inner = self.inner.set_metrics(input);
         self
@@ -735,10 +972,11 @@ impl PutMetricAlarmFluentBuilder {
     /// <p>An array of <code>MetricDataQuery</code> structures that enable you to create an alarm based on the result of a metric math expression. For each <code>PutMetricAlarm</code> operation, you must specify either <code>MetricName</code> or a <code>Metrics</code> array.</p>
     /// <p>Each item in the <code>Metrics</code> array either retrieves a metric or performs a math expression.</p>
     /// <p>One item in the <code>Metrics</code> array is the expression that the alarm watches. You designate this expression by setting <code>ReturnData</code> to true for this object in the array. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_MetricDataQuery.html">MetricDataQuery</a>.</p>
-    /// <p>If you use the <code>Metrics</code> parameter, you cannot include the <code>MetricName</code>, <code>Dimensions</code>, <code>Period</code>, <code>Namespace</code>, <code>Statistic</code>, or <code>ExtendedStatistic</code> parameters of <code>PutMetricAlarm</code> in the same operation. Instead, you retrieve the metrics you are using in your math expression as part of the <code>Metrics</code> array.</p>
+    /// <p>If you use the <code>Metrics</code> parameter, you cannot include the <code>Namespace</code>, <code>MetricName</code>, <code>Dimensions</code>, <code>Period</code>, <code>Unit</code>, <code>Statistic</code>, or <code>ExtendedStatistic</code> parameters of <code>PutMetricAlarm</code> in the same operation. Instead, you retrieve the metrics you are using in your math expression as part of the <code>Metrics</code> array.</p>
     pub fn get_metrics(&self) -> &::std::option::Option<::std::vec::Vec<crate::types::MetricDataQuery>> {
         self.inner.get_metrics()
     }
+    ///
     /// Appends an item to `Tags`.
     ///
     /// To override the contents of this collection use [`set_tags`](Self::set_tags).
@@ -746,6 +984,7 @@ impl PutMetricAlarmFluentBuilder {
     /// <p>A list of key-value pairs to associate with the alarm. You can associate as many as 50 tags with an alarm. To be able to associate tags with the alarm when you create the alarm, you must have the <code>cloudwatch:TagResource</code> permission.</p>
     /// <p>Tags can help you organize and categorize your resources. You can also use them to scope user permissions by granting a user permission to access or change only resources with certain tag values.</p>
     /// <p>If you are using this operation to update an existing alarm, any tags you specify in this parameter are ignored. To change the tags of an existing alarm, use <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_TagResource.html">TagResource</a> or <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_UntagResource.html">UntagResource</a>.</p>
+    /// <p>To use this field to set tags for an alarm when you create it, you must be signed on with both the <code>cloudwatch:PutMetricAlarm</code> and <code>cloudwatch:TagResource</code> permissions.</p>
     pub fn tags(mut self, input: crate::types::Tag) -> Self {
         self.inner = self.inner.tags(input);
         self
@@ -753,6 +992,7 @@ impl PutMetricAlarmFluentBuilder {
     /// <p>A list of key-value pairs to associate with the alarm. You can associate as many as 50 tags with an alarm. To be able to associate tags with the alarm when you create the alarm, you must have the <code>cloudwatch:TagResource</code> permission.</p>
     /// <p>Tags can help you organize and categorize your resources. You can also use them to scope user permissions by granting a user permission to access or change only resources with certain tag values.</p>
     /// <p>If you are using this operation to update an existing alarm, any tags you specify in this parameter are ignored. To change the tags of an existing alarm, use <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_TagResource.html">TagResource</a> or <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_UntagResource.html">UntagResource</a>.</p>
+    /// <p>To use this field to set tags for an alarm when you create it, you must be signed on with both the <code>cloudwatch:PutMetricAlarm</code> and <code>cloudwatch:TagResource</code> permissions.</p>
     pub fn set_tags(mut self, input: ::std::option::Option<::std::vec::Vec<crate::types::Tag>>) -> Self {
         self.inner = self.inner.set_tags(input);
         self
@@ -760,6 +1000,7 @@ impl PutMetricAlarmFluentBuilder {
     /// <p>A list of key-value pairs to associate with the alarm. You can associate as many as 50 tags with an alarm. To be able to associate tags with the alarm when you create the alarm, you must have the <code>cloudwatch:TagResource</code> permission.</p>
     /// <p>Tags can help you organize and categorize your resources. You can also use them to scope user permissions by granting a user permission to access or change only resources with certain tag values.</p>
     /// <p>If you are using this operation to update an existing alarm, any tags you specify in this parameter are ignored. To change the tags of an existing alarm, use <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_TagResource.html">TagResource</a> or <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_UntagResource.html">UntagResource</a>.</p>
+    /// <p>To use this field to set tags for an alarm when you create it, you must be signed on with both the <code>cloudwatch:PutMetricAlarm</code> and <code>cloudwatch:TagResource</code> permissions.</p>
     pub fn get_tags(&self) -> &::std::option::Option<::std::vec::Vec<crate::types::Tag>> {
         self.inner.get_tags()
     }

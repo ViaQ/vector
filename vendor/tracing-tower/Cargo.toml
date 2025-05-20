@@ -16,6 +16,7 @@ name = "tracing-tower"
 version = "0.1.0"
 authors = ["Eliza Weisman <eliza@buoyant.io>"]
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

@@ -5,12 +5,16 @@
 // https://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
-use std::{io, net::SocketAddr, sync::Arc};
+use alloc::sync::Arc;
+use std::{io, net::SocketAddr};
 
+use quinn::crypto::rustls::QuicServerConfig;
 use quinn::{Connection, Endpoint, ServerConfig};
-use rustls::{server::ServerConfig as TlsServerConfig, version::TLS13, Certificate, PrivateKey};
+use rustls::server::ResolvesServerCert;
+use rustls::server::ServerConfig as TlsServerConfig;
+use rustls::version::TLS13;
 
-use crate::{error::ProtoError, udp::UdpSocket};
+use crate::{error::ProtoError, rustls::default_provider, udp::UdpSocket};
 
 use super::{
     quic_config,
@@ -26,31 +30,28 @@ impl QuicServer {
     /// Construct the new Acceptor with the associated pkcs12 data
     pub async fn new(
         name_server: SocketAddr,
-        cert: Vec<Certificate>,
-        key: PrivateKey,
+        server_cert_resolver: Arc<dyn ResolvesServerCert>,
     ) -> Result<Self, ProtoError> {
         // setup a new socket for the server to use
         let socket = <tokio::net::UdpSocket as UdpSocket>::bind(name_server).await?;
-        Self::with_socket(socket, cert, key)
+        Self::with_socket(socket, server_cert_resolver)
     }
 
     /// Construct the new server with an existing socket
     pub fn with_socket(
         socket: tokio::net::UdpSocket,
-        cert: Vec<Certificate>,
-        key: PrivateKey,
+        server_cert_resolver: Arc<dyn ResolvesServerCert>,
     ) -> Result<Self, ProtoError> {
-        let mut config = TlsServerConfig::builder()
-            .with_safe_default_cipher_suites()
-            .with_safe_default_kx_groups()
+        let mut config = TlsServerConfig::builder_with_provider(Arc::new(default_provider()))
             .with_protocol_versions(&[&TLS13])
-            .expect("TLS1.3 not supported")
+            .unwrap() // The ring default provider is guaranteed to support TLS 1.3
             .with_no_client_auth()
-            .with_single_cert(cert, key)?;
+            .with_cert_resolver(server_cert_resolver);
 
         config.alpn_protocols = vec![quic_stream::DOQ_ALPN.to_vec()];
 
-        let mut server_config = ServerConfig::with_crypto(Arc::new(config));
+        let mut server_config =
+            ServerConfig::with_crypto(Arc::new(QuicServerConfig::try_from(config)?));
         server_config.transport = Arc::new(quic_config::transport());
 
         let socket = socket.into_std()?;

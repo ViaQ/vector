@@ -50,6 +50,22 @@ pub fn de_register_client_http_error(
             }
             tmp
         }),
+        "InvalidRedirectUriException" => crate::operation::register_client::RegisterClientError::InvalidRedirectUriException({
+            #[allow(unused_mut)]
+            let mut tmp = {
+                #[allow(unused_mut)]
+                let mut output = crate::types::error::builders::InvalidRedirectUriExceptionBuilder::default();
+                output =
+                    crate::protocol_serde::shape_invalid_redirect_uri_exception::de_invalid_redirect_uri_exception_json_err(_response_body, output)
+                        .map_err(crate::operation::register_client::RegisterClientError::unhandled)?;
+                let output = output.meta(generic);
+                output.build()
+            };
+            if tmp.message.is_none() {
+                tmp.message = _error_message;
+            }
+            tmp
+        }),
         "InvalidRequestException" => crate::operation::register_client::RegisterClientError::InvalidRequestException({
             #[allow(unused_mut)]
             let mut tmp = {
@@ -80,6 +96,24 @@ pub fn de_register_client_http_error(
             }
             tmp
         }),
+        "UnsupportedGrantTypeException" => crate::operation::register_client::RegisterClientError::UnsupportedGrantTypeException({
+            #[allow(unused_mut)]
+            let mut tmp = {
+                #[allow(unused_mut)]
+                let mut output = crate::types::error::builders::UnsupportedGrantTypeExceptionBuilder::default();
+                output = crate::protocol_serde::shape_unsupported_grant_type_exception::de_unsupported_grant_type_exception_json_err(
+                    _response_body,
+                    output,
+                )
+                .map_err(crate::operation::register_client::RegisterClientError::unhandled)?;
+                let output = output.meta(generic);
+                output.build()
+            };
+            if tmp.message.is_none() {
+                tmp.message = _error_message;
+            }
+            tmp
+        }),
         _ => crate::operation::register_client::RegisterClientError::generic(generic),
     })
 }
@@ -102,7 +136,7 @@ pub fn de_register_client_http_response(
 
 pub fn ser_register_client_input(
     input: &crate::operation::register_client::RegisterClientInput,
-) -> Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
     let mut out = String::new();
     let mut object = ::aws_smithy_json::serialize::JsonObjectWriter::new(&mut out);
     crate::protocol_serde::shape_register_client_input::ser_register_client_input_input(&mut object, input)?;
@@ -113,7 +147,10 @@ pub fn ser_register_client_input(
 pub(crate) fn de_register_client(
     value: &[u8],
     mut builder: crate::operation::register_client::builders::RegisterClientOutputBuilder,
-) -> Result<crate::operation::register_client::builders::RegisterClientOutputBuilder, ::aws_smithy_json::deserialize::error::DeserializeError> {
+) -> ::std::result::Result<
+    crate::operation::register_client::builders::RegisterClientOutputBuilder,
+    ::aws_smithy_json::deserialize::error::DeserializeError,
+> {
     let mut tokens_owned = ::aws_smithy_json::deserialize::json_token_iter(crate::protocol_serde::or_empty_doc(value)).peekable();
     let tokens = &mut tokens_owned;
     ::aws_smithy_json::deserialize::token::expect_start_object(tokens.next())?;

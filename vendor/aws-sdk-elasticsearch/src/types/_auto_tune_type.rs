@@ -34,6 +34,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 /// <p>Specifies Auto-Tune type. Valid value is SCHEDULED_ACTION. </p>
 #[non_exhaustive]
 #[derive(
@@ -88,6 +89,14 @@ impl AutoTuneType {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for AutoTuneType {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            AutoTuneType::ScheduledAction => write!(f, "SCHEDULED_ACTION"),
+            AutoTuneType::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

@@ -46,7 +46,18 @@ impl Publish {
         >,
     > {
         let input = ::aws_smithy_runtime_api::client::interceptors::context::Input::erase(input);
-        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("sns", "Publish", input, runtime_plugins, stop_point).await
+        use ::tracing::Instrument;
+        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("SNS", "Publish", input, runtime_plugins, stop_point)
+            // Create a parent span for the entire operation. Includes a random, internal-only,
+            // seven-digit ID for the operation orchestration so that it can be correlated in the logs.
+            .instrument(::tracing::debug_span!(
+                "SNS.Publish",
+                "rpc.service" = "SNS",
+                "rpc.method" = "Publish",
+                "sdk_invocation_id" = ::fastrand::u32(1_000_000..10_000_000),
+                "rpc.system" = "aws-api",
+            ))
+            .await
     }
 
     pub(crate) fn operation_runtime_plugins(
@@ -86,7 +97,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for Publish
             ::aws_smithy_runtime_api::client::auth::static_resolver::StaticAuthSchemeOptionResolverParams::new(),
         ));
 
-        cfg.store_put(::aws_smithy_http::operation::Metadata::new("Publish", "sns"));
+        cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::Metadata::new("Publish", "SNS"));
         let mut signing_options = ::aws_runtime::auth::SigningOptions::default();
         signing_options.double_uri_encode = true;
         signing_options.content_sha256_header = false;
@@ -107,11 +118,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for Publish
     ) -> ::std::borrow::Cow<'_, ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder> {
         #[allow(unused_mut)]
         let mut rcb = ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("Publish")
-            .with_interceptor(
-                ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::new(
-                    ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptorKind::ResponseBody,
-                ),
-            )
+            .with_interceptor(::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::default())
             .with_interceptor(PublishEndpointParamsInterceptor)
             .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<
                 crate::operation::publish::PublishError,
@@ -230,6 +237,9 @@ impl ::aws_smithy_runtime_api::client::interceptors::Intercept for PublishEndpoi
     }
 }
 
+// The get_* functions below are generated from JMESPath expressions in the
+// operationContextParams trait. They target the operation's input shape.
+
 /// Error type for the `PublishError` operation.
 #[non_exhaustive]
 #[derive(::std::fmt::Debug)]
@@ -256,7 +266,7 @@ pub enum PublishError {
     KmsNotFoundException(crate::types::error::KmsNotFoundException),
     /// <p>The Amazon Web Services access key ID needs a subscription for the service.</p>
     KmsOptInRequired(crate::types::error::KmsOptInRequired),
-    /// <p>The request was denied due to request throttling. For more information about throttling, see <a href="https://docs.aws.amazon.com/kms/latest/developerguide/limits.html#requests-per-second">Limits</a> in the <i>Key Management Service Developer Guide.</i> </p>
+    /// <p>The request was denied due to request throttling. For more information about throttling, see <a href="https://docs.aws.amazon.com/kms/latest/developerguide/limits.html#requests-per-second">Limits</a> in the <i>Key Management Service Developer Guide.</i></p>
     KmsThrottlingException(crate::types::error::KmsThrottlingException),
     /// <p>Indicates that the requested resource does not exist.</p>
     NotFoundException(crate::types::error::NotFoundException),

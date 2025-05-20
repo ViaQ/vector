@@ -3,7 +3,7 @@ pub use crate::operation::validate_resource_policy::_validate_resource_policy_ou
 
 pub use crate::operation::validate_resource_policy::_validate_resource_policy_input::ValidateResourcePolicyInputBuilder;
 
-impl ValidateResourcePolicyInputBuilder {
+impl crate::operation::validate_resource_policy::builders::ValidateResourcePolicyInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -25,12 +25,15 @@ impl ValidateResourcePolicyInputBuilder {
 /// <p>Validates that a resource policy does not grant a wide range of principals access to your secret. A resource-based policy is optional for secrets.</p>
 /// <p>The API performs three checks when validating the policy:</p>
 /// <ul>
-/// <li> <p>Sends a call to <a href="https://aws.amazon.com/blogs/security/protect-sensitive-data-in-the-cloud-with-automated-reasoning-zelkova/">Zelkova</a>, an automated reasoning engine, to ensure your resource policy does not allow broad access to your secret, for example policies that use a wildcard for the principal.</p> </li>
-/// <li> <p>Checks for correct syntax in a policy.</p> </li>
-/// <li> <p>Verifies the policy does not lock out a caller.</p> </li>
+/// <li>
+/// <p>Sends a call to <a href="https://aws.amazon.com/blogs/security/protect-sensitive-data-in-the-cloud-with-automated-reasoning-zelkova/">Zelkova</a>, an automated reasoning engine, to ensure your resource policy does not allow broad access to your secret, for example policies that use a wildcard for the principal.</p></li>
+/// <li>
+/// <p>Checks for correct syntax in a policy.</p></li>
+/// <li>
+/// <p>Verifies the policy does not lock out a caller.</p></li>
 /// </ul>
 /// <p>Secrets Manager generates a CloudTrail log entry when you call this action. Do not include sensitive information in request parameters because it might be logged. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html">Logging Secrets Manager events with CloudTrail</a>.</p>
-/// <p> <b>Required permissions: </b> <code>secretsmanager:ValidateResourcePolicy</code> and <code>secretsmanager:PutResourcePolicy</code>. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions"> IAM policy actions for Secrets Manager</a> and <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access.html">Authentication and access control in Secrets Manager</a>. </p>
+/// <p><b>Required permissions: </b> <code>secretsmanager:ValidateResourcePolicy</code> and <code>secretsmanager:PutResourcePolicy</code>. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions"> IAM policy actions for Secrets Manager</a> and <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access.html">Authentication and access control in Secrets Manager</a>.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct ValidateResourcePolicyFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -56,7 +59,7 @@ impl
     }
 }
 impl ValidateResourcePolicyFluentBuilder {
-    /// Creates a new `ValidateResourcePolicy`.
+    /// Creates a new `ValidateResourcePolicyFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -107,26 +110,26 @@ impl ValidateResourcePolicyFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
-    /// <p>This field is reserved for internal use.</p>
+    /// <p>The ARN or name of the secret with the resource-based policy you want to validate.</p>
     pub fn secret_id(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.secret_id(input.into());
         self
     }
-    /// <p>This field is reserved for internal use.</p>
+    /// <p>The ARN or name of the secret with the resource-based policy you want to validate.</p>
     pub fn set_secret_id(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_secret_id(input);
         self
     }
-    /// <p>This field is reserved for internal use.</p>
+    /// <p>The ARN or name of the secret with the resource-based policy you want to validate.</p>
     pub fn get_secret_id(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_secret_id()
     }

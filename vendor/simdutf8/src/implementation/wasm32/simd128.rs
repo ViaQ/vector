@@ -1,8 +1,8 @@
 //! Contains the wasm32 UTF-8 validation implementation.
 
 use core::arch::wasm32::{
-    u8x16, u8x16_bitmask, u8x16_gt, u8x16_shr, u8x16_shuffle, u8x16_splat, u8x16_sub_sat,
-    u8x16_swizzle, v128, v128_and, v128_any_true, v128_or, v128_xor,
+    u8x16, u8x16_all_true, u8x16_gt, u8x16_lt, u8x16_shr, u8x16_shuffle, u8x16_splat,
+    u8x16_sub_sat, u8x16_swizzle, v128, v128_and, v128_any_true, v128_or, v128_xor,
 };
 
 use crate::implementation::helpers::Utf8CheckAlgorithm;
@@ -88,9 +88,8 @@ impl SimdU8Value {
     }
 
     #[inline]
-    #[allow(clippy::cast_ptr_alignment)]
     unsafe fn load_from(ptr: *const u8) -> Self {
-        Self::from(*(ptr.cast::<v128>()))
+        Self::from(ptr.cast::<v128>().read_unaligned())
     }
 
     #[inline]
@@ -252,7 +251,9 @@ impl SimdU8Value {
 
     #[inline]
     unsafe fn is_ascii(self) -> bool {
-        u8x16_bitmask(self.0) == 0
+        // We don't want to use u8x16_bitmask as that is inefficient on NEON.
+        // For x86 shifts should also be avoided.
+        u8x16_all_true(u8x16_lt(self.0, u8x16_splat(0b1000_0000_u8)))
     }
 }
 

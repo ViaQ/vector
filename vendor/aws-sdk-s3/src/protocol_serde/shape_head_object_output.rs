@@ -50,6 +50,13 @@ pub(crate) fn de_checksum_crc32_c_header(
     ::aws_smithy_http::header::one_or_none(headers)
 }
 
+pub(crate) fn de_checksum_crc64_nvme_header(
+    header_map: &::aws_smithy_runtime_api::http::Headers,
+) -> ::std::result::Result<::std::option::Option<::std::string::String>, ::aws_smithy_http::header::ParseError> {
+    let headers = header_map.get_all("x-amz-checksum-crc64nvme");
+    ::aws_smithy_http::header::one_or_none(headers)
+}
+
 pub(crate) fn de_checksum_sha1_header(
     header_map: &::aws_smithy_runtime_api::http::Headers,
 ) -> ::std::result::Result<::std::option::Option<::std::string::String>, ::aws_smithy_http::header::ParseError> {
@@ -61,6 +68,13 @@ pub(crate) fn de_checksum_sha256_header(
     header_map: &::aws_smithy_runtime_api::http::Headers,
 ) -> ::std::result::Result<::std::option::Option<::std::string::String>, ::aws_smithy_http::header::ParseError> {
     let headers = header_map.get_all("x-amz-checksum-sha256");
+    ::aws_smithy_http::header::one_or_none(headers)
+}
+
+pub(crate) fn de_checksum_type_header(
+    header_map: &::aws_smithy_runtime_api::http::Headers,
+) -> ::std::result::Result<::std::option::Option<crate::types::ChecksumType>, ::aws_smithy_http::header::ParseError> {
+    let headers = header_map.get_all("x-amz-checksum-type");
     ::aws_smithy_http::header::one_or_none(headers)
 }
 
@@ -99,6 +113,13 @@ pub(crate) fn de_content_length_header(
         let mut var_2 = var_2;
         Ok(var_2.pop())
     }
+}
+
+pub(crate) fn de_content_range_header(
+    header_map: &::aws_smithy_runtime_api::http::Headers,
+) -> ::std::result::Result<::std::option::Option<::std::string::String>, ::aws_smithy_http::header::ParseError> {
+    let headers = header_map.get_all("Content-Range");
+    ::aws_smithy_http::header::one_or_none(headers)
 }
 
 pub(crate) fn de_content_type_header(
@@ -152,6 +173,13 @@ pub(crate) fn de_expires_header(
         let mut var_4 = var_4;
         Ok(var_4.pop())
     }
+}
+
+pub(crate) fn de_expires_string_header(
+    header_map: &::aws_smithy_runtime_api::http::Headers,
+) -> ::std::result::Result<::std::option::Option<::std::string::String>, ::aws_smithy_http::header::ParseError> {
+    let headers = header_map.get_all("ExpiresString");
+    ::aws_smithy_http::header::one_or_none(headers)
 }
 
 pub(crate) fn de_last_modified_header(

@@ -15,7 +15,7 @@ pub struct FromTypeParamImpl<'a> {
     pub from_ident: bool,
 }
 
-impl<'a> ToTokens for FromTypeParamImpl<'a> {
+impl ToTokens for FromTypeParamImpl<'_> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let input = self.param_name();
 
@@ -74,12 +74,12 @@ impl<'a> ToTokens for FromTypeParamImpl<'a> {
     }
 }
 
-impl<'a> ExtractAttribute for FromTypeParamImpl<'a> {
+impl ExtractAttribute for FromTypeParamImpl<'_> {
     fn attr_names(&self) -> &PathList {
         self.attr_names
     }
 
-    fn forward_attrs(&self) -> &ForwardAttrs {
+    fn forward_attrs(&self) -> &ForwardAttrs<'_> {
         &self.forward_attrs
     }
 

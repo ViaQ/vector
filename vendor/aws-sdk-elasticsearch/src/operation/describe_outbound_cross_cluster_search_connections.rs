@@ -45,13 +45,23 @@ impl DescribeOutboundCrossClusterSearchConnections {
         >,
     > {
         let input = ::aws_smithy_runtime_api::client::interceptors::context::Input::erase(input);
+        use ::tracing::Instrument;
         ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point(
-            "elasticsearchservice",
+            "Elasticsearch Service",
             "DescribeOutboundCrossClusterSearchConnections",
             input,
             runtime_plugins,
             stop_point,
         )
+        // Create a parent span for the entire operation. Includes a random, internal-only,
+        // seven-digit ID for the operation orchestration so that it can be correlated in the logs.
+        .instrument(::tracing::debug_span!(
+            "Elasticsearch Service.DescribeOutboundCrossClusterSearchConnections",
+            "rpc.service" = "Elasticsearch Service",
+            "rpc.method" = "DescribeOutboundCrossClusterSearchConnections",
+            "sdk_invocation_id" = ::fastrand::u32(1_000_000..10_000_000),
+            "rpc.system" = "aws-api",
+        ))
         .await
     }
 
@@ -92,9 +102,9 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for Describ
             ::aws_smithy_runtime_api::client::auth::static_resolver::StaticAuthSchemeOptionResolverParams::new(),
         ));
 
-        cfg.store_put(::aws_smithy_http::operation::Metadata::new(
+        cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::Metadata::new(
             "DescribeOutboundCrossClusterSearchConnections",
-            "elasticsearchservice",
+            "Elasticsearch Service",
         ));
         let mut signing_options = ::aws_runtime::auth::SigningOptions::default();
         signing_options.double_uri_encode = true;
@@ -117,11 +127,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for Describ
         #[allow(unused_mut)]
         let mut rcb =
             ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("DescribeOutboundCrossClusterSearchConnections")
-                .with_interceptor(
-                    ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::new(
-                        ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptorKind::ResponseBody,
-                    ),
-                )
+                .with_interceptor(::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::default())
                 .with_interceptor(DescribeOutboundCrossClusterSearchConnectionsEndpointParamsInterceptor)
                 .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<
                     crate::operation::describe_outbound_cross_cluster_search_connections::DescribeOutboundCrossClusterSearchConnectionsError,
@@ -242,13 +248,16 @@ impl ::aws_smithy_runtime_api::client::interceptors::Intercept for DescribeOutbo
     }
 }
 
+// The get_* functions below are generated from JMESPath expressions in the
+// operationContextParams trait. They target the operation's input shape.
+
 /// Error type for the `DescribeOutboundCrossClusterSearchConnectionsError` operation.
 #[non_exhaustive]
 #[derive(::std::fmt::Debug)]
 pub enum DescribeOutboundCrossClusterSearchConnectionsError {
     /// <p>An error occured because the client wanted to access a not supported operation. Gives http status code of 409.</p>
     DisabledOperationException(crate::types::error::DisabledOperationException),
-    /// <p>The request processing has failed because of invalid pagination token provided by customer. Returns an HTTP status code of 400. </p>
+    /// <p>The request processing has failed because of invalid pagination token provided by customer. Returns an HTTP status code of 400.</p>
     InvalidPaginationTokenException(crate::types::error::InvalidPaginationTokenException),
     /// An unexpected error occurred (e.g., invalid JSON returned by the service or an unknown error code).
     #[deprecated(note = "Matching `Unhandled` directly is not forwards compatible. Instead, match using a \

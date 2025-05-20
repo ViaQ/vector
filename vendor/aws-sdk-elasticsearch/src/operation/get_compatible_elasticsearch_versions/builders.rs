@@ -3,7 +3,7 @@ pub use crate::operation::get_compatible_elasticsearch_versions::_get_compatible
 
 pub use crate::operation::get_compatible_elasticsearch_versions::_get_compatible_elasticsearch_versions_input::GetCompatibleElasticsearchVersionsInputBuilder;
 
-impl GetCompatibleElasticsearchVersionsInputBuilder {
+impl crate::operation::get_compatible_elasticsearch_versions::builders::GetCompatibleElasticsearchVersionsInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,7 +22,7 @@ impl GetCompatibleElasticsearchVersionsInputBuilder {
 }
 /// Fluent builder constructing a request to `GetCompatibleElasticsearchVersions`.
 ///
-/// <p> Returns a list of upgrade compatible Elastisearch versions. You can optionally pass a <code> <code>DomainName</code> </code> to get all upgrade compatible Elasticsearch versions for that specific domain. </p>
+/// <p>Returns a list of upgrade compatible Elastisearch versions. You can optionally pass a <code> <code>DomainName</code> </code> to get all upgrade compatible Elasticsearch versions for that specific domain.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct GetCompatibleElasticsearchVersionsFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -48,7 +48,7 @@ impl
     }
 }
 impl GetCompatibleElasticsearchVersionsFluentBuilder {
-    /// Creates a new `GetCompatibleElasticsearchVersions`.
+    /// Creates a new `GetCompatibleElasticsearchVersionsFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -99,12 +99,12 @@ impl GetCompatibleElasticsearchVersionsFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

@@ -50,13 +50,23 @@ impl GetUpgradeHistory {
         >,
     > {
         let input = ::aws_smithy_runtime_api::client::interceptors::context::Input::erase(input);
+        use ::tracing::Instrument;
         ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point(
-            "elasticsearchservice",
+            "Elasticsearch Service",
             "GetUpgradeHistory",
             input,
             runtime_plugins,
             stop_point,
         )
+        // Create a parent span for the entire operation. Includes a random, internal-only,
+        // seven-digit ID for the operation orchestration so that it can be correlated in the logs.
+        .instrument(::tracing::debug_span!(
+            "Elasticsearch Service.GetUpgradeHistory",
+            "rpc.service" = "Elasticsearch Service",
+            "rpc.method" = "GetUpgradeHistory",
+            "sdk_invocation_id" = ::fastrand::u32(1_000_000..10_000_000),
+            "rpc.system" = "aws-api",
+        ))
         .await
     }
 
@@ -97,7 +107,10 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for GetUpgr
             ::aws_smithy_runtime_api::client::auth::static_resolver::StaticAuthSchemeOptionResolverParams::new(),
         ));
 
-        cfg.store_put(::aws_smithy_http::operation::Metadata::new("GetUpgradeHistory", "elasticsearchservice"));
+        cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::Metadata::new(
+            "GetUpgradeHistory",
+            "Elasticsearch Service",
+        ));
         let mut signing_options = ::aws_runtime::auth::SigningOptions::default();
         signing_options.double_uri_encode = true;
         signing_options.content_sha256_header = false;
@@ -118,11 +131,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for GetUpgr
     ) -> ::std::borrow::Cow<'_, ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder> {
         #[allow(unused_mut)]
         let mut rcb = ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("GetUpgradeHistory")
-            .with_interceptor(
-                ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::new(
-                    ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptorKind::ResponseBody,
-                ),
-            )
+            .with_interceptor(::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::default())
             .with_interceptor(GetUpgradeHistoryEndpointParamsInterceptor)
             .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<
                 crate::operation::get_upgrade_history::GetUpgradeHistoryError,
@@ -202,13 +211,13 @@ impl ::aws_smithy_runtime_api::client::ser_de::SerializeRequest for GetUpgradeHi
             ) -> ::std::result::Result<(), ::aws_smithy_types::error::operation::BuildError> {
                 let mut query = ::aws_smithy_http::query::Writer::new(output);
                 if let ::std::option::Option::Some(inner_2) = &_input.max_results {
-                    if *inner_2 != 0 {
+                    {
                         query.push_kv("maxResults", ::aws_smithy_types::primitive::Encoder::from(*inner_2).encode());
                     }
                 }
                 if let ::std::option::Option::Some(inner_3) = &_input.next_token {
                     {
-                        query.push_kv("nextToken", &::aws_smithy_http::query::fmt_string(&inner_3));
+                        query.push_kv("nextToken", &::aws_smithy_http::query::fmt_string(inner_3));
                     }
                 }
                 ::std::result::Result::Ok(())
@@ -268,6 +277,9 @@ impl ::aws_smithy_runtime_api::client::interceptors::Intercept for GetUpgradeHis
         ::std::result::Result::Ok(())
     }
 }
+
+// The get_* functions below are generated from JMESPath expressions in the
+// operationContextParams trait. They target the operation's input shape.
 
 /// Error type for the `GetUpgradeHistoryError` operation.
 #[non_exhaustive]

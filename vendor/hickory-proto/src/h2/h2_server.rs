@@ -7,9 +7,9 @@
 
 //! HTTPS related server items
 
-use std::fmt::Debug;
-use std::str::FromStr;
-use std::sync::Arc;
+use alloc::sync::Arc;
+use core::fmt::Debug;
+use core::str::FromStr;
 
 use bytes::{Bytes, BytesMut};
 use futures_util::stream::{Stream, StreamExt};
@@ -27,6 +27,7 @@ use crate::http::Version;
 ///   perform a conversion to a Message, only collects all the bytes.
 pub async fn message_from<R>(
     this_server_name: Option<Arc<str>>,
+    this_server_endpoint: Arc<str>,
     request: Request<R>,
 ) -> Result<BytesMut, HttpsError>
 where
@@ -35,7 +36,12 @@ where
     debug!("Received request: {:#?}", request);
 
     let this_server_name = this_server_name.as_deref();
-    match crate::http::request::verify(Version::Http2, this_server_name, &request) {
+    match crate::http::request::verify(
+        Version::Http2,
+        this_server_name,
+        &this_server_endpoint,
+        &request,
+    ) {
         Ok(_) => (),
         Err(err) => return Err(err),
     }
@@ -63,7 +69,7 @@ pub(crate) async fn message_from_post<R>(
 where
     R: Stream<Item = Result<Bytes, h2::Error>> + 'static + Send + Debug + Unpin,
 {
-    let mut bytes = BytesMut::with_capacity(length.unwrap_or(0).clamp(512, 4096));
+    let mut bytes = BytesMut::with_capacity(length.unwrap_or(0).clamp(512, 4_096));
 
     loop {
         match request_stream.next().await {
@@ -94,9 +100,12 @@ where
 
 #[cfg(test)]
 mod tests {
+    use alloc::vec::Vec;
+    use core::pin::Pin;
+    use core::task::{Context, Poll};
     use futures_executor::block_on;
-    use std::pin::Pin;
-    use std::task::{Context, Poll};
+
+    use test_support::subscribe;
 
     use crate::http::request;
     use crate::op::Message;
@@ -120,14 +129,19 @@ mod tests {
 
     #[test]
     fn test_from_post() {
+        subscribe();
         let message = Message::new();
         let msg_bytes = message.to_vec().unwrap();
         let len = msg_bytes.len();
         let stream = TestBytesStream(vec![Ok(Bytes::from(msg_bytes))]);
-        let request = request::new(Version::Http2, "ns.example.com", len).unwrap();
+        let request = request::new(Version::Http2, "ns.example.com", "/dns-query", len).unwrap();
         let request = request.map(|()| stream);
 
-        let from_post = message_from(Some(Arc::from("ns.example.com")), request);
+        let from_post = message_from(
+            Some(Arc::from("ns.example.com")),
+            "/dns-query".into(),
+            request,
+        );
         let bytes = match block_on(from_post) {
             Ok(bytes) => bytes,
             e => panic!("{:#?}", e),

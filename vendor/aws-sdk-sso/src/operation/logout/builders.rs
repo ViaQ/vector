@@ -3,7 +3,7 @@ pub use crate::operation::logout::_logout_output::LogoutOutputBuilder;
 
 pub use crate::operation::logout::_logout_input::LogoutInputBuilder;
 
-impl LogoutInputBuilder {
+impl crate::operation::logout::builders::LogoutInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,7 +22,7 @@ impl LogoutInputBuilder {
 }
 /// Fluent builder constructing a request to `Logout`.
 ///
-/// <p>Removes the locally stored SSO tokens from the client-side cache and sends an API call to the IAM Identity Center service to invalidate the corresponding server-side IAM Identity Center sign in session.</p> <note>
+/// <p>Removes the locally stored SSO tokens from the client-side cache and sends an API call to the IAM Identity Center service to invalidate the corresponding server-side IAM Identity Center sign in session.</p><note>
 /// <p>If a user uses IAM Identity Center to access the AWS CLI, the user’s IAM Identity Center sign in session is used to obtain an IAM session, as specified in the corresponding IAM Identity Center permission set. More specifically, IAM Identity Center assumes an IAM role in the target account on behalf of the user, and the corresponding temporary AWS credentials are returned to the client.</p>
 /// <p>After user logout, any existing IAM role sessions that were created by using IAM Identity Center permission sets continue based on the duration configured in the permission set. For more information, see <a href="https://docs.aws.amazon.com/singlesignon/latest/userguide/authconcept.html">User authentications</a> in the <i>IAM Identity Center User Guide</i>.</p>
 /// </note>
@@ -45,7 +45,7 @@ impl crate::client::customize::internal::CustomizableSend<crate::operation::logo
     }
 }
 impl LogoutFluentBuilder {
-    /// Creates a new `Logout`.
+    /// Creates a new `LogoutFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -89,12 +89,12 @@ impl LogoutFluentBuilder {
     ) -> crate::client::customize::CustomizableOperation<crate::operation::logout::LogoutOutput, crate::operation::logout::LogoutError, Self> {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

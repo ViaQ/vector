@@ -11,6 +11,7 @@
 
 use crate::client::http::body::content_length_enforcement::EnforceContentLengthRuntimePlugin;
 use crate::client::identity::IdentityCache;
+use crate::client::retries::strategy::standard::TokenBucketProvider;
 use crate::client::retries::strategy::StandardRetryStrategy;
 use crate::client::retries::RetryPartition;
 use aws_smithy_async::rt::sleep::default_async_sleep;
@@ -51,10 +52,49 @@ where
 }
 
 /// Runtime plugin that provides a default connector.
+#[deprecated(
+    since = "1.8.0",
+    note = "This function wasn't intended to be public, and didn't take the behavior major version as an argument, so it couldn't be evolved over time."
+)]
 pub fn default_http_client_plugin() -> Option<SharedRuntimePlugin> {
-    let _default: Option<SharedHttpClient> = None;
-    #[cfg(feature = "connector-hyper-0-14-x")]
-    let _default = crate::client::http::hyper_014::default_client();
+    #[allow(deprecated)]
+    default_http_client_plugin_v2(BehaviorVersion::v2024_03_28())
+}
+
+/// Runtime plugin that provides a default HTTPS connector.
+pub fn default_http_client_plugin_v2(
+    behavior_version: BehaviorVersion,
+) -> Option<SharedRuntimePlugin> {
+    let mut _default: Option<SharedHttpClient> = None;
+
+    if behavior_version.is_at_least(BehaviorVersion::v2025_01_17()) {
+        // the latest https stack takes precedence if the config flag
+        // is enabled otherwise try to fall back to the legacy connector
+        // if that feature flag is available.
+        #[cfg(all(
+            feature = "connector-hyper-0-14-x",
+            not(feature = "default-https-client")
+        ))]
+        #[allow(deprecated)]
+        {
+            _default = crate::client::http::hyper_014::default_client();
+        }
+
+        // takes precedence over legacy connector if enabled
+        #[cfg(feature = "default-https-client")]
+        {
+            let opts = crate::client::http::DefaultClientOptions::default()
+                .with_behavior_version(behavior_version);
+            _default = crate::client::http::default_https_client(opts);
+        }
+    } else {
+        // fallback to legacy hyper client for given behavior version
+        #[cfg(feature = "connector-hyper-0-14-x")]
+        #[allow(deprecated)]
+        {
+            _default = crate::client::http::hyper_014::default_client();
+        }
+    }
 
     _default.map(|default| {
         default_plugin("default_http_client_plugin", |components| {
@@ -88,6 +128,7 @@ pub fn default_time_source_plugin() -> Option<SharedRuntimePlugin> {
 pub fn default_retry_config_plugin(
     default_partition_name: impl Into<Cow<'static, str>>,
 ) -> Option<SharedRuntimePlugin> {
+    let retry_partition = RetryPartition::new(default_partition_name);
     Some(
         default_plugin("default_retry_config_plugin", |components| {
             components
@@ -95,10 +136,11 @@ pub fn default_retry_config_plugin(
                 .with_config_validator(SharedConfigValidator::base_client_config_fn(
                     validate_retry_config,
                 ))
+                .with_interceptor(TokenBucketProvider::new(retry_partition.clone()))
         })
         .with_config(layer("default_retry_config", |layer| {
             layer.store_put(RetryConfig::disabled());
-            layer.store_put(RetryPartition::new(default_partition_name));
+            layer.store_put(retry_partition);
         }))
         .into_shared(),
     )
@@ -195,6 +237,7 @@ fn default_stalled_stream_protection_config_plugin_v2(
             let mut config =
                 StalledStreamProtectionConfig::enabled().grace_period(Duration::from_secs(5));
             // Before v2024_03_28, upload streams did not have stalled stream protection by default
+            #[allow(deprecated)]
             if !behavior_version.is_at_least(BehaviorVersion::v2024_03_28()) {
                 config = config.upload_enabled(false);
             }
@@ -274,7 +317,7 @@ pub fn default_plugins(
         .unwrap_or_else(BehaviorVersion::latest);
 
     [
-        default_http_client_plugin(),
+        default_http_client_plugin_v2(behavior_version),
         default_identity_cache_plugin(),
         default_retry_config_plugin(
             params

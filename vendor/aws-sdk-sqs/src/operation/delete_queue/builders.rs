@@ -3,7 +3,7 @@ pub use crate::operation::delete_queue::_delete_queue_output::DeleteQueueOutputB
 
 pub use crate::operation::delete_queue::_delete_queue_input::DeleteQueueInputBuilder;
 
-impl DeleteQueueInputBuilder {
+impl crate::operation::delete_queue::builders::DeleteQueueInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,11 +22,11 @@ impl DeleteQueueInputBuilder {
 }
 /// Fluent builder constructing a request to `DeleteQueue`.
 ///
-/// <p>Deletes the queue specified by the <code>QueueUrl</code>, regardless of the queue's contents.</p> <important>
-/// <p>Be careful with the <code>DeleteQueue</code> action: When you delete a queue, any messages in the queue are no longer available. </p>
+/// <p>Deletes the queue specified by the <code>QueueUrl</code>, regardless of the queue's contents.</p><important>
+/// <p>Be careful with the <code>DeleteQueue</code> action: When you delete a queue, any messages in the queue are no longer available.</p>
 /// </important>
 /// <p>When you delete a queue, the deletion process takes up to 60 seconds. Requests you send involving that queue during the 60 seconds might succeed. For example, a <code> <code>SendMessage</code> </code> request might succeed, but after 60 seconds the queue and the message you sent no longer exist.</p>
-/// <p>When you delete a queue, you must wait at least 60 seconds before creating a queue with the same name.</p> <note>
+/// <p>When you delete a queue, you must wait at least 60 seconds before creating a queue with the same name.</p><note>
 /// <p>Cross-account permissions don't apply to this action. For more information, see <a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-customer-managed-policy-examples.html#grant-cross-account-permissions-to-role-and-user-name">Grant cross-account permissions to a role and a username</a> in the <i>Amazon SQS Developer Guide</i>.</p>
 /// <p>The delete operation uses the HTTP <code>GET</code> verb.</p>
 /// </note>
@@ -55,7 +55,7 @@ impl
     }
 }
 impl DeleteQueueFluentBuilder {
-    /// Creates a new `DeleteQueue`.
+    /// Creates a new `DeleteQueueFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -106,12 +106,12 @@ impl DeleteQueueFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

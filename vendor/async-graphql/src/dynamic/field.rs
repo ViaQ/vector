@@ -8,6 +8,7 @@ use std::{
 use futures_util::{future::BoxFuture, Future, FutureExt};
 use indexmap::IndexMap;
 
+use super::Directive;
 use crate::{
     dynamic::{InputValue, ObjectAccessor, TypeRef},
     registry::Deprecation,
@@ -21,9 +22,13 @@ pub(crate) enum FieldValueInner<'a> {
     /// Const value
     Value(Value),
     /// Borrowed any value
-    BorrowedAny(&'a (dyn Any + Send + Sync)),
+    /// The first item is the [`std::any::type_name`] of the value used for
+    /// debugging.
+    BorrowedAny(Cow<'static, str>, &'a (dyn Any + Send + Sync)),
     /// Owned any value
-    OwnedAny(Box<dyn Any + Send + Sync>),
+    /// The first item is the [`std::any::type_name`] of the value used for
+    /// debugging.
+    OwnedAny(Cow<'static, str>, Box<dyn Any + Send + Sync>),
     /// A list
     List(Vec<FieldValue<'a>>),
     /// A typed Field value
@@ -35,14 +40,33 @@ pub(crate) enum FieldValueInner<'a> {
     },
 }
 
-impl<'a> From<()> for FieldValue<'a> {
+impl Debug for FieldValue<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.0 {
+            FieldValueInner::Value(v) => write!(f, "{}", v),
+            FieldValueInner::BorrowedAny(ty, _)
+            | FieldValueInner::OwnedAny(ty, _)
+            | FieldValueInner::WithType { ty, .. } => write!(f, "{}", ty),
+            FieldValueInner::List(list) => match list.first() {
+                Some(v) => {
+                    write!(f, "[{:?}, ...]", v)
+                }
+                None => {
+                    write!(f, "[()]")
+                }
+            },
+        }
+    }
+}
+
+impl From<()> for FieldValue<'_> {
     #[inline]
     fn from(_: ()) -> Self {
         Self(FieldValueInner::Value(Value::Null))
     }
 }
 
-impl<'a> From<Value> for FieldValue<'a> {
+impl From<Value> for FieldValue<'_> {
     #[inline]
     fn from(value: Value) -> Self {
         Self(FieldValueInner::Value(value))
@@ -90,20 +114,23 @@ impl<'a> FieldValue<'a> {
 
     /// Create a FieldValue from owned any value
     #[inline]
-    pub fn owned_any(obj: impl Any + Send + Sync) -> Self {
-        Self(FieldValueInner::OwnedAny(Box::new(obj)))
+    pub fn owned_any<T: Any + Send + Sync>(obj: T) -> Self {
+        Self(FieldValueInner::OwnedAny(
+            std::any::type_name::<T>().into(),
+            Box::new(obj),
+        ))
     }
 
     /// Create a FieldValue from unsized any value
     #[inline]
     pub fn boxed_any(obj: Box<dyn Any + Send + Sync>) -> Self {
-        Self(FieldValueInner::OwnedAny(obj))
+        Self(FieldValueInner::OwnedAny("Any".into(), obj))
     }
 
     /// Create a FieldValue from owned any value
     #[inline]
     pub fn borrowed_any(obj: &'a (dyn Any + Send + Sync)) -> Self {
-        Self(FieldValueInner::BorrowedAny(obj))
+        Self(FieldValueInner::BorrowedAny("Any".into(), obj))
     }
 
     /// Create a FieldValue from list
@@ -191,7 +218,7 @@ impl<'a> FieldValue<'a> {
     #[inline]
     pub fn try_to_value(&self) -> Result<&Value> {
         self.as_value()
-            .ok_or_else(|| Error::new("internal: not a Value"))
+            .ok_or_else(|| Error::new(format!("internal: \"{:?}\" not a Value", self)))
     }
 
     /// If the FieldValue is a list, returns the associated
@@ -208,7 +235,7 @@ impl<'a> FieldValue<'a> {
     #[inline]
     pub fn try_to_list(&self) -> Result<&[FieldValue]> {
         self.as_list()
-            .ok_or_else(|| Error::new("internal: not a list"))
+            .ok_or_else(|| Error::new(format!("internal: \"{:?}\" not a List", self)))
     }
 
     /// If the FieldValue is a any, returns the associated
@@ -216,8 +243,8 @@ impl<'a> FieldValue<'a> {
     #[inline]
     pub fn downcast_ref<T: Any>(&self) -> Option<&T> {
         match &self.0 {
-            FieldValueInner::BorrowedAny(value) => value.downcast_ref::<T>(),
-            FieldValueInner::OwnedAny(value) => value.downcast_ref::<T>(),
+            FieldValueInner::BorrowedAny(_, value) => value.downcast_ref::<T>(),
+            FieldValueInner::OwnedAny(_, value) => value.downcast_ref::<T>(),
             _ => None,
         }
     }
@@ -227,7 +254,8 @@ impl<'a> FieldValue<'a> {
     pub fn try_downcast_ref<T: Any>(&self) -> Result<&T> {
         self.downcast_ref().ok_or_else(|| {
             Error::new(format!(
-                "internal: not type \"{}\"",
+                "internal: \"{:?}\" is not of the expected type \"{}\"",
+                self,
                 std::any::type_name::<T>()
             ))
         })
@@ -304,6 +332,7 @@ pub struct Field {
     pub(crate) inaccessible: bool,
     pub(crate) tags: Vec<String>,
     pub(crate) override_from: Option<String>,
+    pub(crate) directives: Vec<Directive>,
 }
 
 impl Debug for Field {
@@ -342,6 +371,7 @@ impl Field {
             inaccessible: false,
             tags: Vec::new(),
             override_from: None,
+            directives: Vec::new(),
         }
     }
 
@@ -354,6 +384,7 @@ impl Field {
     impl_set_inaccessible!();
     impl_set_tags!();
     impl_set_override_from!();
+    impl_directive!();
 
     /// Add an argument to the field
     #[inline]

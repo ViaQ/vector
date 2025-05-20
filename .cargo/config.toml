@@ -70,9 +70,9 @@ git = "https://github.com/vectordotdev/nix.git"
 branch = "memfd/gnu/musl"
 replace-with = "vendored-sources"
 
-[source."git+https://github.com/vectordotdev/tokio?branch=tokio-util-0.7.11-framed-read-continue-on-error"]
+[source."git+https://github.com/vectordotdev/tokio?branch=tokio-util-0.7.13-framed-read-continue-on-error"]
 git = "https://github.com/vectordotdev/tokio"
-branch = "tokio-util-0.7.11-framed-read-continue-on-error"
+branch = "tokio-util-0.7.13-framed-read-continue-on-error"
 replace-with = "vendored-sources"
 
 [source.vendored-sources]

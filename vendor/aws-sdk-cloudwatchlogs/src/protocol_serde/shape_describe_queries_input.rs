@@ -2,7 +2,7 @@
 pub fn ser_describe_queries_input_input(
     object: &mut ::aws_smithy_json::serialize::JsonObjectWriter,
     input: &crate::operation::describe_queries::DescribeQueriesInput,
-) -> Result<(), ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<(), ::aws_smithy_types::error::operation::SerializationError> {
     if let Some(var_1) = &input.log_group_name {
         object.key("logGroupName").string(var_1.as_str());
     }
@@ -17,6 +17,9 @@ pub fn ser_describe_queries_input_input(
     }
     if let Some(var_4) = &input.next_token {
         object.key("nextToken").string(var_4.as_str());
+    }
+    if let Some(var_5) = &input.query_language {
+        object.key("queryLanguage").string(var_5.as_str());
     }
     Ok(())
 }

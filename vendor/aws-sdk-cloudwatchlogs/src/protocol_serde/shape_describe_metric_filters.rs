@@ -20,12 +20,12 @@ pub fn de_describe_metric_filters_http_error(
 
     let _error_message = generic.message().map(|msg| msg.to_owned());
     Err(match error_code {
-        "InvalidParameterException" => crate::operation::describe_metric_filters::DescribeMetricFiltersError::InvalidParameterException({
+        "ResourceNotFoundException" => crate::operation::describe_metric_filters::DescribeMetricFiltersError::ResourceNotFoundException({
             #[allow(unused_mut)]
             let mut tmp = {
                 #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::InvalidParameterExceptionBuilder::default();
-                output = crate::protocol_serde::shape_invalid_parameter_exception::de_invalid_parameter_exception_json_err(_response_body, output)
+                let mut output = crate::types::error::builders::ResourceNotFoundExceptionBuilder::default();
+                output = crate::protocol_serde::shape_resource_not_found_exception::de_resource_not_found_exception_json_err(_response_body, output)
                     .map_err(crate::operation::describe_metric_filters::DescribeMetricFiltersError::unhandled)?;
                 let output = output.meta(generic);
                 output.build()
@@ -35,12 +35,12 @@ pub fn de_describe_metric_filters_http_error(
             }
             tmp
         }),
-        "ResourceNotFoundException" => crate::operation::describe_metric_filters::DescribeMetricFiltersError::ResourceNotFoundException({
+        "InvalidParameterException" => crate::operation::describe_metric_filters::DescribeMetricFiltersError::InvalidParameterException({
             #[allow(unused_mut)]
             let mut tmp = {
                 #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::ResourceNotFoundExceptionBuilder::default();
-                output = crate::protocol_serde::shape_resource_not_found_exception::de_resource_not_found_exception_json_err(_response_body, output)
+                let mut output = crate::types::error::builders::InvalidParameterExceptionBuilder::default();
+                output = crate::protocol_serde::shape_invalid_parameter_exception::de_invalid_parameter_exception_json_err(_response_body, output)
                     .map_err(crate::operation::describe_metric_filters::DescribeMetricFiltersError::unhandled)?;
                 let output = output.meta(generic);
                 output.build()
@@ -91,7 +91,7 @@ pub fn de_describe_metric_filters_http_response(
 
 pub fn ser_describe_metric_filters_input(
     input: &crate::operation::describe_metric_filters::DescribeMetricFiltersInput,
-) -> Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
     let mut out = String::new();
     let mut object = ::aws_smithy_json::serialize::JsonObjectWriter::new(&mut out);
     crate::protocol_serde::shape_describe_metric_filters_input::ser_describe_metric_filters_input_input(&mut object, input)?;
@@ -102,7 +102,7 @@ pub fn ser_describe_metric_filters_input(
 pub(crate) fn de_describe_metric_filters(
     value: &[u8],
     mut builder: crate::operation::describe_metric_filters::builders::DescribeMetricFiltersOutputBuilder,
-) -> Result<
+) -> ::std::result::Result<
     crate::operation::describe_metric_filters::builders::DescribeMetricFiltersOutputBuilder,
     ::aws_smithy_json::deserialize::error::DeserializeError,
 > {

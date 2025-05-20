@@ -180,7 +180,7 @@ impl<'ascent, 'grammar, W: Write>
         rust!(self.out, "#[allow(dead_code)]");
         rust!(
             self.out,
-            "pub(crate) enum {}Nonterminal<{}>",
+            "enum {}Nonterminal<{}>",
             self.prefix,
             Sep(", ", &self.custom.nonterminal_type_params)
         );
@@ -376,8 +376,10 @@ impl<'ascent, 'grammar, W: Write>
                     .any(|(t, _)| t.contains(&Token::Terminal(terminal.clone())))
         });
 
+        rust!(self.out, "#[allow(clippy::needless_raw_string_hashes)]");
         rust!(self.out, "let {}expected = alloc::vec![", self.prefix);
         for terminal in successful_terminals {
+            // Try to avoid terminals escaping
             rust!(self.out, "r###\"{}\"###.to_string(),", terminal);
         }
         rust!(self.out, "];");
@@ -404,7 +406,7 @@ impl<'ascent, 'grammar, W: Write>
         if fixed > 0 {
             rust!(
                 self.out,
-                "let {}location = {}sym{}.2.clone();",
+                "let {}location = {}sym{}.2;",
                 self.prefix,
                 self.prefix,
                 stack_suffix.len() - 1
@@ -414,7 +416,7 @@ impl<'ascent, 'grammar, W: Write>
             for index in (0..optional).rev() {
                 rust!(
                     self.out,
-                    "{}sym{}.as_ref().map(|sym| sym.2.clone()).unwrap_or_else(|| {{",
+                    "{}sym{}.as_ref().map(|sym| sym.2).unwrap_or_else(|| {{",
                     self.prefix,
                     index
                 );
@@ -450,6 +452,8 @@ impl<'ascent, 'grammar, W: Write>
 
         // finally, emit gotos (if relevant)
         if fallthrough && !this_state.gotos.is_empty() {
+            // Sometimes we write loops that unconditionally only loop once
+            rust!(self.out, "#[allow(clippy::never_loop)]");
             rust!(self.out, "loop {{");
 
             // In most states, we know precisely when the top stack
@@ -567,7 +571,7 @@ impl<'ascent, 'grammar, W: Write>
             )))
             .with_parameters(fn_args)
             .with_return_type(format!(
-                "core::result::Result<(core::option::Option<{}>, {}Nonterminal<{}>), {}>",
+                "Result<(Option<{}>, {}Nonterminal<{}>), {}>",
                 triple_type,
                 self.prefix,
                 Sep(", ", &self.custom.nonterminal_type_params),
@@ -579,7 +583,7 @@ impl<'ascent, 'grammar, W: Write>
 
         rust!(
             self.out,
-            "let mut {}result: (core::option::Option<{}>, {}Nonterminal<{}>);",
+            "let mut {}result: (Option<{}>, {}Nonterminal<{}>);",
             self.prefix,
             triple_type,
             self.prefix,
@@ -627,17 +631,14 @@ impl<'ascent, 'grammar, W: Write>
 
         let mut base_args = vec![format!("{}tokens: &mut {}TOKENS", self.prefix, self.prefix)];
         if !starts_with_terminal {
-            base_args.push(format!(
-                "{}lookahead: core::option::Option<{}>",
-                self.prefix, triple_type,
-            ));
+            base_args.push(format!("{}lookahead: Option<{}>", self.prefix, triple_type,));
         }
 
         // "Optional symbols" may or may not be consumed, so take an
         // `&mut Option`
         let optional_args = (0..optional_prefix.len()).map(|i| {
             format!(
-                "{}sym{}: &mut core::option::Option<{}>",
+                "{}sym{}: &mut Option<{}>",
                 self.prefix,
                 i,
                 self.types
@@ -855,7 +856,7 @@ impl<'ascent, 'grammar, W: Write>
             if !stack_suffix.fixed().is_empty() {
                 rust!(
                     self.out,
-                    "let {p}start = {p}lookahead.as_ref().map(|o| o.0.clone()).unwrap_or_else(|| {p}sym{top}.2.clone());",
+                    "let {p}start = {p}lookahead.as_ref().map(|o| o.0).unwrap_or_else(|| {p}sym{top}.2);",
                     p = self.prefix,
                     top = top
                 );
@@ -873,7 +874,7 @@ impl<'ascent, 'grammar, W: Write>
             // this only occurs in the start state
             rust!(
                 self.out,
-                "let {}start: {} = core::default::Default::default();",
+                "let {}start: {} = Default::default();",
                 self.prefix,
                 loc_type,
             );

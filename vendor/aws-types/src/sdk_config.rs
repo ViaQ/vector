@@ -11,6 +11,7 @@
 
 use crate::app_name::AppName;
 use crate::docs_for;
+use crate::endpoint_config::AccountIdEndpointMode;
 use crate::origin::Origin;
 use crate::region::Region;
 use crate::service_config::LoadServiceConfig;
@@ -25,6 +26,9 @@ pub use aws_smithy_runtime_api::client::http::SharedHttpClient;
 use aws_smithy_runtime_api::client::identity::{ResolveCachedIdentity, SharedIdentityCache};
 pub use aws_smithy_runtime_api::client::stalled_stream_protection::StalledStreamProtectionConfig;
 use aws_smithy_runtime_api::shared::IntoShared;
+pub use aws_smithy_types::checksum_config::{
+    RequestChecksumCalculation, ResponseChecksumValidation,
+};
 pub use aws_smithy_types::retry::RetryConfig;
 pub use aws_smithy_types::timeout::TimeoutConfig;
 use std::collections::HashMap;
@@ -67,6 +71,17 @@ This is useful for request bodies because, for small request bodies, compression
 **Only some services support request compression.** For services
 that don't support request compression, this setting does nothing.
 " };
+        (account_id_endpoint_mode) => {
+"Controls the account ID-based routing behavior.
+
+By default, the routing behavior is set to `preferred`.
+Customers can adjust this setting to other values to switch between different routing patterns or temporarily disable the feature.
+
+See the developer guide on [account-based endpoints](https://docs.aws.amazon.com/sdkref/latest/guide/feature-account-endpoints.html)
+for more information.
+
+For services that do not use the account-based endpoints, this setting does nothing.
+" };
     }
 }
 
@@ -78,6 +93,7 @@ pub struct SdkConfig {
     credentials_provider: Option<SharedCredentialsProvider>,
     token_provider: Option<SharedTokenProvider>,
     region: Option<Region>,
+    account_id_endpoint_mode: Option<AccountIdEndpointMode>,
     endpoint_url: Option<String>,
     retry_config: Option<RetryConfig>,
     sleep_impl: Option<SharedAsyncSleep>,
@@ -92,6 +108,8 @@ pub struct SdkConfig {
     config_origins: HashMap<&'static str, Origin>,
     disable_request_compression: Option<bool>,
     request_min_compression_size_bytes: Option<u32>,
+    request_checksum_calculation: Option<RequestChecksumCalculation>,
+    response_checksum_validation: Option<ResponseChecksumValidation>,
 }
 
 /// Builder for AWS Shared Configuration
@@ -106,6 +124,7 @@ pub struct Builder {
     credentials_provider: Option<SharedCredentialsProvider>,
     token_provider: Option<SharedTokenProvider>,
     region: Option<Region>,
+    account_id_endpoint_mode: Option<AccountIdEndpointMode>,
     endpoint_url: Option<String>,
     retry_config: Option<RetryConfig>,
     sleep_impl: Option<SharedAsyncSleep>,
@@ -120,6 +139,8 @@ pub struct Builder {
     config_origins: HashMap<&'static str, Origin>,
     disable_request_compression: Option<bool>,
     request_min_compression_size_bytes: Option<u32>,
+    request_checksum_calculation: Option<RequestChecksumCalculation>,
+    response_checksum_validation: Option<ResponseChecksumValidation>,
 }
 
 impl Builder {
@@ -157,6 +178,24 @@ impl Builder {
         self
     }
 
+    #[doc = docs_for!(account_id_endpoint_mode)]
+    pub fn account_id_endpoint_mode(
+        mut self,
+        account_id_endpoint_mode: AccountIdEndpointMode,
+    ) -> Self {
+        self.set_account_id_endpoint_mode(Some(account_id_endpoint_mode));
+        self
+    }
+
+    #[doc = docs_for!(account_id_endpoint_mode)]
+    pub fn set_account_id_endpoint_mode(
+        &mut self,
+        account_id_endpoint_mode: Option<AccountIdEndpointMode>,
+    ) -> &mut Self {
+        self.account_id_endpoint_mode = account_id_endpoint_mode;
+        self
+    }
+
     /// Set the endpoint URL to use when making requests.
     /// # Examples
     /// ```
@@ -171,6 +210,54 @@ impl Builder {
     /// Set the endpoint URL to use when making requests.
     pub fn set_endpoint_url(&mut self, endpoint_url: Option<String>) -> &mut Self {
         self.endpoint_url = endpoint_url;
+        self
+    }
+
+    /// Set the checksum calculation strategy to use when making requests.
+    /// # Examples
+    /// ```
+    /// use aws_types::SdkConfig;
+    /// use aws_smithy_types::checksum_config::RequestChecksumCalculation;
+    /// let config = SdkConfig::builder().request_checksum_calculation(RequestChecksumCalculation::WhenSupported).build();
+    /// ```
+    pub fn request_checksum_calculation(
+        mut self,
+        request_checksum_calculation: RequestChecksumCalculation,
+    ) -> Self {
+        self.set_request_checksum_calculation(Some(request_checksum_calculation));
+        self
+    }
+
+    /// Set the checksum calculation strategy to use when making requests.
+    pub fn set_request_checksum_calculation(
+        &mut self,
+        request_checksum_calculation: Option<RequestChecksumCalculation>,
+    ) -> &mut Self {
+        self.request_checksum_calculation = request_checksum_calculation;
+        self
+    }
+
+    /// Set the checksum calculation strategy to use for responses.
+    /// # Examples
+    /// ```
+    /// use aws_types::SdkConfig;
+    /// use aws_smithy_types::checksum_config::ResponseChecksumValidation;
+    /// let config = SdkConfig::builder().response_checksum_validation(ResponseChecksumValidation::WhenSupported).build();
+    /// ```
+    pub fn response_checksum_validation(
+        mut self,
+        response_checksum_validation: ResponseChecksumValidation,
+    ) -> Self {
+        self.set_response_checksum_validation(Some(response_checksum_validation));
+        self
+    }
+
+    /// Set the checksum calculation strategy to use for responses.
+    pub fn set_response_checksum_validation(
+        &mut self,
+        response_checksum_validation: Option<ResponseChecksumValidation>,
+    ) -> &mut Self {
+        self.response_checksum_validation = response_checksum_validation;
         self
     }
 
@@ -706,6 +793,7 @@ impl Builder {
             credentials_provider: self.credentials_provider,
             token_provider: self.token_provider,
             region: self.region,
+            account_id_endpoint_mode: self.account_id_endpoint_mode,
             endpoint_url: self.endpoint_url,
             retry_config: self.retry_config,
             sleep_impl: self.sleep_impl,
@@ -720,6 +808,8 @@ impl Builder {
             config_origins: self.config_origins,
             disable_request_compression: self.disable_request_compression,
             request_min_compression_size_bytes: self.request_min_compression_size_bytes,
+            request_checksum_calculation: self.request_checksum_calculation,
+            response_checksum_validation: self.response_checksum_validation,
         }
     }
 }
@@ -801,6 +891,11 @@ impl SdkConfig {
         self.region.as_ref()
     }
 
+    /// Configured account ID endpoint mode
+    pub fn account_id_endpoint_mode(&self) -> Option<&AccountIdEndpointMode> {
+        self.account_id_endpoint_mode.as_ref()
+    }
+
     /// Configured endpoint URL
     pub fn endpoint_url(&self) -> Option<&str> {
         self.endpoint_url.as_deref()
@@ -866,6 +961,16 @@ impl SdkConfig {
         self.disable_request_compression
     }
 
+    /// Configured checksum request behavior.
+    pub fn request_checksum_calculation(&self) -> Option<RequestChecksumCalculation> {
+        self.request_checksum_calculation
+    }
+
+    /// Configured checksum response behavior.
+    pub fn response_checksum_validation(&self) -> Option<ResponseChecksumValidation> {
+        self.response_checksum_validation
+    }
+
     /// Configured minimum request compression size.
     pub fn request_min_compression_size_bytes(&self) -> Option<u32> {
         self.request_min_compression_size_bytes
@@ -919,6 +1024,7 @@ impl SdkConfig {
             credentials_provider: self.credentials_provider,
             token_provider: self.token_provider,
             region: self.region,
+            account_id_endpoint_mode: self.account_id_endpoint_mode,
             endpoint_url: self.endpoint_url,
             retry_config: self.retry_config,
             sleep_impl: self.sleep_impl,
@@ -933,6 +1039,8 @@ impl SdkConfig {
             config_origins: self.config_origins,
             disable_request_compression: self.disable_request_compression,
             request_min_compression_size_bytes: self.request_min_compression_size_bytes,
+            request_checksum_calculation: self.request_checksum_calculation,
+            response_checksum_validation: self.response_checksum_validation,
         }
     }
 }

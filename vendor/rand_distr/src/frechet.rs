@@ -6,29 +6,45 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-//! The Fréchet distribution.
+//! The Fréchet distribution `Fréchet(μ, σ, α)`.
 
 use crate::{Distribution, OpenClosed01};
 use core::fmt;
 use num_traits::Float;
 use rand::Rng;
 
-/// Samples floating-point numbers according to the Fréchet distribution
+/// The [Fréchet distribution](https://en.wikipedia.org/wiki/Fr%C3%A9chet_distribution) `Fréchet(α, μ, σ)`.
 ///
-/// This distribution has density function:
-/// `f(x) = [(x - μ) / σ]^(-1 - α) exp[-(x - μ) / σ]^(-α) α / σ`,
-/// where `μ` is the location parameter, `σ` the scale parameter, and `α` the shape parameter.
+/// The Fréchet distribution is a continuous probability distribution
+/// with location parameter `μ` (`mu`), scale parameter `σ` (`sigma`),
+/// and shape parameter `α` (`alpha`). It describes the distribution
+/// of the maximum (or minimum) of a number of random variables.
+/// It is also known as the Type II extreme value distribution.
+///
+/// # Density function
+///
+/// `f(x) = [(x - μ) / σ]^(-1 - α) exp[-(x - μ) / σ]^(-α) α / σ`
+///
+/// # Plot
+///
+/// The plot shows the Fréchet distribution with various values of `μ`, `σ`, and `α`.
+/// Note how the location parameter `μ` shifts the distribution along the x-axis,
+/// the scale parameter `σ` stretches or compresses the distribution along the x-axis,
+/// and the shape parameter `α` changes the tail behavior.
+///
+/// ![Fréchet distribution](https://raw.githubusercontent.com/rust-random/charts/main/charts/frechet.svg)
 ///
 /// # Example
+///
 /// ```
 /// use rand::prelude::*;
 /// use rand_distr::Frechet;
 ///
-/// let val: f64 = thread_rng().sample(Frechet::new(0.0, 1.0, 1.0).unwrap());
+/// let val: f64 = rand::rng().sample(Frechet::new(0.0, 1.0, 1.0).unwrap());
 /// println!("{}", val);
 /// ```
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "serde1", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Frechet<F>
 where
     F: Float,
@@ -39,7 +55,7 @@ where
     shape: F,
 }
 
-/// Error type returned from `Frechet::new`.
+/// Error type returned from [`Frechet::new`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
     /// location is infinite or NaN
@@ -61,7 +77,6 @@ impl fmt::Display for Error {
 }
 
 #[cfg(feature = "std")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "std")))]
 impl std::error::Error for Error {}
 
 impl<F> Frechet<F>
@@ -112,13 +127,13 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_infinite_scale() {
-        Frechet::new(0.0, core::f64::INFINITY, 1.0).unwrap();
+        Frechet::new(0.0, f64::INFINITY, 1.0).unwrap();
     }
 
     #[test]
     #[should_panic]
     fn test_nan_scale() {
-        Frechet::new(0.0, core::f64::NAN, 1.0).unwrap();
+        Frechet::new(0.0, f64::NAN, 1.0).unwrap();
     }
 
     #[test]
@@ -130,25 +145,25 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_infinite_shape() {
-        Frechet::new(0.0, 1.0, core::f64::INFINITY).unwrap();
+        Frechet::new(0.0, 1.0, f64::INFINITY).unwrap();
     }
 
     #[test]
     #[should_panic]
     fn test_nan_shape() {
-        Frechet::new(0.0, 1.0, core::f64::NAN).unwrap();
+        Frechet::new(0.0, 1.0, f64::NAN).unwrap();
     }
 
     #[test]
     #[should_panic]
     fn test_infinite_location() {
-        Frechet::new(core::f64::INFINITY, 1.0, 1.0).unwrap();
+        Frechet::new(f64::INFINITY, 1.0, 1.0).unwrap();
     }
 
     #[test]
     #[should_panic]
     fn test_nan_location() {
-        Frechet::new(core::f64::NAN, 1.0, 1.0).unwrap();
+        Frechet::new(f64::NAN, 1.0, 1.0).unwrap();
     }
 
     #[test]
@@ -181,5 +196,10 @@ mod tests {
             .iter()
             .zip(&probabilities)
             .all(|(p_hat, p)| (p_hat - p).abs() < 0.003))
+    }
+
+    #[test]
+    fn frechet_distributions_can_be_compared() {
+        assert_eq!(Frechet::new(1.0, 2.0, 3.0), Frechet::new(1.0, 2.0, 3.0));
     }
 }

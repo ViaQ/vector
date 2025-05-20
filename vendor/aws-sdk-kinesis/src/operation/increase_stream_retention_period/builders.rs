@@ -3,7 +3,7 @@ pub use crate::operation::increase_stream_retention_period::_increase_stream_ret
 
 pub use crate::operation::increase_stream_retention_period::_increase_stream_retention_period_input::IncreaseStreamRetentionPeriodInputBuilder;
 
-impl IncreaseStreamRetentionPeriodInputBuilder {
+impl crate::operation::increase_stream_retention_period::builders::IncreaseStreamRetentionPeriodInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,7 +22,7 @@ impl IncreaseStreamRetentionPeriodInputBuilder {
 }
 /// Fluent builder constructing a request to `IncreaseStreamRetentionPeriod`.
 ///
-/// <p>Increases the Kinesis data stream's retention period, which is the length of time data records are accessible after they are added to the stream. The maximum value of a stream's retention period is 8760 hours (365 days).</p> <note>
+/// <p>Increases the Kinesis data stream's retention period, which is the length of time data records are accessible after they are added to the stream. The maximum value of a stream's retention period is 8760 hours (365 days).</p><note>
 /// <p>When invoking this API, you must use either the <code>StreamARN</code> or the <code>StreamName</code> parameter, or both. It is recommended that you use the <code>StreamARN</code> input parameter when you invoke this API.</p>
 /// </note>
 /// <p>If you choose a longer stream retention period, this operation increases the time period during which records that have not yet expired are accessible. However, it does not make previous, expired data (older than the stream's previous retention period) accessible after the operation has been called. For example, if a stream's retention period is set to 24 hours and is increased to 168 hours, any data that is older than 24 hours remains inaccessible to consumer applications.</p>
@@ -51,7 +51,7 @@ impl
     }
 }
 impl IncreaseStreamRetentionPeriodFluentBuilder {
-    /// Creates a new `IncreaseStreamRetentionPeriod`.
+    /// Creates a new `IncreaseStreamRetentionPeriodFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -102,12 +102,12 @@ impl IncreaseStreamRetentionPeriodFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

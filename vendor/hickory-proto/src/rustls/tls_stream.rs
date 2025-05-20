@@ -7,21 +7,24 @@
 
 //! DNS over TLS I/O stream implementation for Rustls
 
-use std::future::Future;
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::sync::Arc;
+use core::future::Future;
+use core::pin::Pin;
 use std::io;
 use std::net::SocketAddr;
-use std::pin::Pin;
-use std::sync::Arc;
 
 use rustls::ClientConfig;
-use tokio;
+use rustls::pki_types::ServerName;
 use tokio::net::TcpStream as TokioTcpStream;
+use tokio::{self, time::timeout};
 use tokio_rustls::TlsConnector;
 
-use crate::iocompat::{AsyncIoStdAsTokio, AsyncIoTokioAsStd};
-use crate::tcp::Connect;
+use crate::runtime::RuntimeProvider;
+use crate::runtime::iocompat::{AsyncIoStdAsTokio, AsyncIoTokioAsStd};
 use crate::tcp::{DnsTcpStream, TcpStream};
-use crate::xfer::{BufDnsStreamHandle, StreamReceiver};
+use crate::xfer::{BufDnsStreamHandle, CONNECT_TIMEOUT, StreamReceiver};
 
 /// Predefined type for abstracting the TlsClientStream with TokioTls
 pub type TokioTlsClientStream<S> = tokio_rustls::client::TlsStream<AsyncIoStdAsTokio<S>>;
@@ -69,18 +72,19 @@ pub fn tls_from_stream<S: DnsTcpStream>(
 ///
 /// * `name_server` - IP and Port for the remote DNS resolver
 /// * `bind_addr` - IP and port to connect from
-/// * `dns_name` - The DNS name,  Subject Public Key Info (SPKI) name, as associated to a certificate
+/// * `dns_name` - The DNS name associated with a certificate
 #[allow(clippy::type_complexity)]
-pub fn tls_connect<S: Connect>(
+pub fn tls_connect<P: RuntimeProvider>(
     name_server: SocketAddr,
     dns_name: String,
     client_config: Arc<ClientConfig>,
+    provider: P,
 ) -> (
     Pin<
         Box<
             dyn Future<
                     Output = Result<
-                        TlsStream<AsyncIoTokioAsStd<TokioTlsClientStream<S>>>,
+                        TlsStream<AsyncIoTokioAsStd<TokioTlsClientStream<P::Tcp>>>,
                         io::Error,
                     >,
                 > + Send,
@@ -88,7 +92,7 @@ pub fn tls_connect<S: Connect>(
     >,
     BufDnsStreamHandle,
 ) {
-    tls_connect_with_bind_addr(name_server, None, dns_name, client_config)
+    tls_connect_with_bind_addr(name_server, None, dns_name, client_config, provider)
 }
 
 /// Creates a new TlsStream to the specified name_server connecting from a specific address.
@@ -97,19 +101,20 @@ pub fn tls_connect<S: Connect>(
 ///
 /// * `name_server` - IP and Port for the remote DNS resolver
 /// * `bind_addr` - IP and port to connect from
-/// * `dns_name` - The DNS name,  Subject Public Key Info (SPKI) name, as associated to a certificate
+/// * `dns_name` - The DNS name associated with a certificate
 #[allow(clippy::type_complexity)]
-pub fn tls_connect_with_bind_addr<S: Connect>(
+pub fn tls_connect_with_bind_addr<P: RuntimeProvider>(
     name_server: SocketAddr,
     bind_addr: Option<SocketAddr>,
     dns_name: String,
     client_config: Arc<ClientConfig>,
+    provider: P,
 ) -> (
     Pin<
         Box<
             dyn Future<
                     Output = Result<
-                        TlsStream<AsyncIoTokioAsStd<TokioTlsClientStream<S>>>,
+                        TlsStream<AsyncIoTokioAsStd<TokioTlsClientStream<P::Tcp>>>,
                         io::Error,
                     >,
                 > + Send,
@@ -129,6 +134,7 @@ pub fn tls_connect_with_bind_addr<S: Connect>(
         bind_addr,
         dns_name,
         outbound_messages,
+        provider,
     ));
 
     (stream, message_sender)
@@ -140,7 +146,7 @@ pub fn tls_connect_with_bind_addr<S: Connect>(
 ///
 /// * `name_server` - IP and Port for the remote DNS resolver
 /// * `bind_addr` - IP and port to connect from
-/// * `dns_name` - The DNS name,  Subject Public Key Info (SPKI) name, as associated to a certificate
+/// * `dns_name` - The DNS name associated with a certificate
 #[allow(clippy::type_complexity)]
 pub fn tls_connect_with_future<S, F>(
     future: F,
@@ -181,14 +187,15 @@ where
     (stream, message_sender)
 }
 
-async fn connect_tls<S: Connect>(
+async fn connect_tls<P: RuntimeProvider>(
     tls_connector: TlsConnector,
     name_server: SocketAddr,
     bind_addr: Option<SocketAddr>,
     dns_name: String,
     outbound_messages: StreamReceiver,
-) -> io::Result<TcpStream<AsyncIoTokioAsStd<TokioTlsClientStream<S>>>> {
-    let tcp = S::connect_with_bind(name_server, bind_addr);
+    provider: P,
+) -> io::Result<TcpStream<AsyncIoTokioAsStd<TokioTlsClientStream<P::Tcp>>>> {
+    let tcp = provider.connect_tcp(name_server, bind_addr, None);
     connect_tls_with_future(tls_connector, tcp, name_server, dns_name, outbound_messages).await
 }
 
@@ -196,23 +203,34 @@ async fn connect_tls_with_future<S, F>(
     tls_connector: TlsConnector,
     future: F,
     name_server: SocketAddr,
-    dns_name: String,
+    server_name: String,
     outbound_messages: StreamReceiver,
 ) -> io::Result<TcpStream<AsyncIoTokioAsStd<TokioTlsClientStream<S>>>>
 where
     S: DnsTcpStream,
     F: Future<Output = io::Result<S>> + Send + Unpin,
 {
-    let dns_name = match dns_name.as_str().try_into() {
+    let dns_name = match ServerName::try_from(server_name) {
         Ok(name) => name,
         Err(_) => return Err(io::Error::new(io::ErrorKind::InvalidInput, "bad dns_name")),
     };
 
-    let stream = future.await?;
-    let s = tls_connector
-        .connect(dns_name, AsyncIoStdAsTokio(stream))
-        .await
-        .map_err(|e| io::Error::new(io::ErrorKind::ConnectionRefused, format!("tls error: {e}")))?;
+    let stream = AsyncIoStdAsTokio(future.await?);
+    let s = match timeout(CONNECT_TIMEOUT, tls_connector.connect(dns_name, stream)).await {
+        Ok(Ok(s)) => s,
+        Ok(Err(e)) => {
+            return Err(io::Error::new(
+                io::ErrorKind::ConnectionRefused,
+                format!("tls error: {e}"),
+            ));
+        }
+        Err(_) => {
+            return Err(io::Error::new(
+                io::ErrorKind::TimedOut,
+                format!("TLS handshake timed out after {CONNECT_TIMEOUT:?}"),
+            ));
+        }
+    };
 
     Ok(TcpStream::from_stream_with_receiver(
         AsyncIoTokioAsStd(s),

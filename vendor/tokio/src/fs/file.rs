@@ -7,6 +7,7 @@ use crate::io::blocking::{Buf, DEFAULT_MAX_BUF_SIZE};
 use crate::io::{AsyncRead, AsyncSeek, AsyncWrite, ReadBuf};
 use crate::sync::Mutex;
 
+use std::cmp;
 use std::fmt;
 use std::fs::{Metadata, Permissions};
 use std::future::Future;
@@ -586,6 +587,7 @@ impl AsyncRead for File {
         dst: &mut ReadBuf<'_>,
     ) -> Poll<io::Result<()>> {
         ready!(crate::trace::trace_leaf(cx));
+
         let me = self.get_mut();
         let inner = me.inner.get_mut();
 
@@ -594,17 +596,20 @@ impl AsyncRead for File {
                 State::Idle(ref mut buf_cell) => {
                     let mut buf = buf_cell.take().unwrap();
 
-                    if !buf.is_empty() {
+                    if !buf.is_empty() || dst.remaining() == 0 {
                         buf.copy_to(dst);
                         *buf_cell = Some(buf);
                         return Poll::Ready(Ok(()));
                     }
 
-                    buf.ensure_capacity_for(dst, me.max_buf_size);
                     let std = me.std.clone();
 
+                    let max_buf_size = cmp::min(dst.remaining(), me.max_buf_size);
                     inner.state = State::Busy(spawn_blocking(move || {
-                        let res = buf.read_from(&mut &*std);
+                        // SAFETY: the `Read` implementation of `std` does not
+                        // read from the buffer it is borrowing and correctly
+                        // reports the length of the data written into the buffer.
+                        let res = unsafe { buf.read_from(&mut &*std, max_buf_size) };
                         (Operation::Read(res), buf)
                     }));
                 }

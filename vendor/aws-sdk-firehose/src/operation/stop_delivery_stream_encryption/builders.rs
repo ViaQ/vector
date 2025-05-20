@@ -3,7 +3,7 @@ pub use crate::operation::stop_delivery_stream_encryption::_stop_delivery_stream
 
 pub use crate::operation::stop_delivery_stream_encryption::_stop_delivery_stream_encryption_input::StopDeliveryStreamEncryptionInputBuilder;
 
-impl StopDeliveryStreamEncryptionInputBuilder {
+impl crate::operation::stop_delivery_stream_encryption::builders::StopDeliveryStreamEncryptionInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,11 +22,11 @@ impl StopDeliveryStreamEncryptionInputBuilder {
 }
 /// Fluent builder constructing a request to `StopDeliveryStreamEncryption`.
 ///
-/// <p>Disables server-side encryption (SSE) for the delivery stream. </p>
-/// <p>This operation is asynchronous. It returns immediately. When you invoke it, Kinesis Data Firehose first sets the encryption status of the stream to <code>DISABLING</code>, and then to <code>DISABLED</code>. You can continue to read and write data to your stream while its status is <code>DISABLING</code>. It can take up to 5 seconds after the encryption status changes to <code>DISABLED</code> before all records written to the delivery stream are no longer subject to encryption. To find out whether a record or a batch of records was encrypted, check the response elements <code>PutRecordOutput$Encrypted</code> and <code>PutRecordBatchOutput$Encrypted</code>, respectively.</p>
-/// <p>To check the encryption state of a delivery stream, use <code>DescribeDeliveryStream</code>. </p>
-/// <p>If SSE is enabled using a customer managed CMK and then you invoke <code>StopDeliveryStreamEncryption</code>, Kinesis Data Firehose schedules the related KMS grant for retirement and then retires it after it ensures that it is finished delivering records to the destination.</p>
-/// <p>The <code>StartDeliveryStreamEncryption</code> and <code>StopDeliveryStreamEncryption</code> operations have a combined limit of 25 calls per delivery stream per 24 hours. For example, you reach the limit if you call <code>StartDeliveryStreamEncryption</code> 13 times and <code>StopDeliveryStreamEncryption</code> 12 times for the same delivery stream in a 24-hour period.</p>
+/// <p>Disables server-side encryption (SSE) for the Firehose stream.</p>
+/// <p>This operation is asynchronous. It returns immediately. When you invoke it, Firehose first sets the encryption status of the stream to <code>DISABLING</code>, and then to <code>DISABLED</code>. You can continue to read and write data to your stream while its status is <code>DISABLING</code>. It can take up to 5 seconds after the encryption status changes to <code>DISABLED</code> before all records written to the Firehose stream are no longer subject to encryption. To find out whether a record or a batch of records was encrypted, check the response elements <code>PutRecordOutput$Encrypted</code> and <code>PutRecordBatchOutput$Encrypted</code>, respectively.</p>
+/// <p>To check the encryption state of a Firehose stream, use <code>DescribeDeliveryStream</code>.</p>
+/// <p>If SSE is enabled using a customer managed CMK and then you invoke <code>StopDeliveryStreamEncryption</code>, Firehose schedules the related KMS grant for retirement and then retires it after it ensures that it is finished delivering records to the destination.</p>
+/// <p>The <code>StartDeliveryStreamEncryption</code> and <code>StopDeliveryStreamEncryption</code> operations have a combined limit of 25 calls per Firehose stream per 24 hours. For example, you reach the limit if you call <code>StartDeliveryStreamEncryption</code> 13 times and <code>StopDeliveryStreamEncryption</code> 12 times for the same Firehose stream in a 24-hour period.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct StopDeliveryStreamEncryptionFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -52,7 +52,7 @@ impl
     }
 }
 impl StopDeliveryStreamEncryptionFluentBuilder {
-    /// Creates a new `StopDeliveryStreamEncryption`.
+    /// Creates a new `StopDeliveryStreamEncryptionFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -103,26 +103,26 @@ impl StopDeliveryStreamEncryptionFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
-    /// <p>The name of the delivery stream for which you want to disable server-side encryption (SSE).</p>
+    /// <p>The name of the Firehose stream for which you want to disable server-side encryption (SSE).</p>
     pub fn delivery_stream_name(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.delivery_stream_name(input.into());
         self
     }
-    /// <p>The name of the delivery stream for which you want to disable server-side encryption (SSE).</p>
+    /// <p>The name of the Firehose stream for which you want to disable server-side encryption (SSE).</p>
     pub fn set_delivery_stream_name(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_delivery_stream_name(input);
         self
     }
-    /// <p>The name of the delivery stream for which you want to disable server-side encryption (SSE).</p>
+    /// <p>The name of the Firehose stream for which you want to disable server-side encryption (SSE).</p>
     pub fn get_delivery_stream_name(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_delivery_stream_name()
     }

@@ -1,5 +1,5 @@
-use crate::segmentation;
-use crate::Boundary;
+use crate::boundary;
+use crate::boundary::Boundary;
 use crate::Case;
 use crate::Pattern;
 
@@ -36,7 +36,7 @@ use crate::Pattern;
 ///
 /// // Convert by setting each field explicitly.
 /// let conv = Converter::new()
-///     .set_boundaries(&[Boundary::Hyphen])
+///     .set_boundaries(&[Boundary::HYPHEN])
 ///     .set_pattern(Pattern::Lowercase)
 ///     .set_delim("_");
 /// assert_eq!("dialoguebox_border_shadow", conv.convert(s));
@@ -46,10 +46,9 @@ use crate::Pattern;
 /// not provided as a variant of `Case`.
 ///
 /// ```
-/// use convert_case::{Boundary, Case, Casing, Converter, Pattern};
-///
+/// # use convert_case::{Boundary, Case, Casing, Converter, Pattern};
 /// let dot_camel = Converter::new()
-///     .set_boundaries(&[Boundary::LowerUpper, Boundary::LowerDigit])
+///     .set_boundaries(&[Boundary::LOWER_UPPER, Boundary::LOWER_DIGIT])
 ///     .set_pattern(Pattern::Camel)
 ///     .set_delim(".");
 /// assert_eq!("collision.Shape.2d", dot_camel.convert("CollisionShape2D"));
@@ -70,7 +69,7 @@ pub struct Converter {
 impl Default for Converter {
     fn default() -> Self {
         Converter {
-            boundaries: Boundary::defaults(),
+            boundaries: Boundary::defaults().to_vec(),
             pattern: None,
             delim: String::new(),
         }
@@ -82,8 +81,7 @@ impl Converter {
     /// The `Converter` will use `Boundary::defaults()` for boundaries, no pattern, and an empty
     /// string as a delimeter.
     /// ```
-    /// use convert_case::Converter;
-    ///
+    /// # use convert_case::Converter;
     /// let conv = Converter::new();
     /// assert_eq!("DeathPerennialQUEST", conv.convert("Death-Perennial QUEST"))
     /// ```
@@ -93,8 +91,7 @@ impl Converter {
 
     /// Converts a string.
     /// ```
-    /// use convert_case::{Case, Converter};
-    ///
+    /// # use convert_case::{Case, Converter};
     /// let conv = Converter::new()
     ///     .to_case(Case::Camel);
     /// assert_eq!("xmlHttpRequest", conv.convert("XML_HTTP_Request"))
@@ -103,7 +100,8 @@ impl Converter {
     where
         T: AsRef<str>,
     {
-        let words = segmentation::split(&s, &self.boundaries);
+        // TODO: if I change AsRef -> Borrow or ToString, fix here
+        let words = boundary::split(&s, &self.boundaries);
         if let Some(p) = self.pattern {
             let words = words.iter().map(|s| s.as_ref()).collect::<Vec<&str>>();
             p.mutate(&words).join(&self.delim)
@@ -114,8 +112,7 @@ impl Converter {
 
     /// Set the pattern and delimiter to those associated with the given case.
     /// ```
-    /// use convert_case::{Case, Converter};
-    ///
+    /// # use convert_case::{Case, Converter};
     /// let conv = Converter::new()
     ///     .to_case(Case::Pascal);
     /// assert_eq!("VariableName", conv.convert("variable name"))
@@ -129,8 +126,7 @@ impl Converter {
     /// Sets the boundaries to those associated with the provided case.  This is used
     /// by the `from_case` function in the `Casing` trait.
     /// ```
-    /// use convert_case::{Case, Converter};
-    ///
+    /// # use convert_case::{Case, Converter};
     /// let conv = Converter::new()
     ///     .from_case(Case::Snake)
     ///     .to_case(Case::Title);
@@ -143,10 +139,9 @@ impl Converter {
 
     /// Sets the boundaries to those provided.
     /// ```
-    /// use convert_case::{Boundary, Case, Converter};
-    ///
+    /// # use convert_case::{Boundary, Case, Converter};
     /// let conv = Converter::new()
-    ///     .set_boundaries(&[Boundary::Underscore, Boundary::LowerUpper])
+    ///     .set_boundaries(&[Boundary::UNDERSCORE, Boundary::LOWER_UPPER])
     ///     .to_case(Case::Lower);
     /// assert_eq!("panic attack dream theater", conv.convert("panicAttack_dreamTheater"))
     /// ```
@@ -157,11 +152,10 @@ impl Converter {
 
     /// Adds a boundary to the list of boundaries.
     /// ```
-    /// use convert_case::{Boundary, Case, Converter};
-    ///
+    /// # use convert_case::{Boundary, Case, Converter};
     /// let conv = Converter::new()
     ///     .from_case(Case::Title)
-    ///     .add_boundary(Boundary::Hyphen)
+    ///     .add_boundary(Boundary::HYPHEN)
     ///     .to_case(Case::Snake);
     /// assert_eq!("my_biography_video_1", conv.convert("My Biography - Video 1"))
     /// ```
@@ -172,12 +166,11 @@ impl Converter {
 
     /// Adds a vector of boundaries to the list of boundaries.
     /// ```
-    /// use convert_case::{Boundary, Case, Converter};
-    ///
+    /// # use convert_case::{Boundary, Case, Converter};
     /// let conv = Converter::new()
     ///     .from_case(Case::Kebab)
     ///     .to_case(Case::Title)
-    ///     .add_boundaries(&[Boundary::Underscore, Boundary::LowerUpper]);
+    ///     .add_boundaries(&[Boundary::UNDERSCORE, Boundary::LOWER_UPPER]);
     /// assert_eq!("2020 10 First Day", conv.convert("2020-10_firstDay"));
     /// ```
     pub fn add_boundaries(mut self, bs: &[Boundary]) -> Self {
@@ -187,10 +180,9 @@ impl Converter {
 
     /// Removes a boundary from the list of boundaries if it exists.
     /// ```
-    /// use convert_case::{Boundary, Case, Converter};
-    ///
+    /// # use convert_case::{Boundary, Case, Converter};
     /// let conv = Converter::new()
-    ///     .remove_boundary(Boundary::Acronym)
+    ///     .remove_boundary(Boundary::ACRONYM)
     ///     .to_case(Case::Kebab);
     /// assert_eq!("httprequest-parser", conv.convert("HTTPRequest_parser"));
     /// ```
@@ -201,8 +193,7 @@ impl Converter {
 
     /// Removes all the provided boundaries from the list of boundaries if it exists.
     /// ```
-    /// use convert_case::{Boundary, Case, Converter};
-    ///
+    /// # use convert_case::{Boundary, Case, Converter};
     /// let conv = Converter::new()
     ///     .remove_boundaries(&Boundary::digits())
     ///     .to_case(Case::Snake);
@@ -217,8 +208,7 @@ impl Converter {
 
     /// Sets the delimeter.
     /// ```
-    /// use convert_case::{Case, Converter};
-    ///
+    /// # use convert_case::{Case, Converter};
     /// let conv = Converter::new()
     ///     .to_case(Case::Snake)
     ///     .set_delim(".");
@@ -234,8 +224,7 @@ impl Converter {
 
     /// Sets the delimeter to an empty string.
     /// ```
-    /// use convert_case::{Case, Converter};
-    ///
+    /// # use convert_case::{Case, Converter};
     /// let conv = Converter::new()
     ///     .to_case(Case::Snake)
     ///     .remove_delim();
@@ -248,8 +237,7 @@ impl Converter {
 
     /// Sets the pattern.
     /// ```
-    /// use convert_case::{Case, Converter, Pattern};
-    ///
+    /// # use convert_case::{Case, Converter, Pattern};
     /// let conv = Converter::new()
     ///     .set_delim("_")
     ///     .set_pattern(Pattern::Sentence);
@@ -263,8 +251,7 @@ impl Converter {
     /// Sets the pattern field to `None`.  Where there is no pattern, a character's case is never
     /// mutated and will be maintained at the end of conversion.
     /// ```
-    /// use convert_case::{Case, Converter};
-    ///
+    /// # use convert_case::{Case, Converter};
     /// let conv = Converter::new()
     ///     .from_case(Case::Title)
     ///     .to_case(Case::Snake)
@@ -343,7 +330,7 @@ mod test {
     #[test]
     fn remove_boundary() {
         let conv = Converter::new()
-            .remove_boundary(Boundary::DigitUpper)
+            .remove_boundary(Boundary::DIGIT_UPPER)
             .to_case(Case::Snake);
         assert_eq!("test_08bound", conv.convert("Test 08Bound"));
         assert_eq!("a_8_a_a_8a", conv.convert("a8aA8A"));
@@ -354,7 +341,7 @@ mod test {
         let conv = Converter::new()
             .from_case(Case::Snake)
             .to_case(Case::Kebab)
-            .add_boundary(Boundary::LowerUpper);
+            .add_boundary(Boundary::LOWER_UPPER);
         assert_eq!("word-word-word", conv.convert("word_wordWord"));
     }
 
@@ -363,7 +350,7 @@ mod test {
         let conv = Converter::new()
             .from_case(Case::Snake)
             .to_case(Case::Kebab)
-            .add_boundaries(&[Boundary::LowerUpper, Boundary::UpperLower]);
+            .add_boundaries(&[Boundary::LOWER_UPPER, Boundary::UPPER_LOWER]);
         assert_eq!("word-word-w-ord", conv.convert("word_wordWord"));
     }
 
@@ -372,7 +359,7 @@ mod test {
         let conv = Converter::new().from_case(Case::Snake).to_case(Case::Kebab);
         assert_eq!("word-wordword", conv.convert("word_wordWord"));
 
-        let conv = conv.add_boundary(Boundary::LowerUpper);
+        let conv = conv.add_boundary(Boundary::LOWER_UPPER);
         assert_eq!("word-word-word", conv.convert("word_wordWord"));
     }
 
@@ -380,9 +367,9 @@ mod test {
     fn explicit_boundaries() {
         let conv = Converter::new()
             .set_boundaries(&[
-                Boundary::DigitLower,
-                Boundary::DigitUpper,
-                Boundary::Acronym,
+                Boundary::DIGIT_LOWER,
+                Boundary::DIGIT_UPPER,
+                Boundary::ACRONYM,
             ])
             .to_case(Case::Snake);
         assert_eq!(

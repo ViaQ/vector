@@ -3,7 +3,7 @@ pub use crate::operation::add_tags_to_stream::_add_tags_to_stream_output::AddTag
 
 pub use crate::operation::add_tags_to_stream::_add_tags_to_stream_input::AddTagsToStreamInputBuilder;
 
-impl AddTagsToStreamInputBuilder {
+impl crate::operation::add_tags_to_stream::builders::AddTagsToStreamInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,11 +22,11 @@ impl AddTagsToStreamInputBuilder {
 }
 /// Fluent builder constructing a request to `AddTagsToStream`.
 ///
-/// <p>Adds or updates tags for the specified Kinesis data stream. You can assign up to 50 tags to a data stream.</p> <note>
+/// <p>Adds or updates tags for the specified Kinesis data stream. You can assign up to 50 tags to a data stream.</p><note>
 /// <p>When invoking this API, you must use either the <code>StreamARN</code> or the <code>StreamName</code> parameter, or both. It is recommended that you use the <code>StreamARN</code> input parameter when you invoke this API.</p>
 /// </note>
 /// <p>If tags have already been assigned to the stream, <code>AddTagsToStream</code> overwrites any existing tags that correspond to the specified tag keys.</p>
-/// <p> <code>AddTagsToStream</code> has a limit of five transactions per second per account.</p>
+/// <p><code>AddTagsToStream</code> has a limit of five transactions per second per account.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct AddTagsToStreamFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -52,7 +52,7 @@ impl
     }
 }
 impl AddTagsToStreamFluentBuilder {
-    /// Creates a new `AddTagsToStream`.
+    /// Creates a new `AddTagsToStreamFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -103,12 +103,12 @@ impl AddTagsToStreamFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -126,21 +126,22 @@ impl AddTagsToStreamFluentBuilder {
     pub fn get_stream_name(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_stream_name()
     }
+    ///
     /// Adds a key-value pair to `Tags`.
     ///
     /// To override the contents of this collection use [`set_tags`](Self::set_tags).
     ///
-    /// <p>A set of up to 10 key-value pairs to use to create the tags.</p>
+    /// <p>A set of up to 50 key-value pairs to use to create the tags. A tag consists of a required key and an optional value. You can add up to 50 tags per resource.</p>
     pub fn tags(mut self, k: impl ::std::convert::Into<::std::string::String>, v: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.tags(k.into(), v.into());
         self
     }
-    /// <p>A set of up to 10 key-value pairs to use to create the tags.</p>
+    /// <p>A set of up to 50 key-value pairs to use to create the tags. A tag consists of a required key and an optional value. You can add up to 50 tags per resource.</p>
     pub fn set_tags(mut self, input: ::std::option::Option<::std::collections::HashMap<::std::string::String, ::std::string::String>>) -> Self {
         self.inner = self.inner.set_tags(input);
         self
     }
-    /// <p>A set of up to 10 key-value pairs to use to create the tags.</p>
+    /// <p>A set of up to 50 key-value pairs to use to create the tags. A tag consists of a required key and an optional value. You can add up to 50 tags per resource.</p>
     pub fn get_tags(&self) -> &::std::option::Option<::std::collections::HashMap<::std::string::String, ::std::string::String>> {
         self.inner.get_tags()
     }

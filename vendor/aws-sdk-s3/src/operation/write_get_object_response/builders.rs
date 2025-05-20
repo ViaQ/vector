@@ -3,7 +3,7 @@ pub use crate::operation::write_get_object_response::_write_get_object_response_
 
 pub use crate::operation::write_get_object_response::_write_get_object_response_input::WriteGetObjectResponseInputBuilder;
 
-impl WriteGetObjectResponseInputBuilder {
+impl crate::operation::write_get_object_response::builders::WriteGetObjectResponseInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -23,15 +23,15 @@ impl WriteGetObjectResponseInputBuilder {
 /// Fluent builder constructing a request to `WriteGetObjectResponse`.
 ///
 /// <note>
-/// <p>This operation is not supported by directory buckets.</p>
+/// <p>This operation is not supported for directory buckets.</p>
 /// </note>
 /// <p>Passes transformed objects to a <code>GetObject</code> operation when using Object Lambda access points. For information about Object Lambda access points, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/transforming-objects.html">Transforming objects with Object Lambda access points</a> in the <i>Amazon S3 User Guide</i>.</p>
 /// <p>This operation supports metadata that can be returned by <a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObject.html">GetObject</a>, in addition to <code>RequestRoute</code>, <code>RequestToken</code>, <code>StatusCode</code>, <code>ErrorCode</code>, and <code>ErrorMessage</code>. The <code>GetObject</code> response metadata is supported so that the <code>WriteGetObjectResponse</code> caller, typically an Lambda function, can provide the same metadata when it internally invokes <code>GetObject</code>. When <code>WriteGetObjectResponse</code> is called by a customer-owned Lambda function, the metadata returned to the end user <code>GetObject</code> call might differ from what Amazon S3 would normally return.</p>
 /// <p>You can include any number of metadata headers. When including a metadata header, it should be prefaced with <code>x-amz-meta</code>. For example, <code>x-amz-meta-my-custom-header: MyCustomValue</code>. The primary use case for this is to forward <code>GetObject</code> metadata.</p>
 /// <p>Amazon Web Services provides some prebuilt Lambda functions that you can use with S3 Object Lambda to detect and redact personally identifiable information (PII) and decompress S3 objects. These Lambda functions are available in the Amazon Web Services Serverless Application Repository, and can be selected through the Amazon Web Services Management Console when you create your Object Lambda access point.</p>
-/// <p>Example 1: PII Access Control - This Lambda function uses Amazon Comprehend, a natural language processing (NLP) service using machine learning to find insights and relationships in text. It automatically detects personally identifiable information (PII) such as names, addresses, dates, credit card numbers, and social security numbers from documents in your Amazon S3 bucket. </p>
-/// <p>Example 2: PII Redaction - This Lambda function uses Amazon Comprehend, a natural language processing (NLP) service using machine learning to find insights and relationships in text. It automatically redacts personally identifiable information (PII) such as names, addresses, dates, credit card numbers, and social security numbers from documents in your Amazon S3 bucket. </p>
-/// <p>Example 3: Decompression - The Lambda function S3ObjectLambdaDecompression, is equipped to decompress objects stored in S3 in one of six compressed file formats including bzip2, gzip, snappy, zlib, zstandard and ZIP. </p>
+/// <p>Example 1: PII Access Control - This Lambda function uses Amazon Comprehend, a natural language processing (NLP) service using machine learning to find insights and relationships in text. It automatically detects personally identifiable information (PII) such as names, addresses, dates, credit card numbers, and social security numbers from documents in your Amazon S3 bucket.</p>
+/// <p>Example 2: PII Redaction - This Lambda function uses Amazon Comprehend, a natural language processing (NLP) service using machine learning to find insights and relationships in text. It automatically redacts personally identifiable information (PII) such as names, addresses, dates, credit card numbers, and social security numbers from documents in your Amazon S3 bucket.</p>
+/// <p>Example 3: Decompression - The Lambda function S3ObjectLambdaDecompression, is equipped to decompress objects stored in S3 in one of six compressed file formats including bzip2, gzip, snappy, zlib, zstandard and ZIP.</p>
 /// <p>For information on how to view and use these functions, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/olap-examples.html">Using Amazon Web Services built Lambda functions</a> in the <i>Amazon S3 User Guide</i>.</p>
 #[derive(::std::fmt::Debug)]
 pub struct WriteGetObjectResponseFluentBuilder {
@@ -58,7 +58,7 @@ impl
     }
 }
 impl WriteGetObjectResponseFluentBuilder {
-    /// Creates a new `WriteGetObjectResponse`.
+    /// Creates a new `WriteGetObjectResponseFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -109,12 +109,12 @@ impl WriteGetObjectResponseFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -162,20 +162,34 @@ impl WriteGetObjectResponseFluentBuilder {
     }
     /// <p>The integer status code for an HTTP response of a corresponding <code>GetObject</code> request. The following is a list of status codes.</p>
     /// <ul>
-    /// <li> <p> <code>200 - OK</code> </p> </li>
-    /// <li> <p> <code>206 - Partial Content</code> </p> </li>
-    /// <li> <p> <code>304 - Not Modified</code> </p> </li>
-    /// <li> <p> <code>400 - Bad Request</code> </p> </li>
-    /// <li> <p> <code>401 - Unauthorized</code> </p> </li>
-    /// <li> <p> <code>403 - Forbidden</code> </p> </li>
-    /// <li> <p> <code>404 - Not Found</code> </p> </li>
-    /// <li> <p> <code>405 - Method Not Allowed</code> </p> </li>
-    /// <li> <p> <code>409 - Conflict</code> </p> </li>
-    /// <li> <p> <code>411 - Length Required</code> </p> </li>
-    /// <li> <p> <code>412 - Precondition Failed</code> </p> </li>
-    /// <li> <p> <code>416 - Range Not Satisfiable</code> </p> </li>
-    /// <li> <p> <code>500 - Internal Server Error</code> </p> </li>
-    /// <li> <p> <code>503 - Service Unavailable</code> </p> </li>
+    /// <li>
+    /// <p><code>200 - OK</code></p></li>
+    /// <li>
+    /// <p><code>206 - Partial Content</code></p></li>
+    /// <li>
+    /// <p><code>304 - Not Modified</code></p></li>
+    /// <li>
+    /// <p><code>400 - Bad Request</code></p></li>
+    /// <li>
+    /// <p><code>401 - Unauthorized</code></p></li>
+    /// <li>
+    /// <p><code>403 - Forbidden</code></p></li>
+    /// <li>
+    /// <p><code>404 - Not Found</code></p></li>
+    /// <li>
+    /// <p><code>405 - Method Not Allowed</code></p></li>
+    /// <li>
+    /// <p><code>409 - Conflict</code></p></li>
+    /// <li>
+    /// <p><code>411 - Length Required</code></p></li>
+    /// <li>
+    /// <p><code>412 - Precondition Failed</code></p></li>
+    /// <li>
+    /// <p><code>416 - Range Not Satisfiable</code></p></li>
+    /// <li>
+    /// <p><code>500 - Internal Server Error</code></p></li>
+    /// <li>
+    /// <p><code>503 - Service Unavailable</code></p></li>
     /// </ul>
     pub fn status_code(mut self, input: i32) -> Self {
         self.inner = self.inner.status_code(input);
@@ -183,20 +197,34 @@ impl WriteGetObjectResponseFluentBuilder {
     }
     /// <p>The integer status code for an HTTP response of a corresponding <code>GetObject</code> request. The following is a list of status codes.</p>
     /// <ul>
-    /// <li> <p> <code>200 - OK</code> </p> </li>
-    /// <li> <p> <code>206 - Partial Content</code> </p> </li>
-    /// <li> <p> <code>304 - Not Modified</code> </p> </li>
-    /// <li> <p> <code>400 - Bad Request</code> </p> </li>
-    /// <li> <p> <code>401 - Unauthorized</code> </p> </li>
-    /// <li> <p> <code>403 - Forbidden</code> </p> </li>
-    /// <li> <p> <code>404 - Not Found</code> </p> </li>
-    /// <li> <p> <code>405 - Method Not Allowed</code> </p> </li>
-    /// <li> <p> <code>409 - Conflict</code> </p> </li>
-    /// <li> <p> <code>411 - Length Required</code> </p> </li>
-    /// <li> <p> <code>412 - Precondition Failed</code> </p> </li>
-    /// <li> <p> <code>416 - Range Not Satisfiable</code> </p> </li>
-    /// <li> <p> <code>500 - Internal Server Error</code> </p> </li>
-    /// <li> <p> <code>503 - Service Unavailable</code> </p> </li>
+    /// <li>
+    /// <p><code>200 - OK</code></p></li>
+    /// <li>
+    /// <p><code>206 - Partial Content</code></p></li>
+    /// <li>
+    /// <p><code>304 - Not Modified</code></p></li>
+    /// <li>
+    /// <p><code>400 - Bad Request</code></p></li>
+    /// <li>
+    /// <p><code>401 - Unauthorized</code></p></li>
+    /// <li>
+    /// <p><code>403 - Forbidden</code></p></li>
+    /// <li>
+    /// <p><code>404 - Not Found</code></p></li>
+    /// <li>
+    /// <p><code>405 - Method Not Allowed</code></p></li>
+    /// <li>
+    /// <p><code>409 - Conflict</code></p></li>
+    /// <li>
+    /// <p><code>411 - Length Required</code></p></li>
+    /// <li>
+    /// <p><code>412 - Precondition Failed</code></p></li>
+    /// <li>
+    /// <p><code>416 - Range Not Satisfiable</code></p></li>
+    /// <li>
+    /// <p><code>500 - Internal Server Error</code></p></li>
+    /// <li>
+    /// <p><code>503 - Service Unavailable</code></p></li>
     /// </ul>
     pub fn set_status_code(mut self, input: ::std::option::Option<i32>) -> Self {
         self.inner = self.inner.set_status_code(input);
@@ -204,35 +232,49 @@ impl WriteGetObjectResponseFluentBuilder {
     }
     /// <p>The integer status code for an HTTP response of a corresponding <code>GetObject</code> request. The following is a list of status codes.</p>
     /// <ul>
-    /// <li> <p> <code>200 - OK</code> </p> </li>
-    /// <li> <p> <code>206 - Partial Content</code> </p> </li>
-    /// <li> <p> <code>304 - Not Modified</code> </p> </li>
-    /// <li> <p> <code>400 - Bad Request</code> </p> </li>
-    /// <li> <p> <code>401 - Unauthorized</code> </p> </li>
-    /// <li> <p> <code>403 - Forbidden</code> </p> </li>
-    /// <li> <p> <code>404 - Not Found</code> </p> </li>
-    /// <li> <p> <code>405 - Method Not Allowed</code> </p> </li>
-    /// <li> <p> <code>409 - Conflict</code> </p> </li>
-    /// <li> <p> <code>411 - Length Required</code> </p> </li>
-    /// <li> <p> <code>412 - Precondition Failed</code> </p> </li>
-    /// <li> <p> <code>416 - Range Not Satisfiable</code> </p> </li>
-    /// <li> <p> <code>500 - Internal Server Error</code> </p> </li>
-    /// <li> <p> <code>503 - Service Unavailable</code> </p> </li>
+    /// <li>
+    /// <p><code>200 - OK</code></p></li>
+    /// <li>
+    /// <p><code>206 - Partial Content</code></p></li>
+    /// <li>
+    /// <p><code>304 - Not Modified</code></p></li>
+    /// <li>
+    /// <p><code>400 - Bad Request</code></p></li>
+    /// <li>
+    /// <p><code>401 - Unauthorized</code></p></li>
+    /// <li>
+    /// <p><code>403 - Forbidden</code></p></li>
+    /// <li>
+    /// <p><code>404 - Not Found</code></p></li>
+    /// <li>
+    /// <p><code>405 - Method Not Allowed</code></p></li>
+    /// <li>
+    /// <p><code>409 - Conflict</code></p></li>
+    /// <li>
+    /// <p><code>411 - Length Required</code></p></li>
+    /// <li>
+    /// <p><code>412 - Precondition Failed</code></p></li>
+    /// <li>
+    /// <p><code>416 - Range Not Satisfiable</code></p></li>
+    /// <li>
+    /// <p><code>500 - Internal Server Error</code></p></li>
+    /// <li>
+    /// <p><code>503 - Service Unavailable</code></p></li>
     /// </ul>
     pub fn get_status_code(&self) -> &::std::option::Option<i32> {
         self.inner.get_status_code()
     }
-    /// <p>A string that uniquely identifies an error condition. Returned in the <code> tag of the error XML response for a corresponding <code>GetObject</code> call. Cannot be used with a successful <code>StatusCode</code> header or when the transformed object is provided in the body. All error codes from S3 are sentence-cased. The regular expression (regex) value is <code>"^[A-Z][a-zA-Z]+$"</code>.</code></p>
+    /// <p>A string that uniquely identifies an error condition. Returned in the <code> tag of the error XML response for a corresponding <code>GetObject</code> call. Cannot be used with a successful <code>StatusCode</code> header or when the transformed object is provided in the body. All error codes from S3 are sentence-cased. The regular expression (regex) value is <code>"^\[A-Z\]\[a-zA-Z\]+$"</code>.</code></p>
     pub fn error_code(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.error_code(input.into());
         self
     }
-    /// <p>A string that uniquely identifies an error condition. Returned in the <code> tag of the error XML response for a corresponding <code>GetObject</code> call. Cannot be used with a successful <code>StatusCode</code> header or when the transformed object is provided in the body. All error codes from S3 are sentence-cased. The regular expression (regex) value is <code>"^[A-Z][a-zA-Z]+$"</code>.</code></p>
+    /// <p>A string that uniquely identifies an error condition. Returned in the <code> tag of the error XML response for a corresponding <code>GetObject</code> call. Cannot be used with a successful <code>StatusCode</code> header or when the transformed object is provided in the body. All error codes from S3 are sentence-cased. The regular expression (regex) value is <code>"^\[A-Z\]\[a-zA-Z\]+$"</code>.</code></p>
     pub fn set_error_code(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_error_code(input);
         self
     }
-    /// <p>A string that uniquely identifies an error condition. Returned in the <code> tag of the error XML response for a corresponding <code>GetObject</code> call. Cannot be used with a successful <code>StatusCode</code> header or when the transformed object is provided in the body. All error codes from S3 are sentence-cased. The regular expression (regex) value is <code>"^[A-Z][a-zA-Z]+$"</code>.</code></p>
+    /// <p>A string that uniquely identifies an error condition. Returned in the <code> tag of the error XML response for a corresponding <code>GetObject</code> call. Cannot be used with a successful <code>StatusCode</code> header or when the transformed object is provided in the body. All error codes from S3 are sentence-cased. The regular expression (regex) value is <code>"^\[A-Z\]\[a-zA-Z\]+$"</code>.</code></p>
     pub fn get_error_code(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_error_code()
     }
@@ -374,102 +416,116 @@ impl WriteGetObjectResponseFluentBuilder {
     pub fn get_content_type(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_content_type()
     }
-    /// <p>This header can be used as a data integrity check to verify that the data received is the same data that was originally sent. This specifies the base64-encoded, 32-bit CRC32 checksum of the object returned by the Object Lambda function. This may not match the checksum for the object stored in Amazon S3. Amazon S3 will perform validation of the checksum values only when the original <code>GetObject</code> request required checksum validation. For more information about checksums, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">Checking object integrity</a> in the <i>Amazon S3 User Guide</i>.</p>
+    /// <p>This header can be used as a data integrity check to verify that the data received is the same data that was originally sent. This specifies the Base64 encoded, 32-bit <code>CRC32</code> checksum of the object returned by the Object Lambda function. This may not match the checksum for the object stored in Amazon S3. Amazon S3 will perform validation of the checksum values only when the original <code>GetObject</code> request required checksum validation. For more information about checksums, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">Checking object integrity</a> in the <i>Amazon S3 User Guide</i>.</p>
     /// <p>Only one checksum header can be specified at a time. If you supply multiple checksum headers, this request will fail.</p>
     /// <p></p>
     pub fn checksum_crc32(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.checksum_crc32(input.into());
         self
     }
-    /// <p>This header can be used as a data integrity check to verify that the data received is the same data that was originally sent. This specifies the base64-encoded, 32-bit CRC32 checksum of the object returned by the Object Lambda function. This may not match the checksum for the object stored in Amazon S3. Amazon S3 will perform validation of the checksum values only when the original <code>GetObject</code> request required checksum validation. For more information about checksums, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">Checking object integrity</a> in the <i>Amazon S3 User Guide</i>.</p>
+    /// <p>This header can be used as a data integrity check to verify that the data received is the same data that was originally sent. This specifies the Base64 encoded, 32-bit <code>CRC32</code> checksum of the object returned by the Object Lambda function. This may not match the checksum for the object stored in Amazon S3. Amazon S3 will perform validation of the checksum values only when the original <code>GetObject</code> request required checksum validation. For more information about checksums, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">Checking object integrity</a> in the <i>Amazon S3 User Guide</i>.</p>
     /// <p>Only one checksum header can be specified at a time. If you supply multiple checksum headers, this request will fail.</p>
     /// <p></p>
     pub fn set_checksum_crc32(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_checksum_crc32(input);
         self
     }
-    /// <p>This header can be used as a data integrity check to verify that the data received is the same data that was originally sent. This specifies the base64-encoded, 32-bit CRC32 checksum of the object returned by the Object Lambda function. This may not match the checksum for the object stored in Amazon S3. Amazon S3 will perform validation of the checksum values only when the original <code>GetObject</code> request required checksum validation. For more information about checksums, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">Checking object integrity</a> in the <i>Amazon S3 User Guide</i>.</p>
+    /// <p>This header can be used as a data integrity check to verify that the data received is the same data that was originally sent. This specifies the Base64 encoded, 32-bit <code>CRC32</code> checksum of the object returned by the Object Lambda function. This may not match the checksum for the object stored in Amazon S3. Amazon S3 will perform validation of the checksum values only when the original <code>GetObject</code> request required checksum validation. For more information about checksums, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">Checking object integrity</a> in the <i>Amazon S3 User Guide</i>.</p>
     /// <p>Only one checksum header can be specified at a time. If you supply multiple checksum headers, this request will fail.</p>
     /// <p></p>
     pub fn get_checksum_crc32(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_checksum_crc32()
     }
-    /// <p>This header can be used as a data integrity check to verify that the data received is the same data that was originally sent. This specifies the base64-encoded, 32-bit CRC32C checksum of the object returned by the Object Lambda function. This may not match the checksum for the object stored in Amazon S3. Amazon S3 will perform validation of the checksum values only when the original <code>GetObject</code> request required checksum validation. For more information about checksums, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">Checking object integrity</a> in the <i>Amazon S3 User Guide</i>.</p>
+    /// <p>This header can be used as a data integrity check to verify that the data received is the same data that was originally sent. This specifies the Base64 encoded, 32-bit <code>CRC32C</code> checksum of the object returned by the Object Lambda function. This may not match the checksum for the object stored in Amazon S3. Amazon S3 will perform validation of the checksum values only when the original <code>GetObject</code> request required checksum validation. For more information about checksums, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">Checking object integrity</a> in the <i>Amazon S3 User Guide</i>.</p>
     /// <p>Only one checksum header can be specified at a time. If you supply multiple checksum headers, this request will fail.</p>
     pub fn checksum_crc32_c(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.checksum_crc32_c(input.into());
         self
     }
-    /// <p>This header can be used as a data integrity check to verify that the data received is the same data that was originally sent. This specifies the base64-encoded, 32-bit CRC32C checksum of the object returned by the Object Lambda function. This may not match the checksum for the object stored in Amazon S3. Amazon S3 will perform validation of the checksum values only when the original <code>GetObject</code> request required checksum validation. For more information about checksums, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">Checking object integrity</a> in the <i>Amazon S3 User Guide</i>.</p>
+    /// <p>This header can be used as a data integrity check to verify that the data received is the same data that was originally sent. This specifies the Base64 encoded, 32-bit <code>CRC32C</code> checksum of the object returned by the Object Lambda function. This may not match the checksum for the object stored in Amazon S3. Amazon S3 will perform validation of the checksum values only when the original <code>GetObject</code> request required checksum validation. For more information about checksums, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">Checking object integrity</a> in the <i>Amazon S3 User Guide</i>.</p>
     /// <p>Only one checksum header can be specified at a time. If you supply multiple checksum headers, this request will fail.</p>
     pub fn set_checksum_crc32_c(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_checksum_crc32_c(input);
         self
     }
-    /// <p>This header can be used as a data integrity check to verify that the data received is the same data that was originally sent. This specifies the base64-encoded, 32-bit CRC32C checksum of the object returned by the Object Lambda function. This may not match the checksum for the object stored in Amazon S3. Amazon S3 will perform validation of the checksum values only when the original <code>GetObject</code> request required checksum validation. For more information about checksums, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">Checking object integrity</a> in the <i>Amazon S3 User Guide</i>.</p>
+    /// <p>This header can be used as a data integrity check to verify that the data received is the same data that was originally sent. This specifies the Base64 encoded, 32-bit <code>CRC32C</code> checksum of the object returned by the Object Lambda function. This may not match the checksum for the object stored in Amazon S3. Amazon S3 will perform validation of the checksum values only when the original <code>GetObject</code> request required checksum validation. For more information about checksums, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">Checking object integrity</a> in the <i>Amazon S3 User Guide</i>.</p>
     /// <p>Only one checksum header can be specified at a time. If you supply multiple checksum headers, this request will fail.</p>
     pub fn get_checksum_crc32_c(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_checksum_crc32_c()
     }
-    /// <p>This header can be used as a data integrity check to verify that the data received is the same data that was originally sent. This specifies the base64-encoded, 160-bit SHA-1 digest of the object returned by the Object Lambda function. This may not match the checksum for the object stored in Amazon S3. Amazon S3 will perform validation of the checksum values only when the original <code>GetObject</code> request required checksum validation. For more information about checksums, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">Checking object integrity</a> in the <i>Amazon S3 User Guide</i>.</p>
+    /// <p>This header can be used as a data integrity check to verify that the data received is the same data that was originally sent. This header specifies the Base64 encoded, 64-bit <code>CRC64NVME</code> checksum of the part. For more information, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">Checking object integrity</a> in the <i>Amazon S3 User Guide</i>.</p>
+    pub fn checksum_crc64_nvme(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
+        self.inner = self.inner.checksum_crc64_nvme(input.into());
+        self
+    }
+    /// <p>This header can be used as a data integrity check to verify that the data received is the same data that was originally sent. This header specifies the Base64 encoded, 64-bit <code>CRC64NVME</code> checksum of the part. For more information, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">Checking object integrity</a> in the <i>Amazon S3 User Guide</i>.</p>
+    pub fn set_checksum_crc64_nvme(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+        self.inner = self.inner.set_checksum_crc64_nvme(input);
+        self
+    }
+    /// <p>This header can be used as a data integrity check to verify that the data received is the same data that was originally sent. This header specifies the Base64 encoded, 64-bit <code>CRC64NVME</code> checksum of the part. For more information, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">Checking object integrity</a> in the <i>Amazon S3 User Guide</i>.</p>
+    pub fn get_checksum_crc64_nvme(&self) -> &::std::option::Option<::std::string::String> {
+        self.inner.get_checksum_crc64_nvme()
+    }
+    /// <p>This header can be used as a data integrity check to verify that the data received is the same data that was originally sent. This specifies the Base64 encoded, 160-bit <code>SHA1</code> digest of the object returned by the Object Lambda function. This may not match the checksum for the object stored in Amazon S3. Amazon S3 will perform validation of the checksum values only when the original <code>GetObject</code> request required checksum validation. For more information about checksums, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">Checking object integrity</a> in the <i>Amazon S3 User Guide</i>.</p>
     /// <p>Only one checksum header can be specified at a time. If you supply multiple checksum headers, this request will fail.</p>
     pub fn checksum_sha1(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.checksum_sha1(input.into());
         self
     }
-    /// <p>This header can be used as a data integrity check to verify that the data received is the same data that was originally sent. This specifies the base64-encoded, 160-bit SHA-1 digest of the object returned by the Object Lambda function. This may not match the checksum for the object stored in Amazon S3. Amazon S3 will perform validation of the checksum values only when the original <code>GetObject</code> request required checksum validation. For more information about checksums, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">Checking object integrity</a> in the <i>Amazon S3 User Guide</i>.</p>
+    /// <p>This header can be used as a data integrity check to verify that the data received is the same data that was originally sent. This specifies the Base64 encoded, 160-bit <code>SHA1</code> digest of the object returned by the Object Lambda function. This may not match the checksum for the object stored in Amazon S3. Amazon S3 will perform validation of the checksum values only when the original <code>GetObject</code> request required checksum validation. For more information about checksums, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">Checking object integrity</a> in the <i>Amazon S3 User Guide</i>.</p>
     /// <p>Only one checksum header can be specified at a time. If you supply multiple checksum headers, this request will fail.</p>
     pub fn set_checksum_sha1(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_checksum_sha1(input);
         self
     }
-    /// <p>This header can be used as a data integrity check to verify that the data received is the same data that was originally sent. This specifies the base64-encoded, 160-bit SHA-1 digest of the object returned by the Object Lambda function. This may not match the checksum for the object stored in Amazon S3. Amazon S3 will perform validation of the checksum values only when the original <code>GetObject</code> request required checksum validation. For more information about checksums, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">Checking object integrity</a> in the <i>Amazon S3 User Guide</i>.</p>
+    /// <p>This header can be used as a data integrity check to verify that the data received is the same data that was originally sent. This specifies the Base64 encoded, 160-bit <code>SHA1</code> digest of the object returned by the Object Lambda function. This may not match the checksum for the object stored in Amazon S3. Amazon S3 will perform validation of the checksum values only when the original <code>GetObject</code> request required checksum validation. For more information about checksums, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">Checking object integrity</a> in the <i>Amazon S3 User Guide</i>.</p>
     /// <p>Only one checksum header can be specified at a time. If you supply multiple checksum headers, this request will fail.</p>
     pub fn get_checksum_sha1(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_checksum_sha1()
     }
-    /// <p>This header can be used as a data integrity check to verify that the data received is the same data that was originally sent. This specifies the base64-encoded, 256-bit SHA-256 digest of the object returned by the Object Lambda function. This may not match the checksum for the object stored in Amazon S3. Amazon S3 will perform validation of the checksum values only when the original <code>GetObject</code> request required checksum validation. For more information about checksums, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">Checking object integrity</a> in the <i>Amazon S3 User Guide</i>.</p>
+    /// <p>This header can be used as a data integrity check to verify that the data received is the same data that was originally sent. This specifies the Base64 encoded, 256-bit <code>SHA256</code> digest of the object returned by the Object Lambda function. This may not match the checksum for the object stored in Amazon S3. Amazon S3 will perform validation of the checksum values only when the original <code>GetObject</code> request required checksum validation. For more information about checksums, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">Checking object integrity</a> in the <i>Amazon S3 User Guide</i>.</p>
     /// <p>Only one checksum header can be specified at a time. If you supply multiple checksum headers, this request will fail.</p>
     pub fn checksum_sha256(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.checksum_sha256(input.into());
         self
     }
-    /// <p>This header can be used as a data integrity check to verify that the data received is the same data that was originally sent. This specifies the base64-encoded, 256-bit SHA-256 digest of the object returned by the Object Lambda function. This may not match the checksum for the object stored in Amazon S3. Amazon S3 will perform validation of the checksum values only when the original <code>GetObject</code> request required checksum validation. For more information about checksums, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">Checking object integrity</a> in the <i>Amazon S3 User Guide</i>.</p>
+    /// <p>This header can be used as a data integrity check to verify that the data received is the same data that was originally sent. This specifies the Base64 encoded, 256-bit <code>SHA256</code> digest of the object returned by the Object Lambda function. This may not match the checksum for the object stored in Amazon S3. Amazon S3 will perform validation of the checksum values only when the original <code>GetObject</code> request required checksum validation. For more information about checksums, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">Checking object integrity</a> in the <i>Amazon S3 User Guide</i>.</p>
     /// <p>Only one checksum header can be specified at a time. If you supply multiple checksum headers, this request will fail.</p>
     pub fn set_checksum_sha256(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_checksum_sha256(input);
         self
     }
-    /// <p>This header can be used as a data integrity check to verify that the data received is the same data that was originally sent. This specifies the base64-encoded, 256-bit SHA-256 digest of the object returned by the Object Lambda function. This may not match the checksum for the object stored in Amazon S3. Amazon S3 will perform validation of the checksum values only when the original <code>GetObject</code> request required checksum validation. For more information about checksums, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">Checking object integrity</a> in the <i>Amazon S3 User Guide</i>.</p>
+    /// <p>This header can be used as a data integrity check to verify that the data received is the same data that was originally sent. This specifies the Base64 encoded, 256-bit <code>SHA256</code> digest of the object returned by the Object Lambda function. This may not match the checksum for the object stored in Amazon S3. Amazon S3 will perform validation of the checksum values only when the original <code>GetObject</code> request required checksum validation. For more information about checksums, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/checking-object-integrity.html">Checking object integrity</a> in the <i>Amazon S3 User Guide</i>.</p>
     /// <p>Only one checksum header can be specified at a time. If you supply multiple checksum headers, this request will fail.</p>
     pub fn get_checksum_sha256(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_checksum_sha256()
     }
-    /// <p>Specifies whether an object stored in Amazon S3 is (<code>true</code>) or is not (<code>false</code>) a delete marker. </p>
+    /// <p>Specifies whether an object stored in Amazon S3 is (<code>true</code>) or is not (<code>false</code>) a delete marker. To learn more about delete markers, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/DeleteMarker.html">Working with delete markers</a>.</p>
     pub fn delete_marker(mut self, input: bool) -> Self {
         self.inner = self.inner.delete_marker(input);
         self
     }
-    /// <p>Specifies whether an object stored in Amazon S3 is (<code>true</code>) or is not (<code>false</code>) a delete marker. </p>
+    /// <p>Specifies whether an object stored in Amazon S3 is (<code>true</code>) or is not (<code>false</code>) a delete marker. To learn more about delete markers, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/DeleteMarker.html">Working with delete markers</a>.</p>
     pub fn set_delete_marker(mut self, input: ::std::option::Option<bool>) -> Self {
         self.inner = self.inner.set_delete_marker(input);
         self
     }
-    /// <p>Specifies whether an object stored in Amazon S3 is (<code>true</code>) or is not (<code>false</code>) a delete marker. </p>
+    /// <p>Specifies whether an object stored in Amazon S3 is (<code>true</code>) or is not (<code>false</code>) a delete marker. To learn more about delete markers, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/DeleteMarker.html">Working with delete markers</a>.</p>
     pub fn get_delete_marker(&self) -> &::std::option::Option<bool> {
         self.inner.get_delete_marker()
     }
-    /// <p>An opaque identifier assigned by a web server to a specific version of a resource found at a URL. </p>
+    /// <p>An opaque identifier assigned by a web server to a specific version of a resource found at a URL.</p>
     pub fn e_tag(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.e_tag(input.into());
         self
     }
-    /// <p>An opaque identifier assigned by a web server to a specific version of a resource found at a URL. </p>
+    /// <p>An opaque identifier assigned by a web server to a specific version of a resource found at a URL.</p>
     pub fn set_e_tag(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_e_tag(input);
         self
     }
-    /// <p>An opaque identifier assigned by a web server to a specific version of a resource found at a URL. </p>
+    /// <p>An opaque identifier assigned by a web server to a specific version of a resource found at a URL.</p>
     pub fn get_e_tag(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_e_tag()
     }
@@ -487,17 +543,17 @@ impl WriteGetObjectResponseFluentBuilder {
     pub fn get_expires(&self) -> &::std::option::Option<::aws_smithy_types::DateTime> {
         self.inner.get_expires()
     }
-    /// <p>If the object expiration is configured (see PUT Bucket lifecycle), the response includes this header. It includes the <code>expiry-date</code> and <code>rule-id</code> key-value pairs that provide the object expiration information. The value of the <code>rule-id</code> is URL-encoded. </p>
+    /// <p>If the object expiration is configured (see PUT Bucket lifecycle), the response includes this header. It includes the <code>expiry-date</code> and <code>rule-id</code> key-value pairs that provide the object expiration information. The value of the <code>rule-id</code> is URL-encoded.</p>
     pub fn expiration(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.expiration(input.into());
         self
     }
-    /// <p>If the object expiration is configured (see PUT Bucket lifecycle), the response includes this header. It includes the <code>expiry-date</code> and <code>rule-id</code> key-value pairs that provide the object expiration information. The value of the <code>rule-id</code> is URL-encoded. </p>
+    /// <p>If the object expiration is configured (see PUT Bucket lifecycle), the response includes this header. It includes the <code>expiry-date</code> and <code>rule-id</code> key-value pairs that provide the object expiration information. The value of the <code>rule-id</code> is URL-encoded.</p>
     pub fn set_expiration(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_expiration(input);
         self
     }
-    /// <p>If the object expiration is configured (see PUT Bucket lifecycle), the response includes this header. It includes the <code>expiry-date</code> and <code>rule-id</code> key-value pairs that provide the object expiration information. The value of the <code>rule-id</code> is URL-encoded. </p>
+    /// <p>If the object expiration is configured (see PUT Bucket lifecycle), the response includes this header. It includes the <code>expiry-date</code> and <code>rule-id</code> key-value pairs that provide the object expiration information. The value of the <code>rule-id</code> is URL-encoded.</p>
     pub fn get_expiration(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_expiration()
     }
@@ -529,6 +585,7 @@ impl WriteGetObjectResponseFluentBuilder {
     pub fn get_missing_meta(&self) -> &::std::option::Option<i32> {
         self.inner.get_missing_meta()
     }
+    ///
     /// Adds a key-value pair to `Metadata`.
     ///
     /// To override the contents of this collection use [`set_metadata`](Self::set_metadata).
@@ -617,21 +674,21 @@ impl WriteGetObjectResponseFluentBuilder {
     pub fn get_replication_status(&self) -> &::std::option::Option<crate::types::ReplicationStatus> {
         self.inner.get_replication_status()
     }
-    /// <p>If present, indicates that the requester was successfully charged for the request.</p> <note>
+    /// <p>If present, indicates that the requester was successfully charged for the request.</p><note>
     /// <p>This functionality is not supported for directory buckets.</p>
     /// </note>
     pub fn request_charged(mut self, input: crate::types::RequestCharged) -> Self {
         self.inner = self.inner.request_charged(input);
         self
     }
-    /// <p>If present, indicates that the requester was successfully charged for the request.</p> <note>
+    /// <p>If present, indicates that the requester was successfully charged for the request.</p><note>
     /// <p>This functionality is not supported for directory buckets.</p>
     /// </note>
     pub fn set_request_charged(mut self, input: ::std::option::Option<crate::types::RequestCharged>) -> Self {
         self.inner = self.inner.set_request_charged(input);
         self
     }
-    /// <p>If present, indicates that the requester was successfully charged for the request.</p> <note>
+    /// <p>If present, indicates that the requester was successfully charged for the request.</p><note>
     /// <p>This functionality is not supported for directory buckets.</p>
     /// </note>
     pub fn get_request_charged(&self) -> &::std::option::Option<crate::types::RequestCharged> {
@@ -651,17 +708,17 @@ impl WriteGetObjectResponseFluentBuilder {
     pub fn get_restore(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_restore()
     }
-    /// <p> The server-side encryption algorithm used when storing requested object in Amazon S3 (for example, AES256, <code>aws:kms</code>).</p>
+    /// <p>The server-side encryption algorithm used when storing requested object in Amazon S3 (for example, AES256, <code>aws:kms</code>).</p>
     pub fn server_side_encryption(mut self, input: crate::types::ServerSideEncryption) -> Self {
         self.inner = self.inner.server_side_encryption(input);
         self
     }
-    /// <p> The server-side encryption algorithm used when storing requested object in Amazon S3 (for example, AES256, <code>aws:kms</code>).</p>
+    /// <p>The server-side encryption algorithm used when storing requested object in Amazon S3 (for example, AES256, <code>aws:kms</code>).</p>
     pub fn set_server_side_encryption(mut self, input: ::std::option::Option<crate::types::ServerSideEncryption>) -> Self {
         self.inner = self.inner.set_server_side_encryption(input);
         self
     }
-    /// <p> The server-side encryption algorithm used when storing requested object in Amazon S3 (for example, AES256, <code>aws:kms</code>).</p>
+    /// <p>The server-side encryption algorithm used when storing requested object in Amazon S3 (for example, AES256, <code>aws:kms</code>).</p>
     pub fn get_server_side_encryption(&self) -> &::std::option::Option<crate::types::ServerSideEncryption> {
         self.inner.get_server_side_encryption()
     }
@@ -679,31 +736,31 @@ impl WriteGetObjectResponseFluentBuilder {
     pub fn get_sse_customer_algorithm(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_sse_customer_algorithm()
     }
-    /// <p> If present, specifies the ID (Key ID, Key ARN, or Key Alias) of the Amazon Web Services Key Management Service (Amazon Web Services KMS) symmetric encryption customer managed key that was used for stored in Amazon S3 object. </p>
+    /// <p>If present, specifies the ID (Key ID, Key ARN, or Key Alias) of the Amazon Web Services Key Management Service (Amazon Web Services KMS) symmetric encryption customer managed key that was used for stored in Amazon S3 object.</p>
     pub fn ssekms_key_id(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.ssekms_key_id(input.into());
         self
     }
-    /// <p> If present, specifies the ID (Key ID, Key ARN, or Key Alias) of the Amazon Web Services Key Management Service (Amazon Web Services KMS) symmetric encryption customer managed key that was used for stored in Amazon S3 object. </p>
+    /// <p>If present, specifies the ID (Key ID, Key ARN, or Key Alias) of the Amazon Web Services Key Management Service (Amazon Web Services KMS) symmetric encryption customer managed key that was used for stored in Amazon S3 object.</p>
     pub fn set_ssekms_key_id(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_ssekms_key_id(input);
         self
     }
-    /// <p> If present, specifies the ID (Key ID, Key ARN, or Key Alias) of the Amazon Web Services Key Management Service (Amazon Web Services KMS) symmetric encryption customer managed key that was used for stored in Amazon S3 object. </p>
+    /// <p>If present, specifies the ID (Key ID, Key ARN, or Key Alias) of the Amazon Web Services Key Management Service (Amazon Web Services KMS) symmetric encryption customer managed key that was used for stored in Amazon S3 object.</p>
     pub fn get_ssekms_key_id(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_ssekms_key_id()
     }
-    /// <p> 128-bit MD5 digest of customer-provided encryption key used in Amazon S3 to encrypt data stored in S3. For more information, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/ServerSideEncryptionCustomerKeys.html">Protecting data using server-side encryption with customer-provided encryption keys (SSE-C)</a>.</p>
+    /// <p>128-bit MD5 digest of customer-provided encryption key used in Amazon S3 to encrypt data stored in S3. For more information, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/ServerSideEncryptionCustomerKeys.html">Protecting data using server-side encryption with customer-provided encryption keys (SSE-C)</a>.</p>
     pub fn sse_customer_key_md5(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.sse_customer_key_md5(input.into());
         self
     }
-    /// <p> 128-bit MD5 digest of customer-provided encryption key used in Amazon S3 to encrypt data stored in S3. For more information, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/ServerSideEncryptionCustomerKeys.html">Protecting data using server-side encryption with customer-provided encryption keys (SSE-C)</a>.</p>
+    /// <p>128-bit MD5 digest of customer-provided encryption key used in Amazon S3 to encrypt data stored in S3. For more information, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/ServerSideEncryptionCustomerKeys.html">Protecting data using server-side encryption with customer-provided encryption keys (SSE-C)</a>.</p>
     pub fn set_sse_customer_key_md5(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_sse_customer_key_md5(input);
         self
     }
-    /// <p> 128-bit MD5 digest of customer-provided encryption key used in Amazon S3 to encrypt data stored in S3. For more information, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/ServerSideEncryptionCustomerKeys.html">Protecting data using server-side encryption with customer-provided encryption keys (SSE-C)</a>.</p>
+    /// <p>128-bit MD5 digest of customer-provided encryption key used in Amazon S3 to encrypt data stored in S3. For more information, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/ServerSideEncryptionCustomerKeys.html">Protecting data using server-side encryption with customer-provided encryption keys (SSE-C)</a>.</p>
     pub fn get_sse_customer_key_md5(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_sse_customer_key_md5()
     }
@@ -752,17 +809,17 @@ impl WriteGetObjectResponseFluentBuilder {
     pub fn get_version_id(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_version_id()
     }
-    /// <p> Indicates whether the object stored in Amazon S3 uses an S3 bucket key for server-side encryption with Amazon Web Services KMS (SSE-KMS).</p>
+    /// <p>Indicates whether the object stored in Amazon S3 uses an S3 bucket key for server-side encryption with Amazon Web Services KMS (SSE-KMS).</p>
     pub fn bucket_key_enabled(mut self, input: bool) -> Self {
         self.inner = self.inner.bucket_key_enabled(input);
         self
     }
-    /// <p> Indicates whether the object stored in Amazon S3 uses an S3 bucket key for server-side encryption with Amazon Web Services KMS (SSE-KMS).</p>
+    /// <p>Indicates whether the object stored in Amazon S3 uses an S3 bucket key for server-side encryption with Amazon Web Services KMS (SSE-KMS).</p>
     pub fn set_bucket_key_enabled(mut self, input: ::std::option::Option<bool>) -> Self {
         self.inner = self.inner.set_bucket_key_enabled(input);
         self
     }
-    /// <p> Indicates whether the object stored in Amazon S3 uses an S3 bucket key for server-side encryption with Amazon Web Services KMS (SSE-KMS).</p>
+    /// <p>Indicates whether the object stored in Amazon S3 uses an S3 bucket key for server-side encryption with Amazon Web Services KMS (SSE-KMS).</p>
     pub fn get_bucket_key_enabled(&self) -> &::std::option::Option<bool> {
         self.inner.get_bucket_key_enabled()
     }

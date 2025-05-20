@@ -37,6 +37,7 @@ impl SinkBatchSettings for DatadogMetricsDefaultBatchSettings {
     const MAX_BYTES: Option<usize> = None;
     const TIMEOUT_SECS: f64 = 2.0;
 }
+
 pub(super) const SERIES_V1_PATH: &str = "/api/v1/series";
 pub(super) const SERIES_V2_PATH: &str = "/api/v2/series";
 pub(super) const SKETCHES_PATH: &str = "/api/beta/sketches";
@@ -232,13 +233,16 @@ impl DatadogMetricsConfig {
     }
 
     fn build_client(&self, proxy: &ProxyConfig) -> crate::Result<HttpClient> {
+        let default_tls_config;
+
         let tls_settings = MaybeTlsSettings::from_config(
-            &Some(
-                self.local_dd_common
-                    .tls
-                    .clone()
-                    .unwrap_or_else(TlsEnableableConfig::enabled),
-            ),
+            Some(match self.local_dd_common.tls.as_ref() {
+                Some(config) => config,
+                None => {
+                    default_tls_config = TlsEnableableConfig::enabled();
+                    &default_tls_config
+                }
+            }),
             false,
         )?;
         let client = HttpClient::new(tls_settings, proxy)?;

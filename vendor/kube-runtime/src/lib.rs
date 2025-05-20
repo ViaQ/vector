@@ -8,7 +8,6 @@
 //! opinionated starting point that should be appropriate for simple operators, but all
 //! components are designed to be usable á la carte if your operator doesn't quite fit that mold.
 
-#![forbid(unsafe_code)]
 #![deny(clippy::all)]
 #![deny(clippy::pedantic)]
 // Triggered by many derive macros (kube-derive, derivative)
@@ -29,12 +28,13 @@ pub mod utils;
 pub mod wait;
 pub mod watcher;
 
-pub use controller::{applier, Controller};
+pub use controller::{applier, Config, Controller};
 pub use finalizer::finalizer;
 pub use reflector::reflector;
 pub use scheduler::scheduler;
 pub use utils::WatchStreamExt;
 pub use watcher::{metadata_watcher, watcher};
 
-#[cfg(feature = "unstable-runtime-predicates")] pub use utils::predicates;
+#[cfg(feature = "unstable-runtime-predicates")]
+pub use utils::{predicates, Predicate};
 pub use wait::conditions;

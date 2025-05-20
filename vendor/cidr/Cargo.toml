@@ -10,11 +10,18 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
+rust-version = "1.81"
 name = "cidr"
-version = "0.2.2"
+version = "0.3.1"
 authors = ["Stefan Bühler <stbuehler@web.de>"]
+build = false
 exclude = ["CHECKLIST.md"]
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "IP network and IP host within network types"
 homepage = "https://github.com/stbuehler/rust-cidr"
 documentation = "https://docs.rs/cidr"
@@ -34,13 +41,23 @@ repository = "https://github.com/stbuehler/rust-cidr"
 all-features = true
 targets = []
 
+[lib]
+name = "cidr"
+path = "src/lib.rs"
+
+[[test]]
+name = "version-numbers"
+path = "tests/version-numbers.rs"
+
 [dependencies.bitstring]
-version = "0.1.0"
+version = "0.2.0"
+features = ["net"]
 optional = true
 
 [dependencies.serde]
-version = "1.0.27"
+version = "1.0.210"
 optional = true
+default-features = false
 
 [dev-dependencies.bincode]
 version = "1.3.1"
@@ -52,7 +69,10 @@ version = "1.0.27"
 version = "0.9.1"
 
 [features]
+bitstring = ["dep:bitstring"]
 default = ["std"]
+no_unsafe = []
+serde = ["dep:serde"]
 std = []
 
 [badges.appveyor]

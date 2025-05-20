@@ -2,7 +2,7 @@
 pub fn ser_put_metric_filter_input_input(
     object: &mut ::aws_smithy_json::serialize::JsonObjectWriter,
     input: &crate::operation::put_metric_filter::PutMetricFilterInput,
-) -> Result<(), ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<(), ::aws_smithy_types::error::operation::SerializationError> {
     if let Some(var_1) = &input.log_group_name {
         object.key("logGroupName").string(var_1.as_str());
     }
@@ -23,6 +23,9 @@ pub fn ser_put_metric_filter_input_input(
             }
         }
         array_5.finish();
+    }
+    if let Some(var_8) = &input.apply_on_transformed_logs {
+        object.key("applyOnTransformedLogs").boolean(*var_8);
     }
     Ok(())
 }

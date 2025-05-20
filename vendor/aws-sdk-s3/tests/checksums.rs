@@ -8,15 +8,14 @@
 use aws_config::SdkConfig;
 use aws_credential_types::provider::SharedCredentialsProvider;
 use aws_sdk_s3::config::{Credentials, Region, StalledStreamProtectionConfig};
+use aws_sdk_s3::primitives::ByteStream;
 use aws_sdk_s3::types::ChecksumMode;
 use aws_sdk_s3::{operation::get_object::GetObjectOutput, types::ChecksumAlgorithm};
 use aws_sdk_s3::{Client, Config};
-use aws_smithy_runtime::client::http::test_util::{
-    capture_request, ReplayEvent, StaticReplayClient,
-};
+use aws_smithy_http_client::test_util::{capture_request, ReplayEvent, StaticReplayClient};
 use aws_smithy_types::body::SdkBody;
-use http::header::AUTHORIZATION;
-use http::{HeaderValue, Uri};
+use http_1x::header::AUTHORIZATION;
+use http_1x::{HeaderValue, Uri};
 use std::time::{Duration, UNIX_EPOCH};
 use tracing_test::traced_test;
 
@@ -28,7 +27,7 @@ fn new_checksum_validated_response_test_connection(
     checksum_header_value: &'static str,
 ) -> StaticReplayClient {
     StaticReplayClient::new(vec![ReplayEvent::new(
-        http::Request::builder()
+        http_1x::Request::builder()
             .header("x-amz-checksum-mode", "ENABLED")
             .header(
                 "user-agent",
@@ -49,7 +48,7 @@ fn new_checksum_validated_response_test_connection(
             ))
             .body(SdkBody::empty())
             .unwrap(),
-        http::Response::builder()
+        http_1x::Response::builder()
             .header("x-amz-request-id", "4B4NGF0EAWN0GE63")
             .header("content-length", "11")
             .header("etag", "\"3e25960a79dbc69b674cd4ec67a72c62\"")
@@ -64,7 +63,7 @@ fn new_checksum_validated_response_test_connection(
                 "kPl+IVVZAwsN8ePUyQJZ40WD9dzaqtr4eNESArqE68GSKtVvuvCTDe+SxhTT+JTUqXB1HL4OxNM=",
             )
             .header("accept-ranges", "bytes")
-            .status(http::StatusCode::from_u16(200).unwrap())
+            .status(http_1x::StatusCode::from_u16(200).unwrap())
             .body(SdkBody::from(r#"Hello world"#))
             .unwrap(),
     )])
@@ -96,7 +95,11 @@ async fn test_checksum_on_streaming_response(
         .await
         .unwrap();
 
-    http_client.assert_requests_match(&["x-amz-checksum-mode", AUTHORIZATION.as_str()]);
+    http_client.assert_requests_match(&[
+        "x-amz-checksum-mode",
+        "x-amz-user-agent",
+        AUTHORIZATION.as_str(),
+    ]);
 
     res
 }
@@ -190,6 +193,7 @@ async fn test_checksum_on_streaming_request<'a>(
         .put_object()
         .bucket("test-bucket")
         .key("test.txt")
+        .content_encoding("custom")
         .body(body)
         .checksum_algorithm(checksum_algorithm)
         .send()
@@ -211,9 +215,7 @@ async fn test_checksum_on_streaming_request<'a>(
     let content_length = headers
         .get("Content-Length")
         .expect("Content-Length header exists");
-    let content_encoding = headers
-        .get("Content-Encoding")
-        .expect("Content-Encoding header exists");
+    let content_encoding = headers.get_all("Content-Encoding").collect::<Vec<_>>();
 
     assert_eq!(
         HeaderValue::from_static("STREAMING-UNSIGNED-PAYLOAD-TRAILER"),
@@ -225,11 +227,9 @@ async fn test_checksum_on_streaming_request<'a>(
         x_amz_trailer,
         "x-amz-trailer is incorrect"
     );
-    assert_eq!(
-        HeaderValue::from_static(aws_http::content_encoding::header_value::AWS_CHUNKED),
-        content_encoding,
-        "content-encoding wasn't set to aws-chunked"
-    );
+    // The position for `aws-chunked` in `content_encoding` doesn't matter for the target service.
+    // The expected here just reflects the current behavior of appending `aws-chunked` to the header.
+    assert_eq!(vec!["custom", "aws-chunked"], content_encoding);
 
     // The length of the string "Hello world"
     assert_eq!(
@@ -315,14 +315,14 @@ async fn test_sha256_checksum_on_streaming_request() {
     .await
 }
 
-async fn collect_body_into_string(mut body: aws_smithy_types::body::SdkBody) -> String {
+async fn collect_body_into_string(body: aws_smithy_types::body::SdkBody) -> String {
     use bytes::Buf;
     use bytes_utils::SegmentedBuf;
-    use http_body::Body;
     use std::io::Read;
 
+    let mut stream = ByteStream::new(body);
     let mut output = SegmentedBuf::new();
-    while let Some(buf) = body.data().await {
+    while let Some(buf) = stream.next().await {
         output.push(buf.unwrap());
     }
 
@@ -340,7 +340,7 @@ async fn collect_body_into_string(mut body: aws_smithy_types::body::SdkBody) -> 
 async fn test_get_multipart_upload_part_checksum_validation() {
     let expected_checksum = "cpjwid==-12";
     let (http_client, rcvr) = capture_request(Some(
-        http::Response::builder()
+        http_1x::Response::builder()
             .header("etag", "\"3e25960a79dbc69b674cd4ec67a72c62\"")
             .header("x-amz-checksum-crc32", expected_checksum)
             .body(SdkBody::empty())
@@ -387,7 +387,7 @@ async fn test_get_multipart_upload_part_checksum_validation() {
 async fn test_response_checksum_ignores_invalid_base64() {
     let expected_checksum = "{}{!!#{})!{)@$(}";
     let (http_client, rcvr) = capture_request(Some(
-        http::Response::builder()
+        http_1x::Response::builder()
             .header("etag", "\"3e25960a79dbc69b674cd4ec67a72c62\"")
             .header("x-amz-checksum-crc32", expected_checksum)
             .body(SdkBody::empty())

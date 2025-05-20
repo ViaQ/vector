@@ -40,7 +40,7 @@ impl RegionProviderChain {
         for provider in &self.providers {
             if let Some(region) = provider
                 .region()
-                .instrument(tracing::info_span!("load_region", provider = ?provider))
+                .instrument(tracing::debug_span!("region_provider_chain", provider = ?provider))
                 .await
             {
                 return Some(region);
@@ -127,7 +127,7 @@ pub mod future {
     }
 }
 
-/// Provide a [`Region`](Region) to use with AWS requests
+/// Provide a [`Region`] to use with AWS requests
 ///
 /// For most cases [`default_provider`](crate::default_provider::region::default_provider) will be the best option, implementing
 /// a standard provider chain.

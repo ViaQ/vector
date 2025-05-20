@@ -12,12 +12,18 @@
 [package]
 edition = "2021"
 name = "rustyline"
-version = "14.0.0"
+version = "15.0.0"
 authors = ["Katsu Kawakami <kkawa1570@gmail.com>"]
+build = false
 exclude = [
     "/.github/*",
     "/rustfmt.toml",
 ]
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Rustyline, a readline implementation based on Antirez's Linenoise"
 documentation = "https://docs.rs/rustyline"
 readme = "README.md"
@@ -42,8 +48,13 @@ rustdoc-args = [
     "docsrs",
 ]
 
+[lib]
+name = "rustyline"
+path = "src/lib.rs"
+
 [[example]]
 name = "custom_key_bindings"
+path = "examples/custom_key_bindings.rs"
 required-features = [
     "custom-bindings",
     "derive",
@@ -51,17 +62,24 @@ required-features = [
 
 [[example]]
 name = "diy_hints"
+path = "examples/diy_hints.rs"
 required-features = ["derive"]
 
 [[example]]
 name = "example"
+path = "examples/example.rs"
 required-features = [
     "custom-bindings",
     "derive",
 ]
 
 [[example]]
+name = "external_print"
+path = "examples/external_print.rs"
+
+[[example]]
 name = "input_multiline"
+path = "examples/input_multiline.rs"
 required-features = [
     "custom-bindings",
     "derive",
@@ -69,22 +87,30 @@ required-features = [
 
 [[example]]
 name = "input_validation"
+path = "examples/input_validation.rs"
 required-features = ["derive"]
 
 [[example]]
+name = "minimal"
+path = "examples/minimal.rs"
+
+[[example]]
 name = "numeric_input"
+path = "examples/numeric_input.rs"
 required-features = ["custom-bindings"]
 
 [[example]]
 name = "read_password"
+path = "examples/read_password.rs"
 required-features = ["derive"]
 
 [[example]]
 name = "sqlite_history"
+path = "examples/sqlite_history.rs"
 required-features = ["with-sqlite-history"]
 
 [dependencies.bitflags]
-version = "2.0"
+version = "2.6"
 
 [dependencies.cfg-if]
 version = "1.0"
@@ -98,24 +124,24 @@ version = "0.5.4"
 optional = true
 
 [dependencies.libc]
-version = "0.2"
+version = "0.2.155"
 
 [dependencies.log]
-version = "0.4"
+version = "0.4.22"
 
 [dependencies.memchr]
-version = "2.0"
+version = "2.7"
 
 [dependencies.radix_trie]
 version = "0.2"
 optional = true
 
 [dependencies.regex]
-version = "1.5.5"
+version = "1.10"
 optional = true
 
 [dependencies.rusqlite]
-version = "0.31.0"
+version = "0.32.0"
 features = [
     "bundled",
     "backup",
@@ -124,14 +150,14 @@ optional = true
 default-features = false
 
 [dependencies.rustyline-derive]
-version = "0.10.0"
+version = "0.11.0"
 optional = true
 
 [dependencies.unicode-segmentation]
 version = "1.0"
 
 [dependencies.unicode-width]
-version = "0.1"
+version = "0.2.0"
 
 [dev-dependencies.assert_matches]
 version = "1.2"
@@ -169,7 +195,7 @@ optional = true
 default-features = false
 
 [target."cfg(unix)".dependencies.nix]
-version = "0.28"
+version = "0.29"
 features = [
     "fs",
     "ioctl",
@@ -200,7 +226,7 @@ version = "0.2"
 version = "5.0"
 
 [target."cfg(windows)".dependencies.windows-sys]
-version = "0.52.0"
+version = "0.59.0"
 features = [
     "Win32_Foundation",
     "Win32_System_Console",

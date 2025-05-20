@@ -20,12 +20,12 @@ pub fn de_list_tags_for_resource_http_error(
 
     let _error_message = generic.message().map(|msg| msg.to_owned());
     Err(match error_code {
-        "InvalidParameterException" => crate::operation::list_tags_for_resource::ListTagsForResourceError::InvalidParameterException({
+        "ResourceNotFoundException" => crate::operation::list_tags_for_resource::ListTagsForResourceError::ResourceNotFoundException({
             #[allow(unused_mut)]
             let mut tmp = {
                 #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::InvalidParameterExceptionBuilder::default();
-                output = crate::protocol_serde::shape_invalid_parameter_exception::de_invalid_parameter_exception_json_err(_response_body, output)
+                let mut output = crate::types::error::builders::ResourceNotFoundExceptionBuilder::default();
+                output = crate::protocol_serde::shape_resource_not_found_exception::de_resource_not_found_exception_json_err(_response_body, output)
                     .map_err(crate::operation::list_tags_for_resource::ListTagsForResourceError::unhandled)?;
                 let output = output.meta(generic);
                 output.build()
@@ -35,12 +35,12 @@ pub fn de_list_tags_for_resource_http_error(
             }
             tmp
         }),
-        "ResourceNotFoundException" => crate::operation::list_tags_for_resource::ListTagsForResourceError::ResourceNotFoundException({
+        "InvalidParameterException" => crate::operation::list_tags_for_resource::ListTagsForResourceError::InvalidParameterException({
             #[allow(unused_mut)]
             let mut tmp = {
                 #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::ResourceNotFoundExceptionBuilder::default();
-                output = crate::protocol_serde::shape_resource_not_found_exception::de_resource_not_found_exception_json_err(_response_body, output)
+                let mut output = crate::types::error::builders::InvalidParameterExceptionBuilder::default();
+                output = crate::protocol_serde::shape_invalid_parameter_exception::de_invalid_parameter_exception_json_err(_response_body, output)
                     .map_err(crate::operation::list_tags_for_resource::ListTagsForResourceError::unhandled)?;
                 let output = output.meta(generic);
                 output.build()
@@ -91,7 +91,7 @@ pub fn de_list_tags_for_resource_http_response(
 
 pub fn ser_list_tags_for_resource_input(
     input: &crate::operation::list_tags_for_resource::ListTagsForResourceInput,
-) -> Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
     let mut out = String::new();
     let mut object = ::aws_smithy_json::serialize::JsonObjectWriter::new(&mut out);
     crate::protocol_serde::shape_list_tags_for_resource_input::ser_list_tags_for_resource_input_input(&mut object, input)?;
@@ -102,7 +102,7 @@ pub fn ser_list_tags_for_resource_input(
 pub(crate) fn de_list_tags_for_resource(
     value: &[u8],
     mut builder: crate::operation::list_tags_for_resource::builders::ListTagsForResourceOutputBuilder,
-) -> Result<
+) -> ::std::result::Result<
     crate::operation::list_tags_for_resource::builders::ListTagsForResourceOutputBuilder,
     ::aws_smithy_json::deserialize::error::DeserializeError,
 > {

@@ -8,9 +8,10 @@
 //! TLSA records for storing TLS certificate validation information
 #![allow(clippy::use_self)]
 
-use std::fmt;
+use alloc::vec::Vec;
+use core::fmt;
 
-#[cfg(feature = "serde-config")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use super::sshfp;
@@ -40,7 +41,7 @@ use crate::{
 ///    /                                                               /
 ///    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 /// ```
-#[cfg_attr(feature = "serde-config", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct TLSA {
     cert_usage: CertUsage,
@@ -75,7 +76,28 @@ pub struct TLSA {
 ///    that accept other formats for certificates, those certificates will
 ///    need their own certificate usage values.
 /// ```
-#[cfg_attr(feature = "serde-config", derive(Deserialize, Serialize))]
+///
+/// [RFC 7218, Adding Acronyms to DANE Registries](https://datatracker.ietf.org/doc/html/rfc7218#section-2.1)
+///
+/// ```text
+/// 2.1.  TLSA Certificate Usages Registry
+///
+///   The reference for this registry has been updated to include both
+///   [RFC6698] and this document.
+///
+///    +-------+----------+--------------------------------+-------------+
+///    | Value | Acronym  | Short Description              | Reference   |
+///    +-------+----------+--------------------------------+-------------+
+///    |   0   | PKIX-TA  | CA constraint                  | [RFC6698]   |
+///    |   1   | PKIX-EE  | Service certificate constraint | [RFC6698]   |
+///    |   2   | DANE-TA  | Trust anchor assertion         | [RFC6698]   |
+///    |   3   | DANE-EE  | Domain-issued certificate      | [RFC6698]   |
+///    | 4-254 |          | Unassigned                     |             |
+///    |  255  | PrivCert | Reserved for Private Use       | [RFC6698]   |
+///    +-------+----------+--------------------------------+-------------+
+/// ```
+
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum CertUsage {
     /// ```text
@@ -92,7 +114,8 @@ pub enum CertUsage {
     ///       the certificate might or might not have the basicConstraints
     ///       extension present.
     /// ```
-    CA,
+    #[cfg_attr(feature = "serde", serde(rename = "PKIX-TA"))]
+    PkixTa,
 
     /// ```text
     ///       1 -- Certificate usage 1 is used to specify an end entity
@@ -104,7 +127,8 @@ pub enum CertUsage {
     ///       certificate MUST pass PKIX certification path validation and MUST
     ///       match the TLSA record.
     /// ```
-    Service,
+    #[cfg_attr(feature = "serde", serde(rename = "PKIX-EE"))]
+    PkixEe,
 
     /// ```text
     ///       2 -- Certificate usage 2 is used to specify a certificate, or the
@@ -119,7 +143,8 @@ pub enum CertUsage {
     ///       certificate matching the TLSA record considered to be a trust
     ///       anchor for this certification path validation.
     /// ```
-    TrustAnchor,
+    #[cfg_attr(feature = "serde", serde(rename = "DANE-TA"))]
+    DaneTa,
 
     /// ```text
     ///       3 -- Certificate usage 3 is used to specify a certificate, or the
@@ -133,7 +158,8 @@ pub enum CertUsage {
     ///       requires that the certificate pass PKIX validation, but PKIX
     ///       validation is not tested for certificate usage 3.
     /// ```
-    DomainIssued,
+    #[cfg_attr(feature = "serde", serde(rename = "DANE-EE"))]
+    DaneEe,
 
     /// Unassigned at the time of this implementation
     Unassigned(u8),
@@ -145,10 +171,10 @@ pub enum CertUsage {
 impl From<u8> for CertUsage {
     fn from(usage: u8) -> Self {
         match usage {
-            0 => Self::CA,
-            1 => Self::Service,
-            2 => Self::TrustAnchor,
-            3 => Self::DomainIssued,
+            0 => Self::PkixTa,
+            1 => Self::PkixEe,
+            2 => Self::DaneTa,
+            3 => Self::DaneEe,
             4..=254 => Self::Unassigned(usage),
             255 => Self::Private,
         }
@@ -158,10 +184,10 @@ impl From<u8> for CertUsage {
 impl From<CertUsage> for u8 {
     fn from(usage: CertUsage) -> Self {
         match usage {
-            CertUsage::CA => 0,
-            CertUsage::Service => 1,
-            CertUsage::TrustAnchor => 2,
-            CertUsage::DomainIssued => 3,
+            CertUsage::PkixTa => 0,
+            CertUsage::PkixEe => 1,
+            CertUsage::DaneTa => 2,
+            CertUsage::DaneEe => 3,
             CertUsage::Unassigned(usage) => usage,
             CertUsage::Private => 255,
         }
@@ -186,19 +212,22 @@ impl From<CertUsage> for u8 {
 ///    unrelated to the use of "selector" in DomainKeys Identified Mail
 ///    (DKIM) [RFC6376].)
 /// ```
-#[cfg_attr(feature = "serde-config", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum Selector {
     /// Full certificate: the Certificate binary structure as defined in [RFC5280](https://tools.ietf.org/html/rfc5280)
+    #[cfg_attr(feature = "serde", serde(rename = "Cert"))]
     Full,
 
     /// SubjectPublicKeyInfo: DER-encoded binary structure as defined in [RFC5280](https://tools.ietf.org/html/rfc5280)
+    #[cfg_attr(feature = "serde", serde(rename = "SPKI"))]
     Spki,
 
     /// Unassigned at the time of this writing
     Unassigned(u8),
 
     /// Private usage
+    #[cfg_attr(feature = "serde", serde(rename = "PrivSel"))]
     Private,
 }
 
@@ -245,22 +274,26 @@ impl From<Selector> for u8 {
 ///    certificate (if possible) will assist clients that support a small
 ///    number of hash algorithms.
 /// ```
-#[cfg_attr(feature = "serde-config", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum Matching {
     /// Exact match on selected content
+    #[cfg_attr(feature = "serde", serde(rename = "Full"))]
     Raw,
 
     /// SHA-256 hash of selected content [RFC6234](https://tools.ietf.org/html/rfc6234)
+    #[cfg_attr(feature = "serde", serde(rename = "SHA2-256"))]
     Sha256,
 
     /// SHA-512 hash of selected content [RFC6234](https://tools.ietf.org/html/rfc6234)
+    #[cfg_attr(feature = "serde", serde(rename = "SHA2-512"))]
     Sha512,
 
     /// Unassigned at the time of this writing
     Unassigned(u8),
 
     /// Private usage
+    #[cfg_attr(feature = "serde", serde(rename = "PrivMatch"))]
     Private,
 }
 
@@ -352,7 +385,7 @@ impl BinEncodable for TLSA {
     }
 }
 
-impl<'r> RecordDataDecodable<'r> for TLSA {
+impl RecordDataDecodable<'_> for TLSA {
     /// Read the RData from the given Decoder
     ///
     /// ```text
@@ -477,22 +510,25 @@ impl fmt::Display for TLSA {
 mod tests {
     #![allow(clippy::dbg_macro, clippy::print_stdout)]
 
+    #[cfg(feature = "std")]
+    use std::println;
+
     use super::*;
 
     #[test]
     fn read_cert_usage() {
-        assert_eq!(CertUsage::CA, CertUsage::from(0));
-        assert_eq!(CertUsage::Service, CertUsage::from(1));
-        assert_eq!(CertUsage::TrustAnchor, CertUsage::from(2));
-        assert_eq!(CertUsage::DomainIssued, CertUsage::from(3));
+        assert_eq!(CertUsage::PkixTa, CertUsage::from(0));
+        assert_eq!(CertUsage::PkixEe, CertUsage::from(1));
+        assert_eq!(CertUsage::DaneTa, CertUsage::from(2));
+        assert_eq!(CertUsage::DaneEe, CertUsage::from(3));
         assert_eq!(CertUsage::Unassigned(4), CertUsage::from(4));
         assert_eq!(CertUsage::Unassigned(254), CertUsage::from(254));
         assert_eq!(CertUsage::Private, CertUsage::from(255));
 
-        assert_eq!(u8::from(CertUsage::CA), 0);
-        assert_eq!(u8::from(CertUsage::Service), 1);
-        assert_eq!(u8::from(CertUsage::TrustAnchor), 2);
-        assert_eq!(u8::from(CertUsage::DomainIssued), 3);
+        assert_eq!(u8::from(CertUsage::PkixTa), 0);
+        assert_eq!(u8::from(CertUsage::PkixEe), 1);
+        assert_eq!(u8::from(CertUsage::DaneTa), 2);
+        assert_eq!(u8::from(CertUsage::DaneEe), 3);
         assert_eq!(u8::from(CertUsage::Unassigned(4)), 4);
         assert_eq!(u8::from(CertUsage::Unassigned(254)), 254);
         assert_eq!(u8::from(CertUsage::Private), 255);
@@ -536,6 +572,7 @@ mod tests {
         rdata.emit(&mut encoder).expect("failed to emit tlsa");
         let bytes = encoder.into_bytes();
 
+        #[cfg(feature = "std")]
         println!("bytes: {bytes:?}");
 
         let mut decoder: BinDecoder<'_> = BinDecoder::new(bytes);
@@ -547,19 +584,19 @@ mod tests {
     #[test]
     fn test_encode_decode_tlsa() {
         test_encode_decode(TLSA::new(
-            CertUsage::Service,
+            CertUsage::PkixEe,
             Selector::Spki,
             Matching::Sha256,
             vec![1, 2, 3, 4, 5, 6, 7, 8],
         ));
         test_encode_decode(TLSA::new(
-            CertUsage::CA,
+            CertUsage::PkixTa,
             Selector::Full,
             Matching::Raw,
             vec![1, 2, 3, 4, 5, 6, 7, 8],
         ));
         test_encode_decode(TLSA::new(
-            CertUsage::DomainIssued,
+            CertUsage::DaneEe,
             Selector::Full,
             Matching::Sha512,
             vec![1, 2, 3, 4, 5, 6, 7, 8],

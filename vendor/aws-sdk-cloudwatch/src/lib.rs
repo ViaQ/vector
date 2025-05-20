@@ -1,4 +1,5 @@
 #![allow(deprecated)]
+#![allow(unknown_lints)]
 #![allow(clippy::module_inception)]
 #![allow(clippy::upper_case_acronyms)]
 #![allow(clippy::large_enum_variant)]
@@ -10,8 +11,13 @@
 #![allow(clippy::needless_return)]
 #![allow(clippy::derive_partial_eq_without_eq)]
 #![allow(clippy::result_large_err)]
+#![allow(clippy::unnecessary_map_on_constructor)]
 #![allow(rustdoc::bare_urls)]
+#![allow(rustdoc::redundant_explicit_links)]
+#![allow(rustdoc::invalid_html_tags)]
+#![forbid(unsafe_code)]
 #![warn(missing_docs)]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 //! Amazon CloudWatch monitors your Amazon Web Services (Amazon Web Services) resources and the applications you run on Amazon Web Services in real time. You can use CloudWatch to collect and track metrics, which are the variables you want to measure for your resources and applications.
 //!
 //! CloudWatch alarms send notifications or automatically change the resources you are monitoring based on rules that you define. For example, you can monitor the CPU usage and disk reads and writes of your Amazon EC2 instances. Then, use this data to determine whether you should launch additional instances to handle increased load. You can also use this data to stop under-used instances to save money.
@@ -29,8 +35,8 @@
 //!
 //! ```toml
 //! [dependencies]
-//! aws-config = { version = "1.0.1", features = ["behavior-version-latest"] }
-//! aws-sdk-cloudwatch = "1.3.0"
+//! aws-config = { version = "1.1.7", features = ["behavior-version-latest"] }
+//! aws-sdk-cloudwatch = "1.74.0"
 //! tokio = { version = "1", features = ["full"] }
 //! ```
 //!
@@ -115,9 +121,9 @@ pub use config::Config;
 /// # }
 /// ```
 ///
-/// Occasionally, SDKs may have additional service-specific that can be set on the [`Config`] that
+/// Occasionally, SDKs may have additional service-specific values that can be set on the [`Config`] that
 /// is absent from [`SdkConfig`], or slightly different settings for a specific client may be desired.
-/// The [`Config`] struct implements `From<&SdkConfig>`, so setting these specific settings can be
+/// The [`Builder`](crate::config::Builder) struct implements `From<&SdkConfig>`, so setting these specific settings can be
 /// done as follows:
 ///
 /// ```rust,no_run
@@ -162,6 +168,20 @@ pub use config::Config;
 /// The underlying HTTP requests that get made by this can be modified with the `customize_operation`
 /// function on the fluent builder. See the [`customize`](crate::client::customize) module for more
 /// information.
+/// # Waiters
+///
+/// This client provides `wait_until` methods behind the [`Waiters`](crate::client::Waiters) trait.
+/// To use them, simply import the trait, and then call one of the `wait_until` methods. This will
+/// return a waiter fluent builder that takes various parameters, which are documented on the builder
+/// type. Once parameters have been provided, the `wait` method can be called to initiate waiting.
+///
+/// For example, if there was a `wait_until_thing` method, it could look like:
+/// ```rust,ignore
+/// let result = client.wait_until_thing()
+///     .thing_id("someId")
+///     .wait(Duration::from_secs(120))
+///     .await;
+/// ```
 pub mod client;
 
 /// Configuration for Amazon CloudWatch.
@@ -186,13 +206,22 @@ pub mod types;
 
 mod auth_plugin;
 
+mod client_request_compression;
+
 pub(crate) mod protocol_serde;
+
+mod sdk_feature_tracker;
 
 mod serialization_settings;
 
+mod endpoint_lib;
+
 mod lens;
 
-mod endpoint_lib;
+/// Supporting types for waiters.
+///
+/// Note: to use waiters, import the [`Waiters`](crate::client::Waiters) trait, which adds methods prefixed with `wait_until` to the client.
+pub mod waiters;
 
 mod rest_xml_wrapped_errors;
 

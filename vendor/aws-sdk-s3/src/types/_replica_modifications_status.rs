@@ -35,6 +35,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -93,6 +94,15 @@ impl ReplicaModificationsStatus {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for ReplicaModificationsStatus {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            ReplicaModificationsStatus::Disabled => write!(f, "Disabled"),
+            ReplicaModificationsStatus::Enabled => write!(f, "Enabled"),
+            ReplicaModificationsStatus::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

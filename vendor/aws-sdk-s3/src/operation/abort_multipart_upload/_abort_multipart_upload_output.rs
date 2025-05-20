@@ -3,7 +3,7 @@
 #[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::fmt::Debug)]
 pub struct AbortMultipartUploadOutput {
-    /// <p>If present, indicates that the requester was successfully charged for the request.</p> <note>
+    /// <p>If present, indicates that the requester was successfully charged for the request.</p><note>
     /// <p>This functionality is not supported for directory buckets.</p>
     /// </note>
     pub request_charged: ::std::option::Option<crate::types::RequestCharged>,
@@ -11,7 +11,7 @@ pub struct AbortMultipartUploadOutput {
     _request_id: Option<String>,
 }
 impl AbortMultipartUploadOutput {
-    /// <p>If present, indicates that the requester was successfully charged for the request.</p> <note>
+    /// <p>If present, indicates that the requester was successfully charged for the request.</p><note>
     /// <p>This functionality is not supported for directory buckets.</p>
     /// </note>
     pub fn request_charged(&self) -> ::std::option::Option<&crate::types::RequestCharged> {
@@ -36,29 +36,29 @@ impl AbortMultipartUploadOutput {
 }
 
 /// A builder for [`AbortMultipartUploadOutput`](crate::operation::abort_multipart_upload::AbortMultipartUploadOutput).
-#[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::default::Default, ::std::fmt::Debug)]
+#[non_exhaustive]
 pub struct AbortMultipartUploadOutputBuilder {
     pub(crate) request_charged: ::std::option::Option<crate::types::RequestCharged>,
     _extended_request_id: Option<String>,
     _request_id: Option<String>,
 }
 impl AbortMultipartUploadOutputBuilder {
-    /// <p>If present, indicates that the requester was successfully charged for the request.</p> <note>
+    /// <p>If present, indicates that the requester was successfully charged for the request.</p><note>
     /// <p>This functionality is not supported for directory buckets.</p>
     /// </note>
     pub fn request_charged(mut self, input: crate::types::RequestCharged) -> Self {
         self.request_charged = ::std::option::Option::Some(input);
         self
     }
-    /// <p>If present, indicates that the requester was successfully charged for the request.</p> <note>
+    /// <p>If present, indicates that the requester was successfully charged for the request.</p><note>
     /// <p>This functionality is not supported for directory buckets.</p>
     /// </note>
     pub fn set_request_charged(mut self, input: ::std::option::Option<crate::types::RequestCharged>) -> Self {
         self.request_charged = input;
         self
     }
-    /// <p>If present, indicates that the requester was successfully charged for the request.</p> <note>
+    /// <p>If present, indicates that the requester was successfully charged for the request.</p><note>
     /// <p>This functionality is not supported for directory buckets.</p>
     /// </note>
     pub fn get_request_charged(&self) -> &::std::option::Option<crate::types::RequestCharged> {

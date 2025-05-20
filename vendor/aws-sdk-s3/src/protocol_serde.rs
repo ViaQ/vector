@@ -49,6 +49,10 @@ pub(crate) mod shape_create_bucket;
 
 pub(crate) mod shape_create_bucket_input;
 
+pub(crate) mod shape_create_bucket_metadata_table_configuration;
+
+pub(crate) mod shape_create_bucket_metadata_table_configuration_input;
+
 pub(crate) mod shape_create_multipart_upload;
 
 pub(crate) mod shape_create_session;
@@ -66,6 +70,8 @@ pub(crate) mod shape_delete_bucket_intelligent_tiering_configuration;
 pub(crate) mod shape_delete_bucket_inventory_configuration;
 
 pub(crate) mod shape_delete_bucket_lifecycle;
+
+pub(crate) mod shape_delete_bucket_metadata_table_configuration;
 
 pub(crate) mod shape_delete_bucket_metrics_configuration;
 
@@ -108,6 +114,8 @@ pub(crate) mod shape_get_bucket_lifecycle_configuration;
 pub(crate) mod shape_get_bucket_location;
 
 pub(crate) mod shape_get_bucket_logging;
+
+pub(crate) mod shape_get_bucket_metadata_table_configuration;
 
 pub(crate) mod shape_get_bucket_metrics_configuration;
 
@@ -303,11 +311,15 @@ pub(crate) mod shape_create_bucket_output;
 
 pub(crate) mod shape_create_multipart_upload_output;
 
+pub(crate) mod shape_create_session_output;
+
 pub(crate) mod shape_delete_object_output;
 
 pub(crate) mod shape_delete_object_tagging_output;
 
 pub(crate) mod shape_delete_objects_output;
+
+pub(crate) mod shape_encryption_type_mismatch;
 
 pub(crate) mod shape_get_bucket_accelerate_configuration_output;
 
@@ -318,6 +330,10 @@ pub(crate) mod shape_get_bucket_encryption_output;
 pub(crate) mod shape_get_bucket_intelligent_tiering_configuration_output;
 
 pub(crate) mod shape_get_bucket_inventory_configuration_output;
+
+pub(crate) mod shape_get_bucket_lifecycle_configuration_output;
+
+pub(crate) mod shape_get_bucket_metadata_table_configuration_output;
 
 pub(crate) mod shape_get_bucket_metrics_configuration_output;
 
@@ -353,6 +369,10 @@ pub(crate) mod shape_head_object_output;
 
 pub(crate) mod shape_invalid_object_state;
 
+pub(crate) mod shape_invalid_request;
+
+pub(crate) mod shape_invalid_write_offset;
+
 pub(crate) mod shape_list_multipart_uploads_output;
 
 pub(crate) mod shape_list_object_versions_output;
@@ -375,6 +395,8 @@ pub(crate) mod shape_object_already_in_active_tier_error;
 
 pub(crate) mod shape_object_not_in_active_tier_error;
 
+pub(crate) mod shape_put_bucket_lifecycle_configuration_output;
+
 pub(crate) mod shape_put_object_acl_output;
 
 pub(crate) mod shape_put_object_legal_hold_output;
@@ -393,13 +415,15 @@ pub(crate) mod shape_select_object_content_input;
 
 pub(crate) mod shape_select_object_content_output;
 
+pub(crate) mod shape_too_many_parts;
+
 pub(crate) mod shape_upload_part_copy_output;
 
 pub(crate) mod shape_upload_part_output;
 
 pub fn parse_event_stream_error_metadata(
     payload: &::bytes::Bytes,
-) -> Result<::aws_smithy_types::error::metadata::Builder, ::aws_smithy_xml::decode::XmlDecodeError> {
+) -> ::std::result::Result<::aws_smithy_types::error::metadata::Builder, ::aws_smithy_xml::decode::XmlDecodeError> {
     crate::rest_xml_unwrapped_errors::parse_error_metadata(payload.as_ref())
 }
 
@@ -458,6 +482,8 @@ pub(crate) mod shape_lambda_function_configuration;
 pub(crate) mod shape_lifecycle_rule;
 
 pub(crate) mod shape_logging_enabled;
+
+pub(crate) mod shape_metadata_table_configuration;
 
 pub(crate) mod shape_metrics_configuration;
 
@@ -533,6 +559,8 @@ pub(crate) mod shape_csv_input;
 
 pub(crate) mod shape_csv_output;
 
+pub(crate) mod shape_get_bucket_metadata_table_configuration_result;
+
 pub(crate) mod shape_glacier_job_parameters;
 
 pub(crate) mod shape_grant;
@@ -585,6 +613,8 @@ pub(crate) mod shape_restore_status;
 
 pub(crate) mod shape_routing_rule;
 
+pub(crate) mod shape_s3_tables_destination;
+
 pub(crate) mod shape_select_parameters;
 
 pub(crate) mod shape_server_side_encryption_rule;
@@ -613,6 +643,8 @@ pub(crate) mod shape_delete_marker_replication;
 
 pub(crate) mod shape_destination;
 
+pub(crate) mod shape_error_details;
+
 pub(crate) mod shape_existing_object_replication;
 
 pub(crate) mod shape_grantee;
@@ -622,6 +654,8 @@ pub(crate) mod shape_intelligent_tiering_and_operator;
 pub(crate) mod shape_inventory_s3_bucket_destination;
 
 pub(crate) mod shape_lifecycle_rule_and_operator;
+
+pub(crate) mod shape_metadata_table_configuration_result;
 
 pub(crate) mod shape_metrics_and_operator;
 
@@ -670,6 +704,8 @@ pub(crate) mod shape_replica_modifications;
 pub(crate) mod shape_replication_rule_and_operator;
 
 pub(crate) mod shape_replication_time;
+
+pub(crate) mod shape_s3_tables_destination_result;
 
 pub(crate) mod shape_sse_kms_encrypted_objects;
 

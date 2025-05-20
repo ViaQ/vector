@@ -38,6 +38,11 @@ pub fn de_get_object_http_response(
                 crate::operation::get_object::GetObjectError::unhandled("Failed to parse ChecksumCRC32C from header `x-amz-checksum-crc32c")
             })?,
         );
+        output = output.set_checksum_crc64_nvme(
+            crate::protocol_serde::shape_get_object_output::de_checksum_crc64_nvme_header(_response_headers).map_err(|_| {
+                crate::operation::get_object::GetObjectError::unhandled("Failed to parse ChecksumCRC64NVME from header `x-amz-checksum-crc64nvme")
+            })?,
+        );
         output = output.set_checksum_sha1(
             crate::protocol_serde::shape_get_object_output::de_checksum_sha1_header(_response_headers).map_err(|_| {
                 crate::operation::get_object::GetObjectError::unhandled("Failed to parse ChecksumSHA1 from header `x-amz-checksum-sha1")
@@ -46,6 +51,11 @@ pub fn de_get_object_http_response(
         output = output.set_checksum_sha256(
             crate::protocol_serde::shape_get_object_output::de_checksum_sha256_header(_response_headers).map_err(|_| {
                 crate::operation::get_object::GetObjectError::unhandled("Failed to parse ChecksumSHA256 from header `x-amz-checksum-sha256")
+            })?,
+        );
+        output = output.set_checksum_type(
+            crate::protocol_serde::shape_get_object_output::de_checksum_type_header(_response_headers).map_err(|_| {
+                crate::operation::get_object::GetObjectError::unhandled("Failed to parse ChecksumType from header `x-amz-checksum-type")
             })?,
         );
         output = output.set_content_disposition(
@@ -91,6 +101,10 @@ pub fn de_get_object_http_response(
         output = output.set_expires(
             crate::protocol_serde::shape_get_object_output::de_expires_header(_response_headers)
                 .map_err(|_| crate::operation::get_object::GetObjectError::unhandled("Failed to parse Expires from header `Expires"))?,
+        );
+        output = output.set_expires_string(
+            crate::protocol_serde::shape_get_object_output::de_expires_string_header(_response_headers)
+                .map_err(|_| crate::operation::get_object::GetObjectError::unhandled("Failed to parse ExpiresString from header `ExpiresString"))?,
         );
         output = output.set_last_modified(
             crate::protocol_serde::shape_get_object_output::de_last_modified_header(_response_headers)
@@ -256,146 +270,124 @@ pub fn ser_get_object_headers(
 ) -> std::result::Result<::http::request::Builder, ::aws_smithy_types::error::operation::BuildError> {
     if let ::std::option::Option::Some(inner_1) = &input.if_match {
         let formatted_2 = inner_1.as_str();
-        if !formatted_2.is_empty() {
-            let header_value = formatted_2;
-            let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
-                ::aws_smithy_types::error::operation::BuildError::invalid_field(
-                    "if_match",
-                    format!("`{}` cannot be used as a header value: {}", &header_value, err),
-                )
-            })?;
-            builder = builder.header("If-Match", header_value);
-        }
+        let header_value = formatted_2;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "if_match",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("If-Match", header_value);
     }
     if let ::std::option::Option::Some(inner_3) = &input.if_modified_since {
         let formatted_4 = inner_3.fmt(::aws_smithy_types::date_time::Format::HttpDate)?;
-        if !formatted_4.is_empty() {
-            let header_value = formatted_4;
-            let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
-                ::aws_smithy_types::error::operation::BuildError::invalid_field(
-                    "if_modified_since",
-                    format!("`{}` cannot be used as a header value: {}", &header_value, err),
-                )
-            })?;
-            builder = builder.header("If-Modified-Since", header_value);
-        }
+        let header_value = formatted_4;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "if_modified_since",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("If-Modified-Since", header_value);
     }
     if let ::std::option::Option::Some(inner_5) = &input.if_none_match {
         let formatted_6 = inner_5.as_str();
-        if !formatted_6.is_empty() {
-            let header_value = formatted_6;
-            let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
-                ::aws_smithy_types::error::operation::BuildError::invalid_field(
-                    "if_none_match",
-                    format!("`{}` cannot be used as a header value: {}", &header_value, err),
-                )
-            })?;
-            builder = builder.header("If-None-Match", header_value);
-        }
+        let header_value = formatted_6;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "if_none_match",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("If-None-Match", header_value);
     }
     if let ::std::option::Option::Some(inner_7) = &input.if_unmodified_since {
         let formatted_8 = inner_7.fmt(::aws_smithy_types::date_time::Format::HttpDate)?;
-        if !formatted_8.is_empty() {
-            let header_value = formatted_8;
-            let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
-                ::aws_smithy_types::error::operation::BuildError::invalid_field(
-                    "if_unmodified_since",
-                    format!("`{}` cannot be used as a header value: {}", &header_value, err),
-                )
-            })?;
-            builder = builder.header("If-Unmodified-Since", header_value);
-        }
+        let header_value = formatted_8;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "if_unmodified_since",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("If-Unmodified-Since", header_value);
     }
     if let ::std::option::Option::Some(inner_9) = &input.range {
         let formatted_10 = inner_9.as_str();
-        if !formatted_10.is_empty() {
-            let header_value = formatted_10;
-            let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
-                ::aws_smithy_types::error::operation::BuildError::invalid_field(
-                    "range",
-                    format!("`{}` cannot be used as a header value: {}", &header_value, err),
-                )
-            })?;
-            builder = builder.header("Range", header_value);
-        }
+        let header_value = formatted_10;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "range",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("Range", header_value);
     }
     if let ::std::option::Option::Some(inner_11) = &input.sse_customer_algorithm {
         let formatted_12 = inner_11.as_str();
-        if !formatted_12.is_empty() {
-            let header_value = formatted_12;
-            let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
-                ::aws_smithy_types::error::operation::BuildError::invalid_field(
-                    "sse_customer_algorithm",
-                    format!("`{}` cannot be used as a header value: {}", &header_value, err),
-                )
-            })?;
-            builder = builder.header("x-amz-server-side-encryption-customer-algorithm", header_value);
-        }
+        let header_value = formatted_12;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "sse_customer_algorithm",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("x-amz-server-side-encryption-customer-algorithm", header_value);
     }
     if let ::std::option::Option::Some(inner_13) = &input.sse_customer_key {
         let formatted_14 = inner_13.as_str();
-        if !formatted_14.is_empty() {
-            let header_value = formatted_14;
-            let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
-                ::aws_smithy_types::error::operation::BuildError::invalid_field(
-                    "sse_customer_key",
-                    format!("`{}` cannot be used as a header value: {}", &"*** Sensitive Data Redacted ***", err),
-                )
-            })?;
-            builder = builder.header("x-amz-server-side-encryption-customer-key", header_value);
-        }
+        let header_value = formatted_14;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "sse_customer_key",
+                format!("`{}` cannot be used as a header value: {}", &"*** Sensitive Data Redacted ***", err),
+            )
+        })?;
+        builder = builder.header("x-amz-server-side-encryption-customer-key", header_value);
     }
     if let ::std::option::Option::Some(inner_15) = &input.sse_customer_key_md5 {
         let formatted_16 = inner_15.as_str();
-        if !formatted_16.is_empty() {
-            let header_value = formatted_16;
-            let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
-                ::aws_smithy_types::error::operation::BuildError::invalid_field(
-                    "sse_customer_key_md5",
-                    format!("`{}` cannot be used as a header value: {}", &header_value, err),
-                )
-            })?;
-            builder = builder.header("x-amz-server-side-encryption-customer-key-MD5", header_value);
-        }
+        let header_value = formatted_16;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "sse_customer_key_md5",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("x-amz-server-side-encryption-customer-key-MD5", header_value);
     }
     if let ::std::option::Option::Some(inner_17) = &input.request_payer {
         let formatted_18 = inner_17.as_str();
-        if !formatted_18.is_empty() {
-            let header_value = formatted_18;
-            let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
-                ::aws_smithy_types::error::operation::BuildError::invalid_field(
-                    "request_payer",
-                    format!("`{}` cannot be used as a header value: {}", &header_value, err),
-                )
-            })?;
-            builder = builder.header("x-amz-request-payer", header_value);
-        }
+        let header_value = formatted_18;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "request_payer",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("x-amz-request-payer", header_value);
     }
     if let ::std::option::Option::Some(inner_19) = &input.expected_bucket_owner {
         let formatted_20 = inner_19.as_str();
-        if !formatted_20.is_empty() {
-            let header_value = formatted_20;
-            let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
-                ::aws_smithy_types::error::operation::BuildError::invalid_field(
-                    "expected_bucket_owner",
-                    format!("`{}` cannot be used as a header value: {}", &header_value, err),
-                )
-            })?;
-            builder = builder.header("x-amz-expected-bucket-owner", header_value);
-        }
+        let header_value = formatted_20;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "expected_bucket_owner",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("x-amz-expected-bucket-owner", header_value);
     }
     if let ::std::option::Option::Some(inner_21) = &input.checksum_mode {
         let formatted_22 = inner_21.as_str();
-        if !formatted_22.is_empty() {
-            let header_value = formatted_22;
-            let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
-                ::aws_smithy_types::error::operation::BuildError::invalid_field(
-                    "checksum_mode",
-                    format!("`{}` cannot be used as a header value: {}", &header_value, err),
-                )
-            })?;
-            builder = builder.header("x-amz-checksum-mode", header_value);
-        }
+        let header_value = formatted_22;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "checksum_mode",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("x-amz-checksum-mode", header_value);
     }
     Ok(builder)
 }

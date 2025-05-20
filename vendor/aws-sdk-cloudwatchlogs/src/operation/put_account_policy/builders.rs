@@ -3,7 +3,7 @@ pub use crate::operation::put_account_policy::_put_account_policy_output::PutAcc
 
 pub use crate::operation::put_account_policy::_put_account_policy_input::PutAccountPolicyInputBuilder;
 
-impl PutAccountPolicyInputBuilder {
+impl crate::operation::put_account_policy::builders::PutAccountPolicyInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,14 +22,57 @@ impl PutAccountPolicyInputBuilder {
 }
 /// Fluent builder constructing a request to `PutAccountPolicy`.
 ///
-/// <p>Creates an account-level data protection policy that applies to all log groups in the account. A data protection policy can help safeguard sensitive data that's ingested by your log groups by auditing and masking the sensitive log data. Each account can have only one account-level policy.</p> <important>
+/// <p>Creates an account-level data protection policy, subscription filter policy, or field index policy that applies to all log groups or a subset of log groups in the account.</p>
+/// <p>To use this operation, you must be signed on with the correct permissions depending on the type of policy that you are creating.</p>
+/// <ul>
+/// <li>
+/// <p>To create a data protection policy, you must have the <code>logs:PutDataProtectionPolicy</code> and <code>logs:PutAccountPolicy</code> permissions.</p></li>
+/// <li>
+/// <p>To create a subscription filter policy, you must have the <code>logs:PutSubscriptionFilter</code> and <code>logs:PutccountPolicy</code> permissions.</p></li>
+/// <li>
+/// <p>To create a transformer policy, you must have the <code>logs:PutTransformer</code> and <code>logs:PutAccountPolicy</code> permissions.</p></li>
+/// <li>
+/// <p>To create a field index policy, you must have the <code>logs:PutIndexPolicy</code> and <code>logs:PutAccountPolicy</code> permissions.</p></li>
+/// </ul>
+/// <p><b>Data protection policy</b></p>
+/// <p>A data protection policy can help safeguard sensitive data that's ingested by your log groups by auditing and masking the sensitive log data. Each account can have only one account-level data protection policy.</p><important>
 /// <p>Sensitive data is detected and masked when it is ingested into a log group. When you set a data protection policy, log events ingested into the log groups before that time are not masked.</p>
 /// </important>
-/// <p>If you use <code>PutAccountPolicy</code> to create a data protection policy for your whole account, it applies to both existing log groups and all log groups that are created later in this account. The account policy is applied to existing log groups with eventual consistency. It might take up to 5 minutes before sensitive data in existing log groups begins to be masked.</p>
+/// <p>If you use <code>PutAccountPolicy</code> to create a data protection policy for your whole account, it applies to both existing log groups and all log groups that are created later in this account. The account-level policy is applied to existing log groups with eventual consistency. It might take up to 5 minutes before sensitive data in existing log groups begins to be masked.</p>
 /// <p>By default, when a user views a log event that includes masked data, the sensitive data is replaced by asterisks. A user who has the <code>logs:Unmask</code> permission can use a <a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_GetLogEvents.html">GetLogEvents</a> or <a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_FilterLogEvents.html">FilterLogEvents</a> operation with the <code>unmask</code> parameter set to <code>true</code> to view the unmasked log events. Users with the <code>logs:Unmask</code> can also view unmasked data in the CloudWatch Logs console by running a CloudWatch Logs Insights query with the <code>unmask</code> query command.</p>
 /// <p>For more information, including a list of types of data that can be audited and masked, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/mask-sensitive-log-data.html">Protect sensitive log data with masking</a>.</p>
-/// <p>To use the <code>PutAccountPolicy</code> operation, you must be signed on with the <code>logs:PutDataProtectionPolicy</code> and <code>logs:PutAccountPolicy</code> permissions.</p>
-/// <p>The <code>PutAccountPolicy</code> operation applies to all log groups in the account. You can also use <a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDataProtectionPolicy.html">PutDataProtectionPolicy</a> to create a data protection policy that applies to just one log group. If a log group has its own data protection policy and the account also has an account-level data protection policy, then the two policies are cumulative. Any sensitive term specified in either policy is masked.</p>
+/// <p>To use the <code>PutAccountPolicy</code> operation for a data protection policy, you must be signed on with the <code>logs:PutDataProtectionPolicy</code> and <code>logs:PutAccountPolicy</code> permissions.</p>
+/// <p>The <code>PutAccountPolicy</code> operation applies to all log groups in the account. You can use <a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDataProtectionPolicy.html">PutDataProtectionPolicy</a> to create a data protection policy that applies to just one log group. If a log group has its own data protection policy and the account also has an account-level data protection policy, then the two policies are cumulative. Any sensitive term specified in either policy is masked.</p>
+/// <p><b>Subscription filter policy</b></p>
+/// <p>A subscription filter policy sets up a real-time feed of log events from CloudWatch Logs to other Amazon Web Services services. Account-level subscription filter policies apply to both existing log groups and log groups that are created later in this account. Supported destinations are Kinesis Data Streams, Firehose, and Lambda. When log events are sent to the receiving service, they are Base64 encoded and compressed with the GZIP format.</p>
+/// <p>The following destinations are supported for subscription filters:</p>
+/// <ul>
+/// <li>
+/// <p>An Kinesis Data Streams data stream in the same account as the subscription policy, for same-account delivery.</p></li>
+/// <li>
+/// <p>An Firehose data stream in the same account as the subscription policy, for same-account delivery.</p></li>
+/// <li>
+/// <p>A Lambda function in the same account as the subscription policy, for same-account delivery.</p></li>
+/// <li>
+/// <p>A logical destination in a different account created with <a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDestination.html">PutDestination</a>, for cross-account delivery. Kinesis Data Streams and Firehose are supported as logical destinations.</p></li>
+/// </ul>
+/// <p>Each account can have one account-level subscription filter policy per Region. If you are updating an existing filter, you must specify the correct name in <code>PolicyName</code>. To perform a <code>PutAccountPolicy</code> subscription filter operation for any destination except a Lambda function, you must also have the <code>iam:PassRole</code> permission.</p>
+/// <p><b>Transformer policy</b></p>
+/// <p>Creates or updates a <i>log transformer policy</i> for your account. You use log transformers to transform log events into a different format, making them easier for you to process and analyze. You can also transform logs from different sources into standardized formats that contain relevant, source-specific information. After you have created a transformer, CloudWatch Logs performs this transformation at the time of log ingestion. You can then refer to the transformed versions of the logs during operations such as querying with CloudWatch Logs Insights or creating metric filters or subscription filters.</p>
+/// <p>You can also use a transformer to copy metadata from metadata keys into the log events themselves. This metadata can include log group name, log stream name, account ID and Region.</p>
+/// <p>A transformer for a log group is a series of processors, where each processor applies one type of transformation to the log events ingested into this log group. For more information about the available processors to use in a transformer, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CloudWatch-Logs-Transformation.html#CloudWatch-Logs-Transformation-Processors"> Processors that you can use</a>.</p>
+/// <p>Having log events in standardized format enables visibility across your applications for your log analysis, reporting, and alarming needs. CloudWatch Logs provides transformation for common log types with out-of-the-box transformation templates for major Amazon Web Services log sources such as VPC flow logs, Lambda, and Amazon RDS. You can use pre-built transformation templates or create custom transformation policies.</p>
+/// <p>You can create transformers only for the log groups in the Standard log class.</p>
+/// <p>You can have one account-level transformer policy that applies to all log groups in the account. Or you can create as many as 20 account-level transformer policies that are each scoped to a subset of log groups with the <code>selectionCriteria</code> parameter. If you have multiple account-level transformer policies with selection criteria, no two of them can use the same or overlapping log group name prefixes. For example, if you have one policy filtered to log groups that start with <code>my-log</code>, you can't have another field index policy filtered to <code>my-logpprod</code> or <code>my-logging</code>.</p>
+/// <p>You can also set up a transformer at the log-group level. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutTransformer.html">PutTransformer</a>. If there is both a log-group level transformer created with <code>PutTransformer</code> and an account-level transformer that could apply to the same log group, the log group uses only the log-group level transformer. It ignores the account-level transformer.</p>
+/// <p><b>Field index policy</b></p>
+/// <p>You can use field index policies to create indexes on fields found in log events in the log group. Creating field indexes can help lower the scan volume for CloudWatch Logs Insights queries that reference those fields, because these queries attempt to skip the processing of log events that are known to not match the indexed field. Good fields to index are fields that you often need to query for and fields or values that match only a small fraction of the total log events. Common examples of indexes include request ID, session ID, user IDs, or instance IDs. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CloudWatchLogs-Field-Indexing.html">Create field indexes to improve query performance and reduce costs</a></p>
+/// <p>To find the fields that are in your log group events, use the <a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_GetLogGroupFields.html">GetLogGroupFields</a> operation.</p>
+/// <p>For example, suppose you have created a field index for <code>requestId</code>. Then, any CloudWatch Logs Insights query on that log group that includes <code>requestId = <i>value</i> </code> or <code>requestId in \[value, value, ...\]</code> will attempt to process only the log events where the indexed field matches the specified value.</p>
+/// <p>Matches of log events to the names of indexed fields are case-sensitive. For example, an indexed field of <code>RequestId</code> won't match a log event containing <code>requestId</code>.</p>
+/// <p>You can have one account-level field index policy that applies to all log groups in the account. Or you can create as many as 20 account-level field index policies that are each scoped to a subset of log groups with the <code>selectionCriteria</code> parameter. If you have multiple account-level index policies with selection criteria, no two of them can use the same or overlapping log group name prefixes. For example, if you have one policy filtered to log groups that start with <code>my-log</code>, you can't have another field index policy filtered to <code>my-logpprod</code> or <code>my-logging</code>.</p>
+/// <p>If you create an account-level field index policy in a monitoring account in cross-account observability, the policy is applied only to the monitoring account and not to any source accounts.</p>
+/// <p>If you want to create a field index policy for a single log group, you can use <a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutIndexPolicy.html">PutIndexPolicy</a> instead of <code>PutAccountPolicy</code>. If you do so, that log group will use only that log-group level policy, and will ignore the account-level policy that you create with <a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutAccountPolicy.html">PutAccountPolicy</a>.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct PutAccountPolicyFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -55,7 +98,7 @@ impl
     }
 }
 impl PutAccountPolicyFluentBuilder {
-    /// Creates a new `PutAccountPolicy`.
+    /// Creates a new `PutAccountPolicyFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -106,12 +149,12 @@ impl PutAccountPolicyFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -129,61 +172,175 @@ impl PutAccountPolicyFluentBuilder {
     pub fn get_policy_name(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_policy_name()
     }
-    /// <p>Specify the data protection policy, in JSON.</p>
-    /// <p>This policy must include two JSON blocks:</p>
+    /// <p>Specify the policy, in JSON.</p>
+    /// <p><b>Data protection policy</b></p>
+    /// <p>A data protection policy must include two JSON blocks:</p>
     /// <ul>
-    /// <li> <p>The first block must include both a <code>DataIdentifer</code> array and an <code>Operation</code> property with an <code>Audit</code> action. The <code>DataIdentifer</code> array lists the types of sensitive data that you want to mask. For more information about the available options, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/mask-sensitive-log-data-types.html">Types of data that you can mask</a>.</p> <p>The <code>Operation</code> property with an <code>Audit</code> action is required to find the sensitive data terms. This <code>Audit</code> action must contain a <code>FindingsDestination</code> object. You can optionally use that <code>FindingsDestination</code> object to list one or more destinations to send audit findings to. If you specify destinations such as log groups, Kinesis Data Firehose streams, and S3 buckets, they must already exist.</p> </li>
-    /// <li> <p>The second block must include both a <code>DataIdentifer</code> array and an <code>Operation</code> property with an <code>Deidentify</code> action. The <code>DataIdentifer</code> array must exactly match the <code>DataIdentifer</code> array in the first block of the policy.</p> <p>The <code>Operation</code> property with the <code>Deidentify</code> action is what actually masks the data, and it must contain the <code> "MaskConfig": {}</code> object. The <code> "MaskConfig": {}</code> object must be empty.</p> </li>
+    /// <li>
+    /// <p>The first block must include both a <code>DataIdentifer</code> array and an <code>Operation</code> property with an <code>Audit</code> action. The <code>DataIdentifer</code> array lists the types of sensitive data that you want to mask. For more information about the available options, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/mask-sensitive-log-data-types.html">Types of data that you can mask</a>.</p>
+    /// <p>The <code>Operation</code> property with an <code>Audit</code> action is required to find the sensitive data terms. This <code>Audit</code> action must contain a <code>FindingsDestination</code> object. You can optionally use that <code>FindingsDestination</code> object to list one or more destinations to send audit findings to. If you specify destinations such as log groups, Firehose streams, and S3 buckets, they must already exist.</p></li>
+    /// <li>
+    /// <p>The second block must include both a <code>DataIdentifer</code> array and an <code>Operation</code> property with an <code>Deidentify</code> action. The <code>DataIdentifer</code> array must exactly match the <code>DataIdentifer</code> array in the first block of the policy.</p>
+    /// <p>The <code>Operation</code> property with the <code>Deidentify</code> action is what actually masks the data, and it must contain the <code> "MaskConfig": {}</code> object. The <code> "MaskConfig": {}</code> object must be empty.</p></li>
     /// </ul>
-    /// <p>For an example data protection policy, see the <b>Examples</b> section on this page.</p> <important>
+    /// <p>For an example data protection policy, see the <b>Examples</b> section on this page.</p><important>
     /// <p>The contents of the two <code>DataIdentifer</code> arrays must match exactly.</p>
     /// </important>
     /// <p>In addition to the two JSON blocks, the <code>policyDocument</code> can also include <code>Name</code>, <code>Description</code>, and <code>Version</code> fields. The <code>Name</code> is different than the operation's <code>policyName</code> parameter, and is used as a dimension when CloudWatch Logs reports audit findings metrics to CloudWatch.</p>
-    /// <p>The JSON specified in <code>policyDocument</code> can be up to 30,720 characters.</p>
+    /// <p>The JSON specified in <code>policyDocument</code> can be up to 30,720 characters long.</p>
+    /// <p><b>Subscription filter policy</b></p>
+    /// <p>A subscription filter policy can include the following attributes in a JSON block:</p>
+    /// <ul>
+    /// <li>
+    /// <p><b>DestinationArn</b> The ARN of the destination to deliver log events to. Supported destinations are:</p>
+    /// <ul>
+    /// <li>
+    /// <p>An Kinesis Data Streams data stream in the same account as the subscription policy, for same-account delivery.</p></li>
+    /// <li>
+    /// <p>An Firehose data stream in the same account as the subscription policy, for same-account delivery.</p></li>
+    /// <li>
+    /// <p>A Lambda function in the same account as the subscription policy, for same-account delivery.</p></li>
+    /// <li>
+    /// <p>A logical destination in a different account created with <a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDestination.html">PutDestination</a>, for cross-account delivery. Kinesis Data Streams and Firehose are supported as logical destinations.</p></li>
+    /// </ul></li>
+    /// <li>
+    /// <p><b>RoleArn</b> The ARN of an IAM role that grants CloudWatch Logs permissions to deliver ingested log events to the destination stream. You don't need to provide the ARN when you are working with a logical destination for cross-account delivery.</p></li>
+    /// <li>
+    /// <p><b>FilterPattern</b> A filter pattern for subscribing to a filtered stream of log events.</p></li>
+    /// <li>
+    /// <p><b>Distribution</b> The method used to distribute log data to the destination. By default, log data is grouped by log stream, but the grouping can be set to <code>Random</code> for a more even distribution. This property is only applicable when the destination is an Kinesis Data Streams data stream.</p></li>
+    /// </ul>
+    /// <p><b>Transformer policy</b></p>
+    /// <p>A transformer policy must include one JSON block with the array of processors and their configurations. For more information about available processors, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CloudWatch-Logs-Transformation.html#CloudWatch-Logs-Transformation-Processors"> Processors that you can use</a>.</p>
+    /// <p><b>Field index policy</b></p>
+    /// <p>A field index filter policy can include the following attribute in a JSON block:</p>
+    /// <ul>
+    /// <li>
+    /// <p><b>Fields</b> The array of field indexes to create.</p></li>
+    /// </ul>
+    /// <p>It must contain at least one field index.</p>
+    /// <p>The following is an example of an index policy document that creates two indexes, <code>RequestId</code> and <code>TransactionId</code>.</p>
+    /// <p><code>"policyDocument": "{ \"Fields\": \[ \"RequestId\", \"TransactionId\" \] }"</code></p>
     pub fn policy_document(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.policy_document(input.into());
         self
     }
-    /// <p>Specify the data protection policy, in JSON.</p>
-    /// <p>This policy must include two JSON blocks:</p>
+    /// <p>Specify the policy, in JSON.</p>
+    /// <p><b>Data protection policy</b></p>
+    /// <p>A data protection policy must include two JSON blocks:</p>
     /// <ul>
-    /// <li> <p>The first block must include both a <code>DataIdentifer</code> array and an <code>Operation</code> property with an <code>Audit</code> action. The <code>DataIdentifer</code> array lists the types of sensitive data that you want to mask. For more information about the available options, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/mask-sensitive-log-data-types.html">Types of data that you can mask</a>.</p> <p>The <code>Operation</code> property with an <code>Audit</code> action is required to find the sensitive data terms. This <code>Audit</code> action must contain a <code>FindingsDestination</code> object. You can optionally use that <code>FindingsDestination</code> object to list one or more destinations to send audit findings to. If you specify destinations such as log groups, Kinesis Data Firehose streams, and S3 buckets, they must already exist.</p> </li>
-    /// <li> <p>The second block must include both a <code>DataIdentifer</code> array and an <code>Operation</code> property with an <code>Deidentify</code> action. The <code>DataIdentifer</code> array must exactly match the <code>DataIdentifer</code> array in the first block of the policy.</p> <p>The <code>Operation</code> property with the <code>Deidentify</code> action is what actually masks the data, and it must contain the <code> "MaskConfig": {}</code> object. The <code> "MaskConfig": {}</code> object must be empty.</p> </li>
+    /// <li>
+    /// <p>The first block must include both a <code>DataIdentifer</code> array and an <code>Operation</code> property with an <code>Audit</code> action. The <code>DataIdentifer</code> array lists the types of sensitive data that you want to mask. For more information about the available options, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/mask-sensitive-log-data-types.html">Types of data that you can mask</a>.</p>
+    /// <p>The <code>Operation</code> property with an <code>Audit</code> action is required to find the sensitive data terms. This <code>Audit</code> action must contain a <code>FindingsDestination</code> object. You can optionally use that <code>FindingsDestination</code> object to list one or more destinations to send audit findings to. If you specify destinations such as log groups, Firehose streams, and S3 buckets, they must already exist.</p></li>
+    /// <li>
+    /// <p>The second block must include both a <code>DataIdentifer</code> array and an <code>Operation</code> property with an <code>Deidentify</code> action. The <code>DataIdentifer</code> array must exactly match the <code>DataIdentifer</code> array in the first block of the policy.</p>
+    /// <p>The <code>Operation</code> property with the <code>Deidentify</code> action is what actually masks the data, and it must contain the <code> "MaskConfig": {}</code> object. The <code> "MaskConfig": {}</code> object must be empty.</p></li>
     /// </ul>
-    /// <p>For an example data protection policy, see the <b>Examples</b> section on this page.</p> <important>
+    /// <p>For an example data protection policy, see the <b>Examples</b> section on this page.</p><important>
     /// <p>The contents of the two <code>DataIdentifer</code> arrays must match exactly.</p>
     /// </important>
     /// <p>In addition to the two JSON blocks, the <code>policyDocument</code> can also include <code>Name</code>, <code>Description</code>, and <code>Version</code> fields. The <code>Name</code> is different than the operation's <code>policyName</code> parameter, and is used as a dimension when CloudWatch Logs reports audit findings metrics to CloudWatch.</p>
-    /// <p>The JSON specified in <code>policyDocument</code> can be up to 30,720 characters.</p>
+    /// <p>The JSON specified in <code>policyDocument</code> can be up to 30,720 characters long.</p>
+    /// <p><b>Subscription filter policy</b></p>
+    /// <p>A subscription filter policy can include the following attributes in a JSON block:</p>
+    /// <ul>
+    /// <li>
+    /// <p><b>DestinationArn</b> The ARN of the destination to deliver log events to. Supported destinations are:</p>
+    /// <ul>
+    /// <li>
+    /// <p>An Kinesis Data Streams data stream in the same account as the subscription policy, for same-account delivery.</p></li>
+    /// <li>
+    /// <p>An Firehose data stream in the same account as the subscription policy, for same-account delivery.</p></li>
+    /// <li>
+    /// <p>A Lambda function in the same account as the subscription policy, for same-account delivery.</p></li>
+    /// <li>
+    /// <p>A logical destination in a different account created with <a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDestination.html">PutDestination</a>, for cross-account delivery. Kinesis Data Streams and Firehose are supported as logical destinations.</p></li>
+    /// </ul></li>
+    /// <li>
+    /// <p><b>RoleArn</b> The ARN of an IAM role that grants CloudWatch Logs permissions to deliver ingested log events to the destination stream. You don't need to provide the ARN when you are working with a logical destination for cross-account delivery.</p></li>
+    /// <li>
+    /// <p><b>FilterPattern</b> A filter pattern for subscribing to a filtered stream of log events.</p></li>
+    /// <li>
+    /// <p><b>Distribution</b> The method used to distribute log data to the destination. By default, log data is grouped by log stream, but the grouping can be set to <code>Random</code> for a more even distribution. This property is only applicable when the destination is an Kinesis Data Streams data stream.</p></li>
+    /// </ul>
+    /// <p><b>Transformer policy</b></p>
+    /// <p>A transformer policy must include one JSON block with the array of processors and their configurations. For more information about available processors, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CloudWatch-Logs-Transformation.html#CloudWatch-Logs-Transformation-Processors"> Processors that you can use</a>.</p>
+    /// <p><b>Field index policy</b></p>
+    /// <p>A field index filter policy can include the following attribute in a JSON block:</p>
+    /// <ul>
+    /// <li>
+    /// <p><b>Fields</b> The array of field indexes to create.</p></li>
+    /// </ul>
+    /// <p>It must contain at least one field index.</p>
+    /// <p>The following is an example of an index policy document that creates two indexes, <code>RequestId</code> and <code>TransactionId</code>.</p>
+    /// <p><code>"policyDocument": "{ \"Fields\": \[ \"RequestId\", \"TransactionId\" \] }"</code></p>
     pub fn set_policy_document(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_policy_document(input);
         self
     }
-    /// <p>Specify the data protection policy, in JSON.</p>
-    /// <p>This policy must include two JSON blocks:</p>
+    /// <p>Specify the policy, in JSON.</p>
+    /// <p><b>Data protection policy</b></p>
+    /// <p>A data protection policy must include two JSON blocks:</p>
     /// <ul>
-    /// <li> <p>The first block must include both a <code>DataIdentifer</code> array and an <code>Operation</code> property with an <code>Audit</code> action. The <code>DataIdentifer</code> array lists the types of sensitive data that you want to mask. For more information about the available options, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/mask-sensitive-log-data-types.html">Types of data that you can mask</a>.</p> <p>The <code>Operation</code> property with an <code>Audit</code> action is required to find the sensitive data terms. This <code>Audit</code> action must contain a <code>FindingsDestination</code> object. You can optionally use that <code>FindingsDestination</code> object to list one or more destinations to send audit findings to. If you specify destinations such as log groups, Kinesis Data Firehose streams, and S3 buckets, they must already exist.</p> </li>
-    /// <li> <p>The second block must include both a <code>DataIdentifer</code> array and an <code>Operation</code> property with an <code>Deidentify</code> action. The <code>DataIdentifer</code> array must exactly match the <code>DataIdentifer</code> array in the first block of the policy.</p> <p>The <code>Operation</code> property with the <code>Deidentify</code> action is what actually masks the data, and it must contain the <code> "MaskConfig": {}</code> object. The <code> "MaskConfig": {}</code> object must be empty.</p> </li>
+    /// <li>
+    /// <p>The first block must include both a <code>DataIdentifer</code> array and an <code>Operation</code> property with an <code>Audit</code> action. The <code>DataIdentifer</code> array lists the types of sensitive data that you want to mask. For more information about the available options, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/mask-sensitive-log-data-types.html">Types of data that you can mask</a>.</p>
+    /// <p>The <code>Operation</code> property with an <code>Audit</code> action is required to find the sensitive data terms. This <code>Audit</code> action must contain a <code>FindingsDestination</code> object. You can optionally use that <code>FindingsDestination</code> object to list one or more destinations to send audit findings to. If you specify destinations such as log groups, Firehose streams, and S3 buckets, they must already exist.</p></li>
+    /// <li>
+    /// <p>The second block must include both a <code>DataIdentifer</code> array and an <code>Operation</code> property with an <code>Deidentify</code> action. The <code>DataIdentifer</code> array must exactly match the <code>DataIdentifer</code> array in the first block of the policy.</p>
+    /// <p>The <code>Operation</code> property with the <code>Deidentify</code> action is what actually masks the data, and it must contain the <code> "MaskConfig": {}</code> object. The <code> "MaskConfig": {}</code> object must be empty.</p></li>
     /// </ul>
-    /// <p>For an example data protection policy, see the <b>Examples</b> section on this page.</p> <important>
+    /// <p>For an example data protection policy, see the <b>Examples</b> section on this page.</p><important>
     /// <p>The contents of the two <code>DataIdentifer</code> arrays must match exactly.</p>
     /// </important>
     /// <p>In addition to the two JSON blocks, the <code>policyDocument</code> can also include <code>Name</code>, <code>Description</code>, and <code>Version</code> fields. The <code>Name</code> is different than the operation's <code>policyName</code> parameter, and is used as a dimension when CloudWatch Logs reports audit findings metrics to CloudWatch.</p>
-    /// <p>The JSON specified in <code>policyDocument</code> can be up to 30,720 characters.</p>
+    /// <p>The JSON specified in <code>policyDocument</code> can be up to 30,720 characters long.</p>
+    /// <p><b>Subscription filter policy</b></p>
+    /// <p>A subscription filter policy can include the following attributes in a JSON block:</p>
+    /// <ul>
+    /// <li>
+    /// <p><b>DestinationArn</b> The ARN of the destination to deliver log events to. Supported destinations are:</p>
+    /// <ul>
+    /// <li>
+    /// <p>An Kinesis Data Streams data stream in the same account as the subscription policy, for same-account delivery.</p></li>
+    /// <li>
+    /// <p>An Firehose data stream in the same account as the subscription policy, for same-account delivery.</p></li>
+    /// <li>
+    /// <p>A Lambda function in the same account as the subscription policy, for same-account delivery.</p></li>
+    /// <li>
+    /// <p>A logical destination in a different account created with <a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDestination.html">PutDestination</a>, for cross-account delivery. Kinesis Data Streams and Firehose are supported as logical destinations.</p></li>
+    /// </ul></li>
+    /// <li>
+    /// <p><b>RoleArn</b> The ARN of an IAM role that grants CloudWatch Logs permissions to deliver ingested log events to the destination stream. You don't need to provide the ARN when you are working with a logical destination for cross-account delivery.</p></li>
+    /// <li>
+    /// <p><b>FilterPattern</b> A filter pattern for subscribing to a filtered stream of log events.</p></li>
+    /// <li>
+    /// <p><b>Distribution</b> The method used to distribute log data to the destination. By default, log data is grouped by log stream, but the grouping can be set to <code>Random</code> for a more even distribution. This property is only applicable when the destination is an Kinesis Data Streams data stream.</p></li>
+    /// </ul>
+    /// <p><b>Transformer policy</b></p>
+    /// <p>A transformer policy must include one JSON block with the array of processors and their configurations. For more information about available processors, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CloudWatch-Logs-Transformation.html#CloudWatch-Logs-Transformation-Processors"> Processors that you can use</a>.</p>
+    /// <p><b>Field index policy</b></p>
+    /// <p>A field index filter policy can include the following attribute in a JSON block:</p>
+    /// <ul>
+    /// <li>
+    /// <p><b>Fields</b> The array of field indexes to create.</p></li>
+    /// </ul>
+    /// <p>It must contain at least one field index.</p>
+    /// <p>The following is an example of an index policy document that creates two indexes, <code>RequestId</code> and <code>TransactionId</code>.</p>
+    /// <p><code>"policyDocument": "{ \"Fields\": \[ \"RequestId\", \"TransactionId\" \] }"</code></p>
     pub fn get_policy_document(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_policy_document()
     }
-    /// <p>Currently the only valid value for this parameter is <code>DATA_PROTECTION_POLICY</code>.</p>
+    /// <p>The type of policy that you're creating or updating.</p>
     pub fn policy_type(mut self, input: crate::types::PolicyType) -> Self {
         self.inner = self.inner.policy_type(input);
         self
     }
-    /// <p>Currently the only valid value for this parameter is <code>DATA_PROTECTION_POLICY</code>.</p>
+    /// <p>The type of policy that you're creating or updating.</p>
     pub fn set_policy_type(mut self, input: ::std::option::Option<crate::types::PolicyType>) -> Self {
         self.inner = self.inner.set_policy_type(input);
         self
     }
-    /// <p>Currently the only valid value for this parameter is <code>DATA_PROTECTION_POLICY</code>.</p>
+    /// <p>The type of policy that you're creating or updating.</p>
     pub fn get_policy_type(&self) -> &::std::option::Option<crate::types::PolicyType> {
         self.inner.get_policy_type()
     }
@@ -200,5 +357,34 @@ impl PutAccountPolicyFluentBuilder {
     /// <p>Currently the only valid value for this parameter is <code>ALL</code>, which specifies that the data protection policy applies to all log groups in the account. If you omit this parameter, the default of <code>ALL</code> is used.</p>
     pub fn get_scope(&self) -> &::std::option::Option<crate::types::Scope> {
         self.inner.get_scope()
+    }
+    /// <p>Use this parameter to apply the new policy to a subset of log groups in the account.</p>
+    /// <p>Specifing <code>selectionCriteria</code> is valid only when you specify <code>SUBSCRIPTION_FILTER_POLICY</code>, <code>FIELD_INDEX_POLICY</code> or <code>TRANSFORMER_POLICY</code>for <code>policyType</code>.</p>
+    /// <p>If <code>policyType</code> is <code>SUBSCRIPTION_FILTER_POLICY</code>, the only supported <code>selectionCriteria</code> filter is <code>LogGroupName NOT IN \[\]</code></p>
+    /// <p>If <code>policyType</code> is <code>FIELD_INDEX_POLICY</code> or <code>TRANSFORMER_POLICY</code>, the only supported <code>selectionCriteria</code> filter is <code>LogGroupNamePrefix</code></p>
+    /// <p>The <code>selectionCriteria</code> string can be up to 25KB in length. The length is determined by using its UTF-8 bytes.</p>
+    /// <p>Using the <code>selectionCriteria</code> parameter with <code>SUBSCRIPTION_FILTER_POLICY</code> is useful to help prevent infinite loops. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/Subscriptions-recursion-prevention.html">Log recursion prevention</a>.</p>
+    pub fn selection_criteria(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
+        self.inner = self.inner.selection_criteria(input.into());
+        self
+    }
+    /// <p>Use this parameter to apply the new policy to a subset of log groups in the account.</p>
+    /// <p>Specifing <code>selectionCriteria</code> is valid only when you specify <code>SUBSCRIPTION_FILTER_POLICY</code>, <code>FIELD_INDEX_POLICY</code> or <code>TRANSFORMER_POLICY</code>for <code>policyType</code>.</p>
+    /// <p>If <code>policyType</code> is <code>SUBSCRIPTION_FILTER_POLICY</code>, the only supported <code>selectionCriteria</code> filter is <code>LogGroupName NOT IN \[\]</code></p>
+    /// <p>If <code>policyType</code> is <code>FIELD_INDEX_POLICY</code> or <code>TRANSFORMER_POLICY</code>, the only supported <code>selectionCriteria</code> filter is <code>LogGroupNamePrefix</code></p>
+    /// <p>The <code>selectionCriteria</code> string can be up to 25KB in length. The length is determined by using its UTF-8 bytes.</p>
+    /// <p>Using the <code>selectionCriteria</code> parameter with <code>SUBSCRIPTION_FILTER_POLICY</code> is useful to help prevent infinite loops. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/Subscriptions-recursion-prevention.html">Log recursion prevention</a>.</p>
+    pub fn set_selection_criteria(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+        self.inner = self.inner.set_selection_criteria(input);
+        self
+    }
+    /// <p>Use this parameter to apply the new policy to a subset of log groups in the account.</p>
+    /// <p>Specifing <code>selectionCriteria</code> is valid only when you specify <code>SUBSCRIPTION_FILTER_POLICY</code>, <code>FIELD_INDEX_POLICY</code> or <code>TRANSFORMER_POLICY</code>for <code>policyType</code>.</p>
+    /// <p>If <code>policyType</code> is <code>SUBSCRIPTION_FILTER_POLICY</code>, the only supported <code>selectionCriteria</code> filter is <code>LogGroupName NOT IN \[\]</code></p>
+    /// <p>If <code>policyType</code> is <code>FIELD_INDEX_POLICY</code> or <code>TRANSFORMER_POLICY</code>, the only supported <code>selectionCriteria</code> filter is <code>LogGroupNamePrefix</code></p>
+    /// <p>The <code>selectionCriteria</code> string can be up to 25KB in length. The length is determined by using its UTF-8 bytes.</p>
+    /// <p>Using the <code>selectionCriteria</code> parameter with <code>SUBSCRIPTION_FILTER_POLICY</code> is useful to help prevent infinite loops. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/Subscriptions-recursion-prevention.html">Log recursion prevention</a>.</p>
+    pub fn get_selection_criteria(&self) -> &::std::option::Option<::std::string::String> {
+        self.inner.get_selection_criteria()
     }
 }

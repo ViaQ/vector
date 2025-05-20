@@ -3,7 +3,7 @@ pub use crate::operation::tag_log_group::_tag_log_group_output::TagLogGroupOutpu
 
 pub use crate::operation::tag_log_group::_tag_log_group_input::TagLogGroupInputBuilder;
 
-impl TagLogGroupInputBuilder {
+impl crate::operation::tag_log_group::builders::TagLogGroupInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -28,7 +28,7 @@ impl TagLogGroupInputBuilder {
 /// <p>Adds or updates the specified tags for the specified log group.</p>
 /// <p>To list the tags for a log group, use <a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_ListTagsForResource.html">ListTagsForResource</a>. To remove tags, use <a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_UntagResource.html">UntagResource</a>.</p>
 /// <p>For more information about tags, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/Working-with-log-groups-and-streams.html#log-group-tagging">Tag Log Groups in Amazon CloudWatch Logs</a> in the <i>Amazon CloudWatch Logs User Guide</i>.</p>
-/// <p>CloudWatch Logs doesn’t support IAM policies that prevent users from assigning specified tags to log groups using the <code>aws:Resource/<i>key-name</i> </code> or <code>aws:TagKeys</code> condition keys. For more information about using tags to control access, see <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_tags.html">Controlling access to Amazon Web Services resources using tags</a>.</p>
+/// <p>CloudWatch Logs doesn't support IAM policies that prevent users from assigning specified tags to log groups using the <code>aws:Resource/<i>key-name</i> </code> or <code>aws:TagKeys</code> condition keys. For more information about using tags to control access, see <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_tags.html">Controlling access to Amazon Web Services resources using tags</a>.</p>
 #[deprecated(note = "Please use the generic tagging API TagResource")]
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct TagLogGroupFluentBuilder {
@@ -55,7 +55,7 @@ impl
     }
 }
 impl TagLogGroupFluentBuilder {
-    /// Creates a new `TagLogGroup`.
+    /// Creates a new `TagLogGroupFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -106,12 +106,12 @@ impl TagLogGroupFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -129,6 +129,7 @@ impl TagLogGroupFluentBuilder {
     pub fn get_log_group_name(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_log_group_name()
     }
+    ///
     /// Adds a key-value pair to `tags`.
     ///
     /// To override the contents of this collection use [`set_tags`](Self::set_tags).

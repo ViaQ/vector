@@ -7,7 +7,12 @@
 
 //! Message metadata
 
-use std::{convert::From, fmt};
+#[cfg(test)]
+use alloc::vec::Vec;
+use core::{convert::From, fmt};
+
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 use crate::{
     error::*,
@@ -48,6 +53,7 @@ use crate::{
 /// ```
 ///
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Header {
     id: u16,
     message_type: MessageType,
@@ -84,6 +90,7 @@ impl fmt::Display for Header {
 
 /// Message types are either Query (also Update) or Response
 #[derive(Debug, PartialEq, Eq, PartialOrd, Copy, Clone, Hash)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub enum MessageType {
     /// Queries are Client requests, these are either Queries or Updates
     Query,
@@ -451,7 +458,7 @@ impl Header {
     /// # Return value
     ///
     /// If this is a query, this will return the number of queries in the query section of the
-    //   message, fo updates this represents the zone count (must be no more than 1).
+    //   message, for updates this represents the zone count (must be no more than 1).
     pub fn query_count(&self) -> u16 {
         self.query_count
     }
@@ -557,7 +564,7 @@ impl<'r> BinDecodable<'r> for Header {
             MessageType::Query
         };
         // the 4bit opcode, masked and then shifted right 3bits for the u8...
-        let op_code: OpCode = OpCode::from_u8((0b0111_1000 & q_opcd_a_t_r) >> 3)?;
+        let op_code = OpCode::from_u8((0b0111_1000 & q_opcd_a_t_r) >> 3);
         let authoritative = (0b0000_0100 & q_opcd_a_t_r) == 0b0000_0100;
         let truncation = (0b0000_0010 & q_opcd_a_t_r) == 0b0000_0010;
         let recursion_desired = (0b0000_0001 & q_opcd_a_t_r) == 0b0000_0001;

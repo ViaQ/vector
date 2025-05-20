@@ -3,7 +3,7 @@ pub use crate::operation::delete_metric_stream::_delete_metric_stream_output::De
 
 pub use crate::operation::delete_metric_stream::_delete_metric_stream_input::DeleteMetricStreamInputBuilder;
 
-impl DeleteMetricStreamInputBuilder {
+impl crate::operation::delete_metric_stream::builders::DeleteMetricStreamInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -48,7 +48,7 @@ impl
     }
 }
 impl DeleteMetricStreamFluentBuilder {
-    /// Creates a new `DeleteMetricStream`.
+    /// Creates a new `DeleteMetricStreamFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -99,12 +99,12 @@ impl DeleteMetricStreamFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

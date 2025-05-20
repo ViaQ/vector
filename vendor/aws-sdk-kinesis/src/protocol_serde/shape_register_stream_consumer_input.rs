@@ -2,12 +2,22 @@
 pub fn ser_register_stream_consumer_input_input(
     object: &mut ::aws_smithy_json::serialize::JsonObjectWriter,
     input: &crate::operation::register_stream_consumer::RegisterStreamConsumerInput,
-) -> Result<(), ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<(), ::aws_smithy_types::error::operation::SerializationError> {
     if let Some(var_1) = &input.stream_arn {
         object.key("StreamARN").string(var_1.as_str());
     }
     if let Some(var_2) = &input.consumer_name {
         object.key("ConsumerName").string(var_2.as_str());
+    }
+    if let Some(var_3) = &input.tags {
+        #[allow(unused_mut)]
+        let mut object_4 = object.key("Tags").start_object();
+        for (key_5, value_6) in var_3 {
+            {
+                object_4.key(key_5.as_str()).string(value_6.as_str());
+            }
+        }
+        object_4.finish();
     }
     Ok(())
 }

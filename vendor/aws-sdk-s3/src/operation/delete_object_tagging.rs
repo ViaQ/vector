@@ -50,7 +50,18 @@ impl DeleteObjectTagging {
         >,
     > {
         let input = ::aws_smithy_runtime_api::client::interceptors::context::Input::erase(input);
-        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("s3", "DeleteObjectTagging", input, runtime_plugins, stop_point).await
+        use ::tracing::Instrument;
+        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("S3", "DeleteObjectTagging", input, runtime_plugins, stop_point)
+            // Create a parent span for the entire operation. Includes a random, internal-only,
+            // seven-digit ID for the operation orchestration so that it can be correlated in the logs.
+            .instrument(::tracing::debug_span!(
+                "S3.DeleteObjectTagging",
+                "rpc.service" = "S3",
+                "rpc.method" = "DeleteObjectTagging",
+                "sdk_invocation_id" = ::fastrand::u32(1_000_000..10_000_000),
+                "rpc.system" = "aws-api",
+            ))
+            .await
     }
 
     pub(crate) fn operation_runtime_plugins(
@@ -59,7 +70,7 @@ impl DeleteObjectTagging {
         config_override: ::std::option::Option<crate::config::Builder>,
     ) -> ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugins {
         let mut runtime_plugins = client_runtime_plugins.with_operation_plugin(Self::new());
-        runtime_plugins = runtime_plugins.with_client_plugin(crate::auth_plugin::DefaultAuthOptionsPlugin::new(vec![
+        runtime_plugins = runtime_plugins.with_client_plugin(crate::endpoint_auth_plugin::EndpointBasedAuthOptionsPlugin::new(vec![
             ::aws_runtime::auth::sigv4::SCHEME_ID,
             #[cfg(feature = "sigv4a")]
             {
@@ -95,7 +106,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for DeleteO
             ::aws_smithy_runtime_api::client::auth::static_resolver::StaticAuthSchemeOptionResolverParams::new(),
         ));
 
-        cfg.store_put(::aws_smithy_http::operation::Metadata::new("DeleteObjectTagging", "s3"));
+        cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::Metadata::new("DeleteObjectTagging", "S3"));
         let mut signing_options = ::aws_runtime::auth::SigningOptions::default();
         signing_options.double_uri_encode = false;
         signing_options.content_sha256_header = true;
@@ -115,22 +126,16 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for DeleteO
         _: &::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder,
     ) -> ::std::borrow::Cow<'_, ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder> {
         #[allow(unused_mut)]
-        let mut rcb = ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("DeleteObjectTagging")
-            .with_interceptor(
-                ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::new(
-                    ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptorKind::ResponseBody,
-                ),
-            )
-            .with_interceptor(DeleteObjectTaggingEndpointParamsInterceptor)
-            .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<
-                crate::operation::delete_object_tagging::DeleteObjectTaggingError,
-            >::new())
-            .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::ModeledAsRetryableClassifier::<
-                crate::operation::delete_object_tagging::DeleteObjectTaggingError,
-            >::new())
-            .with_retry_classifier(::aws_runtime::retries::classifiers::AwsErrorCodeClassifier::<
-                crate::operation::delete_object_tagging::DeleteObjectTaggingError,
-            >::new());
+                    let mut rcb = ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("DeleteObjectTagging")
+                            .with_interceptor(::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::default())
+.with_interceptor(DeleteObjectTaggingEndpointParamsInterceptor)
+                            .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<crate::operation::delete_object_tagging::DeleteObjectTaggingError>::new())
+.with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::ModeledAsRetryableClassifier::<crate::operation::delete_object_tagging::DeleteObjectTaggingError>::new())
+.with_retry_classifier(::aws_runtime::retries::classifiers::AwsErrorCodeClassifier::<crate::operation::delete_object_tagging::DeleteObjectTaggingError>::builder().transient_errors({
+                                            let mut transient_errors: Vec<&'static str> = ::aws_runtime::retries::classifiers::TRANSIENT_ERRORS.into();
+                                            transient_errors.push("InternalError");
+                                            ::std::borrow::Cow::Owned(transient_errors)
+                                            }).build());
 
         ::std::borrow::Cow::Owned(rcb)
     }
@@ -205,7 +210,7 @@ impl ::aws_smithy_runtime_api::client::ser_de::SerializeRequest for DeleteObject
                 query.push_v("tagging");
                 if let ::std::option::Option::Some(inner_2) = &_input.version_id {
                     {
-                        query.push_kv("versionId", &::aws_smithy_http::query::fmt_string(&inner_2));
+                        query.push_kv("versionId", &::aws_smithy_http::query::fmt_string(inner_2));
                     }
                 }
                 ::std::result::Result::Ok(())
@@ -276,6 +281,87 @@ impl ::aws_smithy_runtime_api::client::interceptors::Intercept for DeleteObjectT
         cfg.interceptor_state()
             .store_put(::aws_smithy_runtime_api::client::endpoint::EndpointResolverParams::new(params));
         ::std::result::Result::Ok(())
+    }
+}
+
+// The get_* functions below are generated from JMESPath expressions in the
+// operationContextParams trait. They target the operation's input shape.
+
+#[allow(unreachable_code, unused_variables)]
+#[cfg(test)]
+mod delete_object_tagging_test {
+
+    /// S3 clients should escape special characters in Object Keys
+    /// when the Object Key is used as a URI label binding.
+    ///
+    /// Test ID: S3EscapeObjectKeyInUriLabel
+    #[::tokio::test]
+    #[::tracing_test::traced_test]
+    async fn s3_escape_object_key_in_uri_label_request() {
+        let (http_client, request_receiver) = ::aws_smithy_http_client::test_util::capture_request(None);
+        let config_builder = crate::config::Config::builder()
+            .with_test_defaults()
+            .endpoint_url("https://s3.us-west-2.amazonaws.com");
+
+        let mut config_builder = config_builder;
+        config_builder.set_region(Some(crate::config::Region::new("us-east-1")));
+
+        let config = config_builder.http_client(http_client).build();
+        let client = crate::Client::from_conf(config);
+        let result = client
+            .delete_object_tagging()
+            .set_bucket(::std::option::Option::Some("mybucket".to_owned()))
+            .set_key(::std::option::Option::Some("my key.txt".to_owned()))
+            .send()
+            .await;
+        let _ = dbg!(result);
+        let http_request = request_receiver.expect_request();
+        let expected_query_params = &["tagging"];
+        ::aws_smithy_protocol_test::assert_ok(::aws_smithy_protocol_test::validate_query_string(&http_request, expected_query_params));
+        let body = http_request.body().bytes().expect("body should be strict");
+        // No body.
+        ::pretty_assertions::assert_eq!(&body, &bytes::Bytes::new());
+        let uri: ::http::Uri = http_request.uri().parse().expect("invalid URI sent");
+        ::pretty_assertions::assert_eq!(http_request.method(), "DELETE", "method was incorrect");
+        ::pretty_assertions::assert_eq!(uri.path(), "/my%20key.txt", "path was incorrect");
+        ::pretty_assertions::assert_eq!(uri.host().expect("host should be set"), "mybucket.s3.us-west-2.amazonaws.com");
+    }
+
+    /// S3 clients should preserve an Object Key representing a path
+    /// when the Object Key is used as a URI label binding, but still
+    /// escape special characters.
+    ///
+    /// Test ID: S3EscapePathObjectKeyInUriLabel
+    #[::tokio::test]
+    #[::tracing_test::traced_test]
+    async fn s3_escape_path_object_key_in_uri_label_request() {
+        let (http_client, request_receiver) = ::aws_smithy_http_client::test_util::capture_request(None);
+        let config_builder = crate::config::Config::builder()
+            .with_test_defaults()
+            .endpoint_url("https://s3.us-west-2.amazonaws.com");
+
+        let mut config_builder = config_builder;
+        config_builder.set_region(Some(crate::config::Region::new("us-east-1")));
+
+        let config = config_builder.http_client(http_client).build();
+        let client = crate::Client::from_conf(config);
+        let result = client
+            .delete_object_tagging()
+            .set_bucket(::std::option::Option::Some("mybucket".to_owned()))
+            .set_key(::std::option::Option::Some("foo/bar/my key.txt".to_owned()))
+            .send()
+            .await;
+        let _ = dbg!(result);
+        let http_request = request_receiver.expect_request();
+        let expected_query_params = &["tagging"];
+        ::aws_smithy_protocol_test::assert_ok(::aws_smithy_protocol_test::validate_query_string(&http_request, expected_query_params));
+        let body = http_request.body().bytes().expect("body should be strict");
+        // No body.
+        ::pretty_assertions::assert_eq!(&body, &bytes::Bytes::new());
+        let uri: ::http::Uri = http_request.uri().parse().expect("invalid URI sent");
+        ::pretty_assertions::assert_eq!(http_request.method(), "DELETE", "method was incorrect");
+        ::pretty_assertions::assert_eq!(uri.path(), "/foo/bar/my%20key.txt", "path was incorrect");
+        ::pretty_assertions::assert_eq!(uri.host().expect("host should be set"), "mybucket.s3.us-west-2.amazonaws.com");
     }
 }
 

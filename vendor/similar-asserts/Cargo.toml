@@ -13,10 +13,11 @@
 edition = "2018"
 rust-version = "1.46.0"
 name = "similar-asserts"
-version = "1.6.0"
+version = "1.7.0"
 authors = ["Armin Ronacher <armin.ronacher@active-4.com>"]
 build = false
 exclude = ["assets/*"]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -33,6 +34,10 @@ repository = "https://github.com/mitsuhiko/similar-asserts"
 
 [package.metadata.docs.rs]
 all-features = true
+
+[features]
+default = ["unicode"]
+unicode = ["similar/unicode"]
 
 [lib]
 name = "similar_asserts"
@@ -94,7 +99,3 @@ features = ["inline"]
 [dev-dependencies.serde]
 version = "1.0.123"
 features = ["derive"]
-
-[features]
-default = ["unicode"]
-unicode = ["similar/unicode"]

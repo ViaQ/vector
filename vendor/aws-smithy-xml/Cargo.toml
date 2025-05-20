@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "aws-smithy-xml"
-version = "0.60.0"
+version = "0.60.9"
 authors = [
     "AWS Rust SDK Team <aws-sdk-rust@amazon.com>",
     "Russell Cohen <rcoh@amazon.com>",
@@ -24,6 +24,10 @@ repository = "https://github.com/smithy-lang/smithy-rs"
 
 [package.metadata.docs.rs]
 all-features = true
+cargo-args = [
+    "-Zunstable-options",
+    "-Zrustdoc-scrape-examples",
+]
 rustdoc-args = [
     "--cfg",
     "docsrs",
@@ -34,7 +38,7 @@ targets = ["x86_64-unknown-linux-gnu"]
 version = "0.13.5"
 
 [dev-dependencies.aws-smithy-protocol-test]
-version = "0.60.0"
+version = "0.62.0"
 
 [dev-dependencies.base64]
 version = "0.13.0"

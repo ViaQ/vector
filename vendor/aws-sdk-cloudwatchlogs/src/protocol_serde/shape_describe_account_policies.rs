@@ -24,6 +24,21 @@ pub fn de_describe_account_policies_http_error(
 
     let _error_message = generic.message().map(|msg| msg.to_owned());
     Err(match error_code {
+        "ResourceNotFoundException" => crate::operation::describe_account_policies::DescribeAccountPoliciesError::ResourceNotFoundException({
+            #[allow(unused_mut)]
+            let mut tmp = {
+                #[allow(unused_mut)]
+                let mut output = crate::types::error::builders::ResourceNotFoundExceptionBuilder::default();
+                output = crate::protocol_serde::shape_resource_not_found_exception::de_resource_not_found_exception_json_err(_response_body, output)
+                    .map_err(crate::operation::describe_account_policies::DescribeAccountPoliciesError::unhandled)?;
+                let output = output.meta(generic);
+                output.build()
+            };
+            if tmp.message.is_none() {
+                tmp.message = _error_message;
+            }
+            tmp
+        }),
         "InvalidParameterException" => crate::operation::describe_account_policies::DescribeAccountPoliciesError::InvalidParameterException({
             #[allow(unused_mut)]
             let mut tmp = {
@@ -45,21 +60,6 @@ pub fn de_describe_account_policies_http_error(
                 #[allow(unused_mut)]
                 let mut output = crate::types::error::builders::OperationAbortedExceptionBuilder::default();
                 output = crate::protocol_serde::shape_operation_aborted_exception::de_operation_aborted_exception_json_err(_response_body, output)
-                    .map_err(crate::operation::describe_account_policies::DescribeAccountPoliciesError::unhandled)?;
-                let output = output.meta(generic);
-                output.build()
-            };
-            if tmp.message.is_none() {
-                tmp.message = _error_message;
-            }
-            tmp
-        }),
-        "ResourceNotFoundException" => crate::operation::describe_account_policies::DescribeAccountPoliciesError::ResourceNotFoundException({
-            #[allow(unused_mut)]
-            let mut tmp = {
-                #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::ResourceNotFoundExceptionBuilder::default();
-                output = crate::protocol_serde::shape_resource_not_found_exception::de_resource_not_found_exception_json_err(_response_body, output)
                     .map_err(crate::operation::describe_account_policies::DescribeAccountPoliciesError::unhandled)?;
                 let output = output.meta(generic);
                 output.build()
@@ -110,7 +110,7 @@ pub fn de_describe_account_policies_http_response(
 
 pub fn ser_describe_account_policies_input(
     input: &crate::operation::describe_account_policies::DescribeAccountPoliciesInput,
-) -> Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
     let mut out = String::new();
     let mut object = ::aws_smithy_json::serialize::JsonObjectWriter::new(&mut out);
     crate::protocol_serde::shape_describe_account_policies_input::ser_describe_account_policies_input_input(&mut object, input)?;
@@ -121,7 +121,7 @@ pub fn ser_describe_account_policies_input(
 pub(crate) fn de_describe_account_policies(
     value: &[u8],
     mut builder: crate::operation::describe_account_policies::builders::DescribeAccountPoliciesOutputBuilder,
-) -> Result<
+) -> ::std::result::Result<
     crate::operation::describe_account_policies::builders::DescribeAccountPoliciesOutputBuilder,
     ::aws_smithy_json::deserialize::error::DeserializeError,
 > {
@@ -134,6 +134,13 @@ pub(crate) fn de_describe_account_policies(
             Some(::aws_smithy_json::deserialize::Token::ObjectKey { key, .. }) => match key.to_unescaped()?.as_ref() {
                 "accountPolicies" => {
                     builder = builder.set_account_policies(crate::protocol_serde::shape_account_policies::de_account_policies(tokens)?);
+                }
+                "nextToken" => {
+                    builder = builder.set_next_token(
+                        ::aws_smithy_json::deserialize::token::expect_string_or_null(tokens.next())?
+                            .map(|s| s.to_unescaped().map(|u| u.into_owned()))
+                            .transpose()?,
+                    );
                 }
                 _ => ::aws_smithy_json::deserialize::token::skip_value(tokens)?,
             },

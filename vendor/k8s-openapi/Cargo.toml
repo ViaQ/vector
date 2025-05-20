@@ -12,9 +12,10 @@
 [package]
 edition = "2021"
 name = "k8s-openapi"
-version = "0.18.0"
-authors = ["Arnavion <me@arnavion.dev>"]
-links = "k8s-openapi-0.18.0"
+version = "0.22.0"
+authors = ["Arnav Singh <me@arnavion.dev>"]
+build = "build.rs"
+links = "k8s-openapi-0.22.0"
 include = [
     "build.rs",
     "Cargo.toml",
@@ -22,8 +23,12 @@ include = [
     "README.md",
     "src/**/*",
 ]
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Bindings for the Kubernetes client API"
-documentation = "https://arnavion.github.io/k8s-openapi/v0.18.x/k8s_openapi/"
+documentation = "https://arnavion.github.io/k8s-openapi/v0.22.x/k8s_openapi/"
 readme = "README.md"
 keywords = [
     "client",
@@ -39,15 +44,15 @@ license = "Apache-2.0"
 repository = "https://github.com/Arnavion/k8s-openapi"
 
 [package.metadata.docs.rs]
-features = ["v1_26"]
+features = ["latest"]
+
+[lib]
+name = "k8s_openapi"
+path = "src/lib.rs"
 
 [dependencies.base64]
-version = "0.21"
+version = "0.22"
 features = ["alloc"]
-default-features = false
-
-[dependencies.bytes]
-version = "1"
 default-features = false
 
 [dependencies.chrono]
@@ -56,16 +61,6 @@ features = [
     "alloc",
     "serde",
 ]
-default-features = false
-
-[dependencies.http]
-version = "0.2"
-optional = true
-default-features = false
-
-[dependencies.percent-encoding]
-version = "2"
-optional = true
 default-features = false
 
 [dependencies.schemars]
@@ -86,22 +81,14 @@ version = "1"
 features = ["alloc"]
 default-features = false
 
-[dependencies.url]
-version = "2"
-optional = true
-default-features = false
-
 [features]
-api = [
-    "http",
-    "percent-encoding",
-    "url",
-]
-default = ["api"]
-v1_20 = []
-v1_21 = []
-v1_22 = []
-v1_23 = []
+earliest = ["v1_24"]
+latest = ["v1_30"]
+schemars = ["dep:schemars"]
 v1_24 = []
 v1_25 = []
 v1_26 = []
+v1_27 = []
+v1_28 = []
+v1_29 = []
+v1_30 = []

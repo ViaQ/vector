@@ -3,7 +3,7 @@ pub use crate::operation::purge_queue::_purge_queue_output::PurgeQueueOutputBuil
 
 pub use crate::operation::purge_queue::_purge_queue_input::PurgeQueueInputBuilder;
 
-impl PurgeQueueInputBuilder {
+impl crate::operation::purge_queue::builders::PurgeQueueInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,9 +22,9 @@ impl PurgeQueueInputBuilder {
 }
 /// Fluent builder constructing a request to `PurgeQueue`.
 ///
-/// <p>Deletes available messages in a queue (including in-flight messages) specified by the <code>QueueURL</code> parameter.</p> <important>
+/// <p>Deletes available messages in a queue (including in-flight messages) specified by the <code>QueueURL</code> parameter.</p><important>
 /// <p>When you use the <code>PurgeQueue</code> action, you can't retrieve any messages deleted from a queue.</p>
-/// <p>The message deletion process takes up to 60 seconds. We recommend waiting for 60 seconds regardless of your queue's size. </p>
+/// <p>The message deletion process takes up to 60 seconds. We recommend waiting for 60 seconds regardless of your queue's size.</p>
 /// </important>
 /// <p>Messages sent to the queue <i>before</i> you call <code>PurgeQueue</code> might be received but are deleted within the next minute.</p>
 /// <p>Messages sent to the queue <i>after</i> you call <code>PurgeQueue</code> might be deleted while the queue is being purged.</p>
@@ -53,7 +53,7 @@ impl
     }
 }
 impl PurgeQueueFluentBuilder {
-    /// Creates a new `PurgeQueue`.
+    /// Creates a new `PurgeQueueFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -104,12 +104,12 @@ impl PurgeQueueFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

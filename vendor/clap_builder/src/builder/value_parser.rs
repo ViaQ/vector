@@ -1828,7 +1828,7 @@ impl Default for FalseyValueParser {
     }
 }
 
-/// Parse bool-like string values, everything else is `true`
+/// Parse bool-like string values
 ///
 /// See also:
 /// - [`ValueParser::bool`] for different human readable bool representations
@@ -1877,7 +1877,7 @@ impl Default for FalseyValueParser {
 pub struct BoolishValueParser {}
 
 impl BoolishValueParser {
-    /// Parse bool-like string values, everything else is an error.
+    /// Parse bool-like string values
     pub fn new() -> Self {
         Self {}
     }
@@ -2385,6 +2385,18 @@ impl ValueParserFactory for i64 {
     type Parser = RangedI64ValueParser<i64>;
     fn value_parser() -> Self::Parser {
         RangedI64ValueParser::new()
+    }
+}
+impl<T> ValueParserFactory for std::num::Saturating<T>
+where
+    T: ValueParserFactory,
+    <T as ValueParserFactory>::Parser: TypedValueParser<Value = T>,
+    T: Send + Sync + Clone,
+{
+    type Parser =
+        MapValueParser<<T as ValueParserFactory>::Parser, fn(T) -> std::num::Saturating<T>>;
+    fn value_parser() -> Self::Parser {
+        T::value_parser().map(std::num::Saturating)
     }
 }
 impl<T> ValueParserFactory for std::num::Wrapping<T>

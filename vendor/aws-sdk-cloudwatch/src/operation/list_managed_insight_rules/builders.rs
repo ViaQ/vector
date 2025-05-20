@@ -3,7 +3,7 @@ pub use crate::operation::list_managed_insight_rules::_list_managed_insight_rule
 
 pub use crate::operation::list_managed_insight_rules::_list_managed_insight_rules_input::ListManagedInsightRulesInputBuilder;
 
-impl ListManagedInsightRulesInputBuilder {
+impl crate::operation::list_managed_insight_rules::builders::ListManagedInsightRulesInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,7 +22,7 @@ impl ListManagedInsightRulesInputBuilder {
 }
 /// Fluent builder constructing a request to `ListManagedInsightRules`.
 ///
-/// <p> Returns a list that contains the number of managed Contributor Insights rules in your account. </p>
+/// <p>Returns a list that contains the number of managed Contributor Insights rules in your account.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct ListManagedInsightRulesFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -48,7 +48,7 @@ impl
     }
 }
 impl ListManagedInsightRulesFluentBuilder {
-    /// Creates a new `ListManagedInsightRules`.
+    /// Creates a new `ListManagedInsightRulesFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -99,12 +99,12 @@ impl ListManagedInsightRulesFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -114,45 +114,45 @@ impl ListManagedInsightRulesFluentBuilder {
     pub fn into_paginator(self) -> crate::operation::list_managed_insight_rules::paginator::ListManagedInsightRulesPaginator {
         crate::operation::list_managed_insight_rules::paginator::ListManagedInsightRulesPaginator::new(self.handle, self.inner)
     }
-    /// <p> The ARN of an Amazon Web Services resource that has managed Contributor Insights rules. </p>
+    /// <p>The ARN of an Amazon Web Services resource that has managed Contributor Insights rules.</p>
     pub fn resource_arn(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.resource_arn(input.into());
         self
     }
-    /// <p> The ARN of an Amazon Web Services resource that has managed Contributor Insights rules. </p>
+    /// <p>The ARN of an Amazon Web Services resource that has managed Contributor Insights rules.</p>
     pub fn set_resource_arn(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_resource_arn(input);
         self
     }
-    /// <p> The ARN of an Amazon Web Services resource that has managed Contributor Insights rules. </p>
+    /// <p>The ARN of an Amazon Web Services resource that has managed Contributor Insights rules.</p>
     pub fn get_resource_arn(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_resource_arn()
     }
-    /// <p> Include this value to get the next set of rules if the value was returned by the previous operation. </p>
+    /// <p>Include this value to get the next set of rules if the value was returned by the previous operation.</p>
     pub fn next_token(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.next_token(input.into());
         self
     }
-    /// <p> Include this value to get the next set of rules if the value was returned by the previous operation. </p>
+    /// <p>Include this value to get the next set of rules if the value was returned by the previous operation.</p>
     pub fn set_next_token(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_next_token(input);
         self
     }
-    /// <p> Include this value to get the next set of rules if the value was returned by the previous operation. </p>
+    /// <p>Include this value to get the next set of rules if the value was returned by the previous operation.</p>
     pub fn get_next_token(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_next_token()
     }
-    /// <p> The maximum number of results to return in one operation. If you omit this parameter, the default number is used. The default number is <code>100</code>. </p>
+    /// <p>The maximum number of results to return in one operation. If you omit this parameter, the default number is used. The default number is <code>100</code>.</p>
     pub fn max_results(mut self, input: i32) -> Self {
         self.inner = self.inner.max_results(input);
         self
     }
-    /// <p> The maximum number of results to return in one operation. If you omit this parameter, the default number is used. The default number is <code>100</code>. </p>
+    /// <p>The maximum number of results to return in one operation. If you omit this parameter, the default number is used. The default number is <code>100</code>.</p>
     pub fn set_max_results(mut self, input: ::std::option::Option<i32>) -> Self {
         self.inner = self.inner.set_max_results(input);
         self
     }
-    /// <p> The maximum number of results to return in one operation. If you omit this parameter, the default number is used. The default number is <code>100</code>. </p>
+    /// <p>The maximum number of results to return in one operation. If you omit this parameter, the default number is used. The default number is <code>100</code>.</p>
     pub fn get_max_results(&self) -> &::std::option::Option<i32> {
         self.inner.get_max_results()
     }

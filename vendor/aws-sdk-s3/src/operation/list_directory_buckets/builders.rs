@@ -3,7 +3,7 @@ pub use crate::operation::list_directory_buckets::_list_directory_buckets_output
 
 pub use crate::operation::list_directory_buckets::_list_directory_buckets_input::ListDirectoryBucketsInputBuilder;
 
-impl ListDirectoryBucketsInputBuilder {
+impl crate::operation::list_directory_buckets::builders::ListDirectoryBucketsInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,8 +22,8 @@ impl ListDirectoryBucketsInputBuilder {
 }
 /// Fluent builder constructing a request to `ListDirectoryBuckets`.
 ///
-/// <p>Returns a list of all Amazon S3 directory buckets owned by the authenticated sender of the request. For more information about directory buckets, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/directory-buckets-overview.html">Directory buckets</a> in the <i>Amazon S3 User Guide</i>.</p> <note>
-/// <p> <b>Directory buckets </b> - For directory buckets, you must make requests for this API operation to the Regional endpoint. These endpoints support path-style requests in the format <code>https://s3express-control.<i>region_code</i>.amazonaws.com/<i>bucket-name</i> </code>. Virtual-hosted-style requests aren't supported. For more information, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-express-Regions-and-Zones.html">Regional and Zonal endpoints</a> in the <i>Amazon S3 User Guide</i>.</p>
+/// <p>Returns a list of all Amazon S3 directory buckets owned by the authenticated sender of the request. For more information about directory buckets, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/directory-buckets-overview.html">Directory buckets</a> in the <i>Amazon S3 User Guide</i>.</p><note>
+/// <p><b>Directory buckets </b> - For directory buckets, you must make requests for this API operation to the Regional endpoint. These endpoints support path-style requests in the format <code>https://s3express-control.<i>region-code</i>.amazonaws.com/<i>bucket-name</i> </code>. Virtual-hosted-style requests aren't supported. For more information about endpoints in Availability Zones, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/endpoint-directory-buckets-AZ.html">Regional and Zonal endpoints for directory buckets in Availability Zones</a> in the <i>Amazon S3 User Guide</i>. For more information about endpoints in Local Zones, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/s3-lzs-for-directory-buckets.html">Concepts for directory buckets in Local Zones</a> in the <i>Amazon S3 User Guide</i>.</p>
 /// </note>
 /// <dl>
 /// <dt>
@@ -36,9 +36,11 @@ impl ListDirectoryBucketsInputBuilder {
 /// HTTP Host header syntax
 /// </dt>
 /// <dd>
-/// <p> <b>Directory buckets </b> - The HTTP Host header syntax is <code>s3express-control.<i>region</i>.amazonaws.com</code>.</p>
+/// <p><b>Directory buckets </b> - The HTTP Host header syntax is <code>s3express-control.<i>region</i>.amazonaws.com</code>.</p>
 /// </dd>
-/// </dl>
+/// </dl><note>
+/// <p>The <code>BucketRegion</code> response element is not part of the <code>ListDirectoryBuckets</code> Response Syntax.</p>
+/// </note>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct ListDirectoryBucketsFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -64,7 +66,7 @@ impl
     }
 }
 impl ListDirectoryBucketsFluentBuilder {
-    /// Creates a new `ListDirectoryBuckets`.
+    /// Creates a new `ListDirectoryBucketsFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -115,12 +117,12 @@ impl ListDirectoryBucketsFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -130,17 +132,17 @@ impl ListDirectoryBucketsFluentBuilder {
     pub fn into_paginator(self) -> crate::operation::list_directory_buckets::paginator::ListDirectoryBucketsPaginator {
         crate::operation::list_directory_buckets::paginator::ListDirectoryBucketsPaginator::new(self.handle, self.inner)
     }
-    /// <p> <code>ContinuationToken</code> indicates to Amazon S3 that the list is being continued on this bucket with a token. <code>ContinuationToken</code> is obfuscated and is not a real key. You can use this <code>ContinuationToken</code> for pagination of the list results. </p>
+    /// <p><code>ContinuationToken</code> indicates to Amazon S3 that the list is being continued on buckets in this account with a token. <code>ContinuationToken</code> is obfuscated and is not a real bucket name. You can use this <code>ContinuationToken</code> for the pagination of the list results.</p>
     pub fn continuation_token(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.continuation_token(input.into());
         self
     }
-    /// <p> <code>ContinuationToken</code> indicates to Amazon S3 that the list is being continued on this bucket with a token. <code>ContinuationToken</code> is obfuscated and is not a real key. You can use this <code>ContinuationToken</code> for pagination of the list results. </p>
+    /// <p><code>ContinuationToken</code> indicates to Amazon S3 that the list is being continued on buckets in this account with a token. <code>ContinuationToken</code> is obfuscated and is not a real bucket name. You can use this <code>ContinuationToken</code> for the pagination of the list results.</p>
     pub fn set_continuation_token(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_continuation_token(input);
         self
     }
-    /// <p> <code>ContinuationToken</code> indicates to Amazon S3 that the list is being continued on this bucket with a token. <code>ContinuationToken</code> is obfuscated and is not a real key. You can use this <code>ContinuationToken</code> for pagination of the list results. </p>
+    /// <p><code>ContinuationToken</code> indicates to Amazon S3 that the list is being continued on buckets in this account with a token. <code>ContinuationToken</code> is obfuscated and is not a real bucket name. You can use this <code>ContinuationToken</code> for the pagination of the list results.</p>
     pub fn get_continuation_token(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_continuation_token()
     }

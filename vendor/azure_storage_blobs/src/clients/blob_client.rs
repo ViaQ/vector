@@ -1,26 +1,18 @@
-use crate::{
-    blob::operations::*,
-    options::{BA512Range, Snapshot, Tags},
-    prelude::*,
-};
+use crate::{blob::operations::*, prelude::*};
 use azure_core::{
     error::{Error, ErrorKind},
     headers::Headers,
     prelude::*,
-    Body, Method, Request, Response, StatusCode,
+    Body, Method, Request, Response, StatusCode, Url,
 };
 use azure_storage::{
     prelude::*,
-    shared_access_signature::{
-        service_sas::{BlobSharedAccessSignature, BlobSignedResource},
-        SasToken,
-    },
+    shared_access_signature::service_sas::{BlobSharedAccessSignature, UserDeligationKey},
     StorageCredentialsInner,
 };
 use futures::StreamExt;
 use std::ops::Deref;
 use time::OffsetDateTime;
-use url::Url;
 
 /// A client for handling blobs
 ///
@@ -229,13 +221,45 @@ impl BlobClient {
         ClearPageBuilder::new(self.clone(), ba512_range)
     }
 
+    pub async fn user_delegation_shared_access_signature(
+        &self,
+        permissions: BlobSasPermissions,
+        user_delegation_key: &UserDeligationKey,
+    ) -> azure_core::Result<BlobSharedAccessSignature> {
+        let creds = self.container_client.credentials().0.read().await;
+        if !matches!(creds.deref(), StorageCredentialsInner::TokenCredential(_)) {
+            return Err(Error::message(
+                ErrorKind::Credential,
+                "User delegation access signature generation requires Token authentication",
+            ));
+        };
+
+        let service_client = self.container_client().service_client();
+
+        let account = service_client.account();
+
+        let canonicalized_resource = format!(
+            "/blob/{}/{}/{}",
+            account,
+            self.container_client.container_name(),
+            self.blob_name()
+        );
+        Ok(BlobSharedAccessSignature::new(
+            user_delegation_key.clone(),
+            canonicalized_resource,
+            permissions,
+            user_delegation_key.signed_expiry,
+            BlobSignedResource::Blob,
+        ))
+    }
+
     /// Create a shared access signature.
     pub async fn shared_access_signature(
         &self,
         permissions: BlobSasPermissions,
         expiry: OffsetDateTime,
     ) -> azure_core::Result<BlobSharedAccessSignature> {
-        let creds = self.container_client.credentials().0.lock().await;
+        let creds = self.container_client.credentials().0.read().await;
         let StorageCredentialsInner::Key(account, key) = creds.deref() else {
             return Err(Error::message(
                 ErrorKind::Credential,
@@ -250,7 +274,7 @@ impl BlobClient {
             self.blob_name()
         );
         Ok(BlobSharedAccessSignature::new(
-            key.to_string(),
+            key.clone(),
             canonicalized_resource,
             permissions,
             expiry,
@@ -259,12 +283,12 @@ impl BlobClient {
     }
 
     /// Create a signed blob url
-    pub fn generate_signed_blob_url<T>(&self, signature: &T) -> azure_core::Result<url::Url>
+    pub fn generate_signed_blob_url<T>(&self, signature: &T) -> azure_core::Result<Url>
     where
         T: SasToken,
     {
         let mut url = self.url()?;
-        url.set_query(Some(&signature.token()));
+        url.set_query(Some(&signature.token()?));
         Ok(url)
     }
 
@@ -303,7 +327,7 @@ impl BlobClient {
     }
 
     /// Full URL for the blob.
-    pub fn url(&self) -> azure_core::Result<url::Url> {
+    pub fn url(&self) -> azure_core::Result<Url> {
         let mut url = self.container_client().url()?;
         let parts = self.blob_name().trim_matches('/').split('/');
         url.path_segments_mut()
@@ -351,7 +375,7 @@ mod tests {
             .container_client
             .credentials()
             .0
-            .try_lock()
+            .try_read()
             .expect("creds should be unlocked at this point");
         assert!(matches!(
             creds.deref(),
@@ -364,7 +388,7 @@ mod tests {
             .container_client
             .credentials()
             .0
-            .try_lock()
+            .try_read()
             .expect("creds should be unlocked at this point");
         assert!(matches!(creds.deref(), StorageCredentialsInner::Anonymous));
 
@@ -389,12 +413,12 @@ mod tests {
         token: String,
     }
     impl SasToken for FakeSas {
-        fn token(&self) -> String {
-            self.token.clone()
+        fn token(&self) -> azure_core::Result<String> {
+            Ok(self.token.clone())
         }
     }
 
-    fn build_url(container_name: &str, blob_name: &str, sas: &FakeSas) -> url::Url {
+    fn build_url(container_name: &str, blob_name: &str, sas: &FakeSas) -> Url {
         let blob_client = ClientBuilder::emulator().blob_client(container_name, blob_name);
         blob_client
             .generate_signed_blob_url(sas)

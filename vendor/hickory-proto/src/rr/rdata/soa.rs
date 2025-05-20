@@ -7,14 +7,14 @@
 
 //! start of authority record defining ownership and defaults for the zone
 
-use std::fmt;
+use core::fmt;
 
-#[cfg(feature = "serde-config")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::{
     error::ProtoResult,
-    rr::{domain::Name, RData, RecordData, RecordType},
+    rr::{RData, RecordData, RecordType, domain::Name},
     serialize::binary::{BinDecodable, BinDecoder, BinEncodable, BinEncoder},
 };
 
@@ -62,7 +62,7 @@ use crate::{
 /// reason for this provision is to allow future dynamic update facilities to
 /// change the SOA RR with known semantics.
 /// ```
-#[cfg_attr(feature = "serde-config", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct SOA {
     mname: Name,
@@ -355,17 +355,21 @@ impl fmt::Display for SOA {
 mod tests {
     #![allow(clippy::dbg_macro, clippy::print_stdout)]
 
+    use alloc::vec::Vec;
+    #[cfg(feature = "std")]
+    use std::println;
+
     use crate::{rr::RecordDataDecodable, serialize::binary::Restrict};
 
     use super::*;
 
     #[test]
     fn test() {
-        use std::str::FromStr;
+        use core::str::FromStr;
 
         let rdata = SOA::new(
-            Name::from_str("m.example.com").unwrap(),
-            Name::from_str("r.example.com").unwrap(),
+            Name::from_str("m.example.com.").unwrap(),
+            Name::from_str("r.example.com.").unwrap(),
             1,
             2,
             3,
@@ -379,6 +383,7 @@ mod tests {
         let bytes = encoder.into_bytes();
         let len = bytes.len() as u16;
 
+        #[cfg(feature = "std")]
         println!("bytes: {bytes:?}");
 
         let mut decoder: BinDecoder<'_> = BinDecoder::new(bytes);

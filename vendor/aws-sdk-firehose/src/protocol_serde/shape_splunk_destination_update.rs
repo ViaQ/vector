@@ -2,7 +2,7 @@
 pub fn ser_splunk_destination_update(
     object: &mut ::aws_smithy_json::serialize::JsonObjectWriter,
     input: &crate::types::SplunkDestinationUpdate,
-) -> Result<(), ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<(), ::aws_smithy_types::error::operation::SerializationError> {
     if let Some(var_1) = &input.hec_endpoint {
         object.key("HECEndpoint").string(var_1.as_str());
     }
@@ -44,6 +44,18 @@ pub fn ser_splunk_destination_update(
         let mut object_13 = object.key("CloudWatchLoggingOptions").start_object();
         crate::protocol_serde::shape_cloud_watch_logging_options::ser_cloud_watch_logging_options(&mut object_13, var_12)?;
         object_13.finish();
+    }
+    if let Some(var_14) = &input.buffering_hints {
+        #[allow(unused_mut)]
+        let mut object_15 = object.key("BufferingHints").start_object();
+        crate::protocol_serde::shape_splunk_buffering_hints::ser_splunk_buffering_hints(&mut object_15, var_14)?;
+        object_15.finish();
+    }
+    if let Some(var_16) = &input.secrets_manager_configuration {
+        #[allow(unused_mut)]
+        let mut object_17 = object.key("SecretsManagerConfiguration").start_object();
+        crate::protocol_serde::shape_secrets_manager_configuration::ser_secrets_manager_configuration(&mut object_17, var_16)?;
+        object_17.finish();
     }
     Ok(())
 }

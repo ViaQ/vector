@@ -39,6 +39,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -113,6 +114,19 @@ impl ExportTaskStatusCode {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for ExportTaskStatusCode {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            ExportTaskStatusCode::Cancelled => write!(f, "CANCELLED"),
+            ExportTaskStatusCode::Completed => write!(f, "COMPLETED"),
+            ExportTaskStatusCode::Failed => write!(f, "FAILED"),
+            ExportTaskStatusCode::Pending => write!(f, "PENDING"),
+            ExportTaskStatusCode::PendingCancel => write!(f, "PENDING_CANCEL"),
+            ExportTaskStatusCode::Running => write!(f, "RUNNING"),
+            ExportTaskStatusCode::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

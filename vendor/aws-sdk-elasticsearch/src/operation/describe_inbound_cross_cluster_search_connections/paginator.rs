@@ -58,10 +58,10 @@ impl DescribeInboundCrossClusterSearchConnectionsPaginator {
         let builder = self.builder;
         let handle = self.handle;
         let runtime_plugins = crate::operation::describe_inbound_cross_cluster_search_connections::DescribeInboundCrossClusterSearchConnections::operation_runtime_plugins(
-                        handle.runtime_plugins.clone(),
-                        &handle.conf,
-                        ::std::option::Option::None,
-                    );
+                                handle.runtime_plugins.clone(),
+                                &handle.conf,
+                                ::std::option::Option::None,
+                            ).with_operation_plugin(crate::sdk_feature_tracker::paginator::PaginatorFeatureTrackerRuntimePlugin::new());
         ::aws_smithy_async::future::pagination_stream::PaginationStream::new(::aws_smithy_async::future::pagination_stream::fn_stream::FnStream::new(
             move |tx| {
                 ::std::boxed::Box::pin(async move {
@@ -82,6 +82,7 @@ impl DescribeInboundCrossClusterSearchConnectionsPaginator {
                         let done = match resp {
                             ::std::result::Result::Ok(ref resp) => {
                                 let new_token = crate::lens::reflens_describe_inbound_cross_cluster_search_connections_output_output_next_token(resp);
+                                // Pagination is exhausted when the next token is an empty string
                                 let is_empty = new_token.map(|token| token.is_empty()).unwrap_or(true);
                                 if !is_empty && new_token == input.next_token.as_ref() && self.stop_on_duplicate_token {
                                     true

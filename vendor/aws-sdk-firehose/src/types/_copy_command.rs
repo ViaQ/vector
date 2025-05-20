@@ -8,12 +8,12 @@ pub struct CopyCommand {
     pub data_table_name: ::std::string::String,
     /// <p>A comma-separated list of column names.</p>
     pub data_table_columns: ::std::option::Option<::std::string::String>,
-    /// <p>Optional parameters to use with the Amazon Redshift <code>COPY</code> command. For more information, see the "Optional Parameters" section of <a href="https://docs.aws.amazon.com/redshift/latest/dg/r_COPY.html">Amazon Redshift COPY command</a>. Some possible examples that would apply to Kinesis Data Firehose are as follows:</p>
-    /// <p> <code>delimiter '\t' lzop;</code> - fields are delimited with "\t" (TAB character) and compressed using lzop.</p>
-    /// <p> <code>delimiter '|'</code> - fields are delimited with "|" (this is the default delimiter).</p>
-    /// <p> <code>delimiter '|' escape</code> - the delimiter should be escaped.</p>
-    /// <p> <code>fixedwidth 'venueid:3,venuename:25,venuecity:12,venuestate:2,venueseats:6'</code> - fields are fixed width in the source, with each width specified after every column in the table.</p>
-    /// <p> <code>JSON 's3://mybucket/jsonpaths.txt'</code> - data is in JSON format, and the path specified is the format of the data.</p>
+    /// <p>Optional parameters to use with the Amazon Redshift <code>COPY</code> command. For more information, see the "Optional Parameters" section of <a href="https://docs.aws.amazon.com/redshift/latest/dg/r_COPY.html">Amazon Redshift COPY command</a>. Some possible examples that would apply to Firehose are as follows:</p>
+    /// <p><code>delimiter '\t' lzop;</code> - fields are delimited with "\t" (TAB character) and compressed using lzop.</p>
+    /// <p><code>delimiter '|'</code> - fields are delimited with "|" (this is the default delimiter).</p>
+    /// <p><code>delimiter '|' escape</code> - the delimiter should be escaped.</p>
+    /// <p><code>fixedwidth 'venueid:3,venuename:25,venuecity:12,venuestate:2,venueseats:6'</code> - fields are fixed width in the source, with each width specified after every column in the table.</p>
+    /// <p><code>JSON 's3://mybucket/jsonpaths.txt'</code> - data is in JSON format, and the path specified is the format of the data.</p>
     /// <p>For more examples, see <a href="https://docs.aws.amazon.com/redshift/latest/dg/r_COPY_command_examples.html">Amazon Redshift COPY command examples</a>.</p>
     pub copy_options: ::std::option::Option<::std::string::String>,
 }
@@ -27,12 +27,12 @@ impl CopyCommand {
     pub fn data_table_columns(&self) -> ::std::option::Option<&str> {
         self.data_table_columns.as_deref()
     }
-    /// <p>Optional parameters to use with the Amazon Redshift <code>COPY</code> command. For more information, see the "Optional Parameters" section of <a href="https://docs.aws.amazon.com/redshift/latest/dg/r_COPY.html">Amazon Redshift COPY command</a>. Some possible examples that would apply to Kinesis Data Firehose are as follows:</p>
-    /// <p> <code>delimiter '\t' lzop;</code> - fields are delimited with "\t" (TAB character) and compressed using lzop.</p>
-    /// <p> <code>delimiter '|'</code> - fields are delimited with "|" (this is the default delimiter).</p>
-    /// <p> <code>delimiter '|' escape</code> - the delimiter should be escaped.</p>
-    /// <p> <code>fixedwidth 'venueid:3,venuename:25,venuecity:12,venuestate:2,venueseats:6'</code> - fields are fixed width in the source, with each width specified after every column in the table.</p>
-    /// <p> <code>JSON 's3://mybucket/jsonpaths.txt'</code> - data is in JSON format, and the path specified is the format of the data.</p>
+    /// <p>Optional parameters to use with the Amazon Redshift <code>COPY</code> command. For more information, see the "Optional Parameters" section of <a href="https://docs.aws.amazon.com/redshift/latest/dg/r_COPY.html">Amazon Redshift COPY command</a>. Some possible examples that would apply to Firehose are as follows:</p>
+    /// <p><code>delimiter '\t' lzop;</code> - fields are delimited with "\t" (TAB character) and compressed using lzop.</p>
+    /// <p><code>delimiter '|'</code> - fields are delimited with "|" (this is the default delimiter).</p>
+    /// <p><code>delimiter '|' escape</code> - the delimiter should be escaped.</p>
+    /// <p><code>fixedwidth 'venueid:3,venuename:25,venuecity:12,venuestate:2,venueseats:6'</code> - fields are fixed width in the source, with each width specified after every column in the table.</p>
+    /// <p><code>JSON 's3://mybucket/jsonpaths.txt'</code> - data is in JSON format, and the path specified is the format of the data.</p>
     /// <p>For more examples, see <a href="https://docs.aws.amazon.com/redshift/latest/dg/r_COPY_command_examples.html">Amazon Redshift COPY command examples</a>.</p>
     pub fn copy_options(&self) -> ::std::option::Option<&str> {
         self.copy_options.as_deref()
@@ -46,8 +46,8 @@ impl CopyCommand {
 }
 
 /// A builder for [`CopyCommand`](crate::types::CopyCommand).
-#[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::default::Default, ::std::fmt::Debug)]
+#[non_exhaustive]
 pub struct CopyCommandBuilder {
     pub(crate) data_table_name: ::std::option::Option<::std::string::String>,
     pub(crate) data_table_columns: ::std::option::Option<::std::string::String>,
@@ -83,34 +83,34 @@ impl CopyCommandBuilder {
     pub fn get_data_table_columns(&self) -> &::std::option::Option<::std::string::String> {
         &self.data_table_columns
     }
-    /// <p>Optional parameters to use with the Amazon Redshift <code>COPY</code> command. For more information, see the "Optional Parameters" section of <a href="https://docs.aws.amazon.com/redshift/latest/dg/r_COPY.html">Amazon Redshift COPY command</a>. Some possible examples that would apply to Kinesis Data Firehose are as follows:</p>
-    /// <p> <code>delimiter '\t' lzop;</code> - fields are delimited with "\t" (TAB character) and compressed using lzop.</p>
-    /// <p> <code>delimiter '|'</code> - fields are delimited with "|" (this is the default delimiter).</p>
-    /// <p> <code>delimiter '|' escape</code> - the delimiter should be escaped.</p>
-    /// <p> <code>fixedwidth 'venueid:3,venuename:25,venuecity:12,venuestate:2,venueseats:6'</code> - fields are fixed width in the source, with each width specified after every column in the table.</p>
-    /// <p> <code>JSON 's3://mybucket/jsonpaths.txt'</code> - data is in JSON format, and the path specified is the format of the data.</p>
+    /// <p>Optional parameters to use with the Amazon Redshift <code>COPY</code> command. For more information, see the "Optional Parameters" section of <a href="https://docs.aws.amazon.com/redshift/latest/dg/r_COPY.html">Amazon Redshift COPY command</a>. Some possible examples that would apply to Firehose are as follows:</p>
+    /// <p><code>delimiter '\t' lzop;</code> - fields are delimited with "\t" (TAB character) and compressed using lzop.</p>
+    /// <p><code>delimiter '|'</code> - fields are delimited with "|" (this is the default delimiter).</p>
+    /// <p><code>delimiter '|' escape</code> - the delimiter should be escaped.</p>
+    /// <p><code>fixedwidth 'venueid:3,venuename:25,venuecity:12,venuestate:2,venueseats:6'</code> - fields are fixed width in the source, with each width specified after every column in the table.</p>
+    /// <p><code>JSON 's3://mybucket/jsonpaths.txt'</code> - data is in JSON format, and the path specified is the format of the data.</p>
     /// <p>For more examples, see <a href="https://docs.aws.amazon.com/redshift/latest/dg/r_COPY_command_examples.html">Amazon Redshift COPY command examples</a>.</p>
     pub fn copy_options(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.copy_options = ::std::option::Option::Some(input.into());
         self
     }
-    /// <p>Optional parameters to use with the Amazon Redshift <code>COPY</code> command. For more information, see the "Optional Parameters" section of <a href="https://docs.aws.amazon.com/redshift/latest/dg/r_COPY.html">Amazon Redshift COPY command</a>. Some possible examples that would apply to Kinesis Data Firehose are as follows:</p>
-    /// <p> <code>delimiter '\t' lzop;</code> - fields are delimited with "\t" (TAB character) and compressed using lzop.</p>
-    /// <p> <code>delimiter '|'</code> - fields are delimited with "|" (this is the default delimiter).</p>
-    /// <p> <code>delimiter '|' escape</code> - the delimiter should be escaped.</p>
-    /// <p> <code>fixedwidth 'venueid:3,venuename:25,venuecity:12,venuestate:2,venueseats:6'</code> - fields are fixed width in the source, with each width specified after every column in the table.</p>
-    /// <p> <code>JSON 's3://mybucket/jsonpaths.txt'</code> - data is in JSON format, and the path specified is the format of the data.</p>
+    /// <p>Optional parameters to use with the Amazon Redshift <code>COPY</code> command. For more information, see the "Optional Parameters" section of <a href="https://docs.aws.amazon.com/redshift/latest/dg/r_COPY.html">Amazon Redshift COPY command</a>. Some possible examples that would apply to Firehose are as follows:</p>
+    /// <p><code>delimiter '\t' lzop;</code> - fields are delimited with "\t" (TAB character) and compressed using lzop.</p>
+    /// <p><code>delimiter '|'</code> - fields are delimited with "|" (this is the default delimiter).</p>
+    /// <p><code>delimiter '|' escape</code> - the delimiter should be escaped.</p>
+    /// <p><code>fixedwidth 'venueid:3,venuename:25,venuecity:12,venuestate:2,venueseats:6'</code> - fields are fixed width in the source, with each width specified after every column in the table.</p>
+    /// <p><code>JSON 's3://mybucket/jsonpaths.txt'</code> - data is in JSON format, and the path specified is the format of the data.</p>
     /// <p>For more examples, see <a href="https://docs.aws.amazon.com/redshift/latest/dg/r_COPY_command_examples.html">Amazon Redshift COPY command examples</a>.</p>
     pub fn set_copy_options(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.copy_options = input;
         self
     }
-    /// <p>Optional parameters to use with the Amazon Redshift <code>COPY</code> command. For more information, see the "Optional Parameters" section of <a href="https://docs.aws.amazon.com/redshift/latest/dg/r_COPY.html">Amazon Redshift COPY command</a>. Some possible examples that would apply to Kinesis Data Firehose are as follows:</p>
-    /// <p> <code>delimiter '\t' lzop;</code> - fields are delimited with "\t" (TAB character) and compressed using lzop.</p>
-    /// <p> <code>delimiter '|'</code> - fields are delimited with "|" (this is the default delimiter).</p>
-    /// <p> <code>delimiter '|' escape</code> - the delimiter should be escaped.</p>
-    /// <p> <code>fixedwidth 'venueid:3,venuename:25,venuecity:12,venuestate:2,venueseats:6'</code> - fields are fixed width in the source, with each width specified after every column in the table.</p>
-    /// <p> <code>JSON 's3://mybucket/jsonpaths.txt'</code> - data is in JSON format, and the path specified is the format of the data.</p>
+    /// <p>Optional parameters to use with the Amazon Redshift <code>COPY</code> command. For more information, see the "Optional Parameters" section of <a href="https://docs.aws.amazon.com/redshift/latest/dg/r_COPY.html">Amazon Redshift COPY command</a>. Some possible examples that would apply to Firehose are as follows:</p>
+    /// <p><code>delimiter '\t' lzop;</code> - fields are delimited with "\t" (TAB character) and compressed using lzop.</p>
+    /// <p><code>delimiter '|'</code> - fields are delimited with "|" (this is the default delimiter).</p>
+    /// <p><code>delimiter '|' escape</code> - the delimiter should be escaped.</p>
+    /// <p><code>fixedwidth 'venueid:3,venuename:25,venuecity:12,venuestate:2,venueseats:6'</code> - fields are fixed width in the source, with each width specified after every column in the table.</p>
+    /// <p><code>JSON 's3://mybucket/jsonpaths.txt'</code> - data is in JSON format, and the path specified is the format of the data.</p>
     /// <p>For more examples, see <a href="https://docs.aws.amazon.com/redshift/latest/dg/r_COPY_command_examples.html">Amazon Redshift COPY command examples</a>.</p>
     pub fn get_copy_options(&self) -> &::std::option::Option<::std::string::String> {
         &self.copy_options

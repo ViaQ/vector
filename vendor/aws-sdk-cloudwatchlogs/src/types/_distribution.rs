@@ -35,6 +35,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 /// <p>The method used to distribute log data to the destination, which can be either
 /// random or grouped by log stream.</p>
 #[non_exhaustive]
@@ -94,6 +95,15 @@ impl Distribution {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for Distribution {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            Distribution::ByLogStream => write!(f, "ByLogStream"),
+            Distribution::Random => write!(f, "Random"),
+            Distribution::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

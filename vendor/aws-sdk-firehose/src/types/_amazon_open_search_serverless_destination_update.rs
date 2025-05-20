@@ -4,7 +4,7 @@
 #[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::fmt::Debug)]
 pub struct AmazonOpenSearchServerlessDestinationUpdate {
-    /// <p>The Amazon Resource Name (ARN) of the IAM role to be assumed by Kinesis Data Firehose for calling the Serverless offering for Amazon OpenSearch Service Configuration API and for indexing documents.</p>
+    /// <p>The Amazon Resource Name (ARN) of the IAM role to be assumed by Firehose for calling the Serverless offering for Amazon OpenSearch Service Configuration API and for indexing documents.</p>
     pub role_arn: ::std::option::Option<::std::string::String>,
     /// <p>The endpoint to use when communicating with the collection in the Serverless offering for Amazon OpenSearch Service.</p>
     pub collection_endpoint: ::std::option::Option<::std::string::String>,
@@ -12,17 +12,17 @@ pub struct AmazonOpenSearchServerlessDestinationUpdate {
     pub index_name: ::std::option::Option<::std::string::String>,
     /// <p>The buffering options. If no value is specified, AmazonopensearchBufferingHints object default values are used.</p>
     pub buffering_hints: ::std::option::Option<crate::types::AmazonOpenSearchServerlessBufferingHints>,
-    /// <p>The retry behavior in case Kinesis Data Firehose is unable to deliver documents to the Serverless offering for Amazon OpenSearch Service. The default value is 300 (5 minutes).</p>
+    /// <p>The retry behavior in case Firehose is unable to deliver documents to the Serverless offering for Amazon OpenSearch Service. The default value is 300 (5 minutes).</p>
     pub retry_options: ::std::option::Option<crate::types::AmazonOpenSearchServerlessRetryOptions>,
     /// <p>Describes an update for a destination in Amazon S3.</p>
     pub s3_update: ::std::option::Option<crate::types::S3DestinationUpdate>,
     /// <p>Describes a data processing configuration.</p>
     pub processing_configuration: ::std::option::Option<crate::types::ProcessingConfiguration>,
-    /// <p>Describes the Amazon CloudWatch logging options for your delivery stream.</p>
+    /// <p>Describes the Amazon CloudWatch logging options for your Firehose stream.</p>
     pub cloud_watch_logging_options: ::std::option::Option<crate::types::CloudWatchLoggingOptions>,
 }
 impl AmazonOpenSearchServerlessDestinationUpdate {
-    /// <p>The Amazon Resource Name (ARN) of the IAM role to be assumed by Kinesis Data Firehose for calling the Serverless offering for Amazon OpenSearch Service Configuration API and for indexing documents.</p>
+    /// <p>The Amazon Resource Name (ARN) of the IAM role to be assumed by Firehose for calling the Serverless offering for Amazon OpenSearch Service Configuration API and for indexing documents.</p>
     pub fn role_arn(&self) -> ::std::option::Option<&str> {
         self.role_arn.as_deref()
     }
@@ -38,7 +38,7 @@ impl AmazonOpenSearchServerlessDestinationUpdate {
     pub fn buffering_hints(&self) -> ::std::option::Option<&crate::types::AmazonOpenSearchServerlessBufferingHints> {
         self.buffering_hints.as_ref()
     }
-    /// <p>The retry behavior in case Kinesis Data Firehose is unable to deliver documents to the Serverless offering for Amazon OpenSearch Service. The default value is 300 (5 minutes).</p>
+    /// <p>The retry behavior in case Firehose is unable to deliver documents to the Serverless offering for Amazon OpenSearch Service. The default value is 300 (5 minutes).</p>
     pub fn retry_options(&self) -> ::std::option::Option<&crate::types::AmazonOpenSearchServerlessRetryOptions> {
         self.retry_options.as_ref()
     }
@@ -50,7 +50,7 @@ impl AmazonOpenSearchServerlessDestinationUpdate {
     pub fn processing_configuration(&self) -> ::std::option::Option<&crate::types::ProcessingConfiguration> {
         self.processing_configuration.as_ref()
     }
-    /// <p>Describes the Amazon CloudWatch logging options for your delivery stream.</p>
+    /// <p>Describes the Amazon CloudWatch logging options for your Firehose stream.</p>
     pub fn cloud_watch_logging_options(&self) -> ::std::option::Option<&crate::types::CloudWatchLoggingOptions> {
         self.cloud_watch_logging_options.as_ref()
     }
@@ -63,8 +63,8 @@ impl AmazonOpenSearchServerlessDestinationUpdate {
 }
 
 /// A builder for [`AmazonOpenSearchServerlessDestinationUpdate`](crate::types::AmazonOpenSearchServerlessDestinationUpdate).
-#[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::default::Default, ::std::fmt::Debug)]
+#[non_exhaustive]
 pub struct AmazonOpenSearchServerlessDestinationUpdateBuilder {
     pub(crate) role_arn: ::std::option::Option<::std::string::String>,
     pub(crate) collection_endpoint: ::std::option::Option<::std::string::String>,
@@ -76,17 +76,17 @@ pub struct AmazonOpenSearchServerlessDestinationUpdateBuilder {
     pub(crate) cloud_watch_logging_options: ::std::option::Option<crate::types::CloudWatchLoggingOptions>,
 }
 impl AmazonOpenSearchServerlessDestinationUpdateBuilder {
-    /// <p>The Amazon Resource Name (ARN) of the IAM role to be assumed by Kinesis Data Firehose for calling the Serverless offering for Amazon OpenSearch Service Configuration API and for indexing documents.</p>
+    /// <p>The Amazon Resource Name (ARN) of the IAM role to be assumed by Firehose for calling the Serverless offering for Amazon OpenSearch Service Configuration API and for indexing documents.</p>
     pub fn role_arn(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.role_arn = ::std::option::Option::Some(input.into());
         self
     }
-    /// <p>The Amazon Resource Name (ARN) of the IAM role to be assumed by Kinesis Data Firehose for calling the Serverless offering for Amazon OpenSearch Service Configuration API and for indexing documents.</p>
+    /// <p>The Amazon Resource Name (ARN) of the IAM role to be assumed by Firehose for calling the Serverless offering for Amazon OpenSearch Service Configuration API and for indexing documents.</p>
     pub fn set_role_arn(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.role_arn = input;
         self
     }
-    /// <p>The Amazon Resource Name (ARN) of the IAM role to be assumed by Kinesis Data Firehose for calling the Serverless offering for Amazon OpenSearch Service Configuration API and for indexing documents.</p>
+    /// <p>The Amazon Resource Name (ARN) of the IAM role to be assumed by Firehose for calling the Serverless offering for Amazon OpenSearch Service Configuration API and for indexing documents.</p>
     pub fn get_role_arn(&self) -> &::std::option::Option<::std::string::String> {
         &self.role_arn
     }
@@ -132,17 +132,17 @@ impl AmazonOpenSearchServerlessDestinationUpdateBuilder {
     pub fn get_buffering_hints(&self) -> &::std::option::Option<crate::types::AmazonOpenSearchServerlessBufferingHints> {
         &self.buffering_hints
     }
-    /// <p>The retry behavior in case Kinesis Data Firehose is unable to deliver documents to the Serverless offering for Amazon OpenSearch Service. The default value is 300 (5 minutes).</p>
+    /// <p>The retry behavior in case Firehose is unable to deliver documents to the Serverless offering for Amazon OpenSearch Service. The default value is 300 (5 minutes).</p>
     pub fn retry_options(mut self, input: crate::types::AmazonOpenSearchServerlessRetryOptions) -> Self {
         self.retry_options = ::std::option::Option::Some(input);
         self
     }
-    /// <p>The retry behavior in case Kinesis Data Firehose is unable to deliver documents to the Serverless offering for Amazon OpenSearch Service. The default value is 300 (5 minutes).</p>
+    /// <p>The retry behavior in case Firehose is unable to deliver documents to the Serverless offering for Amazon OpenSearch Service. The default value is 300 (5 minutes).</p>
     pub fn set_retry_options(mut self, input: ::std::option::Option<crate::types::AmazonOpenSearchServerlessRetryOptions>) -> Self {
         self.retry_options = input;
         self
     }
-    /// <p>The retry behavior in case Kinesis Data Firehose is unable to deliver documents to the Serverless offering for Amazon OpenSearch Service. The default value is 300 (5 minutes).</p>
+    /// <p>The retry behavior in case Firehose is unable to deliver documents to the Serverless offering for Amazon OpenSearch Service. The default value is 300 (5 minutes).</p>
     pub fn get_retry_options(&self) -> &::std::option::Option<crate::types::AmazonOpenSearchServerlessRetryOptions> {
         &self.retry_options
     }
@@ -174,17 +174,17 @@ impl AmazonOpenSearchServerlessDestinationUpdateBuilder {
     pub fn get_processing_configuration(&self) -> &::std::option::Option<crate::types::ProcessingConfiguration> {
         &self.processing_configuration
     }
-    /// <p>Describes the Amazon CloudWatch logging options for your delivery stream.</p>
+    /// <p>Describes the Amazon CloudWatch logging options for your Firehose stream.</p>
     pub fn cloud_watch_logging_options(mut self, input: crate::types::CloudWatchLoggingOptions) -> Self {
         self.cloud_watch_logging_options = ::std::option::Option::Some(input);
         self
     }
-    /// <p>Describes the Amazon CloudWatch logging options for your delivery stream.</p>
+    /// <p>Describes the Amazon CloudWatch logging options for your Firehose stream.</p>
     pub fn set_cloud_watch_logging_options(mut self, input: ::std::option::Option<crate::types::CloudWatchLoggingOptions>) -> Self {
         self.cloud_watch_logging_options = input;
         self
     }
-    /// <p>Describes the Amazon CloudWatch logging options for your delivery stream.</p>
+    /// <p>Describes the Amazon CloudWatch logging options for your Firehose stream.</p>
     pub fn get_cloud_watch_logging_options(&self) -> &::std::option::Option<crate::types::CloudWatchLoggingOptions> {
         &self.cloud_watch_logging_options
     }

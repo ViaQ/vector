@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.56"
+rust-version = "1.58"
 name = "ciborium"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Nathaniel McCallum <npmccallum@profian.com>"]
 description = "serde implementation of CBOR using ciborium-basic"
 homepage = "https://github.com/enarx/ciborium"
@@ -25,14 +25,14 @@ repository = "https://github.com/enarx/ciborium"
 [package.metadata.docs.rs]
 all-features = true
 [dependencies.ciborium-io]
-version = "0.2.1"
+version = "0.2.2"
 features = ["alloc"]
 
 [dependencies.ciborium-ll]
-version = "0.2.1"
+version = "0.2.2"
 
 [dependencies.serde]
-version = "1.0"
+version = "1.0.100"
 features = ["alloc", "derive"]
 default-features = false
 [dev-dependencies.hex]

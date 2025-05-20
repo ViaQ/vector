@@ -5,8 +5,10 @@
 // https://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
-use std::borrow::Cow;
-use std::{char, iter::Peekable};
+use alloc::borrow::Cow;
+use alloc::string::String;
+use alloc::vec::Vec;
+use core::{char, iter::Peekable};
 
 use crate::serialize::txt::errors::{LexerError, LexerErrorKind, LexerResult};
 
@@ -18,7 +20,7 @@ pub(crate) struct Lexer<'a> {
 
 impl<'a> Lexer<'a> {
     /// Creates a new lexer with the given data to parse
-    pub(crate) fn new(txt: impl Into<Cow<'a, str>>) -> Lexer<'a> {
+    pub(crate) fn new(txt: impl Into<Cow<'a, str>>) -> Self {
         Lexer {
             txt: CowChars {
                 data: txt.into(),
@@ -34,7 +36,7 @@ impl<'a> Lexer<'a> {
         let mut char_data_vec: Option<Vec<String>> = None;
         let mut char_data: Option<String> = None;
 
-        for i in 0..4096 {
+        for i in 0..4_096 {
             // max chars in a single lex, helps with issues in the lexer...
             assert!(i < 4095); // keeps the bounds of the loop defined (nothing lasts forever)
 
@@ -161,7 +163,7 @@ impl<'a> Lexer<'a> {
                                     return Err(LexerErrorKind::UnrecognizedDollar(
                                         char_data.take().unwrap_or_else(|| "".into()),
                                     )
-                                    .into())
+                                    .into());
                                 }
                             }));
                         }
@@ -195,7 +197,7 @@ impl<'a> Lexer<'a> {
                 State::CharData { is_list } => {
                     match ch {
                         Some(ch @ ')') if !is_list => {
-                            return Err(LexerErrorKind::IllegalCharacter(ch).into())
+                            return Err(LexerErrorKind::IllegalCharacter(ch).into());
                         }
                         Some(ch) if ch.is_whitespace() || ch == ')' || ch == ';' => {
                             if is_list {
@@ -339,7 +341,7 @@ struct CowChars<'a> {
     offset: usize,
 }
 
-impl<'a> Iterator for CowChars<'a> {
+impl Iterator for CowChars<'_> {
     type Item = char;
 
     fn next(&mut self) -> Option<char> {
@@ -394,6 +396,8 @@ pub enum Token {
 
 #[cfg(test)]
 mod lex_test {
+    use alloc::string::ToString;
+
     use super::*;
 
     #[allow(clippy::uninlined_format_args)]

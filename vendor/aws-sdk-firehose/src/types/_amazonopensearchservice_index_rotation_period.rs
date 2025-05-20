@@ -38,6 +38,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -110,6 +111,18 @@ impl AmazonopensearchserviceIndexRotationPeriod {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for AmazonopensearchserviceIndexRotationPeriod {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            AmazonopensearchserviceIndexRotationPeriod::NoRotation => write!(f, "NoRotation"),
+            AmazonopensearchserviceIndexRotationPeriod::OneDay => write!(f, "OneDay"),
+            AmazonopensearchserviceIndexRotationPeriod::OneHour => write!(f, "OneHour"),
+            AmazonopensearchserviceIndexRotationPeriod::OneMonth => write!(f, "OneMonth"),
+            AmazonopensearchserviceIndexRotationPeriod::OneWeek => write!(f, "OneWeek"),
+            AmazonopensearchserviceIndexRotationPeriod::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

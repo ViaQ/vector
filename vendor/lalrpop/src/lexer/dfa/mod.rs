@@ -118,7 +118,7 @@ struct Item {
 
 const START: DfaStateIndex = DfaStateIndex(0);
 
-impl<'nfa> DfaBuilder<'nfa> {
+impl DfaBuilder<'_> {
     fn build(&self) -> Result<Dfa, DfaConstructionError> {
         let mut kernel_set = KernelSet::new();
         let mut states = vec![];
@@ -312,13 +312,13 @@ impl Item {
 }
 
 impl Debug for DfaStateIndex {
-    fn fmt(&self, fmt: &mut Formatter) -> Result<(), Error> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> Result<(), Error> {
         write!(fmt, "Dfa{}", self.0)
     }
 }
 
 impl Display for DfaStateIndex {
-    fn fmt(&self, fmt: &mut Formatter) -> Result<(), Error> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> Result<(), Error> {
         Debug::fmt(self, fmt)
     }
 }
@@ -336,7 +336,7 @@ impl DfaStateIndex {
 }
 
 impl Debug for Item {
-    fn fmt(&self, fmt: &mut Formatter) -> Result<(), Error> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> Result<(), Error> {
         write!(fmt, "({:?}:{:?})", self.nfa_index, self.nfa_state)
     }
 }

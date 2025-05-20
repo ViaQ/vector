@@ -23,6 +23,7 @@ possibility code branch.
 #[cfg(not(target_arch = "spirv"))]
 #[cold]
 #[inline(never)]
+#[cfg_attr(feature = "track_caller", track_caller)]
 pub(crate) fn something_went_wrong<D: core::fmt::Display>(
   _src: &str, _err: D,
 ) -> ! {
@@ -51,13 +52,9 @@ pub(crate) fn something_went_wrong<D>(_src: &str, _err: D) -> ! {
 /// empty slice might not match the pointer value of the input reference.
 #[inline(always)]
 pub(crate) unsafe fn bytes_of<T: Copy>(t: &T) -> &[u8] {
-  if size_of::<T>() == 0 {
-    &[]
-  } else {
-    match try_cast_slice::<T, u8>(core::slice::from_ref(t)) {
-      Ok(s) => s,
-      Err(_) => unreachable!(),
-    }
+  match try_cast_slice::<T, u8>(core::slice::from_ref(t)) {
+    Ok(s) => s,
+    Err(_) => unreachable!(),
   }
 }
 
@@ -67,13 +64,9 @@ pub(crate) unsafe fn bytes_of<T: Copy>(t: &T) -> &[u8] {
 /// empty slice might not match the pointer value of the input reference.
 #[inline]
 pub(crate) unsafe fn bytes_of_mut<T: Copy>(t: &mut T) -> &mut [u8] {
-  if size_of::<T>() == 0 {
-    &mut []
-  } else {
-    match try_cast_slice_mut::<T, u8>(core::slice::from_mut(t)) {
-      Ok(s) => s,
-      Err(_) => unreachable!(),
-    }
+  match try_cast_slice_mut::<T, u8>(core::slice::from_mut(t)) {
+    Ok(s) => s,
+    Err(_) => unreachable!(),
   }
 }
 
@@ -83,6 +76,7 @@ pub(crate) unsafe fn bytes_of_mut<T: Copy>(t: &mut T) -> &mut [u8] {
 ///
 /// This is [`try_from_bytes`] but will panic on error.
 #[inline]
+#[cfg_attr(feature = "track_caller", track_caller)]
 pub(crate) unsafe fn from_bytes<T: Copy>(s: &[u8]) -> &T {
   match try_from_bytes(s) {
     Ok(t) => t,
@@ -96,6 +90,7 @@ pub(crate) unsafe fn from_bytes<T: Copy>(s: &[u8]) -> &T {
 ///
 /// This is [`try_from_bytes_mut`] but will panic on error.
 #[inline]
+#[cfg_attr(feature = "track_caller", track_caller)]
 pub(crate) unsafe fn from_bytes_mut<T: Copy>(s: &mut [u8]) -> &mut T {
   match try_from_bytes_mut(s) {
     Ok(t) => t,
@@ -123,6 +118,7 @@ pub(crate) unsafe fn try_pod_read_unaligned<T: Copy>(
 /// ## Panics
 /// * This is like `try_pod_read_unaligned` but will panic on failure.
 #[inline]
+#[cfg_attr(feature = "track_caller", track_caller)]
 pub(crate) unsafe fn pod_read_unaligned<T: Copy>(bytes: &[u8]) -> T {
   match try_pod_read_unaligned(bytes) {
     Ok(t) => t,
@@ -135,6 +131,7 @@ pub(crate) unsafe fn pod_read_unaligned<T: Copy>(bytes: &[u8]) -> T {
 /// ## Panics
 /// * If `align` is not a power of two. This includes when `align` is zero.
 #[inline]
+#[cfg_attr(feature = "track_caller", track_caller)]
 pub(crate) fn is_aligned_to(ptr: *const (), align: usize) -> bool {
   #[cfg(feature = "align_offset")]
   {
@@ -188,12 +185,13 @@ pub(crate) unsafe fn try_from_bytes_mut<T: Copy>(
   }
 }
 
-/// Cast `T` into `U`
+/// Cast `A` into `B`
 ///
 /// ## Panics
 ///
 /// * This is like [`try_cast`](try_cast), but will panic on a size mismatch.
 #[inline]
+#[cfg_attr(feature = "track_caller", track_caller)]
 pub(crate) unsafe fn cast<A: Copy, B: Copy>(a: A) -> B {
   if size_of::<A>() == size_of::<B>() {
     unsafe { transmute!(a) }
@@ -202,12 +200,13 @@ pub(crate) unsafe fn cast<A: Copy, B: Copy>(a: A) -> B {
   }
 }
 
-/// Cast `&mut T` into `&mut U`.
+/// Cast `&mut A` into `&mut B`.
 ///
 /// ## Panics
 ///
 /// This is [`try_cast_mut`] but will panic on error.
 #[inline]
+#[cfg_attr(feature = "track_caller", track_caller)]
 pub(crate) unsafe fn cast_mut<A: Copy, B: Copy>(a: &mut A) -> &mut B {
   if size_of::<A>() == size_of::<B>() && align_of::<A>() >= align_of::<B>() {
     // Plz mr compiler, just notice that we can't ever hit Err in this case.
@@ -223,12 +222,13 @@ pub(crate) unsafe fn cast_mut<A: Copy, B: Copy>(a: &mut A) -> &mut B {
   }
 }
 
-/// Cast `&T` into `&U`.
+/// Cast `&A` into `&B`.
 ///
 /// ## Panics
 ///
 /// This is [`try_cast_ref`] but will panic on error.
 #[inline]
+#[cfg_attr(feature = "track_caller", track_caller)]
 pub(crate) unsafe fn cast_ref<A: Copy, B: Copy>(a: &A) -> &B {
   if size_of::<A>() == size_of::<B>() && align_of::<A>() >= align_of::<B>() {
     // Plz mr compiler, just notice that we can't ever hit Err in this case.
@@ -250,6 +250,7 @@ pub(crate) unsafe fn cast_ref<A: Copy, B: Copy>(a: &A) -> &B {
 ///
 /// This is [`try_cast_slice`] but will panic on error.
 #[inline]
+#[cfg_attr(feature = "track_caller", track_caller)]
 pub(crate) unsafe fn cast_slice<A: Copy, B: Copy>(a: &[A]) -> &[B] {
   match try_cast_slice(a) {
     Ok(b) => b,
@@ -257,12 +258,13 @@ pub(crate) unsafe fn cast_slice<A: Copy, B: Copy>(a: &[A]) -> &[B] {
   }
 }
 
-/// Cast `&mut [T]` into `&mut [U]`.
+/// Cast `&mut [A]` into `&mut [B]`.
 ///
 /// ## Panics
 ///
 /// This is [`try_cast_slice_mut`] but will panic on error.
 #[inline]
+#[cfg_attr(feature = "track_caller", track_caller)]
 pub(crate) unsafe fn cast_slice_mut<A: Copy, B: Copy>(a: &mut [A]) -> &mut [B] {
   match try_cast_slice_mut(a) {
     Ok(b) => b,
@@ -270,7 +272,7 @@ pub(crate) unsafe fn cast_slice_mut<A: Copy, B: Copy>(a: &mut [A]) -> &mut [B] {
   }
 }
 
-/// Try to cast `T` into `U`.
+/// Try to cast `A` into `B`.
 ///
 /// Note that for this particular type of cast, alignment isn't a factor. The
 /// input value is semantically copied into the function and then returned to a
@@ -291,7 +293,7 @@ pub(crate) unsafe fn try_cast<A: Copy, B: Copy>(
   }
 }
 
-/// Try to convert a `&T` into `&U`.
+/// Try to convert a `&A` into `&B`.
 ///
 /// ## Failure
 ///
@@ -314,7 +316,7 @@ pub(crate) unsafe fn try_cast_ref<A: Copy, B: Copy>(
   }
 }
 
-/// Try to convert a `&mut T` into `&mut U`.
+/// Try to convert a `&mut A` into `&mut B`.
 ///
 /// As [`try_cast_ref`], but `mut`.
 #[inline]
@@ -347,12 +349,11 @@ pub(crate) unsafe fn try_cast_mut<A: Copy, B: Copy>(
 ///   type, and the output slice wouldn't be a whole number of elements when
 ///   accounting for the size change (eg: 3 `u16` values is 1.5 `u32` values, so
 ///   that's a failure).
-/// * Similarly, you can't convert between a [ZST](https://doc.rust-lang.org/nomicon/exotic-sizes.html#zero-sized-types-zsts)
-///   and a non-ZST.
 #[inline]
 pub(crate) unsafe fn try_cast_slice<A: Copy, B: Copy>(
   a: &[A],
 ) -> Result<&[B], PodCastError> {
+  let input_bytes = core::mem::size_of_val::<[A]>(a);
   // Note(Lokathor): everything with `align_of` and `size_of` will optimize away
   // after monomorphization.
   if align_of::<B>() > align_of::<A>()
@@ -361,10 +362,11 @@ pub(crate) unsafe fn try_cast_slice<A: Copy, B: Copy>(
     Err(PodCastError::TargetAlignmentGreaterAndInputNotAligned)
   } else if size_of::<B>() == size_of::<A>() {
     Ok(unsafe { core::slice::from_raw_parts(a.as_ptr() as *const B, a.len()) })
-  } else if size_of::<A>() == 0 || size_of::<B>() == 0 {
-    Err(PodCastError::SizeMismatch)
-  } else if core::mem::size_of_val(a) % size_of::<B>() == 0 {
-    let new_len = core::mem::size_of_val(a) / size_of::<B>();
+  } else if (size_of::<B>() != 0 && input_bytes % size_of::<B>() == 0)
+    || (size_of::<B>() == 0 && input_bytes == 0)
+  {
+    let new_len =
+      if size_of::<B>() != 0 { input_bytes / size_of::<B>() } else { 0 };
     Ok(unsafe { core::slice::from_raw_parts(a.as_ptr() as *const B, new_len) })
   } else {
     Err(PodCastError::OutputSliceWouldHaveSlop)
@@ -379,6 +381,7 @@ pub(crate) unsafe fn try_cast_slice<A: Copy, B: Copy>(
 pub(crate) unsafe fn try_cast_slice_mut<A: Copy, B: Copy>(
   a: &mut [A],
 ) -> Result<&mut [B], PodCastError> {
+  let input_bytes = core::mem::size_of_val::<[A]>(a);
   // Note(Lokathor): everything with `align_of` and `size_of` will optimize away
   // after monomorphization.
   if align_of::<B>() > align_of::<A>()
@@ -389,10 +392,11 @@ pub(crate) unsafe fn try_cast_slice_mut<A: Copy, B: Copy>(
     Ok(unsafe {
       core::slice::from_raw_parts_mut(a.as_mut_ptr() as *mut B, a.len())
     })
-  } else if size_of::<A>() == 0 || size_of::<B>() == 0 {
-    Err(PodCastError::SizeMismatch)
-  } else if core::mem::size_of_val(a) % size_of::<B>() == 0 {
-    let new_len = core::mem::size_of_val(a) / size_of::<B>();
+  } else if (size_of::<B>() != 0 && input_bytes % size_of::<B>() == 0)
+    || (size_of::<B>() == 0 && input_bytes == 0)
+  {
+    let new_len =
+      if size_of::<B>() != 0 { input_bytes / size_of::<B>() } else { 0 };
     Ok(unsafe {
       core::slice::from_raw_parts_mut(a.as_mut_ptr() as *mut B, new_len)
     })

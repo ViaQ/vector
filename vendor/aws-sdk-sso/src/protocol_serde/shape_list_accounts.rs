@@ -103,16 +103,14 @@ pub fn ser_list_accounts_headers(
 ) -> std::result::Result<::http::request::Builder, ::aws_smithy_types::error::operation::BuildError> {
     if let ::std::option::Option::Some(inner_1) = &input.access_token {
         let formatted_2 = inner_1.as_str();
-        if !formatted_2.is_empty() {
-            let header_value = formatted_2;
-            let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
-                ::aws_smithy_types::error::operation::BuildError::invalid_field(
-                    "access_token",
-                    format!("`{}` cannot be used as a header value: {}", &"*** Sensitive Data Redacted ***", err),
-                )
-            })?;
-            builder = builder.header("x-amz-sso_bearer_token", header_value);
-        }
+        let header_value = formatted_2;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "access_token",
+                format!("`{}` cannot be used as a header value: {}", &"*** Sensitive Data Redacted ***", err),
+            )
+        })?;
+        builder = builder.header("x-amz-sso_bearer_token", header_value);
     }
     Ok(builder)
 }
@@ -120,7 +118,10 @@ pub fn ser_list_accounts_headers(
 pub(crate) fn de_list_accounts(
     value: &[u8],
     mut builder: crate::operation::list_accounts::builders::ListAccountsOutputBuilder,
-) -> Result<crate::operation::list_accounts::builders::ListAccountsOutputBuilder, ::aws_smithy_json::deserialize::error::DeserializeError> {
+) -> ::std::result::Result<
+    crate::operation::list_accounts::builders::ListAccountsOutputBuilder,
+    ::aws_smithy_json::deserialize::error::DeserializeError,
+> {
     let mut tokens_owned = ::aws_smithy_json::deserialize::json_token_iter(crate::protocol_serde::or_empty_doc(value)).peekable();
     let tokens = &mut tokens_owned;
     ::aws_smithy_json::deserialize::token::expect_start_object(tokens.next())?;

@@ -3,24 +3,32 @@
 # When uploading crates to the registry Cargo will automatically
 # "normalize" Cargo.toml files for maximal compatibility
 # with all versions of Cargo and also rewrite `path` dependencies
-# to registry (e.g., crates.io) dependencies
+# to registry (e.g., crates.io) dependencies.
 #
-# If you believe there's an error in this file please file an
-# issue against the rust-lang/cargo repository. If you're
-# editing this file be aware that the upstream Cargo.toml
-# will likely look very different (and much more reasonable)
+# If you are reading this file be aware that the original Cargo.toml
+# will likely look very different (and much more reasonable).
+# See Cargo.toml.orig for the original contents.
 
 [package]
 edition = "2018"
 name = "postgres-openssl"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["Steven Fackler <sfackler@gmail.com>"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "TLS support for tokio-postgres via openssl"
-readme = "../README.md"
-license = "MIT/Apache-2.0"
+readme = "README.md"
+license = "MIT OR Apache-2.0"
 repository = "https://github.com/sfackler/rust-postgres"
-[dependencies.futures]
-version = "0.3"
+resolver = "2"
+
+[lib]
+name = "postgres_openssl"
+path = "src/lib.rs"
 
 [dependencies.openssl]
 version = "0.10"
@@ -32,17 +40,26 @@ version = "1.0"
 version = "0.6"
 
 [dependencies.tokio-postgres]
-version = "0.7.0"
+version = "0.7.11"
 default-features = false
+
+[dev-dependencies.futures-util]
+version = "0.3"
+
 [dev-dependencies.postgres]
-version = "0.19.0"
+version = "0.19.8"
 
 [dev-dependencies.tokio]
 version = "1.0"
-features = ["full"]
+features = [
+    "macros",
+    "net",
+    "rt",
+]
 
 [features]
 default = ["runtime"]
 runtime = ["tokio-postgres/runtime"]
+
 [badges.circle-ci]
 repository = "sfackler/rust-postgres"

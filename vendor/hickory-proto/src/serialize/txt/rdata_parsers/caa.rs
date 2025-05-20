@@ -16,11 +16,12 @@
 
 //! mail exchange, email, record
 
+use alloc::string::ToString;
 use tracing::warn;
 
-use crate::rr::rdata::caa;
-use crate::rr::rdata::caa::{Property, Value};
 use crate::rr::rdata::CAA;
+use crate::rr::rdata::caa::{Property, read_value};
+use crate::serialize::binary::{BinDecoder, Restrict};
 use crate::serialize::txt::errors::{ParseError, ParseErrorKind, ParseResult};
 
 /// Parse the RData from a set of Tokens
@@ -56,14 +57,12 @@ pub(crate) fn parse<'i, I: Iterator<Item = &'i str>>(mut tokens: I) -> ParseResu
         .ok_or_else(|| ParseError::from(ParseErrorKind::Message("caa value not present")))?;
 
     // parse the flags
-    let issuer_critical = {
-        let flags = flags_str.parse::<u8>()?;
-        if flags & 0b0111_1111 != 0 {
-            warn!("unexpected flag values in caa (0 or 128): {}", flags);
-        }
-
-        flags & 0b1000_0000 != 0
-    };
+    let flags = flags_str.parse::<u8>()?;
+    let issuer_critical = (flags & 0b1000_0000) != 0;
+    let reserved_flags = flags & 0b0111_1111;
+    if reserved_flags != 0 {
+        warn!("unexpected flag values in caa (0 or 128): {}", flags);
+    }
 
     // parse the tag
     let tag = {
@@ -74,34 +73,33 @@ pub(crate) fn parse<'i, I: Iterator<Item = &'i str>>(mut tokens: I) -> ParseResu
         }
         tag
     };
+    let raw_tag = tag_str.as_bytes().to_vec();
 
     // parse the value
-    let value = {
-        // TODO: this is a slight dup of the match logic in caa::read_value(..)
-        match tag {
-            Property::Issue | Property::IssueWild => {
-                let value = caa::read_issuer(value_str.as_bytes())?;
-                Value::Issuer(value.0, value.1)
-            }
-            Property::Iodef => {
-                let url = caa::read_iodef(value_str.as_bytes())?;
-                Value::Url(url)
-            }
-            Property::Unknown(_) => Value::Unknown(value_str.as_bytes().to_vec()),
-        }
-    };
+    let raw_value = value_str.as_bytes().to_vec();
+    let mut value_decoder = BinDecoder::new(&raw_value);
+    let value = read_value(
+        &tag,
+        &mut value_decoder,
+        Restrict::new(raw_value.len() as u16),
+    )?;
 
     // return the new CAA record
     Ok(CAA {
         issuer_critical,
+        reserved_flags,
         tag,
+        raw_tag,
         value,
+        raw_value,
     })
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::rr::{rdata::caa::KeyValue, Name, RData, RecordType};
+    use alloc::string::ToString;
+
+    use crate::rr::{Name, RData, RecordType, rdata::caa::KeyValue};
     use crate::serialize::txt::parse_rdata::RDataParser;
 
     use super::*;
@@ -115,8 +113,7 @@ mod tests {
 
         match RData::try_from_str(RecordType::CAA, input_string).expect("CAA rdata parse failed") {
             RData::CAA(parsed_rdata) => assert_eq!(
-                expected_rdata,
-                parsed_rdata,
+                expected_rdata, parsed_rdata,
                 "CAA rdata was not parsed as expected. input={input_string:?} expected_rdata={expected_rdata:?} parsed_rdata={parsed_rdata:?}",
             ),
             parsed_rdata => panic!("Parsed RData is not CAA: {:?}", parsed_rdata),
@@ -131,10 +128,10 @@ mod tests {
         assert!(parse(vec!["0", "issue", "example.net"].into_iter()).is_ok());
 
         // issuer critical = true
-        test_to_string_parse_is_reversible(CAA::new_issue(true, None, vec![]), "128 issue \"\"");
+        test_to_string_parse_is_reversible(CAA::new_issue(true, None, vec![]), "128 issue \";\"");
 
         // deny
-        test_to_string_parse_is_reversible(CAA::new_issue(false, None, vec![]), "0 issue \"\"");
+        test_to_string_parse_is_reversible(CAA::new_issue(false, None, vec![]), "0 issue \";\"");
 
         // only hostname
         test_to_string_parse_is_reversible(

@@ -56,6 +56,8 @@ unsafe impl Zeroable for f64 {}
 unsafe impl Zeroable for f128 {}
 unsafe impl<T: Zeroable> Zeroable for Wrapping<T> {}
 unsafe impl<T: Zeroable> Zeroable for core::cmp::Reverse<T> {}
+#[cfg(feature = "pod_saturating")]
+unsafe impl<T: Zeroable> Zeroable for core::num::Saturating<T> {}
 
 // Note: we can't implement this for all `T: ?Sized` types because it would
 // create NULL pointers for vtables.
@@ -233,17 +235,29 @@ where
 }
 
 impl_unsafe_marker_for_simd!(
+  #[cfg(all(target_arch = "x86", any(feature = "nightly_stdsimd", feature = "avx512_simd")))]
+  unsafe impl Zeroable for x86::{
+    __m512, __m512d, __m512i
+  }
+);
+
+impl_unsafe_marker_for_simd!(
+  #[cfg(all(target_arch = "x86_64", any(feature = "nightly_stdsimd", feature = "avx512_simd")))]
+  unsafe impl Zeroable for x86_64::{
+    __m512, __m512d, __m512i
+  }
+);
+
+impl_unsafe_marker_for_simd!(
   #[cfg(all(target_arch = "x86", feature = "nightly_stdsimd"))]
   unsafe impl Zeroable for x86::{
-    __m128bh, __m256bh, __m512,
-    __m512bh, __m512d, __m512i,
+    __m128bh, __m256bh, __m512bh
   }
 );
 
 impl_unsafe_marker_for_simd!(
   #[cfg(all(target_arch = "x86_64", feature = "nightly_stdsimd"))]
   unsafe impl Zeroable for x86_64::{
-    __m128bh, __m256bh, __m512,
-    __m512bh, __m512d, __m512i,
+    __m128bh, __m256bh, __m512bh
   }
 );

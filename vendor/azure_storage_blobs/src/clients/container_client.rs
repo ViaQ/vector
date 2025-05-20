@@ -8,7 +8,7 @@ use azure_core::{
 use azure_storage::{
     prelude::BlobSasPermissions,
     shared_access_signature::{
-        service_sas::{BlobSharedAccessSignature, BlobSignedResource},
+        service_sas::{BlobSharedAccessSignature, BlobSignedResource, UserDeligationKey},
         SasToken,
     },
     CloudLocation, StorageCredentials, StorageCredentialsInner,
@@ -113,8 +113,39 @@ impl ContainerClient {
         BlobClient::new(self.clone(), blob_name.into())
     }
 
+    pub fn service_client(&self) -> BlobServiceClient {
+        self.service_client.clone()
+    }
+
     pub fn container_name(&self) -> &str {
         &self.container_name
+    }
+
+    pub async fn user_delegation_shared_access_signature(
+        &self,
+        permissions: BlobSasPermissions,
+        user_delegation_key: &UserDeligationKey,
+    ) -> azure_core::Result<BlobSharedAccessSignature> {
+        let creds = self.credentials().0.read().await;
+        if !matches!(creds.deref(), StorageCredentialsInner::TokenCredential(_)) {
+            return Err(Error::message(
+                ErrorKind::Credential,
+                "User delegation access signature generation requires Token authentication",
+            ));
+        };
+
+        let service_client = self.service_client();
+
+        let account = service_client.account();
+
+        let canonicalized_resource = format!("/blob/{}/{}", account, self.container_name());
+        Ok(BlobSharedAccessSignature::new(
+            user_delegation_key.clone(),
+            canonicalized_resource,
+            permissions,
+            user_delegation_key.signed_expiry,
+            BlobSignedResource::Container,
+        ))
     }
 
     /// Create a shared access signature.
@@ -123,7 +154,7 @@ impl ContainerClient {
         permissions: BlobSasPermissions,
         expiry: OffsetDateTime,
     ) -> azure_core::Result<BlobSharedAccessSignature> {
-        let creds = self.service_client.credentials().0.lock().await;
+        let creds = self.service_client.credentials().0.read().await;
         let StorageCredentialsInner::Key(account, key) = creds.deref() else {
             return Err(Error::message(
                 ErrorKind::Credential,
@@ -131,9 +162,9 @@ impl ContainerClient {
             ));
         };
 
-        let canonicalized_resource = format!("/blob/{}/{}", account, self.container_name(),);
+        let canonicalized_resource = format!("/blob/{}/{}", account, self.container_name());
         Ok(BlobSharedAccessSignature::new(
-            key.to_string(),
+            key.clone(),
             canonicalized_resource,
             permissions,
             expiry,
@@ -141,17 +172,17 @@ impl ContainerClient {
         ))
     }
 
-    pub fn generate_signed_container_url<T>(&self, signature: &T) -> azure_core::Result<url::Url>
+    pub fn generate_signed_container_url<T>(&self, signature: &T) -> azure_core::Result<Url>
     where
         T: SasToken,
     {
         let mut url = self.url()?;
-        url.set_query(Some(&signature.token()));
+        url.set_query(Some(&signature.token()?));
         Ok(url)
     }
 
     /// Full URL for the container.
-    pub fn url(&self) -> azure_core::Result<url::Url> {
+    pub fn url(&self) -> azure_core::Result<Url> {
         let mut url = self.service_client.url()?;
         url.path_segments_mut()
             .map_err(|()| Error::message(ErrorKind::DataConversion, "Invalid url"))?
@@ -185,7 +216,6 @@ impl ContainerClient {
 #[cfg(feature = "test_integration")]
 mod integration_tests {
     use super::*;
-    use crate::clients::ClientBuilder;
     use futures::StreamExt;
 
     fn get_emulator_client(container_name: &str) -> ContainerClient {

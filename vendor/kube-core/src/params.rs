@@ -1,5 +1,5 @@
 //! A port of request parameter *Optionals from apimachinery/types.go
-use crate::request::Error;
+use crate::{request::Error, Selector};
 use serde::Serialize;
 
 /// Controls how the resource version parameter is applied for list calls
@@ -36,7 +36,7 @@ pub enum VersionMatch {
 }
 
 /// Common query parameters used in list/delete calls on collections
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ListParams {
     /// A selector to restrict the list of returned objects by their labels.
     ///
@@ -103,18 +103,22 @@ impl ListParams {
         }
         if let Some(continue_token) = &self.continue_token {
             qp.append_pair("continue", continue_token);
-        }
+        } else {
+            // When there's a continue token, we don't want to set resourceVersion
+            if let Some(rv) = &self.resource_version {
+                if rv != "0" || self.limit.is_none() {
+                    qp.append_pair("resourceVersion", rv.as_str());
 
-        if let Some(rv) = &self.resource_version {
-            qp.append_pair("resourceVersion", rv.as_str());
-        }
-        match &self.version_match {
-            None => {}
-            Some(VersionMatch::NotOlderThan) => {
-                qp.append_pair("resourceVersionMatch", "NotOlderThan");
-            }
-            Some(VersionMatch::Exact) => {
-                qp.append_pair("resourceVersionMatch", "Exact");
+                    match &self.version_match {
+                        None => {}
+                        Some(VersionMatch::NotOlderThan) => {
+                            qp.append_pair("resourceVersionMatch", "NotOlderThan");
+                        }
+                        Some(VersionMatch::Exact) => {
+                            qp.append_pair("resourceVersionMatch", "Exact");
+                        }
+                    }
+                }
             }
         }
     }
@@ -162,6 +166,31 @@ impl ListParams {
         self
     }
 
+    /// Configure typed label selectors
+    ///
+    /// Configure typed selectors from [`Selector`](crate::Selector) and [`Expression`](crate::Expression) lists.
+    ///
+    /// ```
+    /// use kube::core::{Expression, Selector, ParseExpressionError};
+    /// # use kube::core::params::ListParams;
+    /// use k8s_openapi::apimachinery::pkg::apis::meta::v1::LabelSelector;
+    ///
+    /// // From expressions
+    /// let selector: Selector = Expression::In("env".into(), ["development".into(), "sandbox".into()].into()).into();
+    /// let lp = ListParams::default().labels_from(&selector);
+    /// let lp = ListParams::default().labels_from(&Expression::Exists("foo".into()).into());
+    ///
+    /// // Native LabelSelector
+    /// let selector: Selector = LabelSelector::default().try_into()?;
+    /// let lp = ListParams::default().labels_from(&selector);
+    /// # Ok::<(), ParseExpressionError>(())
+    ///```
+    #[must_use]
+    pub fn labels_from(mut self, selector: &Selector) -> Self {
+        self.label_selector = Some(selector.to_string());
+        self
+    }
+
     /// Sets a result limit.
     #[must_use]
     pub fn limit(mut self, limit: u32) -> Self {
@@ -185,7 +214,7 @@ impl ListParams {
 
     /// Sets an arbitary resource version match strategy
     ///
-    /// A non-default strategy such as `VersionMatch::Exact` or `VersionMatch::NotGreaterThan`
+    /// A non-default strategy such as `VersionMatch::Exact` or `VersionMatch::NotOlderThan`
     /// requires an explicit `resource_version` set to pass request validation.
     #[must_use]
     pub fn matching(mut self, version_match: VersionMatch) -> Self {
@@ -204,6 +233,41 @@ impl ListParams {
     #[must_use]
     pub fn match_any(self) -> Self {
         self.matching(VersionMatch::NotOlderThan).at("0")
+    }
+}
+
+/// Common query parameters used in get calls
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetParams {
+    /// An explicit resourceVersion with implicit version matching strategies
+    ///
+    /// Default (unset) gives the most recent version. "0" gives a less
+    /// consistent, but more performant "Any" version. Specifing a version is
+    /// like providing a `VersionMatch::NotOlderThan`.
+    /// See <https://kubernetes.io/docs/reference/using-api/api-concepts/#resource-versions> for details.
+    pub resource_version: Option<String>,
+}
+
+/// Helper interface to GetParams
+///
+/// Usage:
+/// ```
+/// use kube::api::GetParams;
+/// let gp = GetParams::at("6664");
+/// ```
+impl GetParams {
+    /// Sets the resource version, implicitly applying a 'NotOlderThan' match
+    #[must_use]
+    pub fn at(resource_version: &str) -> Self {
+        Self {
+            resource_version: Some(resource_version.into()),
+        }
+    }
+
+    /// Sets the resource version to "0"
+    #[must_use]
+    pub fn any() -> Self {
+        Self::at("0")
     }
 }
 
@@ -241,7 +305,7 @@ impl ValidationDirective {
 }
 
 /// Common query parameters used in watch calls on collections
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct WatchParams {
     /// A selector to restrict returned objects by their labels.
     ///
@@ -270,6 +334,29 @@ pub struct WatchParams {
     /// If the feature gate WatchBookmarks is not enabled in apiserver,
     /// this field is ignored.
     pub bookmarks: bool,
+
+    /// Kubernetes 1.27 Streaming Lists
+    /// `sendInitialEvents=true` may be set together with `watch=true`.
+    /// In that case, the watch stream will begin with synthetic events to
+    /// produce the current state of objects in the collection. Once all such
+    /// events have been sent, a synthetic "Bookmark" event  will be sent.
+    /// The bookmark will report the ResourceVersion (RV) corresponding to the
+    /// set of objects, and be marked with `"k8s.io/initial-events-end": "true"` annotation.
+    /// Afterwards, the watch stream will proceed as usual, sending watch events
+    /// corresponding to changes (subsequent to the RV) to objects watched.
+    ///
+    /// When `sendInitialEvents` option is set, we require `resourceVersionMatch`
+    /// option to also be set. The semantic of the watch request is as following:
+    /// - `resourceVersionMatch` = NotOlderThan
+    ///   is interpreted as "data at least as new as the provided `resourceVersion`"
+    ///   and the bookmark event is send when the state is synced
+    ///   to a `resourceVersion` at least as fresh as the one provided by the ListOptions.
+    ///   If `resourceVersion` is unset, this is interpreted as "consistent read" and the
+    ///   bookmark event is send when the state is synced at least to the moment
+    ///   when request started being processed.
+    /// - `resourceVersionMatch` set to any other value or unset
+    ///   Invalid error is returned.
+    pub send_initial_events: bool,
 }
 
 impl WatchParams {
@@ -279,6 +366,11 @@ impl WatchParams {
             if *to >= 295 {
                 return Err(Error::Validation("WatchParams::timeout must be < 295s".into()));
             }
+        }
+        if self.send_initial_events && !self.bookmarks {
+            return Err(Error::Validation(
+                "WatchParams::bookmarks must be set when using send_initial_events".into(),
+            ));
         }
         Ok(())
     }
@@ -299,6 +391,10 @@ impl WatchParams {
         if self.bookmarks {
             qp.append_pair("allowWatchBookmarks", "true");
         }
+        if self.send_initial_events {
+            qp.append_pair("sendInitialEvents", "true");
+            qp.append_pair("resourceVersionMatch", "NotOlderThan");
+        }
     }
 }
 
@@ -312,6 +408,7 @@ impl Default for WatchParams {
             label_selector: None,
             field_selector: None,
             timeout: None,
+            send_initial_events: false,
         }
     }
 }
@@ -357,6 +454,31 @@ impl WatchParams {
         self
     }
 
+    /// Configure typed label selectors
+    ///
+    /// Configure typed selectors from [`Selector`](crate::Selector) and [`Expression`](crate::Expression) lists.
+    ///
+    /// ```
+    /// use kube::core::{Expression, Selector, ParseExpressionError};
+    /// # use kube::core::params::WatchParams;
+    /// use k8s_openapi::apimachinery::pkg::apis::meta::v1::LabelSelector;
+    ///
+    /// // From expressions
+    /// let selector: Selector = Expression::In("env".into(), ["development".into(), "sandbox".into()].into()).into();
+    /// let wp = WatchParams::default().labels_from(&selector);
+    /// let wp = WatchParams::default().labels_from(&Expression::Exists("foo".into()).into());
+    ///
+    /// // Native LabelSelector
+    /// let selector: Selector = LabelSelector::default().try_into()?;
+    /// let wp = WatchParams::default().labels_from(&selector);
+    /// # Ok::<(), ParseExpressionError>(())
+    ///```
+    #[must_use]
+    pub fn labels_from(mut self, selector: &Selector) -> Self {
+        self.label_selector = Some(selector.to_string());
+        self
+    }
+
     /// Disables watch bookmarks to simplify watch handling
     ///
     /// This is not recommended to use with production watchers as it can cause desyncs.
@@ -366,10 +488,52 @@ impl WatchParams {
         self.bookmarks = false;
         self
     }
+
+    /// Kubernetes 1.27 Streaming Lists
+    /// `sendInitialEvents=true` may be set together with `watch=true`.
+    /// In that case, the watch stream will begin with synthetic events to
+    /// produce the current state of objects in the collection. Once all such
+    /// events have been sent, a synthetic "Bookmark" event  will be sent.
+    /// The bookmark will report the ResourceVersion (RV) corresponding to the
+    /// set of objects, and be marked with `"k8s.io/initial-events-end": "true"` annotation.
+    /// Afterwards, the watch stream will proceed as usual, sending watch events
+    /// corresponding to changes (subsequent to the RV) to objects watched.
+    ///
+    /// When `sendInitialEvents` option is set, we require `resourceVersionMatch`
+    /// option to also be set. The semantic of the watch request is as following:
+    /// - `resourceVersionMatch` = NotOlderThan
+    ///   is interpreted as "data at least as new as the provided `resourceVersion`"
+    ///   and the bookmark event is send when the state is synced
+    ///   to a `resourceVersion` at least as fresh as the one provided by the ListOptions.
+    ///   If `resourceVersion` is unset, this is interpreted as "consistent read" and the
+    ///   bookmark event is send when the state is synced at least to the moment
+    ///   when request started being processed.
+    /// - `resourceVersionMatch` set to any other value or unset
+    ///   Invalid error is returned.
+    ///
+    /// Defaults to true if `resourceVersion=""` or `resourceVersion="0"` (for backward
+    /// compatibility reasons) and to false otherwise.
+    #[must_use]
+    pub fn initial_events(mut self) -> Self {
+        self.send_initial_events = true;
+
+        self
+    }
+
+    /// Constructor for doing Kubernetes 1.27 Streaming List watches
+    ///
+    /// Enables [`VersionMatch::NotOlderThan`] semantics and [`WatchParams::send_initial_events`].
+    pub fn streaming_lists() -> Self {
+        Self {
+            send_initial_events: true,
+            bookmarks: true, // required
+            ..WatchParams::default()
+        }
+    }
 }
 
 /// Common query parameters for put/post calls
-#[derive(Default, Clone, Debug)]
+#[derive(Default, Clone, Debug, PartialEq)]
 pub struct PostParams {
     /// Whether to run this as a dry run
     pub dry_run: bool,
@@ -596,7 +760,7 @@ impl PatchParams {
 }
 
 /// Common query parameters for delete calls
-#[derive(Default, Clone, Serialize, Debug)]
+#[derive(Default, Clone, Serialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct DeleteParams {
     /// When present, indicates that modifications should not be persisted.
@@ -712,7 +876,9 @@ where
 }
 #[cfg(test)]
 mod test {
-    use super::{DeleteParams, PatchParams};
+    use crate::{params::WatchParams, Expression, Selector};
+
+    use super::{DeleteParams, ListParams, PatchParams};
     #[test]
     fn delete_param_serialize() {
         let mut dp = DeleteParams::default();
@@ -761,10 +927,28 @@ mod test {
         let urlstr = qp.finish();
         assert_eq!(String::from("some/resource?&fieldValidation=Strict"), urlstr);
     }
+
+    #[test]
+    fn list_params_serialize() {
+        let selector: Selector =
+            Expression::In("env".into(), ["development".into(), "sandbox".into()].into()).into();
+        let lp = ListParams::default().labels_from(&selector);
+        let labels = lp.label_selector.unwrap();
+        assert_eq!(labels, "env in (development,sandbox)");
+    }
+
+    #[test]
+    fn watch_params_serialize() {
+        let selector: Selector =
+            Expression::In("env".into(), ["development".into(), "sandbox".into()].into()).into();
+        let wp = WatchParams::default().labels_from(&selector);
+        let labels = wp.label_selector.unwrap();
+        assert_eq!(labels, "env in (development,sandbox)");
+    }
 }
 
 /// Preconditions must be fulfilled before an operation (update, delete, etc.) is carried out.
-#[derive(Default, Clone, Serialize, Debug)]
+#[derive(Default, Clone, Serialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Preconditions {
     /// Specifies the target ResourceVersion
@@ -776,7 +960,7 @@ pub struct Preconditions {
 }
 
 /// Propagation policy when deleting single objects
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, PartialEq)]
 pub enum PropagationPolicy {
     /// Orphan dependents
     Orphan,

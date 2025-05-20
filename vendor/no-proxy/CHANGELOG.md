@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.6](https://github.com/jdrouet/no-proxy/compare/v0.3.5...v0.3.6) - 2025-03-07
+
+### Other
+
+- replace cidr-utils with cidre crate
+
 ## [0.3.5](https://github.com/jdrouet/no-proxy/compare/v0.3.4...v0.3.5) - 2024-10-04
 
 ### Fixed

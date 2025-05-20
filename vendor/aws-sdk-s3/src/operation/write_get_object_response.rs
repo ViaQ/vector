@@ -50,7 +50,18 @@ impl WriteGetObjectResponse {
         >,
     > {
         let input = ::aws_smithy_runtime_api::client::interceptors::context::Input::erase(input);
-        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("s3", "WriteGetObjectResponse", input, runtime_plugins, stop_point).await
+        use ::tracing::Instrument;
+        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("S3", "WriteGetObjectResponse", input, runtime_plugins, stop_point)
+            // Create a parent span for the entire operation. Includes a random, internal-only,
+            // seven-digit ID for the operation orchestration so that it can be correlated in the logs.
+            .instrument(::tracing::debug_span!(
+                "S3.WriteGetObjectResponse",
+                "rpc.service" = "S3",
+                "rpc.method" = "WriteGetObjectResponse",
+                "sdk_invocation_id" = ::fastrand::u32(1_000_000..10_000_000),
+                "rpc.system" = "aws-api",
+            ))
+            .await
     }
 
     pub(crate) fn operation_runtime_plugins(
@@ -59,7 +70,7 @@ impl WriteGetObjectResponse {
         config_override: ::std::option::Option<crate::config::Builder>,
     ) -> ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugins {
         let mut runtime_plugins = client_runtime_plugins.with_operation_plugin(Self::new());
-        runtime_plugins = runtime_plugins.with_client_plugin(crate::auth_plugin::DefaultAuthOptionsPlugin::new(vec![
+        runtime_plugins = runtime_plugins.with_client_plugin(crate::endpoint_auth_plugin::EndpointBasedAuthOptionsPlugin::new(vec![
             ::aws_runtime::auth::sigv4::SCHEME_ID,
             #[cfg(feature = "sigv4a")]
             {
@@ -95,7 +106,10 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for WriteGe
             ::aws_smithy_runtime_api::client::auth::static_resolver::StaticAuthSchemeOptionResolverParams::new(),
         ));
 
-        cfg.store_put(::aws_smithy_http::operation::Metadata::new("WriteGetObjectResponse", "s3"));
+        cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::Metadata::new(
+            "WriteGetObjectResponse",
+            "S3",
+        ));
         let mut signing_options = ::aws_runtime::auth::SigningOptions::default();
         signing_options.double_uri_encode = true;
         signing_options.content_sha256_header = true;
@@ -115,22 +129,27 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for WriteGe
         _: &::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder,
     ) -> ::std::borrow::Cow<'_, ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder> {
         #[allow(unused_mut)]
-        let mut rcb = ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("WriteGetObjectResponse")
-            .with_interceptor(
-                ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::new(
-                    ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptorKind::ResponseBody,
-                ),
-            )
-            .with_interceptor(WriteGetObjectResponseEndpointParamsInterceptor)
-            .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<
-                crate::operation::write_get_object_response::WriteGetObjectResponseError,
-            >::new())
-            .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::ModeledAsRetryableClassifier::<
-                crate::operation::write_get_object_response::WriteGetObjectResponseError,
-            >::new())
-            .with_retry_classifier(::aws_runtime::retries::classifiers::AwsErrorCodeClassifier::<
-                crate::operation::write_get_object_response::WriteGetObjectResponseError,
-            >::new());
+        let mut rcb =
+            ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("WriteGetObjectResponse")
+                .with_interceptor(::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::default())
+                .with_interceptor(WriteGetObjectResponseEndpointParamsInterceptor)
+                .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<
+                    crate::operation::write_get_object_response::WriteGetObjectResponseError,
+                >::new())
+                .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::ModeledAsRetryableClassifier::<
+                    crate::operation::write_get_object_response::WriteGetObjectResponseError,
+                >::new())
+                .with_retry_classifier(
+                    ::aws_runtime::retries::classifiers::AwsErrorCodeClassifier::<
+                        crate::operation::write_get_object_response::WriteGetObjectResponseError,
+                    >::builder()
+                    .transient_errors({
+                        let mut transient_errors: Vec<&'static str> = ::aws_runtime::retries::classifiers::TRANSIENT_ERRORS.into();
+                        transient_errors.push("InternalError");
+                        ::std::borrow::Cow::Owned(transient_errors)
+                    })
+                    .build(),
+                );
 
         ::std::borrow::Cow::Owned(rcb)
     }
@@ -186,14 +205,6 @@ impl ::aws_smithy_runtime_api::client::ser_de::SerializeRequest for WriteGetObje
                 ::std::write!(output, "/WriteGetObjectResponse").expect("formatting should succeed");
                 ::std::result::Result::Ok(())
             }
-            fn uri_query(
-                _input: &crate::operation::write_get_object_response::WriteGetObjectResponseInput,
-                mut output: &mut ::std::string::String,
-            ) -> ::std::result::Result<(), ::aws_smithy_types::error::operation::BuildError> {
-                let mut query = ::aws_smithy_http::query::Writer::new(output);
-                query.push_kv("x-id", "WriteGetObjectResponse");
-                ::std::result::Result::Ok(())
-            }
             #[allow(clippy::unnecessary_wraps)]
             fn update_http_builder(
                 input: &crate::operation::write_get_object_response::WriteGetObjectResponseInput,
@@ -201,7 +212,6 @@ impl ::aws_smithy_runtime_api::client::ser_de::SerializeRequest for WriteGetObje
             ) -> ::std::result::Result<::http::request::Builder, ::aws_smithy_types::error::operation::BuildError> {
                 let mut uri = ::std::string::String::new();
                 uri_base(input, &mut uri)?;
-                uri_query(input, &mut uri)?;
                 let builder = crate::protocol_serde::shape_write_get_object_response::ser_write_get_object_response_headers(input, builder)?;
                 ::std::result::Result::Ok(builder.method("POST").uri(uri))
             }
@@ -243,12 +253,14 @@ impl ::aws_smithy_runtime_api::client::interceptors::Intercept for WriteGetObjec
         let endpoint_prefix = {
             let request_route = _input.request_route.as_deref().unwrap_or_default();
             if request_route.is_empty() {
-                return Err(::aws_smithy_http::endpoint::error::InvalidEndpointError::failed_to_construct_uri(
-                    "request_route was unset or empty but must be set as part of the endpoint prefix",
-                )
-                .into());
+                return Err(
+                    ::aws_smithy_runtime_api::client::endpoint::error::InvalidEndpointError::failed_to_construct_uri(
+                        "request_route was unset or empty but must be set as part of the endpoint prefix",
+                    )
+                    .into(),
+                );
             }
-            ::aws_smithy_http::endpoint::EndpointPrefix::new(format!("{RequestRoute}.", RequestRoute = request_route))
+            ::aws_smithy_runtime_api::client::endpoint::EndpointPrefix::new(format!("{RequestRoute}.", RequestRoute = request_route))
         }
         .map_err(|err| ::aws_smithy_runtime_api::client::interceptors::error::ContextAttachedError::new("endpoint prefix could not be built", err))?;
         cfg.interceptor_state().store_put(endpoint_prefix);
@@ -273,6 +285,9 @@ impl ::aws_smithy_runtime_api::client::interceptors::Intercept for WriteGetObjec
         ::std::result::Result::Ok(())
     }
 }
+
+// The get_* functions below are generated from JMESPath expressions in the
+// operationContextParams trait. They target the operation's input shape.
 
 /// Error type for the `WriteGetObjectResponseError` operation.
 #[non_exhaustive]

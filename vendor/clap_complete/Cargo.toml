@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.74"
 name = "clap_complete"
-version = "4.5.38"
+version = "4.5.50"
 build = false
 include = [
     "build.rs",
@@ -24,6 +24,7 @@ include = [
     "benches/**/*",
     "examples/**/*",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -93,6 +94,21 @@ file = "README.md"
 prerelease = true
 replace = "github.com/clap-rs/clap/blob/{{tag_name}}/"
 search = "github.com/clap-rs/clap/blob/[^/]+/"
+
+[features]
+debug = ["clap/debug"]
+default = []
+unstable-doc = ["unstable-dynamic"]
+unstable-dynamic = [
+    "dep:clap_lex",
+    "dep:shlex",
+    "dep:is_executable",
+    "clap/unstable-ext",
+]
+unstable-shell-tests = [
+    "dep:completest",
+    "dep:completest-pty",
+]
 
 [lib]
 name = "clap_complete"
@@ -169,21 +185,6 @@ features = [
     "examples",
 ]
 default-features = false
-
-[features]
-debug = ["clap/debug"]
-default = []
-unstable-doc = ["unstable-dynamic"]
-unstable-dynamic = [
-    "dep:clap_lex",
-    "dep:shlex",
-    "dep:is_executable",
-    "clap/unstable-ext",
-]
-unstable-shell-tests = [
-    "dep:completest",
-    "dep:completest-pty",
-]
 
 [lints.clippy]
 assigning_clones = "allow"

@@ -3,7 +3,7 @@ pub use crate::operation::create_log_stream::_create_log_stream_output::CreateLo
 
 pub use crate::operation::create_log_stream::_create_log_stream_input::CreateLogStreamInputBuilder;
 
-impl CreateLogStreamInputBuilder {
+impl crate::operation::create_log_stream::builders::CreateLogStreamInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -26,9 +26,12 @@ impl CreateLogStreamInputBuilder {
 /// <p>There is no limit on the number of log streams that you can create for a log group. There is a limit of 50 TPS on <code>CreateLogStream</code> operations, after which transactions are throttled.</p>
 /// <p>You must use the following guidelines when naming a log stream:</p>
 /// <ul>
-/// <li> <p>Log stream names must be unique within the log group.</p> </li>
-/// <li> <p>Log stream names can be between 1 and 512 characters long.</p> </li>
-/// <li> <p>Don't use ':' (colon) or '*' (asterisk) characters.</p> </li>
+/// <li>
+/// <p>Log stream names must be unique within the log group.</p></li>
+/// <li>
+/// <p>Log stream names can be between 1 and 512 characters long.</p></li>
+/// <li>
+/// <p>Don't use ':' (colon) or '*' (asterisk) characters.</p></li>
 /// </ul>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct CreateLogStreamFluentBuilder {
@@ -55,7 +58,7 @@ impl
     }
 }
 impl CreateLogStreamFluentBuilder {
-    /// Creates a new `CreateLogStream`.
+    /// Creates a new `CreateLogStreamFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -106,12 +109,12 @@ impl CreateLogStreamFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

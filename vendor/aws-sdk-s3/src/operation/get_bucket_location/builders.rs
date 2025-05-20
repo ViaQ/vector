@@ -3,7 +3,7 @@ pub use crate::operation::get_bucket_location::_get_bucket_location_output::GetB
 
 pub use crate::operation::get_bucket_location::_get_bucket_location_input::GetBucketLocationInputBuilder;
 
-impl GetBucketLocationInputBuilder {
+impl crate::operation::get_bucket_location::builders::GetBucketLocationInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -23,17 +23,19 @@ impl GetBucketLocationInputBuilder {
 /// Fluent builder constructing a request to `GetBucketLocation`.
 ///
 /// <note>
-/// <p>This operation is not supported by directory buckets.</p>
+/// <p>This operation is not supported for directory buckets.</p>
 /// </note>
 /// <p>Returns the Region the bucket resides in. You set the bucket's Region using the <code>LocationConstraint</code> request parameter in a <code>CreateBucket</code> request. For more information, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateBucket.html">CreateBucket</a>.</p>
 /// <p>When you use this API operation with an access point, provide the alias of the access point in place of the bucket name.</p>
-/// <p>When you use this API operation with an Object Lambda access point, provide the alias of the Object Lambda access point in place of the bucket name. If the Object Lambda access point alias in a request is not valid, the error code <code>InvalidAccessPointAliasError</code> is returned. For more information about <code>InvalidAccessPointAliasError</code>, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/API/ErrorResponses.html#ErrorCodeList">List of Error Codes</a>.</p> <note>
+/// <p>When you use this API operation with an Object Lambda access point, provide the alias of the Object Lambda access point in place of the bucket name. If the Object Lambda access point alias in a request is not valid, the error code <code>InvalidAccessPointAliasError</code> is returned. For more information about <code>InvalidAccessPointAliasError</code>, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/API/ErrorResponses.html#ErrorCodeList">List of Error Codes</a>.</p><note>
 /// <p>We recommend that you use <a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_HeadBucket.html">HeadBucket</a> to return the Region that a bucket resides in. For backward compatibility, Amazon S3 continues to support GetBucketLocation.</p>
 /// </note>
 /// <p>The following operations are related to <code>GetBucketLocation</code>:</p>
 /// <ul>
-/// <li> <p> <a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObject.html">GetObject</a> </p> </li>
-/// <li> <p> <a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateBucket.html">CreateBucket</a> </p> </li>
+/// <li>
+/// <p><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObject.html">GetObject</a></p></li>
+/// <li>
+/// <p><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateBucket.html">CreateBucket</a></p></li>
 /// </ul>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct GetBucketLocationFluentBuilder {
@@ -60,7 +62,7 @@ impl
     }
 }
 impl GetBucketLocationFluentBuilder {
-    /// Creates a new `GetBucketLocation`.
+    /// Creates a new `GetBucketLocationFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -111,12 +113,12 @@ impl GetBucketLocationFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

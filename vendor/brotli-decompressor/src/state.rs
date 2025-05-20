@@ -253,7 +253,8 @@ pub struct BrotliState<AllocU8: alloc::Allocator<u8>,
 
   // For custom dictionaries
   pub custom_dict: AllocU8::AllocatedMemory,
-  pub custom_dict_size: i32,
+  pub custom_dict_size: isize,
+  pub custom_dict_avoid_context_seed: bool,
   // less used attributes are in the end of this struct */
   // States inside function calls
   pub substate_metablock_header: BrotliRunningMetablockHeaderState,
@@ -354,8 +355,8 @@ macro_rules! make_brotli_state {
 
            /* For custom dictionaries */
            custom_dict : $custom_dict,
-           custom_dict_size : $custom_dict_len as i32,
-
+           custom_dict_size : $custom_dict_len as isize,
+           custom_dict_avoid_context_seed: $custom_dict_len != 0,
            /* less used attributes are in the end of this struct */
            /* States inside function calls */
            substate_metablock_header : BrotliRunningMetablockHeaderState::BROTLI_STATE_METABLOCK_HEADER_NONE,

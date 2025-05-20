@@ -1,17 +1,15 @@
 #[cfg(feature = "bitstring")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "bitstring")))]
 use bitstring::FixedBitString;
 
 use core::{
 	fmt,
+	net::{
+		Ipv4Addr,
+		Ipv6Addr,
+	},
 	str::FromStr,
 };
-use std::net::{
-	Ipv4Addr,
-	Ipv6Addr,
-};
 
-use super::from_str::cidr_from_str;
 use crate::{
 	errors::*,
 	internal_traits::{
@@ -32,7 +30,6 @@ use crate::{
 macro_rules! impl_cidr_for {
 	($n:ident : inet $inet:ident : addr $addr:ident : pair $pair:ident : family $family:expr) => {
 		#[cfg(feature = "bitstring")]
-		#[cfg_attr(doc_cfg, doc(cfg(feature = "bitstring")))]
 		impl bitstring::BitString for $n {
 			fn get(&self, ndx: usize) -> bool {
 				self.address.get(ndx)
@@ -74,7 +71,10 @@ macro_rules! impl_cidr_for {
 
 			fn shared_prefix_len(&self, other: &Self) -> usize {
 				let max_len = core::cmp::min(self.network_length, other.network_length) as usize;
-				FixedBitString::shared_prefix_len(&self.address, &other.address, max_len)
+				core::cmp::min(
+					FixedBitString::shared_prefix_len(&self.address, &other.address),
+					max_len,
+				)
 			}
 		}
 
@@ -274,7 +274,13 @@ macro_rules! impl_cidr_for {
 			type Err = NetworkParseError;
 
 			fn from_str(s: &str) -> Result<$n, NetworkParseError> {
-				cidr_from_str(s)
+				crate::parsers::parse_cidr(s, FromStr::from_str)
+			}
+		}
+
+		impl From<$addr> for $n {
+			fn from(address: $addr) -> Self {
+				Self::new_host(address)
 			}
 		}
 
@@ -295,35 +301,46 @@ impl_cidr_for! {Ipv6Cidr : inet Ipv6Inet : addr Ipv6Addr : pair Ipv6InetPair : f
 
 #[cfg(test)]
 mod tests {
-	use std::net::Ipv4Addr;
+	use core::net::Ipv4Addr;
 
 	use crate::Ipv4Cidr;
+
+	fn check_list_iter<T: PartialEq + core::fmt::Debug>(
+		data: impl AsRef<[T]>,
+		iter: impl IntoIterator<Item = T>,
+	) {
+		let mut iter = iter.into_iter();
+		for elem in data.as_ref() {
+			assert_eq!(Some(elem), iter.next().as_ref());
+		}
+		assert_eq!(None, iter.next());
+	}
 
 	#[test]
 	fn v4_ref_into_iter() {
 		let cidr = Ipv4Cidr::new(Ipv4Addr::new(1, 2, 3, 0), 30).unwrap();
-		assert_eq!(
-			vec![
+		check_list_iter(
+			[
 				Ipv4Addr::new(1, 2, 3, 0),
 				Ipv4Addr::new(1, 2, 3, 1),
 				Ipv4Addr::new(1, 2, 3, 2),
 				Ipv4Addr::new(1, 2, 3, 3),
 			],
-			(&cidr).into_iter().addresses().collect::<Vec<_>>()
+			cidr.into_iter().addresses(),
 		);
 	}
 
 	#[test]
 	fn v4_owned_into_iter() {
 		let cidr = Ipv4Cidr::new(Ipv4Addr::new(1, 2, 3, 0), 30).unwrap();
-		assert_eq!(
-			vec![
+		check_list_iter(
+			[
 				Ipv4Addr::new(1, 2, 3, 0),
 				Ipv4Addr::new(1, 2, 3, 1),
 				Ipv4Addr::new(1, 2, 3, 2),
 				Ipv4Addr::new(1, 2, 3, 3),
 			],
-			cidr.into_iter().addresses().collect::<Vec<_>>()
+			cidr.into_iter().addresses(),
 		);
 	}
 }

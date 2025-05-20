@@ -27,9 +27,9 @@ pub(crate) struct Handle {
 /// # }
 /// ```
 ///
-/// Occasionally, SDKs may have additional service-specific that can be set on the [`Config`] that
+/// Occasionally, SDKs may have additional service-specific values that can be set on the [`Config`] that
 /// is absent from [`SdkConfig`], or slightly different settings for a specific client may be desired.
-/// The [`Config`] struct implements `From<&SdkConfig>`, so setting these specific settings can be
+/// The [`Builder`](crate::config::Builder) struct implements `From<&SdkConfig>`, so setting these specific settings can be
 /// done as follows:
 ///
 /// ```rust,no_run
@@ -110,7 +110,7 @@ impl Client {
         &self.handle.conf
     }
 
-    fn validate_config(handle: &Handle) -> Result<(), ::aws_smithy_runtime_api::box_error::BoxError> {
+    fn validate_config(handle: &Handle) -> ::std::result::Result<(), ::aws_smithy_runtime_api::box_error::BoxError> {
         let mut cfg = ::aws_smithy_types::config_bag::ConfigBag::base();
         handle
             .runtime_plugins
@@ -143,6 +143,8 @@ mod add_tags;
 mod associate_package;
 
 mod authorize_vpc_endpoint_access;
+
+mod cancel_domain_config_change;
 
 mod cancel_elasticsearch_service_software_update;
 

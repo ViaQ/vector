@@ -13,12 +13,13 @@
 edition = "2021"
 rust-version = "1.60"
 name = "ordered-float"
-version = "4.5.0"
+version = "4.6.0"
 authors = [
     "Jonathan Reem <jonathan.reem@gmail.com>",
     "Matt Brubeck <mbrubeck@limpet.net>",
 ]
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -75,7 +76,7 @@ version = "0.1.0"
 optional = true
 
 [dependencies.num-traits]
-version = "0.2.1"
+version = "0.2.9"
 default-features = false
 
 [dependencies.proptest]
@@ -112,6 +113,7 @@ version = "1.0"
 
 [features]
 default = ["std"]
+libm = ["num-traits/libm"]
 randtest = [
     "rand/std",
     "rand/std_rng",

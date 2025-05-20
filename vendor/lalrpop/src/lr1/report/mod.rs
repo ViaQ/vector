@@ -6,6 +6,9 @@ use std::io::{self, Write};
 
 use super::lookahead::*;
 
+#[cfg(test)]
+mod test;
+
 pub fn generate_report<'grammar, W: Write + 'grammar>(
     out: &'grammar mut W,
     lr1result: &Lr1Result<'grammar>,
@@ -18,7 +21,7 @@ static INDENT_STRING: &str = "    ";
 
 struct ReportGenerator<'report, W>
 where
-    W: Write + 'report,
+    W: Write,
 {
     pub out: &'report mut W,
 }
@@ -373,13 +376,13 @@ trait HasDisplayLen {
     fn display_len(&self) -> usize;
 }
 
-impl<'a> HasDisplayLen for &'a TerminalString {
+impl HasDisplayLen for &TerminalString {
     fn display_len(&self) -> usize {
         TerminalString::display_len(self)
     }
 }
 
-impl<'a> HasDisplayLen for &'a NonterminalString {
+impl HasDisplayLen for &NonterminalString {
     fn display_len(&self) -> usize {
         self.len()
     }
@@ -393,7 +396,7 @@ where
     m.map(|k| k.display_len()).fold(0, max)
 }
 
-fn get_width_for_gotos<L>(state: &State<L>) -> usize
+fn get_width_for_gotos<L>(state: &State<'_, L>) -> usize
 where
     L: Lookahead,
 {

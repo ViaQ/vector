@@ -38,6 +38,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -108,6 +109,18 @@ impl DeliveryStreamStatus {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for DeliveryStreamStatus {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            DeliveryStreamStatus::Active => write!(f, "ACTIVE"),
+            DeliveryStreamStatus::Creating => write!(f, "CREATING"),
+            DeliveryStreamStatus::CreatingFailed => write!(f, "CREATING_FAILED"),
+            DeliveryStreamStatus::Deleting => write!(f, "DELETING"),
+            DeliveryStreamStatus::DeletingFailed => write!(f, "DELETING_FAILED"),
+            DeliveryStreamStatus::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

@@ -61,6 +61,33 @@ macro_rules! cfg_if {
     };
 }
 
+/// Create an internal crate prelude with `core` reexports and common types.
+macro_rules! prelude {
+    () => {
+        /// Frequently-used types that are available on all platforms
+        ///
+        /// We need to reexport the core types so this works with `rust-dep-of-std`.
+        mod prelude {
+            // Exports from `core`
+            #[allow(unused_imports)]
+            pub(crate) use ::core::clone::Clone;
+            #[allow(unused_imports)]
+            pub(crate) use ::core::marker::{Copy, Send, Sync};
+            #[allow(unused_imports)]
+            pub(crate) use ::core::option::Option;
+            #[allow(unused_imports)]
+            pub(crate) use ::core::{fmt, hash, iter, mem};
+
+            // Commonly used types defined in this crate
+            #[allow(unused_imports)]
+            pub(crate) use crate::{
+                c_char, c_double, c_float, c_int, c_long, c_longlong, c_short, c_uchar, c_uint,
+                c_ulong, c_ulonglong, c_ushort, c_void, intptr_t, size_t, ssize_t, uintptr_t,
+            };
+        }
+    };
+}
+
 /// Implement `Clone` and `Copy` for a struct, as well as `Debug`, `Eq`, `Hash`, and
 /// `PartialEq` if the `extra_traits` feature is enabled.
 ///
@@ -81,8 +108,11 @@ macro_rules! s {
     (it: $(#[$attr:meta])* pub struct $i:ident { $($field:tt)* }) => (
         __item! {
             #[repr(C)]
-            #[cfg_attr(feature = "extra_traits", derive(Debug, Eq, Hash, PartialEq))]
-            #[derive(Copy, Clone)]
+            #[cfg_attr(
+                feature = "extra_traits",
+                ::core::prelude::v1::derive(Debug, Eq, Hash, PartialEq)
+            )]
+            #[::core::prelude::v1::derive(::core::clone::Clone, ::core::marker::Copy)]
             #[allow(deprecated)]
             $(#[$attr])*
             pub struct $i { $($field)* }
@@ -100,8 +130,11 @@ macro_rules! s_paren {
         pub struct $i:ident ( $($field:tt)* );
     )*) => ($(
         __item! {
-            #[cfg_attr(feature = "extra_traits", derive(Debug, Eq, Hash, PartialEq))]
-            #[derive(Copy, Clone)]
+            #[cfg_attr(
+                feature = "extra_traits",
+                ::core::prelude::v1::derive(Debug, Eq, Hash, PartialEq)
+            )]
+            #[::core::prelude::v1::derive(::core::clone::Clone, ::core::marker::Copy)]
             $(#[$attr])*
             pub struct $i ( $($field)* );
         }
@@ -122,16 +155,23 @@ macro_rules! s_no_extra_traits {
     (it: $(#[$attr:meta])* pub union $i:ident { $($field:tt)* }) => (
         __item! {
             #[repr(C)]
-            #[derive(Copy, Clone)]
+            #[::core::prelude::v1::derive(::core::clone::Clone, ::core::marker::Copy)]
             $(#[$attr])*
             pub union $i { $($field)* }
+        }
+
+        #[cfg(feature = "extra_traits")]
+        impl ::core::fmt::Debug for $i {
+            fn fmt(&self, f: &mut ::core::fmt::Formatter<'_>) -> ::core::fmt::Result {
+                f.debug_struct(::core::stringify!($i)).finish_non_exhaustive()
+            }
         }
     );
 
     (it: $(#[$attr:meta])* pub struct $i:ident { $($field:tt)* }) => (
         __item! {
             #[repr(C)]
-            #[derive(Copy, Clone)]
+            #[::core::prelude::v1::derive(::core::clone::Clone, ::core::marker::Copy)]
             $(#[$attr])*
             pub struct $i { $($field)* }
         }
@@ -159,8 +199,11 @@ macro_rules! e {
         pub enum $i:ident { $($field:tt)* }
     )*) => ($(
         __item! {
-            #[cfg_attr(feature = "extra_traits", derive(Debug, Eq, Hash, PartialEq))]
-            #[derive(Copy, Clone)]
+            #[cfg_attr(
+                feature = "extra_traits",
+                ::core::prelude::v1::derive(Debug, Eq, Hash, PartialEq)
+            )]
+            #[::core::prelude::v1::derive(::core::clone::Clone, ::core::marker::Copy)]
             $(#[$attr])*
             pub enum $i { $($field)* }
         }
@@ -200,7 +243,7 @@ cfg_if! {
             )*) => ($(
                 #[inline]
                 $(#[$attr])*
-                pub $($constness)* unsafe extern fn $i($($arg: $argty),*) -> $ret
+                pub $($constness)* unsafe extern "C" fn $i($($arg: $argty),*) -> $ret
                     $body
             )*)
         }
@@ -214,7 +257,7 @@ cfg_if! {
             )*) => ($(
                 #[inline]
                 $(#[$attr])*
-                pub $($constness)* extern fn $i($($arg: $argty),*) -> $ret
+                pub $($constness)* extern "C" fn $i($($arg: $argty),*) -> $ret
                     $body
             )*)
         }
@@ -242,7 +285,7 @@ cfg_if! {
             )*) => ($(
                 #[inline]
                 $(#[$attr])*
-                pub unsafe extern fn $i($($arg: $argty),*) -> $ret
+                pub unsafe extern "C" fn $i($($arg: $argty),*) -> $ret
                     $body
             )*)
         }
@@ -256,7 +299,7 @@ cfg_if! {
             )*) => ($(
                 #[inline]
                 $(#[$attr])*
-                pub extern fn $i($($arg: $argty),*) -> $ret
+                pub extern "C" fn $i($($arg: $argty),*) -> $ret
                     $body
             )*)
         }

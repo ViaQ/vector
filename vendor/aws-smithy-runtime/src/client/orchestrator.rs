@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use self::auth::orchestrate_auth;
 use crate::client::interceptors::Interceptors;
 use crate::client::orchestrator::http::{log_response_body, read_body};
 use crate::client::timeout::{MaybeTimeout, MaybeTimeoutConfig, TimeoutKind};
@@ -11,6 +10,7 @@ use crate::client::{
     http::body::minimum_throughput::MaybeUploadThroughputCheckFuture,
     orchestrator::endpoints::orchestrate_endpoint,
 };
+use auth::{resolve_identity, sign_request};
 use aws_smithy_async::rt::sleep::AsyncSleep;
 use aws_smithy_runtime_api::box_error::BoxError;
 use aws_smithy_runtime_api::client::http::{HttpClient, HttpConnector, HttpConnectorSettings};
@@ -31,10 +31,12 @@ use aws_smithy_types::body::SdkBody;
 use aws_smithy_types::byte_stream::ByteStream;
 use aws_smithy_types::config_bag::ConfigBag;
 use aws_smithy_types::timeout::{MergeTimeoutConfig, TimeoutConfig};
+use endpoints::apply_endpoint;
 use std::mem;
 use tracing::{debug, debug_span, instrument, trace, Instrument};
 
 mod auth;
+pub use auth::AuthSchemeAndEndpointOrchestrationV2;
 
 /// Defines types that implement a trait for endpoint resolution
 pub mod endpoints;
@@ -133,8 +135,11 @@ pub enum StopPoint {
 ///
 /// See the docs on [`invoke`] for more details.
 pub async fn invoke_with_stop_point(
-    service_name: &str,
-    operation_name: &str,
+    // NOTE: service_name and operation_name were at one point used for instrumentation that is now
+    // handled as part of codegen. Manually constructed operations (e.g. via Operation::builder())
+    // are handled as part of Operation::invoke
+    _service_name: &str,
+    _operation_name: &str,
     input: Input,
     runtime_plugins: &RuntimePlugins,
     stop_point: StopPoint,
@@ -168,8 +173,6 @@ pub async fn invoke_with_stop_point(
         .maybe_timeout(operation_timeout_config)
         .await
     }
-    // Include a random, internal-only, seven-digit ID for the operation invocation so that it can be correlated in the logs.
-    .instrument(debug_span!("invoke", service = %service_name, operation = %operation_name, sdk_invocation_id = fastrand::u32(1_000_000..10_000_000)))
     .await
 }
 
@@ -305,8 +308,12 @@ async fn try_op(
         trace!(attempt_timeout_config = ?attempt_timeout_config);
         let maybe_timeout = async {
             debug!("beginning attempt #{i}");
-            try_attempt(ctx, cfg, runtime_components, stop_point).await;
-            finally_attempt(ctx, cfg, runtime_components).await;
+            try_attempt(ctx, cfg, runtime_components, stop_point)
+                .instrument(debug_span!("try_attempt", "attempt" = i))
+                .await;
+            finally_attempt(ctx, cfg, runtime_components)
+                .instrument(debug_span!("finally_attempt", "attempt" = i))
+                .await;
             Result::<_, SdkError<Error, HttpResponse>>::Ok(())
         }
         .maybe_timeout(attempt_timeout_config)
@@ -341,7 +348,6 @@ async fn try_op(
     }
 }
 
-#[instrument(skip_all, level = "debug")]
 async fn try_attempt(
     ctx: &mut InterceptorContext,
     cfg: &mut ConfigBag,
@@ -350,14 +356,30 @@ async fn try_attempt(
 ) {
     run_interceptors!(halt_on_err: read_before_attempt(ctx, runtime_components, cfg));
 
-    halt_on_err!([ctx] => orchestrate_endpoint(ctx, runtime_components, cfg).await.map_err(OrchestratorError::other));
+    let (scheme_id, identity, endpoint) = halt_on_err!([ctx] => resolve_identity(runtime_components, cfg).await.map_err(OrchestratorError::other));
+
+    match endpoint {
+        Some(endpoint) => {
+            // This branch is for backward compatibility when `AuthSchemeAndEndpointOrchestrationV2` is not present in the config bag.
+            // `resolve_identity` internally resolved an endpoint to determine the most suitable scheme ID, and returned that endpoint.
+            halt_on_err!([ctx] => apply_endpoint(&endpoint, ctx, cfg).map_err(OrchestratorError::other));
+            // Make the endpoint config available to interceptors
+            cfg.interceptor_state().store_put(endpoint);
+        }
+        None => {
+            halt_on_err!([ctx] => orchestrate_endpoint(identity.clone(), ctx, runtime_components, cfg)
+				    .instrument(debug_span!("orchestrate_endpoint"))
+				    .await
+				    .map_err(OrchestratorError::other));
+        }
+    }
 
     run_interceptors!(halt_on_err: {
         modify_before_signing(ctx, runtime_components, cfg);
         read_before_signing(ctx, runtime_components, cfg);
     });
 
-    halt_on_err!([ctx] => orchestrate_auth(ctx, runtime_components, cfg).await.map_err(OrchestratorError::other));
+    halt_on_err!([ctx] => sign_request(&scheme_id, &identity, ctx, runtime_components, cfg).map_err(OrchestratorError::other));
 
     run_interceptors!(halt_on_err: {
         read_after_signing(ctx, runtime_components, cfg);
@@ -379,7 +401,7 @@ async fn try_attempt(
         trace!(request = ?request, "transmitting request");
         let http_client = halt_on_err!([ctx] => runtime_components.http_client().ok_or_else(||
             OrchestratorError::other("No HTTP client was available to send this request. \
-                Enable the `rustls` crate feature or configure a HTTP client to fix this.")
+                Enable the `default-https-client` crate feature or configure an HTTP client to fix this.")
         ));
         let timeout_config = cfg.load::<TimeoutConfig>().expect("timeout config must be set");
         let settings = {
@@ -438,7 +460,6 @@ async fn try_attempt(
     run_interceptors!(halt_on_err: read_after_deserialization(ctx, runtime_components, cfg));
 }
 
-#[instrument(skip_all, level = "debug")]
 async fn finally_attempt(
     ctx: &mut InterceptorContext,
     cfg: &mut ConfigBag,
@@ -462,16 +483,16 @@ async fn finally_op(
     });
 }
 
-#[cfg(all(test, feature = "test-util"))]
+#[cfg(all(test, any(feature = "test-util", feature = "legacy-test-util")))]
 mod tests {
     use crate::client::auth::no_auth::{NoAuthRuntimePlugin, NO_AUTH_SCHEME_ID};
-    use crate::client::http::test_util::NeverClient;
     use crate::client::orchestrator::endpoints::StaticUriEndpointResolver;
     use crate::client::orchestrator::{invoke, invoke_with_stop_point, StopPoint};
     use crate::client::retries::strategy::NeverRetryStrategy;
     use crate::client::test_util::{
         deserializer::CannedResponseDeserializer, serializer::CannedRequestSerializer,
     };
+    use aws_smithy_http_client::test_util::NeverClient;
     use aws_smithy_runtime_api::box_error::BoxError;
     use aws_smithy_runtime_api::client::auth::static_resolver::StaticAuthSchemeOptionResolver;
     use aws_smithy_runtime_api::client::auth::{

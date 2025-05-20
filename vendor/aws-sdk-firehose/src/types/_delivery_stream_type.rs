@@ -12,6 +12,7 @@
 /// ```text
 /// # let deliverystreamtype = unimplemented!();
 /// match deliverystreamtype {
+///     DeliveryStreamType::DatabaseAsSource => { /* ... */ },
 ///     DeliveryStreamType::DirectPut => { /* ... */ },
 ///     DeliveryStreamType::KinesisStreamAsSource => { /* ... */ },
 ///     DeliveryStreamType::MskAsSource => { /* ... */ },
@@ -36,12 +37,15 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
     ::std::clone::Clone, ::std::cmp::Eq, ::std::cmp::Ord, ::std::cmp::PartialEq, ::std::cmp::PartialOrd, ::std::fmt::Debug, ::std::hash::Hash,
 )]
 pub enum DeliveryStreamType {
+    #[allow(missing_docs)] // documentation missing in model
+    DatabaseAsSource,
     #[allow(missing_docs)] // documentation missing in model
     DirectPut,
     #[allow(missing_docs)] // documentation missing in model
@@ -55,6 +59,7 @@ pub enum DeliveryStreamType {
 impl ::std::convert::From<&str> for DeliveryStreamType {
     fn from(s: &str) -> Self {
         match s {
+            "DatabaseAsSource" => DeliveryStreamType::DatabaseAsSource,
             "DirectPut" => DeliveryStreamType::DirectPut,
             "KinesisStreamAsSource" => DeliveryStreamType::KinesisStreamAsSource,
             "MSKAsSource" => DeliveryStreamType::MskAsSource,
@@ -73,6 +78,7 @@ impl DeliveryStreamType {
     /// Returns the `&str` value of the enum member.
     pub fn as_str(&self) -> &str {
         match self {
+            DeliveryStreamType::DatabaseAsSource => "DatabaseAsSource",
             DeliveryStreamType::DirectPut => "DirectPut",
             DeliveryStreamType::KinesisStreamAsSource => "KinesisStreamAsSource",
             DeliveryStreamType::MskAsSource => "MSKAsSource",
@@ -81,7 +87,7 @@ impl DeliveryStreamType {
     }
     /// Returns all the `&str` representations of the enum members.
     pub const fn values() -> &'static [&'static str] {
-        &["DirectPut", "KinesisStreamAsSource", "MSKAsSource"]
+        &["DatabaseAsSource", "DirectPut", "KinesisStreamAsSource", "MSKAsSource"]
     }
 }
 impl ::std::convert::AsRef<str> for DeliveryStreamType {
@@ -98,6 +104,17 @@ impl DeliveryStreamType {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for DeliveryStreamType {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            DeliveryStreamType::DatabaseAsSource => write!(f, "DatabaseAsSource"),
+            DeliveryStreamType::DirectPut => write!(f, "DirectPut"),
+            DeliveryStreamType::KinesisStreamAsSource => write!(f, "KinesisStreamAsSource"),
+            DeliveryStreamType::MskAsSource => write!(f, "MSKAsSource"),
+            DeliveryStreamType::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

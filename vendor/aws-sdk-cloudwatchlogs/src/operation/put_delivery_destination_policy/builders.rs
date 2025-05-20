@@ -3,7 +3,7 @@ pub use crate::operation::put_delivery_destination_policy::_put_delivery_destina
 
 pub use crate::operation::put_delivery_destination_policy::_put_delivery_destination_policy_input::PutDeliveryDestinationPolicyInputBuilder;
 
-impl PutDeliveryDestinationPolicyInputBuilder {
+impl crate::operation::put_delivery_destination_policy::builders::PutDeliveryDestinationPolicyInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -24,12 +24,16 @@ impl PutDeliveryDestinationPolicyInputBuilder {
 ///
 /// <p>Creates and assigns an IAM policy that grants permissions to CloudWatch Logs to deliver logs cross-account to a specified destination in this account. To configure the delivery of logs from an Amazon Web Services service in another account to a logs delivery destination in the current account, you must do the following:</p>
 /// <ul>
-/// <li> <p>Create a delivery source, which is a logical object that represents the resource that is actually sending the logs. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDeliverySource.html">PutDeliverySource</a>.</p> </li>
-/// <li> <p>Create a <i>delivery destination</i>, which is a logical object that represents the actual delivery destination. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDeliveryDestination.html">PutDeliveryDestination</a>.</p> </li>
-/// <li> <p>Use this operation in the destination account to assign an IAM policy to the destination. This policy allows delivery to that destination. </p> </li>
-/// <li> <p>Create a <i>delivery</i> by pairing exactly one delivery source and one delivery destination. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateDelivery.html">CreateDelivery</a>.</p> </li>
+/// <li>
+/// <p>Create a delivery source, which is a logical object that represents the resource that is actually sending the logs. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDeliverySource.html">PutDeliverySource</a>.</p></li>
+/// <li>
+/// <p>Create a <i>delivery destination</i>, which is a logical object that represents the actual delivery destination. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDeliveryDestination.html">PutDeliveryDestination</a>.</p></li>
+/// <li>
+/// <p>Use this operation in the destination account to assign an IAM policy to the destination. This policy allows delivery to that destination.</p></li>
+/// <li>
+/// <p>Create a <i>delivery</i> by pairing exactly one delivery source and one delivery destination. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_CreateDelivery.html">CreateDelivery</a>.</p></li>
 /// </ul>
-/// <p>Only some Amazon Web Services services support being configured as a delivery source. These services are listed as <b>Supported [V2 Permissions]</b> in the table at <a href="https://docs.aws.amazon.com/     AmazonCloudWatch/latest/logs/AWS-logs-and-resource-policy.html#AWS-vended-logs-permissions">Enabling logging from Amazon Web Services services.</a> </p>
+/// <p>Only some Amazon Web Services services support being configured as a delivery source. These services are listed as <b>Supported \[V2 Permissions\]</b> in the table at <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/AWS-logs-and-resource-policy.html">Enabling logging from Amazon Web Services services.</a></p>
 /// <p>The contents of the policy must include two statements. One statement enables general logs delivery, and the other allows delivery to the chosen destination. See the examples for the needed policies.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct PutDeliveryDestinationPolicyFluentBuilder {
@@ -56,7 +60,7 @@ impl
     }
 }
 impl PutDeliveryDestinationPolicyFluentBuilder {
-    /// Creates a new `PutDeliveryDestinationPolicy`.
+    /// Creates a new `PutDeliveryDestinationPolicyFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -107,12 +111,12 @@ impl PutDeliveryDestinationPolicyFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

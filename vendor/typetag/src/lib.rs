@@ -277,6 +277,12 @@
 //!   anything else supported by Serde. The Serialize and Deserialize impls may
 //!   be derived or handwritten.
 //!
+//! - *Even in WebAssembly?* **Yes**
+//!
+//!   Wasm is supported but with some extra setup described [here][wasm].
+//!
+//!   [wasm]: https://docs.rs/inventory/0.3/inventory/index.html#webassembly-and-constructors
+//!
 //! - *Didn't someone explain to me why this wasn't possible?* **Yes**
 //!
 //!   It might have been me.
@@ -297,10 +303,11 @@
 //! [`erased-serde`]: https://github.com/dtolnay/erased-serde
 
 #![no_std]
-#![doc(html_root_url = "https://docs.rs/typetag/0.2.18")]
+#![doc(html_root_url = "https://docs.rs/typetag/0.2.20")]
 #![allow(
     clippy::missing_errors_doc,
     clippy::module_name_repetitions,
+    clippy::needless_lifetimes,
     clippy::uninlined_format_args,
     clippy::unnested_or_patterns
 )]

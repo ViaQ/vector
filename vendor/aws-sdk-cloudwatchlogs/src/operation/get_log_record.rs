@@ -50,7 +50,18 @@ impl GetLogRecord {
         >,
     > {
         let input = ::aws_smithy_runtime_api::client::interceptors::context::Input::erase(input);
-        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("cloudwatchlogs", "GetLogRecord", input, runtime_plugins, stop_point).await
+        use ::tracing::Instrument;
+        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("CloudWatch Logs", "GetLogRecord", input, runtime_plugins, stop_point)
+            // Create a parent span for the entire operation. Includes a random, internal-only,
+            // seven-digit ID for the operation orchestration so that it can be correlated in the logs.
+            .instrument(::tracing::debug_span!(
+                "CloudWatch Logs.GetLogRecord",
+                "rpc.service" = "CloudWatch Logs",
+                "rpc.method" = "GetLogRecord",
+                "sdk_invocation_id" = ::fastrand::u32(1_000_000..10_000_000),
+                "rpc.system" = "aws-api",
+            ))
+            .await
     }
 
     pub(crate) fn operation_runtime_plugins(
@@ -90,7 +101,10 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for GetLogR
             ::aws_smithy_runtime_api::client::auth::static_resolver::StaticAuthSchemeOptionResolverParams::new(),
         ));
 
-        cfg.store_put(::aws_smithy_http::operation::Metadata::new("GetLogRecord", "cloudwatchlogs"));
+        cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::Metadata::new(
+            "GetLogRecord",
+            "CloudWatch Logs",
+        ));
         let mut signing_options = ::aws_runtime::auth::SigningOptions::default();
         signing_options.double_uri_encode = true;
         signing_options.content_sha256_header = false;
@@ -111,11 +125,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for GetLogR
     ) -> ::std::borrow::Cow<'_, ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder> {
         #[allow(unused_mut)]
         let mut rcb = ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("GetLogRecord")
-            .with_interceptor(
-                ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::new(
-                    ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptorKind::ResponseBody,
-                ),
-            )
+            .with_interceptor(::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::default())
             .with_interceptor(GetLogRecordEndpointParamsInterceptor)
             .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<
                 crate::operation::get_log_record::GetLogRecordError,
@@ -241,16 +251,19 @@ impl ::aws_smithy_runtime_api::client::interceptors::Intercept for GetLogRecordE
     }
 }
 
+// The get_* functions below are generated from JMESPath expressions in the
+// operationContextParams trait. They target the operation's input shape.
+
 /// Error type for the `GetLogRecordError` operation.
 #[non_exhaustive]
 #[derive(::std::fmt::Debug)]
 pub enum GetLogRecordError {
+    /// <p>The specified resource does not exist.</p>
+    ResourceNotFoundException(crate::types::error::ResourceNotFoundException),
     /// <p>A parameter is specified incorrectly.</p>
     InvalidParameterException(crate::types::error::InvalidParameterException),
     /// <p>You have reached the maximum number of resources that can be created.</p>
     LimitExceededException(crate::types::error::LimitExceededException),
-    /// <p>The specified resource does not exist.</p>
-    ResourceNotFoundException(crate::types::error::ResourceNotFoundException),
     /// <p>The service cannot complete the request.</p>
     ServiceUnavailableException(crate::types::error::ServiceUnavailableException),
     /// An unexpected error occurred (e.g., invalid JSON returned by the service or an unknown error code).
@@ -286,12 +299,16 @@ impl GetLogRecordError {
     ///
     pub fn meta(&self) -> &::aws_smithy_types::error::ErrorMetadata {
         match self {
+            Self::ResourceNotFoundException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::InvalidParameterException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::LimitExceededException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
-            Self::ResourceNotFoundException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::ServiceUnavailableException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::Unhandled(e) => &e.meta,
         }
+    }
+    /// Returns `true` if the error kind is `GetLogRecordError::ResourceNotFoundException`.
+    pub fn is_resource_not_found_exception(&self) -> bool {
+        matches!(self, Self::ResourceNotFoundException(_))
     }
     /// Returns `true` if the error kind is `GetLogRecordError::InvalidParameterException`.
     pub fn is_invalid_parameter_exception(&self) -> bool {
@@ -301,10 +318,6 @@ impl GetLogRecordError {
     pub fn is_limit_exceeded_exception(&self) -> bool {
         matches!(self, Self::LimitExceededException(_))
     }
-    /// Returns `true` if the error kind is `GetLogRecordError::ResourceNotFoundException`.
-    pub fn is_resource_not_found_exception(&self) -> bool {
-        matches!(self, Self::ResourceNotFoundException(_))
-    }
     /// Returns `true` if the error kind is `GetLogRecordError::ServiceUnavailableException`.
     pub fn is_service_unavailable_exception(&self) -> bool {
         matches!(self, Self::ServiceUnavailableException(_))
@@ -313,9 +326,9 @@ impl GetLogRecordError {
 impl ::std::error::Error for GetLogRecordError {
     fn source(&self) -> ::std::option::Option<&(dyn ::std::error::Error + 'static)> {
         match self {
+            Self::ResourceNotFoundException(_inner) => ::std::option::Option::Some(_inner),
             Self::InvalidParameterException(_inner) => ::std::option::Option::Some(_inner),
             Self::LimitExceededException(_inner) => ::std::option::Option::Some(_inner),
-            Self::ResourceNotFoundException(_inner) => ::std::option::Option::Some(_inner),
             Self::ServiceUnavailableException(_inner) => ::std::option::Option::Some(_inner),
             Self::Unhandled(_inner) => ::std::option::Option::Some(&*_inner.source),
         }
@@ -324,9 +337,9 @@ impl ::std::error::Error for GetLogRecordError {
 impl ::std::fmt::Display for GetLogRecordError {
     fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
         match self {
+            Self::ResourceNotFoundException(_inner) => _inner.fmt(f),
             Self::InvalidParameterException(_inner) => _inner.fmt(f),
             Self::LimitExceededException(_inner) => _inner.fmt(f),
-            Self::ResourceNotFoundException(_inner) => _inner.fmt(f),
             Self::ServiceUnavailableException(_inner) => _inner.fmt(f),
             Self::Unhandled(_inner) => {
                 if let ::std::option::Option::Some(code) = ::aws_smithy_types::error::metadata::ProvideErrorMetadata::code(self) {
@@ -349,9 +362,9 @@ impl ::aws_smithy_types::retry::ProvideErrorKind for GetLogRecordError {
 impl ::aws_smithy_types::error::metadata::ProvideErrorMetadata for GetLogRecordError {
     fn meta(&self) -> &::aws_smithy_types::error::ErrorMetadata {
         match self {
+            Self::ResourceNotFoundException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
             Self::InvalidParameterException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
             Self::LimitExceededException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
-            Self::ResourceNotFoundException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
             Self::ServiceUnavailableException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
             Self::Unhandled(_inner) => &_inner.meta,
         }

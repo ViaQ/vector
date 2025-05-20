@@ -6,9 +6,10 @@
 // copied, modified, or distributed except according to those terms.
 
 //! OPENPGPKEY records for OpenPGP public keys
-use std::fmt;
+use alloc::vec::Vec;
+use core::fmt;
 
-#[cfg(feature = "serde-config")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -24,7 +25,7 @@ use crate::{
 /// value consisting of a Transferable Public Key formatted as specified
 /// in [RFC4880].
 /// ```
-#[cfg_attr(feature = "serde-config", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct OPENPGPKEY {
     public_key: Vec<u8>,
@@ -36,7 +37,7 @@ impl OPENPGPKEY {
     /// # Arguments
     ///
     /// * `public_key` - an OpenPGP Transferable Public Key. This will NOT
-    ///    be checked.
+    ///   be checked.
     pub fn new(public_key: Vec<u8>) -> Self {
         Self { public_key }
     }

@@ -10,7 +10,7 @@ pub struct S3DestinationConfiguration {
     pub bucket_arn: ::std::string::String,
     /// <p>The "YYYY/MM/DD/HH" time format prefix is automatically used for delivered Amazon S3 files. You can also specify a custom prefix, as described in <a href="https://docs.aws.amazon.com/firehose/latest/dev/s3-prefixes.html">Custom Prefixes for Amazon S3 Objects</a>.</p>
     pub prefix: ::std::option::Option<::std::string::String>,
-    /// <p>A prefix that Kinesis Data Firehose evaluates and adds to failed records before writing them to S3. This prefix appears immediately following the bucket name. For information about how to specify this prefix, see <a href="https://docs.aws.amazon.com/firehose/latest/dev/s3-prefixes.html">Custom Prefixes for Amazon S3 Objects</a>.</p>
+    /// <p>A prefix that Firehose evaluates and adds to failed records before writing them to S3. This prefix appears immediately following the bucket name. For information about how to specify this prefix, see <a href="https://docs.aws.amazon.com/firehose/latest/dev/s3-prefixes.html">Custom Prefixes for Amazon S3 Objects</a>.</p>
     pub error_output_prefix: ::std::option::Option<::std::string::String>,
     /// <p>The buffering option. If no value is specified, <code>BufferingHints</code> object default values are used.</p>
     pub buffering_hints: ::std::option::Option<crate::types::BufferingHints>,
@@ -19,7 +19,7 @@ pub struct S3DestinationConfiguration {
     pub compression_format: ::std::option::Option<crate::types::CompressionFormat>,
     /// <p>The encryption configuration. If no value is specified, the default is no encryption.</p>
     pub encryption_configuration: ::std::option::Option<crate::types::EncryptionConfiguration>,
-    /// <p>The CloudWatch logging options for your delivery stream.</p>
+    /// <p>The CloudWatch logging options for your Firehose stream.</p>
     pub cloud_watch_logging_options: ::std::option::Option<crate::types::CloudWatchLoggingOptions>,
 }
 impl S3DestinationConfiguration {
@@ -37,7 +37,7 @@ impl S3DestinationConfiguration {
     pub fn prefix(&self) -> ::std::option::Option<&str> {
         self.prefix.as_deref()
     }
-    /// <p>A prefix that Kinesis Data Firehose evaluates and adds to failed records before writing them to S3. This prefix appears immediately following the bucket name. For information about how to specify this prefix, see <a href="https://docs.aws.amazon.com/firehose/latest/dev/s3-prefixes.html">Custom Prefixes for Amazon S3 Objects</a>.</p>
+    /// <p>A prefix that Firehose evaluates and adds to failed records before writing them to S3. This prefix appears immediately following the bucket name. For information about how to specify this prefix, see <a href="https://docs.aws.amazon.com/firehose/latest/dev/s3-prefixes.html">Custom Prefixes for Amazon S3 Objects</a>.</p>
     pub fn error_output_prefix(&self) -> ::std::option::Option<&str> {
         self.error_output_prefix.as_deref()
     }
@@ -54,7 +54,7 @@ impl S3DestinationConfiguration {
     pub fn encryption_configuration(&self) -> ::std::option::Option<&crate::types::EncryptionConfiguration> {
         self.encryption_configuration.as_ref()
     }
-    /// <p>The CloudWatch logging options for your delivery stream.</p>
+    /// <p>The CloudWatch logging options for your Firehose stream.</p>
     pub fn cloud_watch_logging_options(&self) -> ::std::option::Option<&crate::types::CloudWatchLoggingOptions> {
         self.cloud_watch_logging_options.as_ref()
     }
@@ -67,8 +67,8 @@ impl S3DestinationConfiguration {
 }
 
 /// A builder for [`S3DestinationConfiguration`](crate::types::S3DestinationConfiguration).
-#[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::default::Default, ::std::fmt::Debug)]
+#[non_exhaustive]
 pub struct S3DestinationConfigurationBuilder {
     pub(crate) role_arn: ::std::option::Option<::std::string::String>,
     pub(crate) bucket_arn: ::std::option::Option<::std::string::String>,
@@ -124,17 +124,17 @@ impl S3DestinationConfigurationBuilder {
     pub fn get_prefix(&self) -> &::std::option::Option<::std::string::String> {
         &self.prefix
     }
-    /// <p>A prefix that Kinesis Data Firehose evaluates and adds to failed records before writing them to S3. This prefix appears immediately following the bucket name. For information about how to specify this prefix, see <a href="https://docs.aws.amazon.com/firehose/latest/dev/s3-prefixes.html">Custom Prefixes for Amazon S3 Objects</a>.</p>
+    /// <p>A prefix that Firehose evaluates and adds to failed records before writing them to S3. This prefix appears immediately following the bucket name. For information about how to specify this prefix, see <a href="https://docs.aws.amazon.com/firehose/latest/dev/s3-prefixes.html">Custom Prefixes for Amazon S3 Objects</a>.</p>
     pub fn error_output_prefix(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.error_output_prefix = ::std::option::Option::Some(input.into());
         self
     }
-    /// <p>A prefix that Kinesis Data Firehose evaluates and adds to failed records before writing them to S3. This prefix appears immediately following the bucket name. For information about how to specify this prefix, see <a href="https://docs.aws.amazon.com/firehose/latest/dev/s3-prefixes.html">Custom Prefixes for Amazon S3 Objects</a>.</p>
+    /// <p>A prefix that Firehose evaluates and adds to failed records before writing them to S3. This prefix appears immediately following the bucket name. For information about how to specify this prefix, see <a href="https://docs.aws.amazon.com/firehose/latest/dev/s3-prefixes.html">Custom Prefixes for Amazon S3 Objects</a>.</p>
     pub fn set_error_output_prefix(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.error_output_prefix = input;
         self
     }
-    /// <p>A prefix that Kinesis Data Firehose evaluates and adds to failed records before writing them to S3. This prefix appears immediately following the bucket name. For information about how to specify this prefix, see <a href="https://docs.aws.amazon.com/firehose/latest/dev/s3-prefixes.html">Custom Prefixes for Amazon S3 Objects</a>.</p>
+    /// <p>A prefix that Firehose evaluates and adds to failed records before writing them to S3. This prefix appears immediately following the bucket name. For information about how to specify this prefix, see <a href="https://docs.aws.amazon.com/firehose/latest/dev/s3-prefixes.html">Custom Prefixes for Amazon S3 Objects</a>.</p>
     pub fn get_error_output_prefix(&self) -> &::std::option::Option<::std::string::String> {
         &self.error_output_prefix
     }
@@ -183,17 +183,17 @@ impl S3DestinationConfigurationBuilder {
     pub fn get_encryption_configuration(&self) -> &::std::option::Option<crate::types::EncryptionConfiguration> {
         &self.encryption_configuration
     }
-    /// <p>The CloudWatch logging options for your delivery stream.</p>
+    /// <p>The CloudWatch logging options for your Firehose stream.</p>
     pub fn cloud_watch_logging_options(mut self, input: crate::types::CloudWatchLoggingOptions) -> Self {
         self.cloud_watch_logging_options = ::std::option::Option::Some(input);
         self
     }
-    /// <p>The CloudWatch logging options for your delivery stream.</p>
+    /// <p>The CloudWatch logging options for your Firehose stream.</p>
     pub fn set_cloud_watch_logging_options(mut self, input: ::std::option::Option<crate::types::CloudWatchLoggingOptions>) -> Self {
         self.cloud_watch_logging_options = input;
         self
     }
-    /// <p>The CloudWatch logging options for your delivery stream.</p>
+    /// <p>The CloudWatch logging options for your Firehose stream.</p>
     pub fn get_cloud_watch_logging_options(&self) -> &::std::option::Option<crate::types::CloudWatchLoggingOptions> {
         &self.cloud_watch_logging_options
     }

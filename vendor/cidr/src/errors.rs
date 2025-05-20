@@ -1,13 +1,11 @@
 //! Various error types returned by function in this crate
 
 use core::{
+	error::Error,
 	fmt,
+	net::AddrParseError,
 	num::ParseIntError,
 };
-#[cfg(feature = "std")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "std")))]
-use std::error::Error;
-use std::net::AddrParseError;
 
 use crate::Family;
 
@@ -38,8 +36,6 @@ impl fmt::Display for NetworkLengthTooLongError {
 	}
 }
 
-#[cfg(feature = "std")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "std")))]
 impl Error for NetworkLengthTooLongError {
 	fn description(&self) -> &str {
 		"network length too long"
@@ -85,8 +81,6 @@ impl fmt::Display for NetworkParseError {
 	}
 }
 
-#[cfg(feature = "std")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "std")))]
 impl Error for NetworkParseError {
 	fn description(&self) -> &str {
 		"network parse error"
@@ -105,12 +99,6 @@ impl Error for NetworkParseError {
 impl From<AddrParseError> for NetworkParseError {
 	fn from(e: AddrParseError) -> Self {
 		NetworkParseError::AddrParseError(e)
-	}
-}
-
-impl From<ParseIntError> for NetworkParseError {
-	fn from(e: ParseIntError) -> Self {
-		NetworkParseError::NetworkLengthParseError(e)
 	}
 }
 
@@ -148,8 +136,6 @@ impl fmt::Display for InetTupleError {
 	}
 }
 
-#[cfg(feature = "std")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "std")))]
 impl Error for InetTupleError {
 	fn description(&self) -> &str {
 		"inet tuple error"

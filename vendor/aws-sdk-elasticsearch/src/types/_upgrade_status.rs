@@ -37,6 +37,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -103,6 +104,17 @@ impl UpgradeStatus {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for UpgradeStatus {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            UpgradeStatus::Failed => write!(f, "FAILED"),
+            UpgradeStatus::InProgress => write!(f, "IN_PROGRESS"),
+            UpgradeStatus::Succeeded => write!(f, "SUCCEEDED"),
+            UpgradeStatus::SucceededWithIssues => write!(f, "SUCCEEDED_WITH_ISSUES"),
+            UpgradeStatus::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

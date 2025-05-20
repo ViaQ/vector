@@ -3,7 +3,7 @@ pub use crate::operation::delete_platform_application::_delete_platform_applicat
 
 pub use crate::operation::delete_platform_application::_delete_platform_application_input::DeletePlatformApplicationInputBuilder;
 
-impl DeletePlatformApplicationInputBuilder {
+impl crate::operation::delete_platform_application::builders::DeletePlatformApplicationInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,7 +22,7 @@ impl DeletePlatformApplicationInputBuilder {
 }
 /// Fluent builder constructing a request to `DeletePlatformApplication`.
 ///
-/// <p>Deletes a platform application object for one of the supported push notification services, such as APNS and GCM (Firebase Cloud Messaging). For more information, see <a href="https://docs.aws.amazon.com/sns/latest/dg/SNSMobilePush.html">Using Amazon SNS Mobile Push Notifications</a>. </p>
+/// <p>Deletes a platform application object for one of the supported push notification services, such as APNS and GCM (Firebase Cloud Messaging). For more information, see <a href="https://docs.aws.amazon.com/sns/latest/dg/SNSMobilePush.html">Using Amazon SNS Mobile Push Notifications</a>.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct DeletePlatformApplicationFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -48,7 +48,7 @@ impl
     }
 }
 impl DeletePlatformApplicationFluentBuilder {
-    /// Creates a new `DeletePlatformApplication`.
+    /// Creates a new `DeletePlatformApplicationFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -99,26 +99,26 @@ impl DeletePlatformApplicationFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
-    /// <p>PlatformApplicationArn of platform application object to delete.</p>
+    /// <p><code>PlatformApplicationArn</code> of platform application object to delete.</p>
     pub fn platform_application_arn(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.platform_application_arn(input.into());
         self
     }
-    /// <p>PlatformApplicationArn of platform application object to delete.</p>
+    /// <p><code>PlatformApplicationArn</code> of platform application object to delete.</p>
     pub fn set_platform_application_arn(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_platform_application_arn(input);
         self
     }
-    /// <p>PlatformApplicationArn of platform application object to delete.</p>
+    /// <p><code>PlatformApplicationArn</code> of platform application object to delete.</p>
     pub fn get_platform_application_arn(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_platform_application_arn()
     }

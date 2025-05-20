@@ -8,7 +8,7 @@ enum Expectation<'a> {
 
 use self::Expectation::*;
 
-fn gen_test(input: &str, expected: Vec<(&str, Expectation)>) {
+fn gen_test(input: &str, expected: Vec<(&str, Expectation<'_>)>) {
     // use $ to signal EOL because it can be replaced with a single space
     // for spans, and because it applies also to r#XXX# style strings:
     let input = input.replace('$', "\n");
@@ -37,7 +37,7 @@ fn gen_test(input: &str, expected: Vec<(&str, Expectation)>) {
     assert_eq!(None, tokenizer.nth(len));
 }
 
-fn test(input: &str, expected: Vec<(&str, Tok)>) {
+fn test(input: &str, expected: Vec<(&str, Tok<'_>)>) {
     let generic_expected = expected
         .into_iter()
         .map(|(span, tok)| (span, ExpectTok(tok)))
@@ -70,6 +70,114 @@ fn eol_comment() {
 }
 
 #[test]
+fn block_comment() {
+    test(
+        "extern /* This is a block comment */$ foo",
+        vec![
+            ("~~~~~~                                   ", Extern),
+            ("                                      ~~~", Id("foo")),
+        ],
+    );
+}
+
+#[test]
+fn block_comment_in_code() {
+    test(
+        "=> ( test /* foo ) */ ),",
+        vec![
+            (
+                "~~~~~~~~~~~~~~~~~~~~~~~ ",
+                EqualsGreaterThanCode(" ( test /* foo ) */ )"),
+            ),
+            ("                       ~", Comma),
+        ],
+    );
+}
+
+#[test]
+fn nested_block_comment() {
+    test(
+        "extern /* This is a /* nested */ block comment */$ foo",
+        vec![
+            (
+                "~~~~~~                                                ",
+                Extern,
+            ),
+            (
+                "                                                   ~~~",
+                Id("foo"),
+            ),
+        ],
+    );
+}
+
+#[test]
+fn block_comment_3_star() {
+    test(
+        "extern /***/$ foo",
+        vec![
+            ("~~~~~~           ", Extern),
+            ("              ~~~", Id("foo")),
+        ],
+    );
+}
+
+#[test]
+fn block_comment_nested_3_star_with_linefeeds() {
+    test(
+        "extern /** /***/ $*/$ foo",
+        vec![
+            ("~~~~~~                   ", Extern),
+            ("                      ~~~", Id("foo")),
+        ],
+    );
+}
+
+#[test]
+fn block_comment_5_star() {
+    test(
+        "extern /*****/$ foo",
+        vec![
+            ("~~~~~~             ", Extern),
+            ("                ~~~", Id("foo")),
+        ],
+    );
+}
+
+#[test]
+fn block_comment_1_2_star() {
+    test(
+        "extern /* **/$ foo",
+        vec![
+            ("~~~~~~            ", Extern),
+            ("               ~~~", Id("foo")),
+        ],
+    );
+}
+
+#[test]
+fn block_comment_extra_slashes() {
+    test(
+        "extern /*//**/*/$ foo",
+        vec![
+            ("~~~~~~               ", Extern),
+            ("                  ~~~", Id("foo")),
+        ],
+    );
+}
+
+#[test]
+fn unterminated_block_comment() {
+    test_err(
+        "/* This is unterminated",
+        (
+            "~                      ",
+            ErrorCode::UnterminatedBlockComment,
+        ),
+    )
+}
+
+#[test]
 fn code1() {
     test(
         "=> a(b, c),",
@@ -97,7 +205,7 @@ fn rule_stringliteral_slash_dot_then_equalsgreaterthancode_functioncall() {
     test(
         r#" "\." => a(b, c),"#,
         vec![
-            (r#" ~~~~            "#, StringLiteral(r#"\."#)),
+            (r#" ~~~~            "#, StringLiteral(r"\.")),
             (r#"      ~~~~~~~~~~ "#, EqualsGreaterThanCode(" a(b, c)")),
             (r#"                ~"#, Comma),
         ],
@@ -109,7 +217,7 @@ fn rule_stringliteral_slash_dot_then_equalsgreaterthancode_many_characters_in_st
     test(
         r#" "\." => "Planet Earth" ,"#,
         vec![
-            (r#" ~~~~                    "#, StringLiteral(r#"\."#)),
+            (r#" ~~~~                    "#, StringLiteral(r"\.")),
             (
                 r#"      ~~~~~~~~~~~~~~~~~~ "#,
                 EqualsGreaterThanCode(r#" "Planet Earth" "#),
@@ -124,7 +232,7 @@ fn rule_stringliteral_slash_dot_then_equalsgreaterthancode_one_character_dot_in_
     test(
         r#" "\." => "." ,"#,
         vec![
-            (r#" ~~~~         "#, StringLiteral(r#"\."#)),
+            (r#" ~~~~         "#, StringLiteral(r"\.")),
             (r#"      ~~~~~~~ "#, EqualsGreaterThanCode(r#" "." "#)),
             (r#"             ~"#, Comma),
         ],
@@ -137,7 +245,7 @@ fn rule_stringliteral_slash_openningbracket_then_equalsgreaterthancode_one_chara
     test(
         r#" "\(" => "(" ,"#,
         vec![
-            (r#" ~~~~         "#, StringLiteral(r#"\("#)),
+            (r#" ~~~~         "#, StringLiteral(r"\(")),
             (r#"      ~~~~~~~ "#, EqualsGreaterThanCode(r#" "(" "#)),
             (r#"             ~"#, Comma),
         ],
@@ -149,7 +257,7 @@ fn rule_stringliteral_slash_openningbracket_then_equalsgreaterthancode_empty_str
     test(
         r#" "\(" => "" ,"#,
         vec![
-            (r#" ~~~~        "#, StringLiteral(r#"\("#)),
+            (r#" ~~~~        "#, StringLiteral(r"\(")),
             (r#"      ~~~~~~ "#, EqualsGreaterThanCode(r#" "" "#)),
             (r#"            ~"#, Comma),
         ],
@@ -161,7 +269,7 @@ fn rule_stringliteral_slash_dot_then_equalsgreaterthancode_one_character_dot() {
     test(
         r#" "\." => '.' ,"#,
         vec![
-            (r#" ~~~~         "#, StringLiteral(r#"\."#)),
+            (r#" ~~~~         "#, StringLiteral(r"\.")),
             (r#"      ~~~~~~~ "#, EqualsGreaterThanCode(r#" '.' "#)),
             (r#"             ~"#, Comma),
         ],
@@ -174,7 +282,7 @@ fn rule_stringliteral_slash_openningbracket_then_equalsgreaterthancode_one_chara
     test(
         r#" "\(" => '(' ,"#,
         vec![
-            (r#" ~~~~         "#, StringLiteral(r#"\("#)),
+            (r#" ~~~~         "#, StringLiteral(r"\(")),
             (r#"      ~~~~~~~ "#, EqualsGreaterThanCode(r#" '(' "#)),
             (r#"             ~"#, Comma),
         ],
@@ -195,9 +303,9 @@ fn equalsgreaterthancode_one_character_openningbracket() {
 #[test]
 fn equalsgreaterthancode_one_character_escaped_n() {
     test(
-        r#"=> '\n' ,"#,
+        r"=> '\n' ,",
         vec![
-            (r#"~~~~~~~~ "#, EqualsGreaterThanCode(r#" '\n' "#)),
+            (r#"~~~~~~~~ "#, EqualsGreaterThanCode(r" '\n' ")),
             (r#"        ~"#, Comma),
         ],
     );
@@ -206,9 +314,9 @@ fn equalsgreaterthancode_one_character_escaped_n() {
 #[test]
 fn equalsgreaterthancode_one_character_escaped_w() {
     test(
-        r#"=> '\w' ,"#,
+        r"=> '\w' ,",
         vec![
-            (r#"~~~~~~~~ "#, EqualsGreaterThanCode(r#" '\w' "#)),
+            (r#"~~~~~~~~ "#, EqualsGreaterThanCode(r" '\w' ")),
             (r#"        ~"#, Comma),
         ],
     );
@@ -217,11 +325,11 @@ fn equalsgreaterthancode_one_character_escaped_w() {
 #[test]
 fn equalsgreaterthancode_one_character_escaped_planet123() {
     test(
-        r#"=> '\planet123' ,"#,
+        r"=> '\planet123' ,",
         vec![
             (
                 r#"~~~~~~~~~~~~~~~~ "#,
-                EqualsGreaterThanCode(r#" '\planet123' "#),
+                EqualsGreaterThanCode(r" '\planet123' "),
             ),
             (r#"                ~"#, Comma),
         ],
@@ -421,7 +529,7 @@ fn equalsgreaterthancode_error_unterminated_string_literal() {
 #[test]
 fn equalsgreaterthancode_error_unterminated_character_literal() {
     test_err(
-        r#"=>  '\x233  "#,
+        r"=>  '\x233  ",
         (r#"    ~       "#, ErrorCode::UnterminatedCharacterLiteral),
     )
 }
@@ -437,11 +545,11 @@ fn equalsgreaterthancode_error_end_of_input_instead_of_closing_normal_character_
 #[test]
 fn equalsgreaterthancode_single_quote_literal() {
     test(
-        r#"=> { println!('\''); },"#,
+        r"=> { println!('\''); },",
         vec![
             (
                 r#"~~~~~~~~~~~~~~~~~~~~~~ "#,
-                EqualsGreaterThanCode(r#" { println!('\''); }"#),
+                EqualsGreaterThanCode(r" { println!('\''); }"),
             ),
             (r#"                      ~"#, Comma),
         ],
@@ -597,9 +705,10 @@ fn where1() {
 }
 
 #[test]
+#[allow(clippy::needless_raw_string_hashes)]
 fn regex1() {
     test(
-        r#####"raa r##" #"#"" "#"##rrr"#####,
+        r###"raa r##" #"#"" "#"##rrr"###,
         vec![
             (r#####"~~~                    "#####, Id("raa")),
             (
@@ -687,7 +796,7 @@ fn regex2() {
 #[test]
 fn char_literals() {
     test(
-        r#"'foo' 'a 'b '!' '!!' '\'' 'c"#,
+        r"'foo' 'a 'b '!' '!!' '\'' 'c",
         vec![
             (r#"~~~~~                       "#, CharLiteral("foo")),
             (r#"      ~~                    "#, Lifetime("'a")),
@@ -707,23 +816,23 @@ fn string_escapes() {
 
     assert_eq!(apply_string_escapes(r#"foo"#, 5), Ok(Cow::Borrowed("foo")));
     assert_eq!(
-        apply_string_escapes(r#"\\"#, 10),
-        Ok(Cow::Owned::<str>(r#"\"#.into()))
+        apply_string_escapes(r"\\", 10),
+        Ok(Cow::Owned::<str>(r"\".into()))
     );
     assert_eq!(
         apply_string_escapes(r#"\""#, 15),
         Ok(Cow::Owned::<str>(r#"""#.into()))
     );
     assert_eq!(
-        apply_string_escapes(r#"up\ndown"#, 25),
+        apply_string_escapes(r"up\ndown", 25),
         Ok(Cow::Owned::<str>("up\ndown".into()))
     );
     assert_eq!(
-        apply_string_escapes(r#"forth\rback"#, 25),
+        apply_string_escapes(r"forth\rback", 25),
         Ok(Cow::Owned::<str>("forth\rback".into()))
     );
     assert_eq!(
-        apply_string_escapes(r#"left\tright"#, 40),
+        apply_string_escapes(r"left\tright", 40),
         Ok(Cow::Owned::<str>("left\tright".into()))
     );
 
@@ -737,7 +846,7 @@ fn string_escapes() {
     );
     // LALRPOP doesn't support the other Rust escape sequences.
     assert_eq!(
-        apply_string_escapes(r#"star: \u{2a}"#, 105),
+        apply_string_escapes(r"star: \u{2a}", 105),
         Err(Error {
             location: 112,
             code: ErrorCode::UnrecognizedEscape

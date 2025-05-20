@@ -1,6 +1,7 @@
 use core::borrow::Borrow;
 use core::cmp::Ordering;
 use core::fmt::{Display, Formatter};
+use core::mem::size_of;
 use core::ops::{BitAndAssign, BitOrAssign, BitXorAssign, RangeInclusive, SubAssign};
 
 use super::ArrayStore;
@@ -27,6 +28,10 @@ impl BitmapStore {
         BitmapStore { len: (BITMAP_LENGTH as u64) * 64, bits: Box::new([u64::MAX; BITMAP_LENGTH]) }
     }
 
+    pub fn capacity(&self) -> usize {
+        BITMAP_LENGTH * u64::BITS as usize
+    }
+
     pub fn try_from(len: u64, bits: Box<[u64; BITMAP_LENGTH]>) -> Result<BitmapStore, Error> {
         let actual_len = bits.iter().map(|v| v.count_ones() as u64).sum();
         if len != actual_len {
@@ -34,6 +39,47 @@ impl BitmapStore {
         } else {
             Ok(BitmapStore { len, bits })
         }
+    }
+
+    pub fn from_lsb0_bytes_unchecked(bytes: &[u8], byte_offset: usize, bits_set: u64) -> Self {
+        const BITMAP_BYTES: usize = BITMAP_LENGTH * size_of::<u64>();
+        assert!(byte_offset.checked_add(bytes.len()).map_or(false, |sum| sum <= BITMAP_BYTES));
+
+        // If we know we're writing the full bitmap, we can avoid the initial memset to 0
+        let mut bits = if bytes.len() == BITMAP_BYTES {
+            debug_assert_eq!(byte_offset, 0); // Must be true from the above assert
+
+            // Safety: We've checked that the length is correct, and we use an unaligned load in case
+            //         the bytes are not 8 byte aligned.
+            // The optimizer can see through this, and avoid the double copy to copy directly into
+            // the allocated box from bytes with memcpy
+            let bytes_as_words =
+                unsafe { bytes.as_ptr().cast::<[u64; BITMAP_LENGTH]>().read_unaligned() };
+            Box::new(bytes_as_words)
+        } else {
+            let mut bits = Box::new([0u64; BITMAP_LENGTH]);
+            // Safety: It's safe to reinterpret u64s as u8s because u8 has less alignment requirements,
+            // and has no padding/uninitialized data.
+            let dst = unsafe {
+                core::slice::from_raw_parts_mut(bits.as_mut_ptr().cast::<u8>(), BITMAP_BYTES)
+            };
+            let dst = &mut dst[byte_offset..][..bytes.len()];
+            dst.copy_from_slice(bytes);
+            bits
+        };
+
+        if !cfg!(target_endian = "little") {
+            // Convert all words we touched (even partially) to little-endian
+            let start_word = byte_offset / size_of::<u64>();
+            let end_word = (byte_offset + bytes.len() + (size_of::<u64>() - 1)) / size_of::<u64>();
+
+            // The 0th byte is the least significant byte, so we've written the bytes in little-endian
+            for word in &mut bits[start_word..end_word] {
+                *word = u64::from_le(*word);
+            }
+        }
+
+        Self::from_unchecked(bits_set, bits)
     }
 
     ///
@@ -52,10 +98,11 @@ impl BitmapStore {
         }
     }
 
+    #[inline]
     pub fn insert(&mut self, index: u16) -> bool {
         let (key, bit) = (key(index), bit(index));
         let old_w = self.bits[key];
-        let new_w = old_w | 1 << bit;
+        let new_w = old_w | (1 << bit);
         let inserted = (old_w ^ new_w) >> bit; // 1 or 0
         self.bits[key] = new_w;
         self.len += inserted;
@@ -226,7 +273,7 @@ impl BitmapStore {
         self.bits.iter().zip(other.bits.iter()).all(|(&i1, &i2)| (i1 & i2) == i1)
     }
 
-    pub fn to_array_store(&self) -> ArrayStore {
+    pub(crate) fn to_array_store(&self) -> ArrayStore {
         let mut vec = Vec::with_capacity(self.len as usize);
         for (index, mut bit) in self.bits.iter().cloned().enumerate() {
             while bit != 0 {
@@ -253,6 +300,7 @@ impl BitmapStore {
             .map(|(index, bit)| (index * 64 + (bit.trailing_zeros() as usize)) as u16)
     }
 
+    #[inline]
     pub fn max(&self) -> Option<u16> {
         self.bits
             .iter()
@@ -288,7 +336,7 @@ impl BitmapStore {
         self.bits.iter().zip(other.bits.iter()).map(|(&a, &b)| (a & b).count_ones() as u64).sum()
     }
 
-    pub fn intersection_len_array(&self, other: &ArrayStore) -> u64 {
+    pub(crate) fn intersection_len_array(&self, other: &ArrayStore) -> u64 {
         other
             .iter()
             .map(|&index| {
@@ -308,6 +356,7 @@ impl BitmapStore {
         BitmapIter::new(self.bits)
     }
 
+    #[cfg(feature = "std")]
     pub fn as_array(&self) -> &[u64; BITMAP_LENGTH] {
         &self.bits
     }
@@ -394,7 +443,7 @@ impl Display for Error {
     fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
         match self.kind {
             ErrorKind::Cardinality { expected, actual } => {
-                write!(f, "Expected cardinality was {} but was {}", expected, actual)
+                write!(f, "Expected cardinality was {expected} but was {actual}")
             }
         }
     }
@@ -403,10 +452,12 @@ impl Display for Error {
 #[cfg(feature = "std")]
 impl std::error::Error for Error {}
 
+#[derive(Clone)]
 pub struct BitmapIter<B: Borrow<[u64; BITMAP_LENGTH]>> {
-    key: usize,
+    key: u16,
     value: u64,
-    key_back: usize,
+    key_back: u16,
+    // If key_back <= key, current back value is actually in `value`
     value_back: u64,
     bits: B,
 }
@@ -416,10 +467,70 @@ impl<B: Borrow<[u64; BITMAP_LENGTH]>> BitmapIter<B> {
         BitmapIter {
             key: 0,
             value: bits.borrow()[0],
-            key_back: BITMAP_LENGTH - 1,
+            key_back: BITMAP_LENGTH as u16 - 1,
             value_back: bits.borrow()[BITMAP_LENGTH - 1],
             bits,
         }
+    }
+
+    /// Advance the iterator to the first value greater than or equal to `n`.
+    pub(crate) fn advance_to(&mut self, index: u16) {
+        let new_key = key(index) as u16;
+        let value = match new_key.cmp(&self.key) {
+            Ordering::Less => return,
+            Ordering::Equal => self.value,
+            Ordering::Greater => {
+                let bits = self.bits.borrow();
+                let cmp = new_key.cmp(&self.key_back);
+                // Match arms can be reordered, this ordering is perf sensitive
+                if cmp == Ordering::Less {
+                    // new_key is > self.key, < self.key_back, so it must be in bounds
+                    unsafe { *bits.get_unchecked(new_key as usize) }
+                } else if cmp == Ordering::Equal {
+                    self.value_back
+                } else {
+                    self.value_back = 0;
+                    return;
+                }
+            }
+        };
+        let bit = bit(index);
+        let low_bits = (1 << bit) - 1;
+
+        self.key = new_key;
+        self.value = value & !low_bits;
+    }
+
+    /// Advance the back of iterator to the first value less than or equal to `n`.
+    pub(crate) fn advance_back_to(&mut self, index: u16) {
+        let new_key = key(index) as u16;
+        let (value, dst) = match new_key.cmp(&self.key_back) {
+            Ordering::Greater => return,
+            Ordering::Equal => {
+                let dst =
+                    if self.key_back <= self.key { &mut self.value } else { &mut self.value_back };
+                (*dst, dst)
+            }
+            Ordering::Less => {
+                let bits = self.bits.borrow();
+                let cmp = new_key.cmp(&self.key);
+                // Match arms can be reordered, this ordering is perf sensitive
+                if cmp == Ordering::Greater {
+                    // new_key is > self.key, < self.key_back, so it must be in bounds
+                    let value = unsafe { *bits.get_unchecked(new_key as usize) };
+                    (value, &mut self.value_back)
+                } else if cmp == Ordering::Equal {
+                    (self.value, &mut self.value)
+                } else {
+                    (0, &mut self.value)
+                }
+            }
+        };
+        let bit = bit(index);
+        let low_bits = u64::MAX >> (64 - bit - 1);
+
+        self.key_back = new_key;
+        *dst = value & low_bits;
     }
 }
 
@@ -427,24 +538,46 @@ impl<B: Borrow<[u64; BITMAP_LENGTH]>> Iterator for BitmapIter<B> {
     type Item = u16;
 
     fn next(&mut self) -> Option<u16> {
-        loop {
-            if self.value == 0 {
-                self.key += 1;
-                let cmp = self.key.cmp(&self.key_back);
-                // Match arms can be reordered, this ordering is perf sensitive
-                self.value = if cmp == Ordering::Less {
-                    unsafe { *self.bits.borrow().get_unchecked(self.key) }
-                } else if cmp == Ordering::Equal {
-                    self.value_back
-                } else {
+        if self.value == 0 {
+            'get_val: {
+                if self.key >= self.key_back {
                     return None;
-                };
-                continue;
+                }
+                for key in self.key + 1..self.key_back {
+                    self.value = unsafe { *self.bits.borrow().get_unchecked(key as usize) };
+                    if self.value != 0 {
+                        self.key = key;
+                        break 'get_val;
+                    }
+                }
+                self.key = self.key_back;
+                self.value = self.value_back;
+                if self.value == 0 {
+                    return None;
+                }
             }
-            let index = self.value.trailing_zeros() as usize;
-            self.value &= self.value - 1;
-            return Some((64 * self.key + index) as u16);
         }
+        let index = self.value.trailing_zeros() as u16;
+        self.value &= self.value - 1;
+        Some(64 * self.key + index)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let mut len: u32 = self.value.count_ones();
+        if self.key < self.key_back {
+            for v in &self.bits.borrow()[self.key as usize + 1..self.key_back as usize] {
+                len += v.count_ones();
+            }
+            len += self.value_back.count_ones();
+        }
+        (len as usize, Some(len as usize))
+    }
+
+    fn count(self) -> usize
+    where
+        Self: Sized,
+    {
+        self.len()
     }
 }
 
@@ -458,16 +591,19 @@ impl<B: Borrow<[u64; BITMAP_LENGTH]>> DoubleEndedIterator for BitmapIter<B> {
                     return None;
                 }
                 self.key_back -= 1;
-                self.value_back = unsafe { *self.bits.borrow().get_unchecked(self.key_back) };
+                self.value_back =
+                    unsafe { *self.bits.borrow().get_unchecked(self.key_back as usize) };
                 continue;
             }
-            let index_from_left = value.leading_zeros() as usize;
+            let index_from_left = value.leading_zeros() as u16;
             let index = 63 - index_from_left;
             *value &= !(1 << index);
-            return Some((64 * self.key_back + index) as u16);
+            return Some(64 * self.key_back + index);
         }
     }
 }
+
+impl<B: Borrow<[u64; BITMAP_LENGTH]>> ExactSizeIterator for BitmapIter<B> {}
 
 #[inline]
 pub fn key(index: u16) -> usize {
@@ -499,7 +635,7 @@ impl BitOrAssign<&ArrayStore> for BitmapStore {
         for &index in rhs.iter() {
             let (key, bit) = (key(index), bit(index));
             let old_w = self.bits[key];
-            let new_w = old_w | 1 << bit;
+            let new_w = old_w | (1 << bit);
             self.len += (old_w ^ new_w) >> bit;
             self.bits[key] = new_w;
         }
@@ -544,7 +680,7 @@ impl BitXorAssign<&ArrayStore> for BitmapStore {
         for &index in rhs.iter() {
             let (key, bit) = (key(index), bit(index));
             let old_w = self.bits[key];
-            let new_w = old_w ^ 1 << bit;
+            let new_w = old_w ^ (1 << bit);
             len += 1 - 2 * (((1 << bit) & old_w) >> bit) as i64; // +1 or -1
             self.bits[key] = new_w;
         }

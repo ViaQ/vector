@@ -16,6 +16,7 @@ Define a GraphQL interface
 | visible       | Call the specified function. If the return value is `false`, it will not be displayed in introspection.                                                                             | string         | Y        |
 | inaccessible  | Indicate that an interface is not accessible from a supergraph when using Apollo Federation                                                                                         | bool           | Y        |
 | tag           | Arbitrary string metadata that will be propagated to the supergraph when using Apollo Federation. This attribute is repeatable                                                      | string         | Y        |
+| directives    | Directives                                                                                                                                                                          | expr           | Y        |
 
 # Field attributes
 
@@ -36,6 +37,7 @@ Define a GraphQL interface
 | visible       | Call the specified function. If the return value is `false`, it will not be displayed in introspection.                                                                                                                                  | string                 | Y        |
 | inaccessible  | Indicate that a field is not accessible from a supergraph when using Apollo Federation                                                                                                                                                   | bool                   | Y        |
 | tag           | Arbitrary string metadata that will be propagated to the supergraph when using Apollo Federation. This attribute is repeatable                                                                                                           | string                 | Y        |
+| directives    | Directives                                                                                                                                                                                                                               | expr                   | Y        |
 
 # Field argument attributes
 
@@ -44,6 +46,8 @@ Define a GraphQL interface
 | name         | Argument name                                                                                                                                   | string      | N        |
 | ty           | Argument type                                                                                                                                   | string      | N        |
 | desc         | Argument description                                                                                                                            | string      | Y        |
+| deprecation  | Argument deprecation                                                                                                                            | bool        | Y        |
+| deprecation  | Argument deprecation reason                                                                                                                     | string      | Y        |
 | default      | Use `Default::default` for default value                                                                                                        | none        | Y        |
 | default      | Argument default value                                                                                                                          | literal     | Y        |
 | default_with | Expression to generate default value                                                                                                            | code string | Y        |
@@ -52,6 +56,7 @@ Define a GraphQL interface
 | secret       | Mark this field as a secret, it will not output the actual value in the log.                                                                    | bool        | Y        |
 | inaccessible | Indicate that an argument is not accessible from a supergraph when using Apollo Federation                                                      | bool        | Y        |
 | tag          | Arbitrary string metadata that will be propagated to the supergraph when using Apollo Federation. This attribute is repeatable                  | string      | Y        |
+| directives   | Directives                                                                                                                                      | expr        | Y        |
 
 
 # Define an interface

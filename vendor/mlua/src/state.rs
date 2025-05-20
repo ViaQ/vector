@@ -1003,10 +1003,17 @@ impl Lua {
     /// [`Chunk::exec`]: crate::Chunk::exec
     #[track_caller]
     pub fn load<'a>(&self, chunk: impl AsChunk<'a>) -> Chunk<'a> {
-        let caller = Location::caller();
+        self.load_with_location(chunk, Location::caller())
+    }
+
+    pub(crate) fn load_with_location<'a>(
+        &self,
+        chunk: impl AsChunk<'a>,
+        location: &'static Location<'static>,
+    ) -> Chunk<'a> {
         Chunk {
             lua: self.weak(),
-            name: chunk.name().unwrap_or_else(|| caller.to_string()),
+            name: chunk.name().unwrap_or_else(|| location.to_string()),
             env: chunk.environment(self),
             mode: chunk.mode(),
             source: chunk.source(),
@@ -1036,8 +1043,8 @@ impl Lua {
         let state = lua.state();
         unsafe {
             if lua.unlikely_memory_error() {
-                crate::util::push_buffer(lua.ref_thread(), buf.as_ref(), false)?;
-                return Ok(Buffer(lua.pop_ref_thread()));
+                crate::util::push_buffer(state, buf.as_ref(), false)?;
+                return Ok(Buffer(lua.pop_ref()));
             }
 
             let _sg = StackGuard::new(state);
@@ -1306,7 +1313,7 @@ impl Lua {
     /// This methods provides a way to add fields or methods to userdata objects of a type `T`.
     pub fn register_userdata_type<T: 'static>(&self, f: impl FnOnce(&mut UserDataRegistry<T>)) -> Result<()> {
         let type_id = TypeId::of::<T>();
-        let mut registry = UserDataRegistry::new(type_id);
+        let mut registry = UserDataRegistry::new(self, type_id);
         f(&mut registry);
 
         let lua = self.lock();
@@ -1316,8 +1323,8 @@ impl Lua {
                 ffi::luaL_unref(lua.state(), ffi::LUA_REGISTRYINDEX, table_id);
             }
 
-            // Register the type
-            lua.create_userdata_metatable(registry)?;
+            // Add to "pending" registration map
+            ((*lua.extra.get()).pending_userdata_reg).insert(type_id, registry.into_raw());
         }
         Ok(())
     }

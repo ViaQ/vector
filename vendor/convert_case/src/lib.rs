@@ -3,13 +3,13 @@
 //! # Command Line Utility `ccase`
 //!
 //! This library was developed for the purposes of a command line utility for converting
-//! the case of strings and filenames.  You can check out 
-//! [`ccase` on Github](https://github.com/rutrum/convert-case/tree/master/ccase).
+//! the case of strings and filenames.  You can check out
+//! [`ccase` on Github](https://github.com/rutrum/ccase).
 //!
 //! # Rust Library
 //!
 //! Provides a [`Case`](enum.Case.html) enum which defines a variety of cases to convert into.
-//! Strings have implemented the [`Casing`](trait.Casing.html) trait, which adds methods for 
+//! Strings have implemented the [`Casing`](trait.Casing.html) trait, which adds methods for
 //! case conversion.
 //!
 //! You can convert strings into a case using the [`to_case`](Casing::to_case) method.
@@ -33,8 +33,7 @@
 //! of a particular case.  For example, splitting from snake case will only use
 //! underscores as word boundaries.
 //! ```
-//! use convert_case::{Case, Casing};
-//!
+//! # use convert_case::{Case, Casing};
 //! assert_eq!(
 //!     "2020 04 16 My Cat Cali",
 //!     "2020-04-16_my_cat_cali".to_case(Case::Title)
@@ -45,11 +44,10 @@
 //! );
 //! ```
 //!
-//! Case conversion can detect acronyms for camel-like strings.  It also ignores any leading, 
+//! Case conversion can detect acronyms for camel-like strings.  It also ignores any leading,
 //! trailing, or duplicate delimiters.
 //! ```
-//! use convert_case::{Case, Casing};
-//!
+//! # use convert_case::{Case, Casing};
 //! assert_eq!("io_stream", "IOStream".to_case(Case::Snake));
 //! assert_eq!("my_json_parser", "myJSONParser".to_case(Case::Snake));
 //!
@@ -61,8 +59,7 @@
 //! as two distinct Unicode characters.  However, `æ` would be capitalized.  Accuracy with unicode
 //! characters is done using the `unicode-segmentation` crate, the sole dependency of this crate.
 //! ```
-//! use convert_case::{Case, Casing};
-//!
+//! # use convert_case::{Case, Casing};
 //! assert_eq!("granat-äpfel", "GranatÄpfel".to_case(Case::Kebab));
 //! assert_eq!("Перспектива 24", "ПЕРСПЕКТИВА24".to_case(Case::Title));
 //!
@@ -75,8 +72,7 @@
 //! considered word boundaries.  In addition, any special ASCII characters (besides `_` and `-`)
 //! are ignored.
 //! ```
-//! use convert_case::{Case, Casing};
-//!
+//! # use convert_case::{Case, Casing};
 //! assert_eq!("e_5150", "E5150".to_case(Case::Snake));
 //! assert_eq!("10,000_days", "10,000Days".to_case(Case::Snake));
 //! assert_eq!("HELLO, WORLD!", "Hello, world!".to_case(Case::Upper));
@@ -85,8 +81,7 @@
 //!
 //! You can also test what case a string is in.
 //! ```
-//! use convert_case::{Case, Casing};
-//!
+//! # use convert_case::{Case, Casing};
 //! assert!( "css-class-name".is_case(Case::Kebab));
 //! assert!(!"css-class-name".is_case(Case::Snake));
 //! assert!(!"UPPER_CASE_VAR".is_case(Case::Snake));
@@ -113,10 +108,10 @@
 //! provides the [`from_case`](Casing::from_case) functionality, but sometimes that isn't enough
 //! to meet a specific use case.
 //!
-//! Take an identifier has the word `2D`, such as `scale2D`.  No exclusive usage of `from_case` will
+//! Say an identifier has the word `2D`, such as `scale2D`.  No exclusive usage of `from_case` will
 //! be enough to solve the problem.  In this case we can further specify which boundaries to split
 //! the string on.  `convert_case` provides some patterns for achieving this specificity.
-//! We can specify what boundaries we want to split on using the [`Boundary` enum](Boundary).
+//! We can specify what boundaries we want to split on using instances the [`Boundary` struct](Boundary).
 //! ```
 //! use convert_case::{Boundary, Case, Casing};
 //!
@@ -133,7 +128,7 @@
 //!     "scale_2d",
 //!     "scale2D"
 //!         .from_case(Case::Camel)
-//!         .without_boundaries(&[Boundary::DigitUpper, Boundary::DigitLower])
+//!         .without_boundaries(&[Boundary::DIGIT_UPPER, Boundary::DIGIT_LOWER])
 //!         .to_case(Case::Snake)
 //! );
 //!
@@ -141,13 +136,54 @@
 //! assert_eq!(
 //!     "scale_2d",
 //!     "scale2D"
-//!         .with_boundaries(&[Boundary::LowerDigit])
+//!         .with_boundaries(&[Boundary::LOWER_DIGIT])
 //!         .to_case(Case::Snake)
 //! );
 //! ```
 //!
 //! The `Casing` trait provides initial methods, but any subsequent methods that do not resolve
 //! the conversion return a [`StateConverter`] struct.  It contains similar methods as `Casing`.
+//!
+//! ## Custom Boundaries
+//!
+//! `convert_case` provides a number of constants for boundaries associated with common cases.
+//! But you can create your own boundary to split on other criteria.  For simple, delimiter
+//! based splits, use [`Boundary::from_delim`].
+//!
+//! ```
+//! # use convert_case::{Boundary, Case, Casing};
+//! assert_eq!(
+//!     "Coolers Revenge",
+//!     "coolers.revenge"
+//!         .with_boundaries(&[Boundary::from_delim(".")])
+//!         .to_case(Case::Title)
+//! )
+//! ```
+//!
+//! For more complex boundaries, such as splitting based on the first character being a certain
+//! symbol and the second is lowercase, you can instantiate a boundary directly.
+//!
+//! ```
+//! # use convert_case::{Boundary, Case, Casing};
+//! let at_then_letter = Boundary {
+//!     name: "AtLetter",
+//!     condition: |s, _| {
+//!         s.get(0).map(|c| *c == "@") == Some(true)
+//!             && s.get(1).map(|c| *c == c.to_lowercase()) == Some(true)
+//!     },
+//!     arg: None,
+//!     start: 1,
+//!     len: 0,
+//! };
+//! assert_eq!(
+//!     "Name@ Domain",
+//!     "name@domain"
+//!         .with_boundaries(&[at_then_letter])
+//!         .to_case(Case::Title)
+//! )
+//! ```
+//!
+//! To learn more about building a boundary from scratch, read the [`Boundary`] struct.
 //!
 //! # Custom Cases
 //!
@@ -171,7 +207,7 @@
 //!     conv.convert("My Special Case")
 //! )
 //! ```
-//! Just as with the `Casing` trait, you can also manually set the boundaries strings are split 
+//! Just as with the `Casing` trait, you can also manually set the boundaries strings are split
 //! on.  You can use any of the [`Pattern`] variants available.  This even includes [`Pattern::Sentence`]
 //! which isn't used in any `Case` variant.  You can also set no pattern at all, which will
 //! maintain the casing of each letter in the input string.  You can also, of course, set any string as your
@@ -191,23 +227,20 @@
 //! This will add two additional cases: Random and PseudoRandom.  You can read about their
 //! construction in the [Case enum](enum.Case.html).
 
+mod boundary;
 mod case;
 mod converter;
 mod pattern;
-mod segmentation;
 
+pub use boundary::{split, Boundary};
 pub use case::Case;
 pub use converter::Converter;
 pub use pattern::Pattern;
-pub use segmentation::Boundary;
 
 /// Describes items that can be converted into a case.  This trait is used
 /// in conjunction with the [`StateConverter`] struct which is returned from a couple
 /// methods on `Casing`.
-///
-/// Implemented for strings `&str`, `String`, and `&String`.
 pub trait Casing<T: AsRef<str>> {
-
     /// Convert the string into the given case.  It will reference `self` and create a new
     /// `String` with the same pattern and delimeter as `case`.  It will split on boundaries
     /// defined at [`Boundary::defaults()`].
@@ -243,17 +276,31 @@ pub trait Casing<T: AsRef<str>> {
     /// assert_eq!(
     ///     "e1_m1_hangar",
     ///     "E1M1 Hangar"
-    ///         .with_boundaries(&[Boundary::DigitUpper, Boundary::Space])
+    ///         .with_boundaries(&[Boundary::DIGIT_UPPER, Boundary::SPACE])
     ///         .to_case(Case::Snake)
     /// );
     /// ```
     fn with_boundaries(&self, bs: &[Boundary]) -> StateConverter<T>;
 
+    /// Creates a `StateConverter` struct initialized without the boundaries
+    /// provided.
+    /// ```
+    /// use convert_case::{Boundary, Case, Casing};
+    ///
+    /// assert_eq!(
+    ///     "2d_transformation",
+    ///     "2dTransformation"
+    ///         .without_boundaries(&Boundary::digits())
+    ///         .to_case(Case::Snake)
+    /// );
+    /// ```
+    fn without_boundaries(&self, bs: &[Boundary]) -> StateConverter<T>;
+
     /// Determines if `self` is of the given case.  This is done simply by applying
     /// the conversion and seeing if the result is the same.
     /// ```
     /// use convert_case::{Case, Casing};
-    /// 
+    ///
     /// assert!( "kebab-case-string".is_case(Case::Kebab));
     /// assert!( "Train-Case-String".is_case(Case::Train));
     ///
@@ -265,7 +312,7 @@ pub trait Casing<T: AsRef<str>> {
 
 impl<T: AsRef<str>> Casing<T> for T
 where
-    String: PartialEq<T>,
+    T: ToString,
 {
     fn to_case(&self, case: Case) -> String {
         StateConverter::new(self).to_case(case)
@@ -275,12 +322,18 @@ where
         StateConverter::new(self).with_boundaries(bs)
     }
 
+    fn without_boundaries(&self, bs: &[Boundary]) -> StateConverter<T> {
+        StateConverter::new(self).without_boundaries(bs)
+    }
+
     fn from_case(&self, case: Case) -> StateConverter<T> {
         StateConverter::new_from_case(self, case)
     }
 
     fn is_case(&self, case: Case) -> bool {
-        &self.to_case(case) == self
+        // TODO: rewrite
+        //&self.to_case(case) == self
+        self.to_case(case) == self.to_string()
     }
 }
 
@@ -344,7 +397,7 @@ impl<'a, T: AsRef<str>> StateConverter<'a, T> {
     ///
     /// let song = "theHumbling river-puscifer"
     ///     .from_case(Case::Kebab) // from Casing trait
-    ///     .with_boundaries(&[Boundary::Space, Boundary::LowerUpper]) // overwrites `from_case`
+    ///     .with_boundaries(&[Boundary::SPACE, Boundary::LOWER_UPPER]) // overwrites `from_case`
     ///     .to_case(Case::Pascal);
     /// assert_eq!("TheHumblingRiver-puscifer", song);  // doesn't split on hyphen `-`
     /// ```
@@ -408,6 +461,7 @@ mod test {
             (Case::Lower, "my variable 22 name"),
             (Case::Upper, "MY VARIABLE 22 NAME"),
             (Case::Title, "My Variable 22 Name"),
+            (Case::Sentence, "My variable 22 name"),
             (Case::Camel, "myVariable22Name"),
             (Case::Pascal, "MyVariable22Name"),
             (Case::Snake, "my_variable_22_name"),
@@ -573,7 +627,7 @@ mod test {
             "m02_s05_binary_trees.pdf",
             "M02S05BinaryTrees.pdf"
                 .from_case(Case::Pascal)
-                .without_boundaries(&[Boundary::UpperDigit])
+                .without_boundaries(&[Boundary::UPPER_DIGIT])
                 .to_case(Case::Snake)
         );
     }
@@ -583,7 +637,7 @@ mod test {
         assert_eq!(
             "my-dumb-file-name",
             "my_dumbFileName"
-                .with_boundaries(&[Boundary::Underscore, Boundary::LowerUpper])
+                .with_boundaries(&[Boundary::UNDERSCORE, Boundary::LOWER_UPPER])
                 .to_case(Case::Kebab)
         );
     }
@@ -640,7 +694,6 @@ mod test {
         for case in Case::deterministic_cases() {
             let new_s = s.from_case(case).to_case(case);
             let possible = possible_cases(&new_s);
-            println!("{} {:?} {:?}", new_s, case, possible);
             assert!(possible.iter().any(|c| c == &case));
         }
     }

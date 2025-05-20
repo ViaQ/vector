@@ -13,9 +13,10 @@
 edition = "2021"
 rust-version = "1.62"
 name = "typetag"
-version = "0.2.18"
+version = "0.2.20"
 authors = ["David Tolnay <dtolnay@gmail.com>"]
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -35,13 +36,17 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/dtolnay/typetag"
 
 [package.metadata.docs.rs]
-rustdoc-args = ["--generate-link-to-definition"]
+rustdoc-args = [
+    "--generate-link-to-definition",
+    "--extern-html-root-url=core=https://doc.rust-lang.org",
+    "--extern-html-root-url=alloc=https://doc.rust-lang.org",
+    "--extern-html-root-url=std=https://doc.rust-lang.org",
+]
 targets = ["x86_64-unknown-linux-gnu"]
 
 [lib]
 name = "typetag"
 path = "src/lib.rs"
-doc-scrape-examples = false
 
 [[example]]
 name = "web_event"
@@ -77,7 +82,10 @@ features = [
 default-features = false
 
 [dependencies.typetag-impl]
-version = "=0.2.18"
+version = "=0.2.20"
+
+[dev-dependencies.async-trait]
+version = "0.1"
 
 [dev-dependencies.postcard]
 version = "1.0.4"

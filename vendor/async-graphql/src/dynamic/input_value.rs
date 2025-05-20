@@ -1,6 +1,7 @@
+use super::{directive::to_meta_directive_invocation, Directive};
 use crate::{
     dynamic::TypeRef,
-    registry::{MetaDirectiveInvocation, MetaInputValue},
+    registry::{Deprecation, MetaInputValue},
     Value,
 };
 
@@ -13,7 +14,8 @@ pub struct InputValue {
     pub(crate) default_value: Option<Value>,
     pub(crate) inaccessible: bool,
     pub(crate) tags: Vec<String>,
-    pub(crate) directive_invocations: Vec<MetaDirectiveInvocation>,
+    pub(crate) directives: Vec<Directive>,
+    pub(crate) deprecation: Deprecation,
 }
 
 impl InputValue {
@@ -27,13 +29,16 @@ impl InputValue {
             default_value: None,
             inaccessible: false,
             tags: Vec::new(),
-            directive_invocations: vec![],
+            directives: vec![],
+            deprecation: Deprecation::NoDeprecated,
         }
     }
 
     impl_set_description!();
     impl_set_inaccessible!();
     impl_set_tags!();
+    impl_directive!();
+    impl_set_deprecation!();
 
     /// Set the default value
     #[inline]
@@ -49,6 +54,7 @@ impl InputValue {
             name: self.name.clone(),
             description: self.description.clone(),
             ty: self.ty.to_string(),
+            deprecation: self.deprecation.clone(),
             default_value: self
                 .default_value
                 .as_ref()
@@ -57,7 +63,7 @@ impl InputValue {
             inaccessible: self.inaccessible,
             tags: self.tags.clone(),
             is_secret: false,
-            directive_invocations: self.directive_invocations.clone(),
+            directive_invocations: to_meta_directive_invocation(self.directives.clone()),
         }
     }
 }

@@ -3,7 +3,7 @@ pub use crate::operation::put_composite_alarm::_put_composite_alarm_output::PutC
 
 pub use crate::operation::put_composite_alarm::_put_composite_alarm_input::PutCompositeAlarmInputBuilder;
 
-impl PutCompositeAlarmInputBuilder {
+impl crate::operation::put_composite_alarm::builders::PutCompositeAlarmInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -25,10 +25,20 @@ impl PutCompositeAlarmInputBuilder {
 /// <p>Creates or updates a <i>composite alarm</i>. When you create a composite alarm, you specify a rule expression for the alarm that takes into account the alarm states of other alarms that you have created. The composite alarm goes into ALARM state only if all conditions of the rule are met.</p>
 /// <p>The alarms specified in a composite alarm's rule expression can include metric alarms and other composite alarms. The rule expression of a composite alarm can include as many as 100 underlying alarms. Any single alarm can be included in the rule expressions of as many as 150 composite alarms.</p>
 /// <p>Using composite alarms can reduce alarm noise. You can create multiple metric alarms, and also create a composite alarm and set up alerts only for the composite alarm. For example, you could create a composite alarm that goes into ALARM state only when more than one of the underlying metric alarms are in ALARM state.</p>
-/// <p>Currently, the only alarm actions that can be taken by composite alarms are notifying SNS topics.</p> <note>
+/// <p>Composite alarms can take the following actions:</p>
+/// <ul>
+/// <li>
+/// <p>Notify Amazon SNS topics.</p></li>
+/// <li>
+/// <p>Invoke Lambda functions.</p></li>
+/// <li>
+/// <p>Create OpsItems in Systems Manager Ops Center.</p></li>
+/// <li>
+/// <p>Create incidents in Systems Manager Incident Manager.</p></li>
+/// </ul><note>
 /// <p>It is possible to create a loop or cycle of composite alarms, where composite alarm A depends on composite alarm B, and composite alarm B also depends on composite alarm A. In this scenario, you can't delete any composite alarm that is part of the cycle because there is always still a composite alarm that depends on that alarm that you want to delete.</p>
-/// <p>To get out of such a situation, you must break the cycle by changing the rule of one of the composite alarms in the cycle to remove a dependency that creates the cycle. The simplest change to make to break a cycle is to change the <code>AlarmRule</code> of one of the alarms to <code>false</code>. </p>
-/// <p>Additionally, the evaluation of composite alarms stops if CloudWatch detects a cycle in the evaluation path. </p>
+/// <p>To get out of such a situation, you must break the cycle by changing the rule of one of the composite alarms in the cycle to remove a dependency that creates the cycle. The simplest change to make to break a cycle is to change the <code>AlarmRule</code> of one of the alarms to <code>false</code>.</p>
+/// <p>Additionally, the evaluation of composite alarms stops if CloudWatch detects a cycle in the evaluation path.</p>
 /// </note>
 /// <p>When this operation creates an alarm, the alarm state is immediately set to <code>INSUFFICIENT_DATA</code>. The alarm is then evaluated and its state is set appropriately. Any actions associated with the new state are then executed. For a composite alarm, this initial time after creation is the only time that the alarm can be in <code>INSUFFICIENT_DATA</code> state.</p>
 /// <p>When you update an existing alarm, its state is left unchanged, but the update completely overwrites the previous configuration of the alarm.</p>
@@ -59,7 +69,7 @@ impl
     }
 }
 impl PutCompositeAlarmFluentBuilder {
-    /// Creates a new `PutCompositeAlarm`.
+    /// Creates a new `PutCompositeAlarmFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -110,12 +120,12 @@ impl PutCompositeAlarmFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -133,24 +143,70 @@ impl PutCompositeAlarmFluentBuilder {
     pub fn get_actions_enabled(&self) -> &::std::option::Option<bool> {
         self.inner.get_actions_enabled()
     }
+    ///
     /// Appends an item to `AlarmActions`.
     ///
     /// To override the contents of this collection use [`set_alarm_actions`](Self::set_alarm_actions).
     ///
     /// <p>The actions to execute when this alarm transitions to the <code>ALARM</code> state from any other state. Each action is specified as an Amazon Resource Name (ARN).</p>
-    /// <p>Valid Values: <code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i> </code> | <code>arn:aws:ssm:<i>region</i>:<i>account-id</i>:opsitem:<i>severity</i> </code> </p>
+    /// <p>Valid Values: \]</p>
+    /// <p><b>Amazon SNS actions:</b></p>
+    /// <p><code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i> </code></p>
+    /// <p><b>Lambda actions:</b></p>
+    /// <ul>
+    /// <li>
+    /// <p>Invoke the latest version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a specific version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>version-number</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a function by using an alias Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>alias-name</i> </code></p></li>
+    /// </ul>
+    /// <p><b>Systems Manager actions:</b></p>
+    /// <p><code>arn:aws:ssm:<i>region</i>:<i>account-id</i>:opsitem:<i>severity</i> </code></p>
+    /// <p><b>Start a Amazon Q Developer operational investigation</b></p>
+    /// <p><code>arn:aws:aiops:<i>region</i>:<i>account-id</i>:investigation-group:<i>ingestigation-group-id</i> </code></p>
     pub fn alarm_actions(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.alarm_actions(input.into());
         self
     }
     /// <p>The actions to execute when this alarm transitions to the <code>ALARM</code> state from any other state. Each action is specified as an Amazon Resource Name (ARN).</p>
-    /// <p>Valid Values: <code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i> </code> | <code>arn:aws:ssm:<i>region</i>:<i>account-id</i>:opsitem:<i>severity</i> </code> </p>
+    /// <p>Valid Values: \]</p>
+    /// <p><b>Amazon SNS actions:</b></p>
+    /// <p><code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i> </code></p>
+    /// <p><b>Lambda actions:</b></p>
+    /// <ul>
+    /// <li>
+    /// <p>Invoke the latest version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a specific version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>version-number</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a function by using an alias Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>alias-name</i> </code></p></li>
+    /// </ul>
+    /// <p><b>Systems Manager actions:</b></p>
+    /// <p><code>arn:aws:ssm:<i>region</i>:<i>account-id</i>:opsitem:<i>severity</i> </code></p>
+    /// <p><b>Start a Amazon Q Developer operational investigation</b></p>
+    /// <p><code>arn:aws:aiops:<i>region</i>:<i>account-id</i>:investigation-group:<i>ingestigation-group-id</i> </code></p>
     pub fn set_alarm_actions(mut self, input: ::std::option::Option<::std::vec::Vec<::std::string::String>>) -> Self {
         self.inner = self.inner.set_alarm_actions(input);
         self
     }
     /// <p>The actions to execute when this alarm transitions to the <code>ALARM</code> state from any other state. Each action is specified as an Amazon Resource Name (ARN).</p>
-    /// <p>Valid Values: <code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i> </code> | <code>arn:aws:ssm:<i>region</i>:<i>account-id</i>:opsitem:<i>severity</i> </code> </p>
+    /// <p>Valid Values: \]</p>
+    /// <p><b>Amazon SNS actions:</b></p>
+    /// <p><code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i> </code></p>
+    /// <p><b>Lambda actions:</b></p>
+    /// <ul>
+    /// <li>
+    /// <p>Invoke the latest version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a specific version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>version-number</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a function by using an alias Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>alias-name</i> </code></p></li>
+    /// </ul>
+    /// <p><b>Systems Manager actions:</b></p>
+    /// <p><code>arn:aws:ssm:<i>region</i>:<i>account-id</i>:opsitem:<i>severity</i> </code></p>
+    /// <p><b>Start a Amazon Q Developer operational investigation</b></p>
+    /// <p><code>arn:aws:aiops:<i>region</i>:<i>account-id</i>:investigation-group:<i>ingestigation-group-id</i> </code></p>
     pub fn get_alarm_actions(&self) -> &::std::option::Option<::std::vec::Vec<::std::string::String>> {
         self.inner.get_alarm_actions()
     }
@@ -186,19 +242,27 @@ impl PutCompositeAlarmFluentBuilder {
     /// <p>You can use either alarm names or ARNs to reference the other alarms that are to be evaluated.</p>
     /// <p>Functions can include the following:</p>
     /// <ul>
-    /// <li> <p> <code>ALARM("<i>alarm-name</i> or <i>alarm-ARN</i>")</code> is TRUE if the named alarm is in ALARM state.</p> </li>
-    /// <li> <p> <code>OK("<i>alarm-name</i> or <i>alarm-ARN</i>")</code> is TRUE if the named alarm is in OK state.</p> </li>
-    /// <li> <p> <code>INSUFFICIENT_DATA("<i>alarm-name</i> or <i>alarm-ARN</i>")</code> is TRUE if the named alarm is in INSUFFICIENT_DATA state.</p> </li>
-    /// <li> <p> <code>TRUE</code> always evaluates to TRUE.</p> </li>
-    /// <li> <p> <code>FALSE</code> always evaluates to FALSE.</p> </li>
+    /// <li>
+    /// <p><code>ALARM("<i>alarm-name</i> or <i>alarm-ARN</i>")</code> is TRUE if the named alarm is in ALARM state.</p></li>
+    /// <li>
+    /// <p><code>OK("<i>alarm-name</i> or <i>alarm-ARN</i>")</code> is TRUE if the named alarm is in OK state.</p></li>
+    /// <li>
+    /// <p><code>INSUFFICIENT_DATA("<i>alarm-name</i> or <i>alarm-ARN</i>")</code> is TRUE if the named alarm is in INSUFFICIENT_DATA state.</p></li>
+    /// <li>
+    /// <p><code>TRUE</code> always evaluates to TRUE.</p></li>
+    /// <li>
+    /// <p><code>FALSE</code> always evaluates to FALSE.</p></li>
     /// </ul>
     /// <p>TRUE and FALSE are useful for testing a complex <code>AlarmRule</code> structure, and for testing your alarm actions.</p>
     /// <p>Alarm names specified in <code>AlarmRule</code> can be surrounded with double-quotes ("), but do not have to be.</p>
     /// <p>The following are some examples of <code>AlarmRule</code>:</p>
     /// <ul>
-    /// <li> <p> <code>ALARM(CPUUtilizationTooHigh) AND ALARM(DiskReadOpsTooHigh)</code> specifies that the composite alarm goes into ALARM state only if both CPUUtilizationTooHigh and DiskReadOpsTooHigh alarms are in ALARM state.</p> </li>
-    /// <li> <p> <code>ALARM(CPUUtilizationTooHigh) AND NOT ALARM(DeploymentInProgress)</code> specifies that the alarm goes to ALARM state if CPUUtilizationTooHigh is in ALARM state and DeploymentInProgress is not in ALARM state. This example reduces alarm noise during a known deployment window.</p> </li>
-    /// <li> <p> <code>(ALARM(CPUUtilizationTooHigh) OR ALARM(DiskReadOpsTooHigh)) AND OK(NetworkOutTooHigh)</code> goes into ALARM state if CPUUtilizationTooHigh OR DiskReadOpsTooHigh is in ALARM state, and if NetworkOutTooHigh is in OK state. This provides another example of using a composite alarm to prevent noise. This rule ensures that you are not notified with an alarm action on high CPU or disk usage if a known network problem is also occurring.</p> </li>
+    /// <li>
+    /// <p><code>ALARM(CPUUtilizationTooHigh) AND ALARM(DiskReadOpsTooHigh)</code> specifies that the composite alarm goes into ALARM state only if both CPUUtilizationTooHigh and DiskReadOpsTooHigh alarms are in ALARM state.</p></li>
+    /// <li>
+    /// <p><code>ALARM(CPUUtilizationTooHigh) AND NOT ALARM(DeploymentInProgress)</code> specifies that the alarm goes to ALARM state if CPUUtilizationTooHigh is in ALARM state and DeploymentInProgress is not in ALARM state. This example reduces alarm noise during a known deployment window.</p></li>
+    /// <li>
+    /// <p><code>(ALARM(CPUUtilizationTooHigh) OR ALARM(DiskReadOpsTooHigh)) AND OK(NetworkOutTooHigh)</code> goes into ALARM state if CPUUtilizationTooHigh OR DiskReadOpsTooHigh is in ALARM state, and if NetworkOutTooHigh is in OK state. This provides another example of using a composite alarm to prevent noise. This rule ensures that you are not notified with an alarm action on high CPU or disk usage if a known network problem is also occurring.</p></li>
     /// </ul>
     /// <p>The <code>AlarmRule</code> can specify as many as 100 "children" alarms. The <code>AlarmRule</code> expression can have as many as 500 elements. Elements are child alarms, TRUE or FALSE statements, and parentheses.</p>
     pub fn alarm_rule(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
@@ -209,19 +273,27 @@ impl PutCompositeAlarmFluentBuilder {
     /// <p>You can use either alarm names or ARNs to reference the other alarms that are to be evaluated.</p>
     /// <p>Functions can include the following:</p>
     /// <ul>
-    /// <li> <p> <code>ALARM("<i>alarm-name</i> or <i>alarm-ARN</i>")</code> is TRUE if the named alarm is in ALARM state.</p> </li>
-    /// <li> <p> <code>OK("<i>alarm-name</i> or <i>alarm-ARN</i>")</code> is TRUE if the named alarm is in OK state.</p> </li>
-    /// <li> <p> <code>INSUFFICIENT_DATA("<i>alarm-name</i> or <i>alarm-ARN</i>")</code> is TRUE if the named alarm is in INSUFFICIENT_DATA state.</p> </li>
-    /// <li> <p> <code>TRUE</code> always evaluates to TRUE.</p> </li>
-    /// <li> <p> <code>FALSE</code> always evaluates to FALSE.</p> </li>
+    /// <li>
+    /// <p><code>ALARM("<i>alarm-name</i> or <i>alarm-ARN</i>")</code> is TRUE if the named alarm is in ALARM state.</p></li>
+    /// <li>
+    /// <p><code>OK("<i>alarm-name</i> or <i>alarm-ARN</i>")</code> is TRUE if the named alarm is in OK state.</p></li>
+    /// <li>
+    /// <p><code>INSUFFICIENT_DATA("<i>alarm-name</i> or <i>alarm-ARN</i>")</code> is TRUE if the named alarm is in INSUFFICIENT_DATA state.</p></li>
+    /// <li>
+    /// <p><code>TRUE</code> always evaluates to TRUE.</p></li>
+    /// <li>
+    /// <p><code>FALSE</code> always evaluates to FALSE.</p></li>
     /// </ul>
     /// <p>TRUE and FALSE are useful for testing a complex <code>AlarmRule</code> structure, and for testing your alarm actions.</p>
     /// <p>Alarm names specified in <code>AlarmRule</code> can be surrounded with double-quotes ("), but do not have to be.</p>
     /// <p>The following are some examples of <code>AlarmRule</code>:</p>
     /// <ul>
-    /// <li> <p> <code>ALARM(CPUUtilizationTooHigh) AND ALARM(DiskReadOpsTooHigh)</code> specifies that the composite alarm goes into ALARM state only if both CPUUtilizationTooHigh and DiskReadOpsTooHigh alarms are in ALARM state.</p> </li>
-    /// <li> <p> <code>ALARM(CPUUtilizationTooHigh) AND NOT ALARM(DeploymentInProgress)</code> specifies that the alarm goes to ALARM state if CPUUtilizationTooHigh is in ALARM state and DeploymentInProgress is not in ALARM state. This example reduces alarm noise during a known deployment window.</p> </li>
-    /// <li> <p> <code>(ALARM(CPUUtilizationTooHigh) OR ALARM(DiskReadOpsTooHigh)) AND OK(NetworkOutTooHigh)</code> goes into ALARM state if CPUUtilizationTooHigh OR DiskReadOpsTooHigh is in ALARM state, and if NetworkOutTooHigh is in OK state. This provides another example of using a composite alarm to prevent noise. This rule ensures that you are not notified with an alarm action on high CPU or disk usage if a known network problem is also occurring.</p> </li>
+    /// <li>
+    /// <p><code>ALARM(CPUUtilizationTooHigh) AND ALARM(DiskReadOpsTooHigh)</code> specifies that the composite alarm goes into ALARM state only if both CPUUtilizationTooHigh and DiskReadOpsTooHigh alarms are in ALARM state.</p></li>
+    /// <li>
+    /// <p><code>ALARM(CPUUtilizationTooHigh) AND NOT ALARM(DeploymentInProgress)</code> specifies that the alarm goes to ALARM state if CPUUtilizationTooHigh is in ALARM state and DeploymentInProgress is not in ALARM state. This example reduces alarm noise during a known deployment window.</p></li>
+    /// <li>
+    /// <p><code>(ALARM(CPUUtilizationTooHigh) OR ALARM(DiskReadOpsTooHigh)) AND OK(NetworkOutTooHigh)</code> goes into ALARM state if CPUUtilizationTooHigh OR DiskReadOpsTooHigh is in ALARM state, and if NetworkOutTooHigh is in OK state. This provides another example of using a composite alarm to prevent noise. This rule ensures that you are not notified with an alarm action on high CPU or disk usage if a known network problem is also occurring.</p></li>
     /// </ul>
     /// <p>The <code>AlarmRule</code> can specify as many as 100 "children" alarms. The <code>AlarmRule</code> expression can have as many as 500 elements. Elements are child alarms, TRUE or FALSE statements, and parentheses.</p>
     pub fn set_alarm_rule(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
@@ -232,137 +304,217 @@ impl PutCompositeAlarmFluentBuilder {
     /// <p>You can use either alarm names or ARNs to reference the other alarms that are to be evaluated.</p>
     /// <p>Functions can include the following:</p>
     /// <ul>
-    /// <li> <p> <code>ALARM("<i>alarm-name</i> or <i>alarm-ARN</i>")</code> is TRUE if the named alarm is in ALARM state.</p> </li>
-    /// <li> <p> <code>OK("<i>alarm-name</i> or <i>alarm-ARN</i>")</code> is TRUE if the named alarm is in OK state.</p> </li>
-    /// <li> <p> <code>INSUFFICIENT_DATA("<i>alarm-name</i> or <i>alarm-ARN</i>")</code> is TRUE if the named alarm is in INSUFFICIENT_DATA state.</p> </li>
-    /// <li> <p> <code>TRUE</code> always evaluates to TRUE.</p> </li>
-    /// <li> <p> <code>FALSE</code> always evaluates to FALSE.</p> </li>
+    /// <li>
+    /// <p><code>ALARM("<i>alarm-name</i> or <i>alarm-ARN</i>")</code> is TRUE if the named alarm is in ALARM state.</p></li>
+    /// <li>
+    /// <p><code>OK("<i>alarm-name</i> or <i>alarm-ARN</i>")</code> is TRUE if the named alarm is in OK state.</p></li>
+    /// <li>
+    /// <p><code>INSUFFICIENT_DATA("<i>alarm-name</i> or <i>alarm-ARN</i>")</code> is TRUE if the named alarm is in INSUFFICIENT_DATA state.</p></li>
+    /// <li>
+    /// <p><code>TRUE</code> always evaluates to TRUE.</p></li>
+    /// <li>
+    /// <p><code>FALSE</code> always evaluates to FALSE.</p></li>
     /// </ul>
     /// <p>TRUE and FALSE are useful for testing a complex <code>AlarmRule</code> structure, and for testing your alarm actions.</p>
     /// <p>Alarm names specified in <code>AlarmRule</code> can be surrounded with double-quotes ("), but do not have to be.</p>
     /// <p>The following are some examples of <code>AlarmRule</code>:</p>
     /// <ul>
-    /// <li> <p> <code>ALARM(CPUUtilizationTooHigh) AND ALARM(DiskReadOpsTooHigh)</code> specifies that the composite alarm goes into ALARM state only if both CPUUtilizationTooHigh and DiskReadOpsTooHigh alarms are in ALARM state.</p> </li>
-    /// <li> <p> <code>ALARM(CPUUtilizationTooHigh) AND NOT ALARM(DeploymentInProgress)</code> specifies that the alarm goes to ALARM state if CPUUtilizationTooHigh is in ALARM state and DeploymentInProgress is not in ALARM state. This example reduces alarm noise during a known deployment window.</p> </li>
-    /// <li> <p> <code>(ALARM(CPUUtilizationTooHigh) OR ALARM(DiskReadOpsTooHigh)) AND OK(NetworkOutTooHigh)</code> goes into ALARM state if CPUUtilizationTooHigh OR DiskReadOpsTooHigh is in ALARM state, and if NetworkOutTooHigh is in OK state. This provides another example of using a composite alarm to prevent noise. This rule ensures that you are not notified with an alarm action on high CPU or disk usage if a known network problem is also occurring.</p> </li>
+    /// <li>
+    /// <p><code>ALARM(CPUUtilizationTooHigh) AND ALARM(DiskReadOpsTooHigh)</code> specifies that the composite alarm goes into ALARM state only if both CPUUtilizationTooHigh and DiskReadOpsTooHigh alarms are in ALARM state.</p></li>
+    /// <li>
+    /// <p><code>ALARM(CPUUtilizationTooHigh) AND NOT ALARM(DeploymentInProgress)</code> specifies that the alarm goes to ALARM state if CPUUtilizationTooHigh is in ALARM state and DeploymentInProgress is not in ALARM state. This example reduces alarm noise during a known deployment window.</p></li>
+    /// <li>
+    /// <p><code>(ALARM(CPUUtilizationTooHigh) OR ALARM(DiskReadOpsTooHigh)) AND OK(NetworkOutTooHigh)</code> goes into ALARM state if CPUUtilizationTooHigh OR DiskReadOpsTooHigh is in ALARM state, and if NetworkOutTooHigh is in OK state. This provides another example of using a composite alarm to prevent noise. This rule ensures that you are not notified with an alarm action on high CPU or disk usage if a known network problem is also occurring.</p></li>
     /// </ul>
     /// <p>The <code>AlarmRule</code> can specify as many as 100 "children" alarms. The <code>AlarmRule</code> expression can have as many as 500 elements. Elements are child alarms, TRUE or FALSE statements, and parentheses.</p>
     pub fn get_alarm_rule(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_alarm_rule()
     }
+    ///
     /// Appends an item to `InsufficientDataActions`.
     ///
     /// To override the contents of this collection use [`set_insufficient_data_actions`](Self::set_insufficient_data_actions).
     ///
     /// <p>The actions to execute when this alarm transitions to the <code>INSUFFICIENT_DATA</code> state from any other state. Each action is specified as an Amazon Resource Name (ARN).</p>
-    /// <p>Valid Values: <code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i> </code> </p>
+    /// <p>Valid Values: \]</p>
+    /// <p><b>Amazon SNS actions:</b></p>
+    /// <p><code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i> </code></p>
+    /// <p><b>Lambda actions:</b></p>
+    /// <ul>
+    /// <li>
+    /// <p>Invoke the latest version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a specific version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>version-number</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a function by using an alias Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>alias-name</i> </code></p></li>
+    /// </ul>
     pub fn insufficient_data_actions(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.insufficient_data_actions(input.into());
         self
     }
     /// <p>The actions to execute when this alarm transitions to the <code>INSUFFICIENT_DATA</code> state from any other state. Each action is specified as an Amazon Resource Name (ARN).</p>
-    /// <p>Valid Values: <code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i> </code> </p>
+    /// <p>Valid Values: \]</p>
+    /// <p><b>Amazon SNS actions:</b></p>
+    /// <p><code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i> </code></p>
+    /// <p><b>Lambda actions:</b></p>
+    /// <ul>
+    /// <li>
+    /// <p>Invoke the latest version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a specific version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>version-number</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a function by using an alias Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>alias-name</i> </code></p></li>
+    /// </ul>
     pub fn set_insufficient_data_actions(mut self, input: ::std::option::Option<::std::vec::Vec<::std::string::String>>) -> Self {
         self.inner = self.inner.set_insufficient_data_actions(input);
         self
     }
     /// <p>The actions to execute when this alarm transitions to the <code>INSUFFICIENT_DATA</code> state from any other state. Each action is specified as an Amazon Resource Name (ARN).</p>
-    /// <p>Valid Values: <code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i> </code> </p>
+    /// <p>Valid Values: \]</p>
+    /// <p><b>Amazon SNS actions:</b></p>
+    /// <p><code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i> </code></p>
+    /// <p><b>Lambda actions:</b></p>
+    /// <ul>
+    /// <li>
+    /// <p>Invoke the latest version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a specific version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>version-number</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a function by using an alias Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>alias-name</i> </code></p></li>
+    /// </ul>
     pub fn get_insufficient_data_actions(&self) -> &::std::option::Option<::std::vec::Vec<::std::string::String>> {
         self.inner.get_insufficient_data_actions()
     }
+    ///
     /// Appends an item to `OKActions`.
     ///
     /// To override the contents of this collection use [`set_ok_actions`](Self::set_ok_actions).
     ///
     /// <p>The actions to execute when this alarm transitions to an <code>OK</code> state from any other state. Each action is specified as an Amazon Resource Name (ARN).</p>
-    /// <p>Valid Values: <code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i> </code> </p>
+    /// <p>Valid Values: \]</p>
+    /// <p><b>Amazon SNS actions:</b></p>
+    /// <p><code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i> </code></p>
+    /// <p><b>Lambda actions:</b></p>
+    /// <ul>
+    /// <li>
+    /// <p>Invoke the latest version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a specific version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>version-number</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a function by using an alias Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>alias-name</i> </code></p></li>
+    /// </ul>
     pub fn ok_actions(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.ok_actions(input.into());
         self
     }
     /// <p>The actions to execute when this alarm transitions to an <code>OK</code> state from any other state. Each action is specified as an Amazon Resource Name (ARN).</p>
-    /// <p>Valid Values: <code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i> </code> </p>
+    /// <p>Valid Values: \]</p>
+    /// <p><b>Amazon SNS actions:</b></p>
+    /// <p><code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i> </code></p>
+    /// <p><b>Lambda actions:</b></p>
+    /// <ul>
+    /// <li>
+    /// <p>Invoke the latest version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a specific version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>version-number</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a function by using an alias Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>alias-name</i> </code></p></li>
+    /// </ul>
     pub fn set_ok_actions(mut self, input: ::std::option::Option<::std::vec::Vec<::std::string::String>>) -> Self {
         self.inner = self.inner.set_ok_actions(input);
         self
     }
     /// <p>The actions to execute when this alarm transitions to an <code>OK</code> state from any other state. Each action is specified as an Amazon Resource Name (ARN).</p>
-    /// <p>Valid Values: <code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i> </code> </p>
+    /// <p>Valid Values: \]</p>
+    /// <p><b>Amazon SNS actions:</b></p>
+    /// <p><code>arn:aws:sns:<i>region</i>:<i>account-id</i>:<i>sns-topic-name</i> </code></p>
+    /// <p><b>Lambda actions:</b></p>
+    /// <ul>
+    /// <li>
+    /// <p>Invoke the latest version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a specific version of a Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>version-number</i> </code></p></li>
+    /// <li>
+    /// <p>Invoke a function by using an alias Lambda function: <code>arn:aws:lambda:<i>region</i>:<i>account-id</i>:function:<i>function-name</i>:<i>alias-name</i> </code></p></li>
+    /// </ul>
     pub fn get_ok_actions(&self) -> &::std::option::Option<::std::vec::Vec<::std::string::String>> {
         self.inner.get_ok_actions()
     }
+    ///
     /// Appends an item to `Tags`.
     ///
     /// To override the contents of this collection use [`set_tags`](Self::set_tags).
     ///
-    /// <p>A list of key-value pairs to associate with the composite alarm. You can associate as many as 50 tags with an alarm.</p>
-    /// <p>Tags can help you organize and categorize your resources. You can also use them to scope user permissions, by granting a user permission to access or change only resources with certain tag values.</p>
+    /// <p>A list of key-value pairs to associate with the alarm. You can associate as many as 50 tags with an alarm. To be able to associate tags with the alarm when you create the alarm, you must have the <code>cloudwatch:TagResource</code> permission.</p>
+    /// <p>Tags can help you organize and categorize your resources. You can also use them to scope user permissions by granting a user permission to access or change only resources with certain tag values.</p>
+    /// <p>If you are using this operation to update an existing alarm, any tags you specify in this parameter are ignored. To change the tags of an existing alarm, use <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_TagResource.html">TagResource</a> or <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_UntagResource.html">UntagResource</a>.</p>
     pub fn tags(mut self, input: crate::types::Tag) -> Self {
         self.inner = self.inner.tags(input);
         self
     }
-    /// <p>A list of key-value pairs to associate with the composite alarm. You can associate as many as 50 tags with an alarm.</p>
-    /// <p>Tags can help you organize and categorize your resources. You can also use them to scope user permissions, by granting a user permission to access or change only resources with certain tag values.</p>
+    /// <p>A list of key-value pairs to associate with the alarm. You can associate as many as 50 tags with an alarm. To be able to associate tags with the alarm when you create the alarm, you must have the <code>cloudwatch:TagResource</code> permission.</p>
+    /// <p>Tags can help you organize and categorize your resources. You can also use them to scope user permissions by granting a user permission to access or change only resources with certain tag values.</p>
+    /// <p>If you are using this operation to update an existing alarm, any tags you specify in this parameter are ignored. To change the tags of an existing alarm, use <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_TagResource.html">TagResource</a> or <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_UntagResource.html">UntagResource</a>.</p>
     pub fn set_tags(mut self, input: ::std::option::Option<::std::vec::Vec<crate::types::Tag>>) -> Self {
         self.inner = self.inner.set_tags(input);
         self
     }
-    /// <p>A list of key-value pairs to associate with the composite alarm. You can associate as many as 50 tags with an alarm.</p>
-    /// <p>Tags can help you organize and categorize your resources. You can also use them to scope user permissions, by granting a user permission to access or change only resources with certain tag values.</p>
+    /// <p>A list of key-value pairs to associate with the alarm. You can associate as many as 50 tags with an alarm. To be able to associate tags with the alarm when you create the alarm, you must have the <code>cloudwatch:TagResource</code> permission.</p>
+    /// <p>Tags can help you organize and categorize your resources. You can also use them to scope user permissions by granting a user permission to access or change only resources with certain tag values.</p>
+    /// <p>If you are using this operation to update an existing alarm, any tags you specify in this parameter are ignored. To change the tags of an existing alarm, use <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_TagResource.html">TagResource</a> or <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_UntagResource.html">UntagResource</a>.</p>
     pub fn get_tags(&self) -> &::std::option::Option<::std::vec::Vec<crate::types::Tag>> {
         self.inner.get_tags()
     }
-    /// <p> Actions will be suppressed if the suppressor alarm is in the <code>ALARM</code> state. <code>ActionsSuppressor</code> can be an AlarmName or an Amazon Resource Name (ARN) from an existing alarm. </p>
+    /// <p>Actions will be suppressed if the suppressor alarm is in the <code>ALARM</code> state. <code>ActionsSuppressor</code> can be an AlarmName or an Amazon Resource Name (ARN) from an existing alarm.</p>
     pub fn actions_suppressor(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.actions_suppressor(input.into());
         self
     }
-    /// <p> Actions will be suppressed if the suppressor alarm is in the <code>ALARM</code> state. <code>ActionsSuppressor</code> can be an AlarmName or an Amazon Resource Name (ARN) from an existing alarm. </p>
+    /// <p>Actions will be suppressed if the suppressor alarm is in the <code>ALARM</code> state. <code>ActionsSuppressor</code> can be an AlarmName or an Amazon Resource Name (ARN) from an existing alarm.</p>
     pub fn set_actions_suppressor(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_actions_suppressor(input);
         self
     }
-    /// <p> Actions will be suppressed if the suppressor alarm is in the <code>ALARM</code> state. <code>ActionsSuppressor</code> can be an AlarmName or an Amazon Resource Name (ARN) from an existing alarm. </p>
+    /// <p>Actions will be suppressed if the suppressor alarm is in the <code>ALARM</code> state. <code>ActionsSuppressor</code> can be an AlarmName or an Amazon Resource Name (ARN) from an existing alarm.</p>
     pub fn get_actions_suppressor(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_actions_suppressor()
     }
-    /// <p> The maximum time in seconds that the composite alarm waits for the suppressor alarm to go into the <code>ALARM</code> state. After this time, the composite alarm performs its actions. </p> <important>
-    /// <p> <code>WaitPeriod</code> is required only when <code>ActionsSuppressor</code> is specified. </p>
+    /// <p>The maximum time in seconds that the composite alarm waits for the suppressor alarm to go into the <code>ALARM</code> state. After this time, the composite alarm performs its actions.</p><important>
+    /// <p><code>WaitPeriod</code> is required only when <code>ActionsSuppressor</code> is specified.</p>
     /// </important>
     pub fn actions_suppressor_wait_period(mut self, input: i32) -> Self {
         self.inner = self.inner.actions_suppressor_wait_period(input);
         self
     }
-    /// <p> The maximum time in seconds that the composite alarm waits for the suppressor alarm to go into the <code>ALARM</code> state. After this time, the composite alarm performs its actions. </p> <important>
-    /// <p> <code>WaitPeriod</code> is required only when <code>ActionsSuppressor</code> is specified. </p>
+    /// <p>The maximum time in seconds that the composite alarm waits for the suppressor alarm to go into the <code>ALARM</code> state. After this time, the composite alarm performs its actions.</p><important>
+    /// <p><code>WaitPeriod</code> is required only when <code>ActionsSuppressor</code> is specified.</p>
     /// </important>
     pub fn set_actions_suppressor_wait_period(mut self, input: ::std::option::Option<i32>) -> Self {
         self.inner = self.inner.set_actions_suppressor_wait_period(input);
         self
     }
-    /// <p> The maximum time in seconds that the composite alarm waits for the suppressor alarm to go into the <code>ALARM</code> state. After this time, the composite alarm performs its actions. </p> <important>
-    /// <p> <code>WaitPeriod</code> is required only when <code>ActionsSuppressor</code> is specified. </p>
+    /// <p>The maximum time in seconds that the composite alarm waits for the suppressor alarm to go into the <code>ALARM</code> state. After this time, the composite alarm performs its actions.</p><important>
+    /// <p><code>WaitPeriod</code> is required only when <code>ActionsSuppressor</code> is specified.</p>
     /// </important>
     pub fn get_actions_suppressor_wait_period(&self) -> &::std::option::Option<i32> {
         self.inner.get_actions_suppressor_wait_period()
     }
-    /// <p> The maximum time in seconds that the composite alarm waits after suppressor alarm goes out of the <code>ALARM</code> state. After this time, the composite alarm performs its actions. </p> <important>
-    /// <p> <code>ExtensionPeriod</code> is required only when <code>ActionsSuppressor</code> is specified. </p>
+    /// <p>The maximum time in seconds that the composite alarm waits after suppressor alarm goes out of the <code>ALARM</code> state. After this time, the composite alarm performs its actions.</p><important>
+    /// <p><code>ExtensionPeriod</code> is required only when <code>ActionsSuppressor</code> is specified.</p>
     /// </important>
     pub fn actions_suppressor_extension_period(mut self, input: i32) -> Self {
         self.inner = self.inner.actions_suppressor_extension_period(input);
         self
     }
-    /// <p> The maximum time in seconds that the composite alarm waits after suppressor alarm goes out of the <code>ALARM</code> state. After this time, the composite alarm performs its actions. </p> <important>
-    /// <p> <code>ExtensionPeriod</code> is required only when <code>ActionsSuppressor</code> is specified. </p>
+    /// <p>The maximum time in seconds that the composite alarm waits after suppressor alarm goes out of the <code>ALARM</code> state. After this time, the composite alarm performs its actions.</p><important>
+    /// <p><code>ExtensionPeriod</code> is required only when <code>ActionsSuppressor</code> is specified.</p>
     /// </important>
     pub fn set_actions_suppressor_extension_period(mut self, input: ::std::option::Option<i32>) -> Self {
         self.inner = self.inner.set_actions_suppressor_extension_period(input);
         self
     }
-    /// <p> The maximum time in seconds that the composite alarm waits after suppressor alarm goes out of the <code>ALARM</code> state. After this time, the composite alarm performs its actions. </p> <important>
-    /// <p> <code>ExtensionPeriod</code> is required only when <code>ActionsSuppressor</code> is specified. </p>
+    /// <p>The maximum time in seconds that the composite alarm waits after suppressor alarm goes out of the <code>ALARM</code> state. After this time, the composite alarm performs its actions.</p><important>
+    /// <p><code>ExtensionPeriod</code> is required only when <code>ActionsSuppressor</code> is specified.</p>
     /// </important>
     pub fn get_actions_suppressor_extension_period(&self) -> &::std::option::Option<i32> {
         self.inner.get_actions_suppressor_extension_period()

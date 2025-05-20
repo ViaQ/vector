@@ -17,12 +17,12 @@ pub fn de_filter_log_events_http_error(
 
     let _error_message = generic.message().map(|msg| msg.to_owned());
     Err(match error_code {
-        "InvalidParameterException" => crate::operation::filter_log_events::FilterLogEventsError::InvalidParameterException({
+        "ResourceNotFoundException" => crate::operation::filter_log_events::FilterLogEventsError::ResourceNotFoundException({
             #[allow(unused_mut)]
             let mut tmp = {
                 #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::InvalidParameterExceptionBuilder::default();
-                output = crate::protocol_serde::shape_invalid_parameter_exception::de_invalid_parameter_exception_json_err(_response_body, output)
+                let mut output = crate::types::error::builders::ResourceNotFoundExceptionBuilder::default();
+                output = crate::protocol_serde::shape_resource_not_found_exception::de_resource_not_found_exception_json_err(_response_body, output)
                     .map_err(crate::operation::filter_log_events::FilterLogEventsError::unhandled)?;
                 let output = output.meta(generic);
                 output.build()
@@ -32,12 +32,12 @@ pub fn de_filter_log_events_http_error(
             }
             tmp
         }),
-        "ResourceNotFoundException" => crate::operation::filter_log_events::FilterLogEventsError::ResourceNotFoundException({
+        "InvalidParameterException" => crate::operation::filter_log_events::FilterLogEventsError::InvalidParameterException({
             #[allow(unused_mut)]
             let mut tmp = {
                 #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::ResourceNotFoundExceptionBuilder::default();
-                output = crate::protocol_serde::shape_resource_not_found_exception::de_resource_not_found_exception_json_err(_response_body, output)
+                let mut output = crate::types::error::builders::InvalidParameterExceptionBuilder::default();
+                output = crate::protocol_serde::shape_invalid_parameter_exception::de_invalid_parameter_exception_json_err(_response_body, output)
                     .map_err(crate::operation::filter_log_events::FilterLogEventsError::unhandled)?;
                 let output = output.meta(generic);
                 output.build()
@@ -85,7 +85,7 @@ pub fn de_filter_log_events_http_response(
 
 pub fn ser_filter_log_events_input(
     input: &crate::operation::filter_log_events::FilterLogEventsInput,
-) -> Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
     let mut out = String::new();
     let mut object = ::aws_smithy_json::serialize::JsonObjectWriter::new(&mut out);
     crate::protocol_serde::shape_filter_log_events_input::ser_filter_log_events_input_input(&mut object, input)?;
@@ -96,7 +96,10 @@ pub fn ser_filter_log_events_input(
 pub(crate) fn de_filter_log_events(
     value: &[u8],
     mut builder: crate::operation::filter_log_events::builders::FilterLogEventsOutputBuilder,
-) -> Result<crate::operation::filter_log_events::builders::FilterLogEventsOutputBuilder, ::aws_smithy_json::deserialize::error::DeserializeError> {
+) -> ::std::result::Result<
+    crate::operation::filter_log_events::builders::FilterLogEventsOutputBuilder,
+    ::aws_smithy_json::deserialize::error::DeserializeError,
+> {
     let mut tokens_owned = ::aws_smithy_json::deserialize::json_token_iter(crate::protocol_serde::or_empty_doc(value)).peekable();
     let tokens = &mut tokens_owned;
     ::aws_smithy_json::deserialize::token::expect_start_object(tokens.next())?;

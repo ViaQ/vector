@@ -84,6 +84,18 @@ fn files() {
         .ok("ignore_missing_env_vars::path_3_files_element_2_txt")
         .ok("ignore_missing_env_vars::path_4_files_element_3_txt")
         .ok("ignore_missing_env_vars::path_5_files_sub_sub_dir_file_txt")
+        .ok("include_bytes::contents_1__UP_files_test_sub_folder_from_parent_folder_txt")
+        .ok("include_bytes::contents_2_files_element_0_txt")
+        .ok("include_bytes::contents_3_files_element_1_txt")
+        .ok("include_bytes::contents_4_files_element_2_txt")
+        .ok("include_bytes::contents_5_files_element_3_txt")
+        .ok("include_bytes::contents_6_files_sub_sub_dir_file_txt")
+        .ok("include_str::contents_1__UP_files_test_sub_folder_from_parent_folder_txt")
+        .ok("include_str::contents_2_files_element_0_txt")
+        .ok("include_str::contents_3_files_element_1_txt")
+        .ok("include_str::contents_4_files_element_2_txt")
+        .ok("include_str::contents_5_files_element_3_txt")
+        .ok("include_str::contents_6_files_sub_sub_dir_file_txt")
         .ok("module::pathbuf_need_not_be_in_scope::path_1_files__ignore_me_txt")
         .ok("module::pathbuf_need_not_be_in_scope::path_2_files_element_0_txt")
         .ok("module::pathbuf_need_not_be_in_scope::path_3_files_element_1_txt")
@@ -96,6 +108,12 @@ fn files() {
         .ok("start_with_name::path_4_files_element_2_txt")
         .ok("start_with_name::path_5_files_element_3_txt")
         .ok("start_with_name::path_6_files_sub_sub_dir_file_txt")
+        .ok("start_with_name_file_mode::path_1__UP_files_test_sub_folder_from_parent_folder_txt")
+        .ok("start_with_name_file_mode::path_2_files_element_0_txt")
+        .ok("start_with_name_file_mode::path_3_files_element_1_txt")
+        .ok("start_with_name_file_mode::path_4_files_element_2_txt")
+        .ok("start_with_name_file_mode::path_5_files_element_3_txt")
+        .ok("start_with_name_file_mode::path_6_files_sub_sub_dir_file_txt")
         .ok("start_with_name_with_include::path_1_files__ignore_me_txt")
         .ok("start_with_name_with_include::path_2_files_element_0_txt")
         .ok("start_with_name_with_include::path_3_files_element_1_txt")
@@ -1190,7 +1208,7 @@ fn local_lifetime() {
 #[test]
 fn by_ref() {
     let prj = prj("by_ref.rs");
-    let files_path = prj.path().join("files");
+    let files_path: std::path::PathBuf = prj.path().join("files");
     std::fs::create_dir(&files_path).unwrap();
     let name = "my_name.txt";
     let mut out = File::create(files_path.join(name)).unwrap();
@@ -1201,6 +1219,30 @@ fn by_ref() {
         .ok("test::case_1::v_1_42")
         .ok("test::case_1::v_2_142")
         .ok("start_with_name::path_1_files_my_name_txt")
+        .assert(output);
+}
+
+#[test]
+fn no_std() {
+    let prj = prj("no_std.rs");
+    prj.add_dependency("async-std", r#"{version="*", features=["attributes"]}"#);
+    let output = prj.run_tests().unwrap();
+
+    TestResults::new()
+        .ok("it_works::case_1")
+        .ok("async_works")
+        .assert(output);
+}
+
+#[test]
+fn context() {
+    let (output, _) = run_test("context.rs");
+
+    TestResults::new()
+        .ok("with_case::case_1_description")
+        .ok("without_case")
+        .ok("first::inner::test")
+        .ok("measure_time")
         .assert(output);
 }
 

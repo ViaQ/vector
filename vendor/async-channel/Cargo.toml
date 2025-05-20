@@ -10,10 +10,10 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
-rust-version = "1.45"
+edition = "2021"
+rust-version = "1.60"
 name = "async-channel"
-version = "1.9.0"
+version = "2.3.1"
 authors = ["Stjepan Glavina <stjepang@gmail.com>"]
 exclude = ["/.*"]
 description = "Async multi-producer multi-consumer channel"
@@ -33,16 +33,32 @@ license = "Apache-2.0 OR MIT"
 repository = "https://github.com/smol-rs/async-channel"
 
 [dependencies.concurrent-queue]
-version = "2"
+version = "2.5"
+default-features = false
 
-[dependencies.event-listener]
-version = "2.4.0"
+[dependencies.event-listener-strategy]
+version = "0.5.2"
+default-features = false
 
 [dependencies.futures-core]
 version = "0.3.5"
+default-features = false
+
+[dependencies.pin-project-lite]
+version = "0.2.11"
 
 [dev-dependencies.easy-parallel]
 version = "3"
 
 [dev-dependencies.futures-lite]
-version = "1"
+version = "2"
+
+[features]
+default = ["std"]
+std = [
+    "concurrent-queue/std",
+    "event-listener-strategy/std",
+]
+
+[target."cfg(target_family = \"wasm\")".dev-dependencies.wasm-bindgen-test]
+version = "0.3.37"

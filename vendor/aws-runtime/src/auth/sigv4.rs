@@ -6,7 +6,8 @@
 use crate::auth;
 use crate::auth::{
     extract_endpoint_auth_scheme_signing_name, extract_endpoint_auth_scheme_signing_region,
-    SigV4OperationSigningConfig, SigV4SigningError,
+    PayloadSigningOverride, SigV4OperationSigningConfig, SigV4SessionTokenNameOverride,
+    SigV4SigningError,
 };
 use aws_credential_types::Credentials;
 use aws_sigv4::http_request::{
@@ -152,22 +153,32 @@ impl Sign for SigV4Signer {
         runtime_components: &RuntimeComponents,
         config_bag: &ConfigBag,
     ) -> Result<(), BoxError> {
-        let operation_config =
-            Self::extract_operation_config(auth_scheme_endpoint_config, config_bag)?;
-        let request_time = runtime_components.time_source().unwrap_or_default().now();
-
         if identity.data::<Credentials>().is_none() {
             return Err(SigV4SigningError::WrongIdentityType(identity.clone()).into());
         };
 
-        let settings = Self::settings(&operation_config);
+        let operation_config =
+            Self::extract_operation_config(auth_scheme_endpoint_config, config_bag)?;
+        let request_time = runtime_components.time_source().unwrap_or_default().now();
+
+        let settings = if let Some(session_token_name_override) =
+            config_bag.load::<SigV4SessionTokenNameOverride>()
+        {
+            let mut settings = Self::settings(&operation_config);
+            let name_override = session_token_name_override.name_override(&settings, config_bag)?;
+            settings.session_token_name_override = name_override;
+            settings
+        } else {
+            Self::settings(&operation_config)
+        };
+
         let signing_params =
             Self::signing_params(settings, identity, &operation_config, request_time)?;
 
         let (signing_instructions, _signature) = {
             // A body that is already in memory can be signed directly. A body that is not in memory
             // (any sort of streaming body or presigned request) will be signed via UNSIGNED-PAYLOAD.
-            let signable_body = operation_config
+            let mut signable_body = operation_config
                 .signing_options
                 .payload_override
                 .as_ref()
@@ -181,6 +192,15 @@ impl Sign for SigV4Signer {
                         .map(SignableBody::Bytes)
                         .unwrap_or(SignableBody::UnsignedPayload)
                 });
+
+            // Sometimes it's necessary to override the payload signing scheme.
+            // If an override exists then fetch and apply it.
+            if let Some(payload_signing_override) = config_bag.load::<PayloadSigningOverride>() {
+                tracing::trace!(
+                    "payload signing was overridden, now set to {payload_signing_override:?}"
+                );
+                signable_body = payload_signing_override.clone().to_signable_body();
+            }
 
             let signable_request = SignableRequest::new(
                 request.method(),

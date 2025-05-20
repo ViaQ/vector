@@ -14,44 +14,13 @@ pub trait Candidate {
     fn replacement(&self) -> &str;
 }
 
-impl Candidate for String {
+impl<T: AsRef<str>> Candidate for T {
     fn display(&self) -> &str {
-        self.as_str()
+        self.as_ref()
     }
 
     fn replacement(&self) -> &str {
-        self.as_str()
-    }
-}
-
-/// #[deprecated = "Unusable"]
-impl Candidate for str {
-    fn display(&self) -> &str {
-        self
-    }
-
-    fn replacement(&self) -> &str {
-        self
-    }
-}
-
-impl Candidate for &'_ str {
-    fn display(&self) -> &str {
-        self
-    }
-
-    fn replacement(&self) -> &str {
-        self
-    }
-}
-
-impl Candidate for Rc<str> {
-    fn display(&self) -> &str {
-        self
-    }
-
-    fn replacement(&self) -> &str {
-        self
+        self.as_ref()
     }
 }
 
@@ -113,22 +82,6 @@ impl Completer for () {
     }
 }
 
-impl<'c, C: ?Sized + Completer> Completer for &'c C {
-    type Candidate = C::Candidate;
-
-    fn complete(
-        &self,
-        line: &str,
-        pos: usize,
-        ctx: &Context<'_>,
-    ) -> Result<(usize, Vec<Self::Candidate>)> {
-        (**self).complete(line, pos, ctx)
-    }
-
-    fn update(&self, line: &mut LineBuffer, start: usize, elected: &str, cl: &mut Changeset) {
-        (**self).update(line, start, elected, cl);
-    }
-}
 macro_rules! box_completer {
     ($($id: ident)*) => {
         $(
@@ -211,7 +164,6 @@ impl FilenameCompleter {
     /// partial path to be completed.
     pub fn complete_path(&self, line: &str, pos: usize) -> Result<(usize, Vec<Pair>)> {
         let (start, mut matches) = self.complete_path_unsorted(line, pos)?;
-        #[allow(clippy::unnecessary_sort_by)]
         matches.sort_by(|a, b| a.display().cmp(b.display()));
         Ok((start, matches))
     }
@@ -265,9 +217,7 @@ impl Completer for FilenameCompleter {
 /// Remove escape char
 #[must_use]
 pub fn unescape(input: &str, esc_char: Option<char>) -> Cow<'_, str> {
-    let esc_char = if let Some(c) = esc_char {
-        c
-    } else {
+    let Some(esc_char) = esc_char else {
         return Borrowed(input);
     };
     if !input.chars().any(|c| c == esc_char) {
@@ -310,9 +260,7 @@ pub fn escape(
     if n == 0 {
         return input; // no need to escape
     }
-    let esc_char = if let Some(c) = esc_char {
-        c
-    } else {
+    let Some(esc_char) = esc_char else {
         if cfg!(windows) && quote == Quote::None {
             input.insert(0, '"'); // force double quote
             return input;
@@ -375,7 +323,7 @@ fn filename_complete(
         dir_path.to_path_buf()
     };
 
-    let mut entries: Vec<Pair> = Vec::new();
+    let mut entries: Vec<Pair> = vec![];
 
     // if dir doesn't exist, then don't offer any completions
     if !dir.exists() {
@@ -419,6 +367,7 @@ fn normalize(s: &str) -> Cow<str> {
 
 /// Given a `line` and a cursor `pos`ition,
 /// try to find backward the start of a word.
+///
 /// Return (0, `line[..pos]`) if no break char has been found.
 /// Return the word and its start position (idx, `line[idx..pos]`) otherwise.
 #[must_use]
@@ -547,6 +496,8 @@ fn find_unclosed_quote(s: &str) -> Option<(usize, Quote)> {
 
 #[cfg(test)]
 mod tests {
+    use super::{Completer, FilenameCompleter};
+
     #[test]
     pub fn extract_word() {
         let break_chars = super::default_break_chars;
@@ -617,7 +568,7 @@ mod tests {
             assert_eq!(Some(s), lcp);
         }
 
-        let c3 = String::from("");
+        let c3 = String::new();
         candidates.push(c3);
         {
             let lcp = super::longest_common_prefix(&candidates);
@@ -650,5 +601,28 @@ mod tests {
     #[test]
     pub fn normalize() {
         assert_eq!(super::normalize("Windows"), "windows")
+    }
+
+    #[test]
+    pub fn candidate_impls() {
+        struct StrCmp;
+        impl Completer for StrCmp {
+            type Candidate = &'static str;
+        }
+        struct RcCmp;
+        impl Completer for RcCmp {
+            type Candidate = std::rc::Rc<str>;
+        }
+        struct ArcCmp;
+        impl Completer for ArcCmp {
+            type Candidate = std::sync::Arc<str>;
+        }
+    }
+
+    #[test]
+    pub fn completer_impls() {
+        struct Wrapper<T: Completer>(T);
+        let boxed = Box::new(FilenameCompleter::new());
+        let _ = Wrapper(boxed);
     }
 }

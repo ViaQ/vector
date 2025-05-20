@@ -36,6 +36,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -98,6 +99,16 @@ impl ActionsSuppressedBy {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for ActionsSuppressedBy {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            ActionsSuppressedBy::Alarm => write!(f, "Alarm"),
+            ActionsSuppressedBy::ExtensionPeriod => write!(f, "ExtensionPeriod"),
+            ActionsSuppressedBy::WaitPeriod => write!(f, "WaitPeriod"),
+            ActionsSuppressedBy::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

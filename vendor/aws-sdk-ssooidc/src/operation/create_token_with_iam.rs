@@ -50,7 +50,18 @@ impl CreateTokenWithIAM {
         >,
     > {
         let input = ::aws_smithy_runtime_api::client::interceptors::context::Input::erase(input);
-        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("ssooidc", "CreateTokenWithIAM", input, runtime_plugins, stop_point).await
+        use ::tracing::Instrument;
+        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("SSO OIDC", "CreateTokenWithIAM", input, runtime_plugins, stop_point)
+            // Create a parent span for the entire operation. Includes a random, internal-only,
+            // seven-digit ID for the operation orchestration so that it can be correlated in the logs.
+            .instrument(::tracing::debug_span!(
+                "SSO OIDC.CreateTokenWithIAM",
+                "rpc.service" = "SSO OIDC",
+                "rpc.method" = "CreateTokenWithIAM",
+                "sdk_invocation_id" = ::fastrand::u32(1_000_000..10_000_000),
+                "rpc.system" = "aws-api",
+            ))
+            .await
     }
 
     pub(crate) fn operation_runtime_plugins(
@@ -91,7 +102,10 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for CreateT
         ));
 
         cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::SensitiveOutput);
-        cfg.store_put(::aws_smithy_http::operation::Metadata::new("CreateTokenWithIAM", "ssooidc"));
+        cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::Metadata::new(
+            "CreateTokenWithIAM",
+            "SSO OIDC",
+        ));
         let mut signing_options = ::aws_runtime::auth::SigningOptions::default();
         signing_options.double_uri_encode = true;
         signing_options.content_sha256_header = false;
@@ -112,11 +126,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for CreateT
     ) -> ::std::borrow::Cow<'_, ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder> {
         #[allow(unused_mut)]
         let mut rcb = ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("CreateTokenWithIAM")
-            .with_interceptor(
-                ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::new(
-                    ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptorKind::ResponseBody,
-                ),
-            )
+            .with_interceptor(::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::default())
             .with_interceptor(CreateTokenWithIAMEndpointParamsInterceptor)
             .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<
                 crate::operation::create_token_with_iam::CreateTokenWithIAMError,
@@ -248,6 +258,9 @@ impl ::aws_smithy_runtime_api::client::interceptors::Intercept for CreateTokenWi
     }
 }
 
+// The get_* functions below are generated from JMESPath expressions in the
+// operationContextParams trait. They target the operation's input shape.
+
 /// Error type for the `CreateTokenWithIAMError` operation.
 #[non_exhaustive]
 #[derive(::std::fmt::Debug)]
@@ -270,7 +283,7 @@ pub enum CreateTokenWithIAMError {
     InvalidRequestRegionException(crate::types::error::InvalidRequestRegionException),
     /// <p>Indicates that the scope provided in the request is invalid.</p>
     InvalidScopeException(crate::types::error::InvalidScopeException),
-    /// <p>Indicates that the client is making the request too frequently and is more than the service can handle. </p>
+    /// <p>Indicates that the client is making the request too frequently and is more than the service can handle.</p>
     SlowDownException(crate::types::error::SlowDownException),
     /// <p>Indicates that the client is not currently authorized to make the request. This can happen when a <code>clientId</code> is not issued for a public client.</p>
     UnauthorizedClientException(crate::types::error::UnauthorizedClientException),

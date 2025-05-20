@@ -3,7 +3,7 @@ pub use crate::operation::put_resource_policy::_put_resource_policy_output::PutR
 
 pub use crate::operation::put_resource_policy::_put_resource_policy_input::PutResourcePolicyInputBuilder;
 
-impl PutResourcePolicyInputBuilder {
+impl crate::operation::put_resource_policy::builders::PutResourcePolicyInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,11 +22,13 @@ impl PutResourcePolicyInputBuilder {
 }
 /// Fluent builder constructing a request to `PutResourcePolicy`.
 ///
-/// <p>Attaches a resource-based policy to a data stream or registered consumer. If you are using an identity other than the root user of the Amazon Web Services account that owns the resource, the calling identity must have the <code>PutResourcePolicy</code> permissions on the specified Kinesis Data Streams resource and belong to the owner's account in order to use this operation. If you don't have <code>PutResourcePolicy</code> permissions, Amazon Kinesis Data Streams returns a <code>403 Access Denied error</code>. If you receive a <code>ResourceNotFoundException</code>, check to see if you passed a valid stream or consumer resource. </p>
-/// <p> Request patterns can be one of the following:</p>
+/// <p>Attaches a resource-based policy to a data stream or registered consumer. If you are using an identity other than the root user of the Amazon Web Services account that owns the resource, the calling identity must have the <code>PutResourcePolicy</code> permissions on the specified Kinesis Data Streams resource and belong to the owner's account in order to use this operation. If you don't have <code>PutResourcePolicy</code> permissions, Amazon Kinesis Data Streams returns a <code>403 Access Denied error</code>. If you receive a <code>ResourceNotFoundException</code>, check to see if you passed a valid stream or consumer resource.</p>
+/// <p>Request patterns can be one of the following:</p>
 /// <ul>
-/// <li> <p>Data stream pattern: <code>arn:aws.*:kinesis:.*:\d{12}:.*stream/\S+</code> </p> </li>
-/// <li> <p>Consumer pattern: <code>^(arn):aws.*:kinesis:.*:\d{12}:.*stream\/[a-zA-Z0-9_.-]+\/consumer\/[a-zA-Z0-9_.-]+:[0-9]+</code> </p> </li>
+/// <li>
+/// <p>Data stream pattern: <code>arn:aws.*:kinesis:.*:\d{12}:.*stream/\S+</code></p></li>
+/// <li>
+/// <p>Consumer pattern: <code>^(arn):aws.*:kinesis:.*:\d{12}:.*stream\/\[a-zA-Z0-9_.-\]+\/consumer\/\[a-zA-Z0-9_.-\]+:\[0-9\]+</code></p></li>
 /// </ul>
 /// <p>For more information, see <a href="https://docs.aws.amazon.com/streams/latest/dev/controlling-access.html">Controlling Access to Amazon Kinesis Data Streams Resources Using IAM</a>.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
@@ -54,7 +56,7 @@ impl
     }
 }
 impl PutResourcePolicyFluentBuilder {
-    /// Creates a new `PutResourcePolicy`.
+    /// Creates a new `PutResourcePolicyFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -105,12 +107,12 @@ impl PutResourcePolicyFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

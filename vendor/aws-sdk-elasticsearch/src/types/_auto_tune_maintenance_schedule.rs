@@ -4,7 +4,7 @@
 #[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::fmt::Debug)]
 pub struct AutoTuneMaintenanceSchedule {
-    /// <p>Specifies timestamp at which Auto-Tune maintenance schedule start. </p>
+    /// <p>Specifies timestamp at which Auto-Tune maintenance schedule start.</p>
     pub start_at: ::std::option::Option<::aws_smithy_types::DateTime>,
     /// <p>Specifies maintenance schedule duration: duration value and duration unit. See the <a href="https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/auto-tune.html" target="_blank">Developer Guide</a> for more information.</p>
     pub duration: ::std::option::Option<crate::types::Duration>,
@@ -12,7 +12,7 @@ pub struct AutoTuneMaintenanceSchedule {
     pub cron_expression_for_recurrence: ::std::option::Option<::std::string::String>,
 }
 impl AutoTuneMaintenanceSchedule {
-    /// <p>Specifies timestamp at which Auto-Tune maintenance schedule start. </p>
+    /// <p>Specifies timestamp at which Auto-Tune maintenance schedule start.</p>
     pub fn start_at(&self) -> ::std::option::Option<&::aws_smithy_types::DateTime> {
         self.start_at.as_ref()
     }
@@ -33,25 +33,25 @@ impl AutoTuneMaintenanceSchedule {
 }
 
 /// A builder for [`AutoTuneMaintenanceSchedule`](crate::types::AutoTuneMaintenanceSchedule).
-#[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::default::Default, ::std::fmt::Debug)]
+#[non_exhaustive]
 pub struct AutoTuneMaintenanceScheduleBuilder {
     pub(crate) start_at: ::std::option::Option<::aws_smithy_types::DateTime>,
     pub(crate) duration: ::std::option::Option<crate::types::Duration>,
     pub(crate) cron_expression_for_recurrence: ::std::option::Option<::std::string::String>,
 }
 impl AutoTuneMaintenanceScheduleBuilder {
-    /// <p>Specifies timestamp at which Auto-Tune maintenance schedule start. </p>
+    /// <p>Specifies timestamp at which Auto-Tune maintenance schedule start.</p>
     pub fn start_at(mut self, input: ::aws_smithy_types::DateTime) -> Self {
         self.start_at = ::std::option::Option::Some(input);
         self
     }
-    /// <p>Specifies timestamp at which Auto-Tune maintenance schedule start. </p>
+    /// <p>Specifies timestamp at which Auto-Tune maintenance schedule start.</p>
     pub fn set_start_at(mut self, input: ::std::option::Option<::aws_smithy_types::DateTime>) -> Self {
         self.start_at = input;
         self
     }
-    /// <p>Specifies timestamp at which Auto-Tune maintenance schedule start. </p>
+    /// <p>Specifies timestamp at which Auto-Tune maintenance schedule start.</p>
     pub fn get_start_at(&self) -> &::std::option::Option<::aws_smithy_types::DateTime> {
         &self.start_at
     }

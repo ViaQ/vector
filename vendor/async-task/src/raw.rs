@@ -1,7 +1,6 @@
 use alloc::alloc::Layout as StdLayout;
 use core::cell::UnsafeCell;
 use core::future::Future;
-use core::marker::PhantomData;
 use core::mem::{self, ManuallyDrop};
 use core::pin::Pin;
 use core::ptr::NonNull;
@@ -52,7 +51,7 @@ pub(crate) struct TaskVTable {
     /// debuggers to decode raw task memory blobs. Do not remove
     /// the field, even if it appears to be unused.
     #[allow(unused)]
-    pub(crate) layout_info: &'static Option<TaskLayout>,
+    pub(crate) layout_info: &'static TaskLayout,
 }
 
 /// Memory layout of a task.
@@ -100,11 +99,11 @@ impl<F, T, S, M> Clone for RawTask<F, T, S, M> {
 }
 
 impl<F, T, S, M> RawTask<F, T, S, M> {
-    const TASK_LAYOUT: Option<TaskLayout> = Self::eval_task_layout();
+    const TASK_LAYOUT: TaskLayout = Self::eval_task_layout();
 
     /// Computes the memory layout for a task.
     #[inline]
-    const fn eval_task_layout() -> Option<TaskLayout> {
+    const fn eval_task_layout() -> TaskLayout {
         // Compute the layouts for `Header`, `S`, `F`, and `T`.
         let layout_header = Layout::new::<Header<M>>();
         let layout_s = Layout::new::<S>();
@@ -118,17 +117,17 @@ impl<F, T, S, M> RawTask<F, T, S, M> {
 
         // Compute the layout for `Header` followed `S` and `union { F, T }`.
         let layout = layout_header;
-        let (layout, offset_s) = leap!(layout.extend(layout_s));
-        let (layout, offset_union) = leap!(layout.extend(layout_union));
+        let (layout, offset_s) = leap_unwrap!(layout.extend(layout_s));
+        let (layout, offset_union) = leap_unwrap!(layout.extend(layout_union));
         let offset_f = offset_union;
         let offset_r = offset_union;
 
-        Some(TaskLayout {
+        TaskLayout {
             layout: unsafe { layout.into_std() },
             offset_s,
             offset_f,
             offset_r,
-        })
+        }
     }
 }
 
@@ -227,12 +226,8 @@ where
     /// Returns the layout of the task.
     #[inline]
     fn task_layout() -> TaskLayout {
-        match Self::TASK_LAYOUT {
-            Some(tl) => tl,
-            None => abort(),
-        }
+        Self::TASK_LAYOUT
     }
-
     /// Wakes a waker.
     unsafe fn wake(ptr: *const ()) {
         // This is just an optimization. If the schedule function has captured variables, then
@@ -350,10 +345,7 @@ where
                             // Schedule the task. There is no need to call `Self::schedule(ptr)`
                             // because the schedule function cannot be destroyed while the waker is
                             // still alive.
-                            let task = Runnable {
-                                ptr: NonNull::new_unchecked(ptr as *mut ()),
-                                _marker: PhantomData,
-                            };
+                            let task = Runnable::from_raw(NonNull::new_unchecked(ptr as *mut ()));
                             (*raw.schedule).schedule(task, ScheduleInfo::new(false));
                         }
 
@@ -442,10 +434,7 @@ where
             _waker = Waker::from_raw(Self::clone_waker(ptr));
         }
 
-        let task = Runnable {
-            ptr: NonNull::new_unchecked(ptr as *mut ()),
-            _marker: PhantomData,
-        };
+        let task = Runnable::from_raw(NonNull::new_unchecked(ptr as *mut ()));
         (*raw.schedule).schedule(task, info);
     }
 

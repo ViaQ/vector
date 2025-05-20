@@ -3,7 +3,7 @@ pub use crate::operation::get_bucket_notification_configuration::_get_bucket_not
 
 pub use crate::operation::get_bucket_notification_configuration::_get_bucket_notification_configuration_input::GetBucketNotificationConfigurationInputBuilder;
 
-impl GetBucketNotificationConfigurationInputBuilder {
+impl crate::operation::get_bucket_notification_configuration::builders::GetBucketNotificationConfigurationInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -23,7 +23,7 @@ impl GetBucketNotificationConfigurationInputBuilder {
 /// Fluent builder constructing a request to `GetBucketNotificationConfiguration`.
 ///
 /// <note>
-/// <p>This operation is not supported by directory buckets.</p>
+/// <p>This operation is not supported for directory buckets.</p>
 /// </note>
 /// <p>Returns the notification configuration of a bucket.</p>
 /// <p>If notifications are not enabled on the bucket, the action returns an empty <code>NotificationConfiguration</code> element.</p>
@@ -33,7 +33,8 @@ impl GetBucketNotificationConfigurationInputBuilder {
 /// <p>For more information about setting and reading the notification configuration on a bucket, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html">Setting Up Notification of Bucket Events</a>. For more information about bucket policies, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/dev/using-iam-policies.html">Using Bucket Policies</a>.</p>
 /// <p>The following action is related to <code>GetBucketNotification</code>:</p>
 /// <ul>
-/// <li> <p> <a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketNotification.html">PutBucketNotification</a> </p> </li>
+/// <li>
+/// <p><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketNotification.html">PutBucketNotification</a></p></li>
 /// </ul>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct GetBucketNotificationConfigurationFluentBuilder {
@@ -60,7 +61,7 @@ impl
     }
 }
 impl GetBucketNotificationConfigurationFluentBuilder {
-    /// Creates a new `GetBucketNotificationConfiguration`.
+    /// Creates a new `GetBucketNotificationConfigurationFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -111,12 +112,12 @@ impl GetBucketNotificationConfigurationFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

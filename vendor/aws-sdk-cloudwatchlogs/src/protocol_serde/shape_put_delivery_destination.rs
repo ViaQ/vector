@@ -24,12 +24,42 @@ pub fn de_put_delivery_destination_http_error(
 
     let _error_message = generic.message().map(|msg| msg.to_owned());
     Err(match error_code {
+        "ThrottlingException" => crate::operation::put_delivery_destination::PutDeliveryDestinationError::ThrottlingException({
+            #[allow(unused_mut)]
+            let mut tmp = {
+                #[allow(unused_mut)]
+                let mut output = crate::types::error::builders::ThrottlingExceptionBuilder::default();
+                output = crate::protocol_serde::shape_throttling_exception::de_throttling_exception_json_err(_response_body, output)
+                    .map_err(crate::operation::put_delivery_destination::PutDeliveryDestinationError::unhandled)?;
+                let output = output.meta(generic);
+                output.build()
+            };
+            if tmp.message.is_none() {
+                tmp.message = _error_message;
+            }
+            tmp
+        }),
         "ConflictException" => crate::operation::put_delivery_destination::PutDeliveryDestinationError::ConflictException({
             #[allow(unused_mut)]
             let mut tmp = {
                 #[allow(unused_mut)]
                 let mut output = crate::types::error::builders::ConflictExceptionBuilder::default();
                 output = crate::protocol_serde::shape_conflict_exception::de_conflict_exception_json_err(_response_body, output)
+                    .map_err(crate::operation::put_delivery_destination::PutDeliveryDestinationError::unhandled)?;
+                let output = output.meta(generic);
+                output.build()
+            };
+            if tmp.message.is_none() {
+                tmp.message = _error_message;
+            }
+            tmp
+        }),
+        "ValidationException" => crate::operation::put_delivery_destination::PutDeliveryDestinationError::ValidationException({
+            #[allow(unused_mut)]
+            let mut tmp = {
+                #[allow(unused_mut)]
+                let mut output = crate::types::error::builders::ValidationExceptionBuilder::default();
+                output = crate::protocol_serde::shape_validation_exception::de_validation_exception_json_err(_response_body, output)
                     .map_err(crate::operation::put_delivery_destination::PutDeliveryDestinationError::unhandled)?;
                 let output = output.meta(generic);
                 output.build()
@@ -54,24 +84,6 @@ pub fn de_put_delivery_destination_http_error(
             }
             tmp
         }),
-        "ServiceQuotaExceededException" => crate::operation::put_delivery_destination::PutDeliveryDestinationError::ServiceQuotaExceededException({
-            #[allow(unused_mut)]
-            let mut tmp = {
-                #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::ServiceQuotaExceededExceptionBuilder::default();
-                output = crate::protocol_serde::shape_service_quota_exceeded_exception::de_service_quota_exceeded_exception_json_err(
-                    _response_body,
-                    output,
-                )
-                .map_err(crate::operation::put_delivery_destination::PutDeliveryDestinationError::unhandled)?;
-                let output = output.meta(generic);
-                output.build()
-            };
-            if tmp.message.is_none() {
-                tmp.message = _error_message;
-            }
-            tmp
-        }),
         "ServiceUnavailableException" => crate::operation::put_delivery_destination::PutDeliveryDestinationError::ServiceUnavailableException({
             #[allow(unused_mut)]
             let mut tmp = {
@@ -88,28 +100,16 @@ pub fn de_put_delivery_destination_http_error(
             }
             tmp
         }),
-        "ThrottlingException" => crate::operation::put_delivery_destination::PutDeliveryDestinationError::ThrottlingException({
+        "ServiceQuotaExceededException" => crate::operation::put_delivery_destination::PutDeliveryDestinationError::ServiceQuotaExceededException({
             #[allow(unused_mut)]
             let mut tmp = {
                 #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::ThrottlingExceptionBuilder::default();
-                output = crate::protocol_serde::shape_throttling_exception::de_throttling_exception_json_err(_response_body, output)
-                    .map_err(crate::operation::put_delivery_destination::PutDeliveryDestinationError::unhandled)?;
-                let output = output.meta(generic);
-                output.build()
-            };
-            if tmp.message.is_none() {
-                tmp.message = _error_message;
-            }
-            tmp
-        }),
-        "ValidationException" => crate::operation::put_delivery_destination::PutDeliveryDestinationError::ValidationException({
-            #[allow(unused_mut)]
-            let mut tmp = {
-                #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::ValidationExceptionBuilder::default();
-                output = crate::protocol_serde::shape_validation_exception::de_validation_exception_json_err(_response_body, output)
-                    .map_err(crate::operation::put_delivery_destination::PutDeliveryDestinationError::unhandled)?;
+                let mut output = crate::types::error::builders::ServiceQuotaExceededExceptionBuilder::default();
+                output = crate::protocol_serde::shape_service_quota_exceeded_exception::de_service_quota_exceeded_exception_json_err(
+                    _response_body,
+                    output,
+                )
+                .map_err(crate::operation::put_delivery_destination::PutDeliveryDestinationError::unhandled)?;
                 let output = output.meta(generic);
                 output.build()
             };
@@ -143,7 +143,7 @@ pub fn de_put_delivery_destination_http_response(
 
 pub fn ser_put_delivery_destination_input(
     input: &crate::operation::put_delivery_destination::PutDeliveryDestinationInput,
-) -> Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
     let mut out = String::new();
     let mut object = ::aws_smithy_json::serialize::JsonObjectWriter::new(&mut out);
     crate::protocol_serde::shape_put_delivery_destination_input::ser_put_delivery_destination_input_input(&mut object, input)?;
@@ -154,7 +154,7 @@ pub fn ser_put_delivery_destination_input(
 pub(crate) fn de_put_delivery_destination(
     value: &[u8],
     mut builder: crate::operation::put_delivery_destination::builders::PutDeliveryDestinationOutputBuilder,
-) -> Result<
+) -> ::std::result::Result<
     crate::operation::put_delivery_destination::builders::PutDeliveryDestinationOutputBuilder,
     ::aws_smithy_json::deserialize::error::DeserializeError,
 > {

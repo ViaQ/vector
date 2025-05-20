@@ -36,6 +36,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 /// Enum listing out all supported route types. The following enum values are supported.
 /// 1. Transactional : Non-marketing traffic
 /// 2. Promotional : Marketing
@@ -101,6 +102,16 @@ impl RouteType {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for RouteType {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            RouteType::Premium => write!(f, "Premium"),
+            RouteType::Promotional => write!(f, "Promotional"),
+            RouteType::Transactional => write!(f, "Transactional"),
+            RouteType::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

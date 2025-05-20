@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-use aws_http::user_agent::AwsUserAgent;
 use aws_runtime::invocation_id::{InvocationId, PredefinedInvocationIdGenerator};
+use aws_runtime::user_agent::AwsUserAgent;
 use aws_sdk_s3::config::interceptors::BeforeSerializationInterceptorContextMut;
 use aws_sdk_s3::config::interceptors::FinalizerInterceptorContextRef;
 use aws_sdk_s3::config::retry::RetryConfig;
@@ -15,7 +15,7 @@ use aws_sdk_s3::Client;
 use aws_smithy_async::test_util::InstantSleep;
 use aws_smithy_async::test_util::ManualTimeSource;
 use aws_smithy_async::time::SharedTimeSource;
-use aws_smithy_runtime::client::http::test_util::dvr::ReplayingClient;
+use aws_smithy_http_client::test_util::dvr::ReplayingClient;
 use aws_smithy_runtime::test_util::capture_test_logs::capture_test_logs;
 use aws_smithy_runtime_api::box_error::BoxError;
 use aws_smithy_runtime_api::client::runtime_components::RuntimeComponents;
@@ -103,11 +103,13 @@ async fn three_retries_and_then_success() {
     let resp = resp.expect("valid e2e test");
     assert_eq!(resp.name(), Some("test-bucket"));
     http_client
-        .full_validate("application/xml")
+        .relaxed_validate("application/xml")
         .await
-        .expect("failed")
+        .unwrap();
 }
-//
+
+// TODO(simulate time): Currently commented out since the test is work in progress.
+//  Consider using `tick_advance_time_and_sleep` to simulate client and server times.
 // // # Client makes 3 separate SDK operation invocations
 // // # All succeed on first attempt.
 // // # Fast network, latency + server time is less than one second.
@@ -190,7 +192,9 @@ async fn three_retries_and_then_success() {
 //     assert_eq!(resp.name(), Some("test-bucket"));
 //     conn.full_validate(MediaType::Xml).await.expect("failed")
 // }
-//
+
+// TODO(simulate time): Currently commented out since the test is work in progress.
+//  Consider using `tick_advance_time_and_sleep` to simulate client and server times.
 // // # One SDK operation invocation.
 // // # Client retries 3 times, successful response on 3rd attempt.
 // // # Slow network, one way latency is 2 seconds.

@@ -7,6 +7,11 @@ pub struct ListBucketsOutput {
     pub buckets: ::std::option::Option<::std::vec::Vec<crate::types::Bucket>>,
     /// <p>The owner of the buckets listed.</p>
     pub owner: ::std::option::Option<crate::types::Owner>,
+    /// <p><code>ContinuationToken</code> is included in the response when there are more buckets that can be listed with pagination. The next <code>ListBuckets</code> request to Amazon S3 can be continued with this <code>ContinuationToken</code>. <code>ContinuationToken</code> is obfuscated and is not a real bucket.</p>
+    pub continuation_token: ::std::option::Option<::std::string::String>,
+    /// <p>If <code>Prefix</code> was sent with the request, it is included in the response.</p>
+    /// <p>All bucket names in the response begin with the specified bucket name prefix.</p>
+    pub prefix: ::std::option::Option<::std::string::String>,
     _extended_request_id: Option<String>,
     _request_id: Option<String>,
 }
@@ -20,6 +25,15 @@ impl ListBucketsOutput {
     /// <p>The owner of the buckets listed.</p>
     pub fn owner(&self) -> ::std::option::Option<&crate::types::Owner> {
         self.owner.as_ref()
+    }
+    /// <p><code>ContinuationToken</code> is included in the response when there are more buckets that can be listed with pagination. The next <code>ListBuckets</code> request to Amazon S3 can be continued with this <code>ContinuationToken</code>. <code>ContinuationToken</code> is obfuscated and is not a real bucket.</p>
+    pub fn continuation_token(&self) -> ::std::option::Option<&str> {
+        self.continuation_token.as_deref()
+    }
+    /// <p>If <code>Prefix</code> was sent with the request, it is included in the response.</p>
+    /// <p>All bucket names in the response begin with the specified bucket name prefix.</p>
+    pub fn prefix(&self) -> ::std::option::Option<&str> {
+        self.prefix.as_deref()
     }
 }
 impl crate::s3_request_id::RequestIdExt for ListBucketsOutput {
@@ -40,11 +54,13 @@ impl ListBucketsOutput {
 }
 
 /// A builder for [`ListBucketsOutput`](crate::operation::list_buckets::ListBucketsOutput).
-#[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::default::Default, ::std::fmt::Debug)]
+#[non_exhaustive]
 pub struct ListBucketsOutputBuilder {
     pub(crate) buckets: ::std::option::Option<::std::vec::Vec<crate::types::Bucket>>,
     pub(crate) owner: ::std::option::Option<crate::types::Owner>,
+    pub(crate) continuation_token: ::std::option::Option<::std::string::String>,
+    pub(crate) prefix: ::std::option::Option<::std::string::String>,
     _extended_request_id: Option<String>,
     _request_id: Option<String>,
 }
@@ -83,6 +99,37 @@ impl ListBucketsOutputBuilder {
     pub fn get_owner(&self) -> &::std::option::Option<crate::types::Owner> {
         &self.owner
     }
+    /// <p><code>ContinuationToken</code> is included in the response when there are more buckets that can be listed with pagination. The next <code>ListBuckets</code> request to Amazon S3 can be continued with this <code>ContinuationToken</code>. <code>ContinuationToken</code> is obfuscated and is not a real bucket.</p>
+    pub fn continuation_token(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
+        self.continuation_token = ::std::option::Option::Some(input.into());
+        self
+    }
+    /// <p><code>ContinuationToken</code> is included in the response when there are more buckets that can be listed with pagination. The next <code>ListBuckets</code> request to Amazon S3 can be continued with this <code>ContinuationToken</code>. <code>ContinuationToken</code> is obfuscated and is not a real bucket.</p>
+    pub fn set_continuation_token(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+        self.continuation_token = input;
+        self
+    }
+    /// <p><code>ContinuationToken</code> is included in the response when there are more buckets that can be listed with pagination. The next <code>ListBuckets</code> request to Amazon S3 can be continued with this <code>ContinuationToken</code>. <code>ContinuationToken</code> is obfuscated and is not a real bucket.</p>
+    pub fn get_continuation_token(&self) -> &::std::option::Option<::std::string::String> {
+        &self.continuation_token
+    }
+    /// <p>If <code>Prefix</code> was sent with the request, it is included in the response.</p>
+    /// <p>All bucket names in the response begin with the specified bucket name prefix.</p>
+    pub fn prefix(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
+        self.prefix = ::std::option::Option::Some(input.into());
+        self
+    }
+    /// <p>If <code>Prefix</code> was sent with the request, it is included in the response.</p>
+    /// <p>All bucket names in the response begin with the specified bucket name prefix.</p>
+    pub fn set_prefix(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+        self.prefix = input;
+        self
+    }
+    /// <p>If <code>Prefix</code> was sent with the request, it is included in the response.</p>
+    /// <p>All bucket names in the response begin with the specified bucket name prefix.</p>
+    pub fn get_prefix(&self) -> &::std::option::Option<::std::string::String> {
+        &self.prefix
+    }
     pub(crate) fn _extended_request_id(mut self, extended_request_id: impl Into<String>) -> Self {
         self._extended_request_id = Some(extended_request_id.into());
         self
@@ -106,6 +153,8 @@ impl ListBucketsOutputBuilder {
         crate::operation::list_buckets::ListBucketsOutput {
             buckets: self.buckets,
             owner: self.owner,
+            continuation_token: self.continuation_token,
+            prefix: self.prefix,
             _extended_request_id: self._extended_request_id,
             _request_id: self._request_id,
         }

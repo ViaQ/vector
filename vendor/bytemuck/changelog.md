@@ -1,5 +1,64 @@
 # `bytemuck` changelog
 
+## 1.23
+
+* `impl_core_error` crate feature adds `core::error::Error` impl.
+* More `ZeroableInOption` impls.
+
+## 1.22
+
+* Add the `pod_saturating` feature, which adds `Pod` impls for `Saturating<T>`
+  when `T` is already `Pod`.
+* A bump in the minimum `bytemuck_derive` dependency from 1.4.0 to 1.4.1 to
+  avoid a bug if you have a truly ancient `cargo.lock` file sitting around.
+* Adds `Send` and `Sync` impls to `BoxBytes`.
+
+## 1.21
+
+* Implement `Pod` and `Zeroable` for `core::arch::{x86, x86_64}::__m512`, `__m512d` and `__m512i` without nightly.
+  Requires Rust 1.72, and is gated through the `avx512_simd` cargo feature.
+* Allow the use of `must_cast_mut` and `must_cast_slice_mut` in const contexts.
+  Requires Rust 1.83, and is gated through the `must_cast_extra` cargo feature.
+* internal: introduced the `maybe_const_fn` macro that allows defining some function
+  to be const depending upon some `cfg` predicate.
+
+## 1.20
+
+* New functions to allocate zeroed `Arc` and `Rc`. Requires Rust 1.82
+* `TransparentWrapper` impls for `core::cmp::Reverse` and `core::num::Saturating`.
+* internal: Simplified the library's `fill_zeroes` calls to `write_bytes`
+
+## 1.19
+
+* Adds the `#[track_caller]` attribute to functions which may panic.
+
+## 1.18
+
+* Adds the `latest_stable_rust` cargo feature, which is a blanket feature that turns all other features on that are both sound and compatible with Stable rust.
+
+## 1.17.1
+
+* Adds `#[repr(C)]` to the `union Transmute<A, B>` type that's used internally
+  for most of the transmutations.
+
+## 1.17.0
+
+* Makes the `must_cast` versions of the by-value and by-ref casts be `const`.
+  The mut ref cast is unaffected for now (mut references aren't yet stable in `const fn`).
+  This increases the MSRV of using that particular feature from 1.57 to 1.64.
+
+## 1.16.3
+
+* Fully described in https://github.com/Lokathor/bytemuck/pull/256, This makes
+  casting slices to/from ZST elements more consistent between the crate's core
+  module and other modules.
+
+## 1.16.2
+
+* Fixes potential UB where `BoxBytes` could attempt to free a dangling pointer
+  if the `Layout` is zero sized. This type was introduced in 1.14.1, so that
+  version and the others up to and including 1.16.1 are now yanked for safety.
+
 ## 1.16.1
 
 * **NOT SEMVER SUPPORTED:** Adds the  `nightly_float` Cargo feature. This

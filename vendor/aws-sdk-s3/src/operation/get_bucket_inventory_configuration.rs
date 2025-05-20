@@ -50,13 +50,23 @@ impl GetBucketInventoryConfiguration {
         >,
     > {
         let input = ::aws_smithy_runtime_api::client::interceptors::context::Input::erase(input);
+        use ::tracing::Instrument;
         ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point(
-            "s3",
+            "S3",
             "GetBucketInventoryConfiguration",
             input,
             runtime_plugins,
             stop_point,
         )
+        // Create a parent span for the entire operation. Includes a random, internal-only,
+        // seven-digit ID for the operation orchestration so that it can be correlated in the logs.
+        .instrument(::tracing::debug_span!(
+            "S3.GetBucketInventoryConfiguration",
+            "rpc.service" = "S3",
+            "rpc.method" = "GetBucketInventoryConfiguration",
+            "sdk_invocation_id" = ::fastrand::u32(1_000_000..10_000_000),
+            "rpc.system" = "aws-api",
+        ))
         .await
     }
 
@@ -66,7 +76,7 @@ impl GetBucketInventoryConfiguration {
         config_override: ::std::option::Option<crate::config::Builder>,
     ) -> ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugins {
         let mut runtime_plugins = client_runtime_plugins.with_operation_plugin(Self::new());
-        runtime_plugins = runtime_plugins.with_client_plugin(crate::auth_plugin::DefaultAuthOptionsPlugin::new(vec![
+        runtime_plugins = runtime_plugins.with_client_plugin(crate::endpoint_auth_plugin::EndpointBasedAuthOptionsPlugin::new(vec![
             ::aws_runtime::auth::sigv4::SCHEME_ID,
             #[cfg(feature = "sigv4a")]
             {
@@ -103,7 +113,10 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for GetBuck
         ));
 
         cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::SensitiveOutput);
-        cfg.store_put(::aws_smithy_http::operation::Metadata::new("GetBucketInventoryConfiguration", "s3"));
+        cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::Metadata::new(
+            "GetBucketInventoryConfiguration",
+            "S3",
+        ));
         let mut signing_options = ::aws_runtime::auth::SigningOptions::default();
         signing_options.double_uri_encode = false;
         signing_options.content_sha256_header = true;
@@ -124,11 +137,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for GetBuck
     ) -> ::std::borrow::Cow<'_, ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder> {
         #[allow(unused_mut)]
         let mut rcb = ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("GetBucketInventoryConfiguration")
-            .with_interceptor(
-                ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::new(
-                    ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptorKind::ResponseBody,
-                ),
-            )
+            .with_interceptor(::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::default())
             .with_interceptor(GetBucketInventoryConfigurationEndpointParamsInterceptor)
             .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<
                 crate::operation::get_bucket_inventory_configuration::GetBucketInventoryConfigurationError,
@@ -136,9 +145,17 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for GetBuck
             .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::ModeledAsRetryableClassifier::<
                 crate::operation::get_bucket_inventory_configuration::GetBucketInventoryConfigurationError,
             >::new())
-            .with_retry_classifier(::aws_runtime::retries::classifiers::AwsErrorCodeClassifier::<
-                crate::operation::get_bucket_inventory_configuration::GetBucketInventoryConfigurationError,
-            >::new());
+            .with_retry_classifier(
+                ::aws_runtime::retries::classifiers::AwsErrorCodeClassifier::<
+                    crate::operation::get_bucket_inventory_configuration::GetBucketInventoryConfigurationError,
+                >::builder()
+                .transient_errors({
+                    let mut transient_errors: Vec<&'static str> = ::aws_runtime::retries::classifiers::TRANSIENT_ERRORS.into();
+                    transient_errors.push("InternalError");
+                    ::std::borrow::Cow::Owned(transient_errors)
+                })
+                .build(),
+            );
 
         ::std::borrow::Cow::Owned(rcb)
     }
@@ -213,7 +230,7 @@ impl ::aws_smithy_runtime_api::client::ser_de::SerializeRequest for GetBucketInv
                         "cannot be empty or unset",
                     ));
                 }
-                query.push_kv("id", &::aws_smithy_http::query::fmt_string(&inner_1));
+                query.push_kv("id", &::aws_smithy_http::query::fmt_string(inner_1));
                 ::std::result::Result::Ok(())
             }
             #[allow(clippy::unnecessary_wraps)]
@@ -286,6 +303,9 @@ impl ::aws_smithy_runtime_api::client::interceptors::Intercept for GetBucketInve
         ::std::result::Result::Ok(())
     }
 }
+
+// The get_* functions below are generated from JMESPath expressions in the
+// operationContextParams trait. They target the operation's input shape.
 
 /// Error type for the `GetBucketInventoryConfigurationError` operation.
 #[non_exhaustive]

@@ -17,14 +17,14 @@ mod test;
 
 pub fn report_error<E>(
     grammar: &Grammar,
-    error: &Lr1TableConstructionError,
+    error: &Lr1TableConstructionError<'_>,
     reporter: impl FnMut(Message) -> Result<(), E>,
 ) -> Result<(), E> {
     let mut cx = ErrorReportingCx::new(grammar, &error.states, &error.conflicts);
     cx.report_errors(reporter)
 }
 
-struct ErrorReportingCx<'cx, 'grammar: 'cx> {
+struct ErrorReportingCx<'cx, 'grammar> {
     grammar: &'grammar Grammar,
     first_sets: FirstSets,
     states: &'cx [Lr1State<'grammar>],
@@ -67,6 +67,16 @@ enum ConflictClassification {
         symbol: Symbol,
     },
 
+    /// We have two matching sets of symbols that can reduce to the same
+    /// nonterminal.  This is particularly likely with macros, such as a rule
+    /// like `X = Y | Y Z?`.  In this case, the normal ambiguity message seems
+    /// to say the same thing twice, which is confusing, so clarify
+    AmbiguousReduction {
+        reduce: Example,
+        span1: Span,
+        span2: Span,
+    },
+
     /// Can't say much beyond that a conflict occurred.
     InsufficientLookahead { action: Example, reduce: Example },
 
@@ -94,14 +104,39 @@ impl<'cx, 'grammar> ErrorReportingCx<'cx, 'grammar> {
         &mut self,
         mut reporter: impl FnMut(Message) -> Result<(), E>,
     ) -> Result<(), E> {
-        for conflict in &token_conflicts(self.conflicts) {
-            reporter(self.report_error(conflict))?
+        for conflict_group in &token_conflicts(self.conflicts) {
+            let (mut naive_conflicts, better_conflicts): (Vec<_>, Vec<_>) = conflict_group
+                .iter()
+                .map(|c| (c, self.classify(c)))
+                .partition(|c| matches!(c.1, ConflictClassification::Naive));
+            let conflicts = if better_conflicts.is_empty() {
+                // If we have a reduce/reduce conflict, we end up with one conflict per token, but
+                // they're all the same reduce/reduce. We don't have a meaningful way to determine
+                // if some lookahead token will be more valuable to the user, so just take the
+                // first one and drop the rest as redundant
+                if matches!(
+                    naive_conflicts.first().map(|c| &c.0.action),
+                    Some(&Action::Reduce(_))
+                ) {
+                    naive_conflicts.truncate(1);
+                }
+                naive_conflicts
+            } else {
+                better_conflicts
+            };
+            for (conflict, conflict_class) in conflicts {
+                reporter(self.report_error(conflict, conflict_class))?
+            }
         }
         Ok(())
     }
 
-    fn report_error(&mut self, conflict: &TokenConflict<'grammar>) -> Message {
-        match self.classify(conflict) {
+    fn report_error(
+        &mut self,
+        conflict: &TokenConflict<'grammar>,
+        conflict_class: ConflictClassification,
+    ) -> Message {
+        match conflict_class {
             ConflictClassification::Ambiguity { action, reduce } => {
                 self.report_error_ambiguity(conflict, action, reduce)
             }
@@ -121,6 +156,11 @@ impl<'cx, 'grammar> ErrorReportingCx<'cx, 'grammar> {
                 nonterminal,
                 symbol,
             } => self.report_error_suggest_question(conflict, shift, reduce, nonterminal, symbol),
+            ConflictClassification::AmbiguousReduction {
+                reduce,
+                span1,
+                span2,
+            } => self.report_error_ambiguous_reduction(reduce, span1, span2),
             ConflictClassification::InsufficientLookahead { action, reduce } => {
                 self.report_error_insufficient_lookahead(conflict, action, reduce)
             }
@@ -326,7 +366,7 @@ impl<'cx, 'grammar> ErrorReportingCx<'cx, 'grammar> {
             .text("Hint:")
             .styled(Tls::session().hint_text)
             .text("It appears you could resolve this problem by adding")
-            .text("the annotation `#[inline]` to the definition of")
+            .text("the attribute `#[inline]` to the definition of")
             .push(nonterminal)
             .verbatimed()
             .punctuated(".")
@@ -359,13 +399,54 @@ impl<'cx, 'grammar> ErrorReportingCx<'cx, 'grammar> {
             .text(symbol) // intentionally disable coloring here, looks better
             .adjacent_text("`", "?`")
             .text(
-                "(or, alternatively, by adding the annotation `#[inline]` \
+                "(or, alternatively, by adding the attribute `#[inline]` \
                  to the definition of",
             )
             .push(nonterminal)
             .punctuated(").")
             .text("For more information, see the section on inlining")
-            .text("in the LALROP manual.")
+            .text("in the LALRPOP manual.")
+            .end()
+            .end()
+            .end()
+    }
+
+    fn report_error_ambiguous_reduction(
+        &self,
+        reduce: Example,
+        span1: Span,
+        span2: Span,
+    ) -> Message {
+        let file_text = Tls::file_text();
+        let styles = ExampleStyles::new();
+        let span1_str = file_text.span_text(span1);
+        let span2_str = file_text.span_text(span2);
+
+        // Internal lines are 0-indexed, but editors are (always?) 1-indexed
+        let span1_line = file_text.line_col(span1.0).0 + 1;
+        let span2_line = file_text.line_col(span2.0).0 + 1;
+
+        MessageBuilder::new(span1)
+            .heading()
+            .text("Multiple productions for the same reduction")
+            .end()
+            .body()
+            .begin_lines()
+            .wrap_text(format!(
+                "The following symbols can be reduced into a {} in two ways",
+                reduce.reductions.first().unwrap().nonterminal
+            ))
+            .push(reduce.to_symbol_list(reduce.symbols.len(), styles))
+            .wrap_text(format!(
+                "They could be reduced using the production on line {}:",
+                span1_line
+            ))
+            .wrap_text(span1_str)
+            .wrap_text(format!(
+                "...or using the production on line {}:",
+                span2_line
+            ))
+            .wrap_text(span2_str)
             .end()
             .end()
             .end()
@@ -520,6 +601,16 @@ impl<'cx, 'grammar> ErrorReportingCx<'cx, 'grammar> {
                             shift: action.clone(),
                             reduce: reduce.clone(),
                             nonterminal: nt.clone(),
+                        };
+                    }
+                } else if let Action::Reduce(prod) = conflict.action {
+                    if (action.reductions.first().map(|r| &r.nonterminal)
+                        == reduce.reductions.first().map(|r| &r.nonterminal))
+                    {
+                        return ConflictClassification::AmbiguousReduction {
+                            reduce: action.clone(),
+                            span1: conflict.production.span,
+                            span2: prod.span,
                         };
                     }
                 }
@@ -770,16 +861,20 @@ impl<'cx, 'grammar> ErrorReportingCx<'cx, 'grammar> {
 
 fn token_conflicts<'grammar>(
     conflicts: &[Conflict<'grammar, TokenSet>],
-) -> Vec<TokenConflict<'grammar>> {
+) -> Vec<Vec<TokenConflict<'grammar>>> {
     conflicts
         .iter()
-        .flat_map(|conflict| {
-            conflict.lookahead.iter().map(move |token| Conflict {
-                state: conflict.state,
-                lookahead: token,
-                production: conflict.production,
-                action: conflict.action.clone(),
-            })
+        .map(|conflict| {
+            conflict
+                .lookahead
+                .iter()
+                .map(move |token| Conflict {
+                    state: conflict.state,
+                    lookahead: token,
+                    production: conflict.production,
+                    action: conflict.action.clone(),
+                })
+                .collect()
         })
         .collect()
 }

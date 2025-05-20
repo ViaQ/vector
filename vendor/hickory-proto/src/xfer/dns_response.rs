@@ -7,40 +7,57 @@
 
 //! `DnsResponse` wraps a `Message` and any associated connection details
 
-use std::{
+#[cfg(feature = "std")]
+use alloc::boxed::Box;
+use alloc::vec::Vec;
+use core::{
     convert::TryFrom,
+    ops::{Deref, DerefMut},
+};
+#[cfg(feature = "std")]
+use core::{
     future::Future,
-    io,
-    ops::Deref,
     pin::Pin,
     task::{Context, Poll},
 };
+#[cfg(feature = "std")]
+use std::io;
 
+#[cfg(feature = "std")]
 use futures_channel::mpsc;
+#[cfg(feature = "std")]
 use futures_util::{ready, stream::Stream};
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
+#[cfg(feature = "std")]
+use crate::{ProtoErrorKind, error::ProtoResult};
 use crate::{
-    error::{ProtoError, ProtoErrorKind, ProtoResult},
+    error::ProtoError,
     op::{Message, ResponseCode},
-    rr::{rdata::SOA, resource::RecordRef, RData, RecordType},
+    rr::{RecordType, rdata::SOA, resource::RecordRef},
 };
 
 /// A stream returning DNS responses
+#[cfg(feature = "std")]
 pub struct DnsResponseStream {
     inner: DnsResponseStreamInner,
     done: bool,
 }
 
+#[cfg(feature = "std")]
 impl DnsResponseStream {
     fn new(inner: DnsResponseStreamInner) -> Self {
         Self { inner, done: false }
     }
 }
 
+#[cfg(feature = "std")]
 impl Stream for DnsResponseStream {
     type Item = Result<DnsResponse, ProtoError>;
 
-    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         use DnsResponseStreamInner::*;
 
         // if the standard futures are done, don't poll again
@@ -49,10 +66,7 @@ impl Stream for DnsResponseStream {
         }
 
         // split mutable refs to Self
-        let Self {
-            ref mut inner,
-            ref mut done,
-        } = *self.as_mut();
+        let Self { inner, done } = self.get_mut();
 
         let result = match inner {
             Timeout(fut) => {
@@ -63,7 +77,7 @@ impl Stream for DnsResponseStream {
                 *done = true;
                 x
             }
-            Receiver(ref mut fut) => match ready!(Pin::new(fut).poll_next(cx)) {
+            Receiver(fut) => match ready!(Pin::new(fut).poll_next(cx)) {
                 Some(x) => x,
                 None => return Poll::Ready(None),
             },
@@ -85,24 +99,28 @@ impl Stream for DnsResponseStream {
     }
 }
 
+#[cfg(feature = "std")]
 impl From<TimeoutFuture> for DnsResponseStream {
     fn from(f: TimeoutFuture) -> Self {
         Self::new(DnsResponseStreamInner::Timeout(f))
     }
 }
 
+#[cfg(feature = "std")]
 impl From<mpsc::Receiver<ProtoResult<DnsResponse>>> for DnsResponseStream {
     fn from(receiver: mpsc::Receiver<ProtoResult<DnsResponse>>) -> Self {
         Self::new(DnsResponseStreamInner::Receiver(receiver))
     }
 }
 
+#[cfg(feature = "std")]
 impl From<ProtoError> for DnsResponseStream {
     fn from(e: ProtoError) -> Self {
         Self::new(DnsResponseStreamInner::Error(Some(e)))
     }
 }
 
+#[cfg(feature = "std")]
 impl<F> From<Pin<Box<F>>> for DnsResponseStream
 where
     F: Future<Output = Result<DnsResponse, ProtoError>> + Send + 'static,
@@ -114,6 +132,7 @@ where
     }
 }
 
+#[cfg(feature = "std")]
 enum DnsResponseStreamInner {
     Timeout(TimeoutFuture),
     Receiver(mpsc::Receiver<ProtoResult<DnsResponse>>),
@@ -121,6 +140,7 @@ enum DnsResponseStreamInner {
     Boxed(Pin<Box<dyn Future<Output = Result<DnsResponse, ProtoError>> + Send>>),
 }
 
+#[cfg(feature = "std")]
 type TimeoutFuture = Pin<
     Box<dyn Future<Output = Result<Result<DnsResponse, ProtoError>, io::Error>> + Send + 'static>,
 >;
@@ -131,6 +151,7 @@ type TimeoutFuture = Pin<
 ///
 /// For Most DNS requests, only one response is expected, the exception is a multicast request.
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct DnsResponse {
     message: Message,
     buffer: Vec<u8>,
@@ -138,17 +159,20 @@ pub struct DnsResponse {
 
 // TODO: when `impl Trait` lands in stable, remove this, and expose FlatMap over answers, et al.
 impl DnsResponse {
-    /// Constructs a new DnsResponse
-    pub fn new(message: Message, buffer: Vec<u8>) -> Self {
-        Self { message, buffer }
-    }
-
     /// Constructs a new DnsResponse with a buffer synthesized from the message
     pub fn from_message(message: Message) -> Result<Self, ProtoError> {
         Ok(Self {
             buffer: message.to_vec()?,
             message,
         })
+    }
+
+    /// Constructs a new DnsResponse by parsing a message from a buffer.
+    ///
+    /// Returns an error if the response message cannot be decoded.
+    pub fn from_buffer(buffer: Vec<u8>) -> Result<Self, ProtoError> {
+        let message = Message::from_vec(&buffer)?;
+        Ok(Self { message, buffer })
     }
 
     /// Retrieves the SOA from the response. This will only exist if it was an authoritative response.
@@ -217,12 +241,7 @@ impl DnsResponse {
         // TODO: should this ensure that the SOA zone matches the Queried Zone?
         self.name_servers()
             .iter()
-            .filter_map(|record| {
-                record
-                    .data()
-                    .and_then(RData::as_soa)
-                    .map(|soa| (record.ttl(), soa))
-            })
+            .filter_map(|record| record.data().as_soa().map(|soa| (record.ttl(), soa)))
             .next()
             .map(|(ttl, soa)| (ttl).min(soa.minimum()))
     }
@@ -264,7 +283,7 @@ impl DnsResponse {
     pub fn negative_type(&self) -> Option<NegativeType> {
         let response_code = self.response_code();
         let ttl_from_soa = self.negative_ttl();
-        let has_soa = ttl_from_soa.map_or(false, |_| true);
+        let has_soa = ttl_from_soa.is_some();
         let has_ns_records = self.name_servers().iter().any(|r| r.record_type().is_ns());
         let has_cname = self.answers().iter().any(|r| r.record_type().is_cname());
         let has_non_cname = self.answers().iter().any(|r| !r.record_type().is_cname());
@@ -329,6 +348,12 @@ impl Deref for DnsResponse {
     }
 }
 
+impl DerefMut for DnsResponse {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.message
+    }
+}
+
 impl From<DnsResponse> for Message {
     fn from(response: DnsResponse) -> Self {
         response.message
@@ -357,7 +382,7 @@ impl From<DnsResponse> for Message {
 ///    and the authority section may have SOA, NXT [RFC2065] and SIG RRsets.
 ///
 ///    It is possible to distinguish between a referral and a NXDOMAIN
-///    response by the presense of NXDOMAIN in the RCODE regardless of the
+///    response by the presence of NXDOMAIN in the RCODE regardless of the
 ///    presence of NS or SOA records in the authority section.
 ///
 ///    NXDOMAIN responses can be categorised into four types by the contents
@@ -647,8 +672,8 @@ impl NegativeType {
 #[cfg(test)]
 mod tests {
     use crate::op::{Message, Query, ResponseCode};
-    use crate::rr::rdata::{A, CNAME, NS, SOA};
     use crate::rr::RData;
+    use crate::rr::rdata::{A, CNAME, NS, SOA};
     use crate::rr::{Name, Record, RecordType};
 
     use super::*;

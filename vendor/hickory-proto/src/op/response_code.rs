@@ -18,8 +18,10 @@
 
 //! All defined response codes in DNS
 
-use std::fmt;
-use std::fmt::{Display, Formatter};
+use core::fmt::{self, Display, Formatter};
+
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 /// The status code of the response to a query.
 ///
@@ -60,6 +62,7 @@ use std::fmt::{Display, Formatter};
 ///                 6-15            Reserved for future use.
 ///  ```
 #[derive(Debug, Eq, PartialEq, PartialOrd, Copy, Clone, Hash)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[allow(dead_code)]
 pub enum ResponseCode {
     /// No Error [RFC 1035](https://tools.ietf.org/html/rfc1035)
@@ -120,7 +123,7 @@ pub enum ResponseCode {
     /// Bad Truncation [RFC 4635](https://tools.ietf.org/html/rfc4635#section-4)
     BADTRUNC,
 
-    /// Bad/missing server cookie [draft-ietf-dnsop-cookies](https://tools.ietf.org/html/draft-ietf-dnsop-cookies-10)
+    /// Bad/missing Server Cookie [RFC 7873](https://datatracker.ietf.org/doc/html/rfc7873)
     BADCOOKIE,
     // 24-3840      Unassigned
     // 3841-4095    Reserved for Private Use                        [RFC6895]
@@ -168,7 +171,7 @@ impl ResponseCode {
             Self::NXRRSet => "RR Set does not exist", // 8     NXRRSet       RR Set that should exist does not   [RFC2136]
             Self::NotAuth => "Not authorized", // 9     NotAuth       Server Not Authoritative for zone   [RFC2136]
             Self::NotZone => "Name not in zone", // 10    NotZone       Name not contained in zone          [RFC2136]
-            Self::BADVERS => "Bad option verions", // 16    BADVERS       Bad OPT Version                     [RFC6891]
+            Self::BADVERS => "Bad option versions", // 16    BADVERS       Bad OPT Version                     [RFC6891]
             Self::BADSIG => "TSIG Failure", // 16    BADSIG        TSIG Signature Failure              [RFC2845]
             Self::BADKEY => "Key not recognized", // 17    BADKEY        Key not recognized                  [RFC2845]
             Self::BADTIME => "Signature out of time window", // 18    BADTIME       Signature out of time window        [RFC2845]
@@ -176,7 +179,7 @@ impl ResponseCode {
             Self::BADNAME => "Duplicate key name", // 20    BADNAME       Duplicate key name                  [RFC2930]
             Self::BADALG => "Algorithm not supported", // 21    BADALG        Algorithm not supported             [RFC2930]
             Self::BADTRUNC => "Bad truncation", // 22    BADTRUNC      Bad Truncation                      [RFC4635]
-            Self::BADCOOKIE => "Bad server cookie", // 23    BADCOOKIE (TEMPORARY - registered 2015-07-26, expires 2016-07-26)    Bad/missing server cookie    [draft-ietf-dnsop-cookies]
+            Self::BADCOOKIE => "Bad server cookie", // 23    BADCOOKIE     Bad/missing Server Cookie           [RFC7873]
             Self::Unknown(_) => "Unknown response code",
         }
     }
@@ -231,8 +234,7 @@ impl From<ResponseCode> for u16 {
             ResponseCode::BADNAME => 20, // 20  BADNAME   Duplicate key name                     [RFC2930]
             ResponseCode::BADALG => 21, // 21  BADALG    Algorithm not supported                [RFC2930]
             ResponseCode::BADTRUNC => 22, // 22  BADTRUNC  Bad Truncation                         [RFC4635]
-            // 23  BADCOOKIE (TEMPORARY - registered 2015-07-26, expires 2016-07-26)    Bad/missing server cookie    [draft-ietf-dnsop-cookies]
-            ResponseCode::BADCOOKIE => 23,
+            ResponseCode::BADCOOKIE => 23, // 23  BADCOOKIE Bad/missing Server Cookie              [RFC7873]
             ResponseCode::Unknown(code) => code,
         }
     }
@@ -274,7 +276,7 @@ impl From<u16> for ResponseCode {
             20 => Self::BADNAME, // 20    BADNAME   Duplicate key name                   [RFC2930]
             21 => Self::BADALG, // 21    BADALG    Algorithm not supported              [RFC2930]
             22 => Self::BADTRUNC, // 22    BADTRUNC  Bad Truncation                       [RFC4635]
-            23 => Self::BADCOOKIE, // 23    BADCOOKIE (TEMPORARY - registered 2015-07-26, expires 2016-07-26)    Bad/missing server cookie    [draft-ietf-dnsop-cookies]
+            23 => Self::BADCOOKIE, // 23    BADCOOKIE Bad/missing Server Cookie            [RFC7873]
             code => Self::Unknown(code),
         }
     }

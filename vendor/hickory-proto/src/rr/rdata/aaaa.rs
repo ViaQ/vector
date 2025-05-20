@@ -23,10 +23,18 @@
 //!   resource record in network byte order (high-order byte first).
 //! ```
 
-pub use std::net::Ipv6Addr;
-use std::{fmt, net::AddrParseError, ops::Deref, str};
+#[cfg(not(feature = "std"))]
+use core::net::AddrParseError;
+use core::{fmt, ops::Deref, str};
+#[cfg(feature = "std")]
+use std::net::AddrParseError;
 
-#[cfg(feature = "serde-config")]
+#[cfg(not(feature = "std"))]
+pub use core::net::Ipv6Addr;
+#[cfg(feature = "std")]
+pub use std::net::Ipv6Addr;
+
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -36,7 +44,7 @@ use crate::{
 };
 
 /// The DNS AAAA record type, an IPv6 address
-#[cfg_attr(feature = "serde-config", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub struct AAAA(pub Ipv6Addr);
 
@@ -64,7 +72,7 @@ impl RecordData for AAAA {
     }
 
     fn record_type(&self) -> RecordType {
-        RecordType::A
+        RecordType::AAAA
     }
 
     fn into_rdata(self) -> RData {
@@ -153,7 +161,8 @@ impl str::FromStr for AAAA {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
+    use alloc::vec::Vec;
+    use core::str::FromStr;
 
     use super::*;
     use crate::serialize::binary::bin_tests::{test_emit_data_set, test_read_data_set};
@@ -209,7 +218,7 @@ mod tests {
 
     #[test]
     fn test_read() {
-        test_read_data_set(get_data(), |ref mut d| AAAA::read(d));
+        test_read_data_set(get_data(), |mut d| AAAA::read(&mut d));
     }
 
     #[test]

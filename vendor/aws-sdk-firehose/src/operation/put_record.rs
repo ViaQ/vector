@@ -50,7 +50,18 @@ impl PutRecord {
         >,
     > {
         let input = ::aws_smithy_runtime_api::client::interceptors::context::Input::erase(input);
-        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("firehose", "PutRecord", input, runtime_plugins, stop_point).await
+        use ::tracing::Instrument;
+        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("Firehose", "PutRecord", input, runtime_plugins, stop_point)
+            // Create a parent span for the entire operation. Includes a random, internal-only,
+            // seven-digit ID for the operation orchestration so that it can be correlated in the logs.
+            .instrument(::tracing::debug_span!(
+                "Firehose.PutRecord",
+                "rpc.service" = "Firehose",
+                "rpc.method" = "PutRecord",
+                "sdk_invocation_id" = ::fastrand::u32(1_000_000..10_000_000),
+                "rpc.system" = "aws-api",
+            ))
+            .await
     }
 
     pub(crate) fn operation_runtime_plugins(
@@ -90,7 +101,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for PutReco
             ::aws_smithy_runtime_api::client::auth::static_resolver::StaticAuthSchemeOptionResolverParams::new(),
         ));
 
-        cfg.store_put(::aws_smithy_http::operation::Metadata::new("PutRecord", "firehose"));
+        cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::Metadata::new("PutRecord", "Firehose"));
         let mut signing_options = ::aws_runtime::auth::SigningOptions::default();
         signing_options.double_uri_encode = true;
         signing_options.content_sha256_header = false;
@@ -111,11 +122,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for PutReco
     ) -> ::std::borrow::Cow<'_, ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder> {
         #[allow(unused_mut)]
         let mut rcb = ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("PutRecord")
-            .with_interceptor(
-                ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::new(
-                    ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptorKind::ResponseBody,
-                ),
-            )
+            .with_interceptor(::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::default())
             .with_interceptor(PutRecordEndpointParamsInterceptor)
             .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<
                 crate::operation::put_record::PutRecordError,
@@ -239,17 +246,22 @@ impl ::aws_smithy_runtime_api::client::interceptors::Intercept for PutRecordEndp
     }
 }
 
+// The get_* functions below are generated from JMESPath expressions in the
+// operationContextParams trait. They target the operation's input shape.
+
 /// Error type for the `PutRecordError` operation.
 #[non_exhaustive]
 #[derive(::std::fmt::Debug)]
 pub enum PutRecordError {
     /// <p>The specified input parameter has a value that is not valid.</p>
     InvalidArgumentException(crate::types::error::InvalidArgumentException),
-    /// <p>Kinesis Data Firehose throws this exception when an attempt to put records or to start or stop delivery stream encryption fails. This happens when the KMS service throws one of the following exception types: <code>AccessDeniedException</code>, <code>InvalidStateException</code>, <code>DisabledException</code>, or <code>NotFoundException</code>.</p>
+    /// <p>Firehose throws this exception when an attempt to put records or to start or stop Firehose stream encryption fails. This happens when the KMS service throws one of the following exception types: <code>AccessDeniedException</code>, <code>InvalidStateException</code>, <code>DisabledException</code>, or <code>NotFoundException</code>.</p>
     InvalidKmsResourceException(crate::types::error::InvalidKmsResourceException),
+    /// <p>Only requests from CloudWatch Logs are supported when CloudWatch Logs decompression is enabled.</p>
+    InvalidSourceException(crate::types::error::InvalidSourceException),
     /// <p>The specified resource could not be found.</p>
     ResourceNotFoundException(crate::types::error::ResourceNotFoundException),
-    /// <p>The service is unavailable. Back off and retry the operation. If you continue to see the exception, throughput limits for the delivery stream may have been exceeded. For more information about limits and how to request an increase, see <a href="https://docs.aws.amazon.com/firehose/latest/dev/limits.html">Amazon Kinesis Data Firehose Limits</a>.</p>
+    /// <p>The service is unavailable. Back off and retry the operation. If you continue to see the exception, throughput limits for the Firehose stream may have been exceeded. For more information about limits and how to request an increase, see <a href="https://docs.aws.amazon.com/firehose/latest/dev/limits.html">Amazon Firehose Limits</a>.</p>
     ServiceUnavailableException(crate::types::error::ServiceUnavailableException),
     /// An unexpected error occurred (e.g., invalid JSON returned by the service or an unknown error code).
     #[deprecated(note = "Matching `Unhandled` directly is not forwards compatible. Instead, match using a \
@@ -286,6 +298,7 @@ impl PutRecordError {
         match self {
             Self::InvalidArgumentException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::InvalidKmsResourceException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
+            Self::InvalidSourceException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::ResourceNotFoundException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::ServiceUnavailableException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::Unhandled(e) => &e.meta,
@@ -298,6 +311,10 @@ impl PutRecordError {
     /// Returns `true` if the error kind is `PutRecordError::InvalidKmsResourceException`.
     pub fn is_invalid_kms_resource_exception(&self) -> bool {
         matches!(self, Self::InvalidKmsResourceException(_))
+    }
+    /// Returns `true` if the error kind is `PutRecordError::InvalidSourceException`.
+    pub fn is_invalid_source_exception(&self) -> bool {
+        matches!(self, Self::InvalidSourceException(_))
     }
     /// Returns `true` if the error kind is `PutRecordError::ResourceNotFoundException`.
     pub fn is_resource_not_found_exception(&self) -> bool {
@@ -313,6 +330,7 @@ impl ::std::error::Error for PutRecordError {
         match self {
             Self::InvalidArgumentException(_inner) => ::std::option::Option::Some(_inner),
             Self::InvalidKmsResourceException(_inner) => ::std::option::Option::Some(_inner),
+            Self::InvalidSourceException(_inner) => ::std::option::Option::Some(_inner),
             Self::ResourceNotFoundException(_inner) => ::std::option::Option::Some(_inner),
             Self::ServiceUnavailableException(_inner) => ::std::option::Option::Some(_inner),
             Self::Unhandled(_inner) => ::std::option::Option::Some(&*_inner.source),
@@ -324,6 +342,7 @@ impl ::std::fmt::Display for PutRecordError {
         match self {
             Self::InvalidArgumentException(_inner) => _inner.fmt(f),
             Self::InvalidKmsResourceException(_inner) => _inner.fmt(f),
+            Self::InvalidSourceException(_inner) => _inner.fmt(f),
             Self::ResourceNotFoundException(_inner) => _inner.fmt(f),
             Self::ServiceUnavailableException(_inner) => _inner.fmt(f),
             Self::Unhandled(_inner) => {
@@ -349,6 +368,7 @@ impl ::aws_smithy_types::error::metadata::ProvideErrorMetadata for PutRecordErro
         match self {
             Self::InvalidArgumentException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
             Self::InvalidKmsResourceException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
+            Self::InvalidSourceException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
             Self::ResourceNotFoundException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
             Self::ServiceUnavailableException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
             Self::Unhandled(_inner) => &_inner.meta,

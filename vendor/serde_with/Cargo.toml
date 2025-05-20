@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.67"
+rust-version = "1.70"
 name = "serde_with"
-version = "3.11.0"
+version = "3.12.0"
 authors = [
     "Jonas Bushart",
     "Marcin Kaźmierczak",
@@ -26,6 +26,7 @@ include = [
     "README.md",
     "CHANGELOG.md",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -187,6 +188,10 @@ name = "with_prefix"
 path = "tests/with_prefix.rs"
 required-features = ["macros"]
 
+[[test]]
+name = "with_suffix"
+path = "tests/with_suffix.rs"
+
 [dependencies.base64]
 version = "0.22.1"
 optional = true
@@ -259,7 +264,7 @@ optional = true
 default-features = false
 
 [dependencies.serde_with_macros]
-version = "=3.11.0"
+version = "=3.12.0"
 optional = true
 
 [dependencies.time_0_3]
@@ -278,7 +283,7 @@ version = "1.0.6"
 version = "0.3.0"
 
 [dev-dependencies.jsonschema]
-version = "0.18.0"
+version = "0.26.1"
 features = ["resolve-file"]
 default-features = false
 

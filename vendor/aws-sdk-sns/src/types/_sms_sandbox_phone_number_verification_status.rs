@@ -35,6 +35,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 /// Enum listing out all supported destination phone number verification statuses. The following enum values are
 /// supported.
 /// 1. PENDING : The destination phone number is pending verification.
@@ -96,6 +97,15 @@ impl SmsSandboxPhoneNumberVerificationStatus {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for SmsSandboxPhoneNumberVerificationStatus {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            SmsSandboxPhoneNumberVerificationStatus::Pending => write!(f, "Pending"),
+            SmsSandboxPhoneNumberVerificationStatus::Verified => write!(f, "Verified"),
+            SmsSandboxPhoneNumberVerificationStatus::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

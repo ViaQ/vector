@@ -12,10 +12,10 @@
 [package]
 edition = "2021"
 name = "azure_identity"
-version = "0.17.0"
+version = "0.21.0"
 authors = ["Microsoft Corp."]
 description = "Rust wrappers around Microsoft Azure REST APIs - Azure identity helper crate"
-homepage = "https://github.com/azure/azure-sdk-for-rust"
+homepage = "https://github.com/azure/azure-sdk-for-rust/tree/legacy"
 documentation = "https://docs.rs/azure_identity"
 readme = "README.md"
 keywords = [
@@ -29,9 +29,23 @@ categories = ["api-bindings"]
 license = "MIT"
 repository = "https://github.com/azure/azure-sdk-for-rust"
 
+[package.metadata.docs.rs]
+features = [
+    "enable_reqwest",
+    "enable_reqwest_rustls",
+    "development",
+    "client_certificate",
+    "azureauth_cli",
+    "old_azure_cli",
+]
+
 [[example]]
 name = "client_certificate_credentials"
 required-features = ["client_certificate"]
+
+[[example]]
+name = "azureauth_cli_credential"
+required-features = ["azureauth_cli"]
 
 [dependencies.async-lock]
 version = "3.0"
@@ -40,13 +54,10 @@ version = "3.0"
 version = "0.1"
 
 [dependencies.azure_core]
-version = "0.17"
+version = "0.21"
 
 [dependencies.futures]
 version = "0.3"
-
-[dependencies.log]
-version = "0.4"
 
 [dependencies.oauth2]
 version = "4.0.0"
@@ -63,12 +74,11 @@ version = "1.0"
 version = "1.0"
 features = ["derive"]
 
-[dependencies.serde_json]
-version = "1.0"
-
 [dependencies.time]
 version = "0.3.10"
-features = ["local-offset"]
+
+[dependencies.tracing]
+version = "0.1.40"
 
 [dependencies.url]
 version = "2.2"
@@ -77,11 +87,12 @@ version = "2.2"
 version = "1.0"
 features = ["v4"]
 
-[dev-dependencies.env_logger]
-version = "0.10"
+[dev-dependencies.clap]
+version = "4.4.16"
+features = ["derive"]
 
 [dev-dependencies.reqwest]
-version = "0.11"
+version = "0.12"
 features = ["json"]
 default-features = false
 
@@ -89,7 +100,7 @@ default-features = false
 version = "1"
 
 [dev-dependencies.serial_test]
-version = "2.0"
+version = "3.0"
 
 [dev-dependencies.tokio]
 version = "1.0"
@@ -98,17 +109,30 @@ features = [
     "rt-multi-thread",
 ]
 
+[dev-dependencies.tracing-subscriber]
+version = "0.3"
+
 [features]
+azureauth_cli = []
 client_certificate = ["openssl"]
 default = [
     "development",
     "enable_reqwest",
+    "old_azure_cli",
 ]
 development = []
 enable_reqwest = ["azure_core/enable_reqwest"]
 enable_reqwest_rustls = ["azure_core/enable_reqwest_rustls"]
+old_azure_cli = [
+    "time/local-offset",
+    "tz-rs",
+]
 test_e2e = []
 vendored_openssl = ["openssl/vendored"]
 
+[target."cfg(not(target_arch = \"wasm32\"))".dependencies.async-process]
+version = "2.0"
+
 [target."cfg(unix)".dependencies.tz-rs]
 version = "0.6"
+optional = true

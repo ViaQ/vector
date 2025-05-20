@@ -19,6 +19,7 @@ authors = [
     "Tokio Contributors <team@tokio.rs>",
 ]
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

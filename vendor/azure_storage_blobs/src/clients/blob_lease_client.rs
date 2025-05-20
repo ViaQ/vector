@@ -1,5 +1,5 @@
 use crate::{blob::operations::*, prelude::*};
-use azure_core::{headers::Headers, prelude::*, Body, Context, Method, Request, Response, Url};
+use azure_core::{headers::Headers, prelude::*, Body, Method, Request, Response, Url};
 
 #[derive(Debug, Clone)]
 pub struct BlobLeaseClient {
@@ -39,7 +39,7 @@ impl BlobLeaseClient {
         &self.blob_client
     }
 
-    pub(crate) fn url(&self) -> azure_core::Result<url::Url> {
+    pub(crate) fn url(&self) -> azure_core::Result<Url> {
         self.blob_client.url()
     }
 

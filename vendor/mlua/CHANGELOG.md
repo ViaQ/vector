@@ -1,3 +1,19 @@
+## v0.10.2 (Jan 27th, 2025)
+
+- Set `Default` for `Value` to be `Nil`
+- Allow exhaustive match on `Value` (#502)
+- Add `Table::set_safeenv` method (Luau)
+
+## v0.10.2 (Dec 1st, 2024)
+
+- Switch proc-macro-error to proc-macro-error2 (#493)
+- Do not allow Lua to run GC finalizers on ref thread (#491)
+- Fix chunks loading in Luau when memory limit is enforced (#488)
+- Added `String::wrap` method to wrap arbitrary `AsRef<[u8]>` into `impl IntoLua`
+- Better FreeBSD/OpenBSD support (thanks to cos)
+- Delay "any" userdata metatable creation until first instance is created (#482)
+- Reduce amount of generated code for `UserData` (less generics)
+
 ## v0.10.1 (Nov 9th, 2024)
 
 - Minimal Luau updated to 0.650

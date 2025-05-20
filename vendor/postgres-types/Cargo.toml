@@ -12,8 +12,14 @@
 [package]
 edition = "2018"
 name = "postgres-types"
-version = "0.2.8"
+version = "0.2.9"
 authors = ["Steven Fackler <sfackler@gmail.com>"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Conversions between Rust and Postgres values"
 readme = "README.md"
 keywords = [
@@ -26,6 +32,10 @@ categories = ["database"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/sfackler/rust-postgres"
 resolver = "2"
+
+[lib]
+name = "postgres_types"
+path = "src/lib.rs"
 
 [dependencies.array-init]
 version = "2"
@@ -48,6 +58,11 @@ package = "chrono"
 
 [dependencies.cidr-02]
 version = "0.2"
+optional = true
+package = "cidr"
+
+[dependencies.cidr-03]
+version = "0.3"
 optional = true
 package = "cidr"
 
@@ -85,7 +100,7 @@ version = "0.4.6"
 optional = true
 
 [dependencies.postgres-protocol]
-version = "0.6.7"
+version = "0.6.8"
 
 [dependencies.serde-1]
 version = "1.0"
@@ -131,6 +146,7 @@ js = ["postgres-protocol/js"]
 with-bit-vec-0_6 = ["bit-vec-06"]
 with-chrono-0_4 = ["chrono-04"]
 with-cidr-0_2 = ["cidr-02"]
+with-cidr-0_3 = ["cidr-03"]
 with-eui48-0_4 = ["eui48-04"]
 with-eui48-1 = ["eui48-1"]
 with-geo-types-0_6 = ["geo-types-06"]

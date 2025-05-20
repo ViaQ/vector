@@ -6,21 +6,37 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-//! The Skew Normal distribution.
+//! The Skew Normal distribution `SN(ξ, ω, α)`.
 
 use crate::{Distribution, StandardNormal};
 use core::fmt;
 use num_traits::Float;
 use rand::Rng;
 
-/// The [skew normal distribution] `SN(location, scale, shape)`.
+/// The [skew normal distribution](https://en.wikipedia.org/wiki/Skew_normal_distribution) `SN(ξ, ω, α)`.
 ///
 /// The skew normal distribution is a generalization of the
-/// [`Normal`] distribution to allow for non-zero skewness.
+/// [`Normal`](crate::Normal) distribution to allow for non-zero skewness.
+/// It has location parameter `ξ` (`xi`), scale parameter `ω` (`omega`),
+/// and shape parameter `α` (`alpha`).
+///
+/// The `ξ` and `ω` parameters correspond to the mean `μ` and standard
+/// deviation `σ` of the normal distribution, respectively.
+/// The `α` parameter controls the skewness.
+///
+/// # Density function
 ///
 /// It has the density function, for `scale > 0`,
 /// `f(x) = 2 / scale * phi((x - location) / scale) * Phi(alpha * (x - location) / scale)`
 /// where `phi` and `Phi` are the density and distribution of a standard normal variable.
+///
+/// # Plot
+///
+/// The following plot shows the skew normal distribution with `location = 0`, `scale = 1`
+/// (corresponding to the [`standard normal distribution`](crate::StandardNormal)), and
+/// various values of `shape`.
+///
+/// ![Skew normal distribution](https://raw.githubusercontent.com/rust-random/charts/main/charts/skew_normal.svg)
 ///
 /// # Example
 ///
@@ -29,7 +45,7 @@ use rand::Rng;
 ///
 /// // location 2, scale 3, shape 1
 /// let skew_normal = SkewNormal::new(2.0, 3.0, 1.0).unwrap();
-/// let v = skew_normal.sample(&mut rand::thread_rng());
+/// let v = skew_normal.sample(&mut rand::rng());
 /// println!("{} is from a SN(2, 3, 1) distribution", v)
 /// ```
 ///
@@ -40,8 +56,8 @@ use rand::Rng;
 /// [skew normal distribution]: https://en.wikipedia.org/wiki/Skew_normal_distribution
 /// [`Normal`]: struct.Normal.html
 /// [A Method to Simulate the Skew Normal Distribution]: https://dx.doi.org/10.4236/am.2014.513201
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "serde1", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SkewNormal<F>
 where
     F: Float,
@@ -52,7 +68,7 @@ where
     shape: F,
 }
 
-/// Error type returned from `SkewNormal::new`.
+/// Error type returned from [`SkewNormal::new`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
     /// The scale parameter is not finite or it is less or equal to zero.
@@ -73,7 +89,6 @@ impl fmt::Display for Error {
 }
 
 #[cfg(feature = "std")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "std")))]
 impl std::error::Error for Error {}
 
 impl<F> SkewNormal<F>
@@ -150,9 +165,7 @@ where
 mod tests {
     use super::*;
 
-    fn test_samples<F: Float + core::fmt::Debug, D: Distribution<F>>(
-        distr: D, zero: F, expected: &[F],
-    ) {
+    fn test_samples<F: Float + fmt::Debug, D: Distribution<F>>(distr: D, zero: F, expected: &[F]) {
         let mut rng = crate::test::rng(213);
         let mut buf = [zero; 4];
         for x in &mut buf {
@@ -164,7 +177,7 @@ mod tests {
     #[test]
     #[should_panic]
     fn invalid_scale_nan() {
-        SkewNormal::new(0.0, core::f64::NAN, 0.0).unwrap();
+        SkewNormal::new(0.0, f64::NAN, 0.0).unwrap();
     }
 
     #[test]
@@ -182,24 +195,24 @@ mod tests {
     #[test]
     #[should_panic]
     fn invalid_scale_infinite() {
-        SkewNormal::new(0.0, core::f64::INFINITY, 0.0).unwrap();
+        SkewNormal::new(0.0, f64::INFINITY, 0.0).unwrap();
     }
 
     #[test]
     #[should_panic]
     fn invalid_shape_nan() {
-        SkewNormal::new(0.0, 1.0, core::f64::NAN).unwrap();
+        SkewNormal::new(0.0, 1.0, f64::NAN).unwrap();
     }
 
     #[test]
     #[should_panic]
     fn invalid_shape_infinite() {
-        SkewNormal::new(0.0, 1.0, core::f64::INFINITY).unwrap();
+        SkewNormal::new(0.0, 1.0, f64::INFINITY).unwrap();
     }
 
     #[test]
     fn valid_location_nan() {
-        SkewNormal::new(core::f64::NAN, 1.0, 0.0).unwrap();
+        SkewNormal::new(f64::NAN, 1.0, 0.0).unwrap();
     }
 
     #[test]
@@ -220,37 +233,40 @@ mod tests {
             ],
         );
         test_samples(
-            SkewNormal::new(core::f64::INFINITY, 1.0, 0.0).unwrap(),
+            SkewNormal::new(f64::INFINITY, 1.0, 0.0).unwrap(),
             0f64,
-            &[
-                core::f64::INFINITY,
-                core::f64::INFINITY,
-                core::f64::INFINITY,
-                core::f64::INFINITY,
-            ],
+            &[f64::INFINITY, f64::INFINITY, f64::INFINITY, f64::INFINITY],
         );
         test_samples(
-            SkewNormal::new(core::f64::NEG_INFINITY, 1.0, 0.0).unwrap(),
+            SkewNormal::new(f64::NEG_INFINITY, 1.0, 0.0).unwrap(),
             0f64,
             &[
-                core::f64::NEG_INFINITY,
-                core::f64::NEG_INFINITY,
-                core::f64::NEG_INFINITY,
-                core::f64::NEG_INFINITY,
+                f64::NEG_INFINITY,
+                f64::NEG_INFINITY,
+                f64::NEG_INFINITY,
+                f64::NEG_INFINITY,
             ],
         );
     }
 
     #[test]
     fn skew_normal_value_location_nan() {
-        let skew_normal = SkewNormal::new(core::f64::NAN, 1.0, 0.0).unwrap();
+        let skew_normal = SkewNormal::new(f64::NAN, 1.0, 0.0).unwrap();
         let mut rng = crate::test::rng(213);
         let mut buf = [0.0; 4];
         for x in &mut buf {
-            *x = rng.sample(&skew_normal);
+            *x = rng.sample(skew_normal);
         }
         for value in buf.iter() {
             assert!(value.is_nan());
         }
+    }
+
+    #[test]
+    fn skew_normal_distributions_can_be_compared() {
+        assert_eq!(
+            SkewNormal::new(1.0, 2.0, 3.0),
+            SkewNormal::new(1.0, 2.0, 3.0)
+        );
     }
 }

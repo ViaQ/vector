@@ -3,7 +3,7 @@ pub use crate::operation::cancel_message_move_task::_cancel_message_move_task_ou
 
 pub use crate::operation::cancel_message_move_task::_cancel_message_move_task_input::CancelMessageMoveTaskInputBuilder;
 
-impl CancelMessageMoveTaskInputBuilder {
+impl crate::operation::cancel_message_move_task::builders::CancelMessageMoveTaskInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,11 +22,12 @@ impl CancelMessageMoveTaskInputBuilder {
 }
 /// Fluent builder constructing a request to `CancelMessageMoveTask`.
 ///
-/// <p>Cancels a specified message movement task. A message movement can only be cancelled when the current status is RUNNING. Cancelling a message movement task does not revert the messages that have already been moved. It can only stop the messages that have not been moved yet.</p> <note>
+/// <p>Cancels a specified message movement task. A message movement can only be cancelled when the current status is RUNNING. Cancelling a message movement task does not revert the messages that have already been moved. It can only stop the messages that have not been moved yet.</p><note>
 /// <ul>
-/// <li> <p>This action is currently limited to supporting message redrive from <a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html">dead-letter queues (DLQs)</a> only. In this context, the source queue is the dead-letter queue (DLQ), while the destination queue can be the original source queue (from which the messages were driven to the dead-letter-queue), or a custom destination queue. </p> </li>
-/// <li> <p>Currently, only standard queues are supported.</p> </li>
-/// <li> <p>Only one active message movement task is supported per queue at any given time.</p> </li>
+/// <li>
+/// <p>This action is currently limited to supporting message redrive from <a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html">dead-letter queues (DLQs)</a> only. In this context, the source queue is the dead-letter queue (DLQ), while the destination queue can be the original source queue (from which the messages were driven to the dead-letter-queue), or a custom destination queue.</p></li>
+/// <li>
+/// <p>Only one active message movement task is supported per queue at any given time.</p></li>
 /// </ul>
 /// </note>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
@@ -54,7 +55,7 @@ impl
     }
 }
 impl CancelMessageMoveTaskFluentBuilder {
-    /// Creates a new `CancelMessageMoveTask`.
+    /// Creates a new `CancelMessageMoveTaskFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -105,12 +106,12 @@ impl CancelMessageMoveTaskFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

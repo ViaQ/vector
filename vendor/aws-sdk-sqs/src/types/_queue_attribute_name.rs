@@ -55,6 +55,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -216,6 +217,35 @@ impl QueueAttributeName {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for QueueAttributeName {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            QueueAttributeName::All => write!(f, "All"),
+            QueueAttributeName::ApproximateNumberOfMessages => write!(f, "ApproximateNumberOfMessages"),
+            QueueAttributeName::ApproximateNumberOfMessagesDelayed => write!(f, "ApproximateNumberOfMessagesDelayed"),
+            QueueAttributeName::ApproximateNumberOfMessagesNotVisible => write!(f, "ApproximateNumberOfMessagesNotVisible"),
+            QueueAttributeName::ContentBasedDeduplication => write!(f, "ContentBasedDeduplication"),
+            QueueAttributeName::CreatedTimestamp => write!(f, "CreatedTimestamp"),
+            QueueAttributeName::DeduplicationScope => write!(f, "DeduplicationScope"),
+            QueueAttributeName::DelaySeconds => write!(f, "DelaySeconds"),
+            QueueAttributeName::FifoQueue => write!(f, "FifoQueue"),
+            QueueAttributeName::FifoThroughputLimit => write!(f, "FifoThroughputLimit"),
+            QueueAttributeName::KmsDataKeyReusePeriodSeconds => write!(f, "KmsDataKeyReusePeriodSeconds"),
+            QueueAttributeName::KmsMasterKeyId => write!(f, "KmsMasterKeyId"),
+            QueueAttributeName::LastModifiedTimestamp => write!(f, "LastModifiedTimestamp"),
+            QueueAttributeName::MaximumMessageSize => write!(f, "MaximumMessageSize"),
+            QueueAttributeName::MessageRetentionPeriod => write!(f, "MessageRetentionPeriod"),
+            QueueAttributeName::Policy => write!(f, "Policy"),
+            QueueAttributeName::QueueArn => write!(f, "QueueArn"),
+            QueueAttributeName::ReceiveMessageWaitTimeSeconds => write!(f, "ReceiveMessageWaitTimeSeconds"),
+            QueueAttributeName::RedriveAllowPolicy => write!(f, "RedriveAllowPolicy"),
+            QueueAttributeName::RedrivePolicy => write!(f, "RedrivePolicy"),
+            QueueAttributeName::SqsManagedSseEnabled => write!(f, "SqsManagedSseEnabled"),
+            QueueAttributeName::VisibilityTimeout => write!(f, "VisibilityTimeout"),
+            QueueAttributeName::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

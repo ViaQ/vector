@@ -7,28 +7,34 @@
 
 //! HTTP request creation and validation
 
-use std::str::FromStr;
+use core::str::FromStr;
 
 use http::header::{ACCEPT, CONTENT_LENGTH, CONTENT_TYPE};
-use http::{header, uri, Request, Uri};
+use http::{Request, Uri, header, uri};
 use tracing::debug;
 
 use crate::error::ProtoError;
-use crate::http::error::Result;
 use crate::http::Version;
+use crate::http::error::Result;
 
 /// Create a new Request for an http dns-message request
 ///
 /// ```text
-/// https://tools.ietf.org/html/draft-ietf-doh-dns-over-https-10#section-5.1
+/// RFC 8484              DNS Queries over HTTPS (DoH)          October 2018
+///
 /// The URI Template defined in this document is processed without any
-/// variables when the HTTP method is POST.  When the HTTP method is GET
+/// variables when the HTTP method is POST.  When the HTTP method is GET,
 /// the single variable "dns" is defined as the content of the DNS
-/// request (as described in Section 7), encoded with base64url
+/// request (as described in Section 6), encoded with base64url
 /// [RFC4648].
 /// ```
 #[allow(clippy::field_reassign_with_default)] // https://github.com/rust-lang/rust-clippy/issues/6527
-pub fn new(version: Version, name_server_name: &str, message_len: usize) -> Result<Request<()>> {
+pub fn new(
+    version: Version,
+    name_server_name: &str,
+    query_path: &str,
+    message_len: usize,
+) -> Result<Request<()>> {
     // TODO: this is basically the GET version, but it is more expensive than POST
     //   perhaps add an option if people want better HTTP caching options.
 
@@ -42,7 +48,10 @@ pub fn new(version: Version, name_server_name: &str, message_len: usize) -> Resu
     //     .body(());
 
     let mut parts = uri::Parts::default();
-    parts.path_and_query = Some(uri::PathAndQuery::from_static(crate::http::DNS_QUERY_PATH));
+    parts.path_and_query = Some(
+        uri::PathAndQuery::try_from(query_path)
+            .map_err(|e| ProtoError::from(format!("invalid DoH path: {e}")))?,
+    );
     parts.scheme = Some(uri::Scheme::HTTPS);
     parts.authority = Some(
         uri::Authority::from_str(name_server_name)
@@ -67,18 +76,18 @@ pub fn new(version: Version, name_server_name: &str, message_len: usize) -> Resu
 }
 
 /// Verifies the request is something we know what to deal with
-pub fn verify<T>(version: Version, name_server: Option<&str>, request: &Request<T>) -> Result<()> {
+pub fn verify<T>(
+    version: Version,
+    name_server: Option<&str>,
+    query_path: &str,
+    request: &Request<T>,
+) -> Result<()> {
     // Verify all HTTP parameters
     let uri = request.uri();
 
     // validate path
-    if uri.path() != crate::http::DNS_QUERY_PATH {
-        return Err(format!(
-            "bad path: {}, expected: {}",
-            uri.path(),
-            crate::http::DNS_QUERY_PATH
-        )
-        .into());
+    if uri.path() != query_path {
+        return Err(format!("bad path: {}, expected: {}", uri.path(), query_path,).into());
     }
 
     // we only accept HTTPS
@@ -132,9 +141,9 @@ pub fn verify<T>(version: Version, name_server: Option<&str>, request: &Request<
 
     if request.version() != version.to_http() {
         let message = match version {
-            #[cfg(feature = "dns-over-https")]
+            #[cfg(feature = "__https")]
             Version::Http2 => "only HTTP/2 supported",
-            #[cfg(feature = "dns-over-h3")]
+            #[cfg(feature = "__h3")]
             Version::Http3 => "only HTTP/3 supported",
         };
         return Err(message.into());
@@ -157,16 +166,34 @@ mod tests {
     use super::*;
 
     #[test]
-    #[cfg(feature = "dns-over-https")]
+    #[cfg(feature = "__https")]
     fn test_new_verify_h2() {
-        let request = new(Version::Http2, "ns.example.com", 512).expect("error converting to http");
-        assert!(verify(Version::Http2, Some("ns.example.com"), &request).is_ok());
+        let request = new(Version::Http2, "ns.example.com", "/dns-query", 512)
+            .expect("error converting to http");
+        assert!(
+            verify(
+                Version::Http2,
+                Some("ns.example.com"),
+                "/dns-query",
+                &request
+            )
+            .is_ok()
+        );
     }
 
     #[test]
-    #[cfg(feature = "dns-over-h3")]
+    #[cfg(feature = "__h3")]
     fn test_new_verify_h3() {
-        let request = new(Version::Http3, "ns.example.com", 512).expect("error converting to http");
-        assert!(verify(Version::Http3, Some("ns.example.com"), &request).is_ok());
+        let request = new(Version::Http3, "ns.example.com", "/dns-query", 512)
+            .expect("error converting to http");
+        assert!(
+            verify(
+                Version::Http3,
+                Some("ns.example.com"),
+                "/dns-query",
+                &request
+            )
+            .is_ok()
+        );
     }
 }

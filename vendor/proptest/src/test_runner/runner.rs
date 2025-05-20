@@ -1,5 +1,5 @@
 //-
-// Copyright 2017, 2018, 2019 The proptest developers
+// Copyright 2017, 2018, 2019, 2024 The proptest developers
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
 // http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
@@ -225,8 +225,7 @@ where
     F: Fn(V) -> TestCaseResult,
     R: Iterator<Item = TestCaseResult>,
 {
-    use std::time;
-
+    #[cfg(feature = "timeout")]
     let timeout = runner.config.timeout();
 
     if let Some(result) = replay_from_fork.next() {
@@ -250,10 +249,14 @@ where
         return result.clone().map(|_| TestCaseOk::CacheHitSuccess);
     }
 
-    let time_start = time::Instant::now();
+    #[cfg(feature = "timeout")]
+    let time_start = std::time::Instant::now();
 
     let mut result = unwrap_or!(
-        panic::catch_unwind(AssertUnwindSafe(|| test(case))),
+        super::scoped_panic_hook::with_hook(
+            |_| { /* Silence out panic backtrace */ },
+            || panic::catch_unwind(AssertUnwindSafe(|| test(case)))
+        ),
         what => Err(TestCaseError::Fail(
             what.downcast::<&'static str>().map(|s| (*s).into())
                 .or_else(|what| what.downcast::<String>().map(|b| (*b).into()))
@@ -263,6 +266,7 @@ where
     // If there is a timeout and we exceeded it, fail the test here so we get
     // consistent behaviour. (The parent process cannot precisely time the test
     // cases itself.)
+    #[cfg(feature = "timeout")]
     if timeout > 0 && result.is_ok() {
         let elapsed = time_start.elapsed();
         let elapsed_millis = elapsed.as_secs() as u32 * 1000
@@ -593,7 +597,9 @@ impl TestRunner {
 
         let mut result_cache = self.new_cache();
 
-        for PersistedSeed(persisted_seed) in persisted_failure_seeds {
+        for PersistedSeed(persisted_seed) in
+            persisted_failure_seeds.into_iter().rev()
+        {
             self.rng.set_seed(persisted_seed);
             self.gen_and_run_case(
                 strategy,
@@ -760,33 +766,37 @@ impl TestRunner {
         fork_output: &mut ForkOutput,
         is_from_persisted_seed: bool,
     ) -> Option<Reason> {
-        #[cfg(feature = "std")]
-        use std::time;
+        // exit early if shrink disabled
+        if self.config.max_shrink_iters == 0 {
+            verbose_message!(
+                self,
+                INFO_LOG,
+                "Shrinking disabled by configuration"
+            );
+            return None
+        }
 
+        #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
+        let start_time = std::time::Instant::now();
         let mut last_failure = None;
         let mut iterations = 0;
-        #[cfg(feature = "std")]
-        let start_time = time::Instant::now();
+
+        verbose_message!(self, TRACE, "Starting shrinking");
 
         if case.simplify() {
             loop {
-                #[cfg(feature = "std")]
-                let timed_out = if self.config.max_shrink_time > 0 {
+                let mut timed_out: Option<u64> = None;
+                #[cfg(all(feature = "std", not(target_arch = "wasm32")))]
+                if self.config.max_shrink_time > 0 {
                     let elapsed = start_time.elapsed();
                     let elapsed_ms = elapsed
                         .as_secs()
                         .saturating_mul(1000)
                         .saturating_add(elapsed.subsec_millis().into());
                     if elapsed_ms > self.config.max_shrink_time as u64 {
-                        Some(elapsed_ms)
-                    } else {
-                        None
+                        timed_out = Some(elapsed_ms);
                     }
-                } else {
-                    None
-                };
-                #[cfg(not(feature = "std"))]
-                let timed_out: Option<u64> = None;
+                }
 
                 let bail = if iterations >= self.config.max_shrink_iters() {
                     #[cfg(feature = "std")]
@@ -858,12 +868,24 @@ impl TestRunner {
                     // the function under test is acceptable.
                     Ok(_) | Err(TestCaseError::Reject(..)) => {
                         if !case.complicate() {
+                            verbose_message!(
+                                self,
+                                TRACE,
+                                "Cannot complicate further"
+                            );
+
                             break;
                         }
                     }
                     Err(TestCaseError::Fail(why)) => {
                         last_failure = Some(why);
                         if !case.simplify() {
+                            verbose_message!(
+                                self,
+                                TRACE,
+                                "Cannot simplify further"
+                            );
+
                             break;
                         }
                     }

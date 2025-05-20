@@ -6,11 +6,15 @@
 // https://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
+#![no_std]
 // LIBRARY WARNINGS
 #![warn(
+    clippy::alloc_instead_of_core,
     clippy::default_trait_access,
     clippy::dbg_macro,
     clippy::print_stdout,
+    clippy::std_instead_of_core,
+    clippy::std_instead_of_alloc,
     clippy::unimplemented,
     clippy::use_self,
     missing_copy_implementations,
@@ -26,20 +30,17 @@
     clippy::bool_to_int_with_if,
 )]
 #![recursion_limit = "2048"]
-#![cfg_attr(docsrs, feature(doc_cfg))]
+#![cfg_attr(docsrs, feature(doc_cfg, doc_auto_cfg))]
 
 //! Hickory DNS Protocol library
 
-use async_trait::async_trait;
-use futures_util::future::Future;
+#[cfg(feature = "std")]
+extern crate std;
 
-use std::marker::Send;
-use std::time::Duration;
-#[cfg(any(test, feature = "tokio-runtime"))]
-use tokio::runtime::Runtime;
-#[cfg(any(test, feature = "tokio-runtime"))]
-use tokio::task::JoinHandle;
+#[macro_use]
+extern crate alloc;
 
+#[cfg(feature = "std")]
 macro_rules! try_ready_stream {
     ($e:expr) => {{
         match $e {
@@ -51,212 +52,98 @@ macro_rules! try_ready_stream {
     }};
 }
 
-/// Spawn a background task, if it was present
-#[cfg(any(test, feature = "tokio-runtime"))]
-#[cfg_attr(docsrs, doc(cfg(feature = "tokio-runtime")))]
-pub fn spawn_bg<F: Future<Output = R> + Send + 'static, R: Send + 'static>(
-    runtime: &Runtime,
-    background: F,
-) -> JoinHandle<R> {
-    runtime.spawn(background)
-}
-
-pub mod error;
-#[cfg(feature = "dns-over-https")]
-#[cfg_attr(docsrs, doc(cfg(feature = "dns-over-https")))]
+#[cfg(any(feature = "dnssec-aws-lc-rs", feature = "dnssec-ring"))]
+pub mod dnssec;
+mod error;
+#[cfg(feature = "__https")]
 pub mod h2;
-#[cfg(feature = "dns-over-h3")]
-#[cfg_attr(docsrs, doc(cfg(feature = "dns-over-h3")))]
+#[cfg(feature = "__h3")]
 pub mod h3;
-#[cfg(any(feature = "dns-over-https", feature = "dns-over-h3"))]
-#[cfg_attr(
-    docsrs,
-    doc(cfg(any(feature = "dns-over-https", feature = "dns-over-h3")))
-)]
+#[cfg(any(feature = "__https", feature = "__h3"))]
 pub mod http;
 #[cfg(feature = "mdns")]
-#[cfg_attr(docsrs, doc(cfg(feature = "mdns")))]
 pub mod multicast;
-#[cfg(feature = "dns-over-native-tls")]
-#[cfg_attr(docsrs, doc(cfg(feature = "dns-over-native-tls")))]
-pub mod native_tls;
 pub mod op;
-#[cfg(feature = "dns-over-openssl")]
-#[cfg_attr(docsrs, doc(cfg(feature = "dns-over-openssl")))]
-pub mod openssl;
-#[cfg(all(feature = "dns-over-quic", feature = "tokio-runtime"))]
-#[cfg_attr(
-    docsrs,
-    doc(cfg(all(feature = "dns-over-quic", feature = "tokio-runtime")))
-)]
+#[cfg(all(feature = "__quic", feature = "tokio"))]
 pub mod quic;
 pub mod rr;
-#[cfg(feature = "dns-over-rustls")]
-#[cfg_attr(docsrs, doc(cfg(feature = "dns-over-rustls")))]
+#[cfg(feature = "std")]
+pub mod runtime;
+#[cfg(feature = "__tls")]
 pub mod rustls;
 pub mod serialize;
+#[cfg(feature = "std")]
 pub mod tcp;
-#[cfg(any(test, feature = "testing"))]
-#[cfg_attr(docsrs, doc(cfg(feature = "testing")))]
+#[cfg(all(feature = "std", any(test, feature = "testing")))]
 pub mod tests;
+#[cfg(feature = "std")]
 pub mod udp;
 pub mod xfer;
 
 #[doc(hidden)]
+#[cfg(feature = "std")]
+pub use crate::xfer::BufDnsStreamHandle;
+#[doc(hidden)]
 pub use crate::xfer::dns_handle::{DnsHandle, DnsStreamHandle};
 #[doc(hidden)]
+#[cfg(feature = "std")]
 pub use crate::xfer::dns_multiplexer::DnsMultiplexer;
 #[doc(hidden)]
-#[cfg(feature = "dnssec")]
-pub use crate::xfer::dnssec_dns_handle::DnssecDnsHandle;
-#[doc(hidden)]
 pub use crate::xfer::retry_dns_handle::RetryDnsHandle;
-#[doc(hidden)]
-pub use crate::xfer::BufDnsStreamHandle;
 #[cfg(feature = "backtrace")]
-#[cfg_attr(docsrs, doc(cfg(feature = "backtrace")))]
-pub use error::ExtBacktrace;
+pub use error::{ENABLE_BACKTRACE, ExtBacktrace};
+pub use error::{ForwardData, ForwardNSData, ProtoError, ProtoErrorKind};
 
-#[cfg(feature = "tokio-runtime")]
-#[doc(hidden)]
-pub mod iocompat {
-    use std::io;
-    use std::pin::Pin;
-    use std::task::{Context, Poll};
+#[cfg(feature = "std")]
+pub(crate) use rand::random;
 
-    use futures_io::{AsyncRead, AsyncWrite};
-    use tokio::io::{AsyncRead as TokioAsyncRead, AsyncWrite as TokioAsyncWrite, ReadBuf};
+#[cfg(all(not(feature = "std"), feature = "no-std-rand"))]
+pub(crate) use no_std_rand::random;
+#[cfg(all(not(feature = "std"), feature = "no-std-rand"))]
+pub use no_std_rand::seed;
 
-    /// Conversion from `tokio::io::{AsyncRead, AsyncWrite}` to `std::io::{AsyncRead, AsyncWrite}`
-    pub struct AsyncIoTokioAsStd<T: TokioAsyncRead + TokioAsyncWrite>(pub T);
+/// A simple shim that allows us to use a [`random`] in `no_std` environments.
+#[cfg(all(not(feature = "std"), feature = "no-std-rand"))]
+mod no_std_rand {
+    use core::cell::RefCell;
 
-    impl<T: TokioAsyncRead + TokioAsyncWrite + Unpin> Unpin for AsyncIoTokioAsStd<T> {}
-    impl<R: TokioAsyncRead + TokioAsyncWrite + Unpin> AsyncRead for AsyncIoTokioAsStd<R> {
-        fn poll_read(
-            mut self: Pin<&mut Self>,
-            cx: &mut Context<'_>,
-            buf: &mut [u8],
-        ) -> Poll<io::Result<usize>> {
-            let mut buf = ReadBuf::new(buf);
-            let polled = Pin::new(&mut self.0).poll_read(cx, &mut buf);
+    use critical_section::Mutex;
+    use rand::distr::{Distribution, StandardUniform};
+    use rand::{Rng, SeedableRng, rngs::StdRng};
 
-            polled.map_ok(|_| buf.filled().len())
-        }
+    /// Generates a random value on `no_std`.
+    ///
+    /// # Panics
+    /// This function will panic if the rng has not been seeded.
+    /// The rng needs to be seeded using [`crate::seed`] before it can be used!
+    pub(crate) fn random<T>() -> T
+    where
+        StandardUniform: Distribution<T>,
+    {
+        critical_section::with(|cs| {
+            RNG.borrow_ref_mut(cs)
+                .as_mut()
+                .expect("the no_std rng was not seeded using `hickory_proto::seed()`")
+                .random()
+        })
     }
 
-    impl<W: TokioAsyncRead + TokioAsyncWrite + Unpin> AsyncWrite for AsyncIoTokioAsStd<W> {
-        fn poll_write(
-            mut self: Pin<&mut Self>,
-            cx: &mut Context<'_>,
-            buf: &[u8],
-        ) -> Poll<io::Result<usize>> {
-            Pin::new(&mut self.0).poll_write(cx, buf)
-        }
-        fn poll_flush(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
-            Pin::new(&mut self.0).poll_flush(cx)
-        }
-        fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
-            Pin::new(&mut self.0).poll_shutdown(cx)
-        }
+    /// Seed the rng that is used to create random DNS IDs throughout the lib (no_std-only).
+    pub fn seed(seed: u64) {
+        critical_section::with(|cs| *RNG.borrow_ref_mut(cs) = Some(StdRng::seed_from_u64(seed)));
     }
 
-    /// Conversion from `std::io::{AsyncRead, AsyncWrite}` to `tokio::io::{AsyncRead, AsyncWrite}`
-    pub struct AsyncIoStdAsTokio<T: AsyncRead + AsyncWrite>(pub T);
+    static RNG: Mutex<RefCell<Option<StdRng>>> = Mutex::new(RefCell::new(None));
 
-    impl<T: AsyncRead + AsyncWrite + Unpin> Unpin for AsyncIoStdAsTokio<T> {}
-    impl<R: AsyncRead + AsyncWrite + Unpin> TokioAsyncRead for AsyncIoStdAsTokio<R> {
-        fn poll_read(
-            self: Pin<&mut Self>,
-            cx: &mut Context<'_>,
-            buf: &mut ReadBuf<'_>,
-        ) -> Poll<io::Result<()>> {
-            Pin::new(&mut self.get_mut().0)
-                .poll_read(cx, buf.initialized_mut())
-                .map_ok(|len| buf.advance(len))
+    #[cfg(test)]
+    mod test {
+        use super::*;
+
+        #[test]
+        fn test_no_std_rand() {
+            // In practice, the seed needs to be a secure random number.
+            seed(0x1337);
+            let _ = random::<u32>();
         }
-    }
-
-    impl<W: AsyncRead + AsyncWrite + Unpin> TokioAsyncWrite for AsyncIoStdAsTokio<W> {
-        fn poll_write(
-            self: Pin<&mut Self>,
-            cx: &mut Context<'_>,
-            buf: &[u8],
-        ) -> Poll<Result<usize, io::Error>> {
-            Pin::new(&mut self.get_mut().0).poll_write(cx, buf)
-        }
-
-        fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), io::Error>> {
-            Pin::new(&mut self.get_mut().0).poll_flush(cx)
-        }
-
-        fn poll_shutdown(
-            self: Pin<&mut Self>,
-            cx: &mut Context<'_>,
-        ) -> Poll<Result<(), io::Error>> {
-            Pin::new(&mut self.get_mut().0).poll_close(cx)
-        }
-    }
-}
-
-/// Generic executor.
-// This trait is created to facilitate running the tests defined in the tests mod using different types of
-// executors. It's used in Fuchsia OS, please be mindful when update it.
-pub trait Executor {
-    /// Create the implementor itself.
-    fn new() -> Self;
-
-    /// Spawns a future object to run synchronously or asynchronously depending on the specific
-    /// executor.
-    fn block_on<F: Future>(&mut self, future: F) -> F::Output;
-}
-
-#[cfg(feature = "tokio-runtime")]
-#[cfg_attr(docsrs, doc(cfg(feature = "tokio-runtime")))]
-impl Executor for Runtime {
-    fn new() -> Self {
-        Self::new().expect("failed to create tokio runtime")
-    }
-
-    fn block_on<F: Future>(&mut self, future: F) -> F::Output {
-        Self::block_on(self, future)
-    }
-}
-
-/// Generic Time for Delay and Timeout.
-// This trait is created to allow to use different types of time systems. It's used in Fuchsia OS, please be mindful when update it.
-#[async_trait]
-pub trait Time {
-    /// Return a type that implements `Future` that will wait until the specified duration has
-    /// elapsed.
-    async fn delay_for(duration: Duration);
-
-    /// Return a type that implement `Future` to complete before the specified duration has elapsed.
-    async fn timeout<F: 'static + Future + Send>(
-        duration: Duration,
-        future: F,
-    ) -> Result<F::Output, std::io::Error>;
-}
-
-/// New type which is implemented using tokio::time::{Delay, Timeout}
-#[cfg(any(test, feature = "tokio-runtime"))]
-#[cfg_attr(docsrs, doc(cfg(feature = "tokio-runtime")))]
-#[derive(Clone, Copy, Debug)]
-pub struct TokioTime;
-
-#[cfg(any(test, feature = "tokio-runtime"))]
-#[cfg_attr(docsrs, doc(cfg(feature = "tokio-runtime")))]
-#[async_trait]
-impl Time for TokioTime {
-    async fn delay_for(duration: Duration) {
-        tokio::time::sleep(duration).await
-    }
-
-    async fn timeout<F: 'static + Future + Send>(
-        duration: Duration,
-        future: F,
-    ) -> Result<F::Output, std::io::Error> {
-        tokio::time::timeout(duration, future)
-            .await
-            .map_err(move |_| std::io::Error::new(std::io::ErrorKind::TimedOut, "future timed out"))
     }
 }

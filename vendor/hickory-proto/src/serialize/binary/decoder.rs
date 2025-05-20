@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-use crate::serialize::binary::Restrict;
+use alloc::{borrow::ToOwned, vec::Vec};
+
 use thiserror::Error;
+
+use crate::serialize::binary::Restrict;
 
 /// This is non-destructive to the inner buffer, b/c for pointer types we need to perform a reverse
 ///  seek to lookup names
@@ -41,9 +44,7 @@ pub enum DecodeError {
     InsufficientBytes,
 
     /// slice_from was called with an invalid index
-    #[error(
-        "the index passed to BinDecoder::slice_from must be greater than the decoder position"
-    )]
+    #[error("the index passed to BinDecoder::slice_from must be greater than the decoder position")]
     InvalidPreviousIndex,
 
     /// Pointer points to an index within or after the current label
@@ -131,7 +132,7 @@ impl<'a> BinDecoder<'a> {
 
     /// This is a pretty efficient clone, as the buffer is never cloned, and only the index is set
     ///  to the value passed in
-    pub fn clone(&self, index_at: u16) -> BinDecoder<'a> {
+    pub fn clone(&self, index_at: u16) -> Self {
         BinDecoder {
             buffer: self.buffer,
             remaining: &self.buffer[index_at as usize..],

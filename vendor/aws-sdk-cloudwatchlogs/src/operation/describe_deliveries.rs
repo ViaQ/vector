@@ -50,8 +50,24 @@ impl DescribeDeliveries {
         >,
     > {
         let input = ::aws_smithy_runtime_api::client::interceptors::context::Input::erase(input);
-        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("cloudwatchlogs", "DescribeDeliveries", input, runtime_plugins, stop_point)
-            .await
+        use ::tracing::Instrument;
+        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point(
+            "CloudWatch Logs",
+            "DescribeDeliveries",
+            input,
+            runtime_plugins,
+            stop_point,
+        )
+        // Create a parent span for the entire operation. Includes a random, internal-only,
+        // seven-digit ID for the operation orchestration so that it can be correlated in the logs.
+        .instrument(::tracing::debug_span!(
+            "CloudWatch Logs.DescribeDeliveries",
+            "rpc.service" = "CloudWatch Logs",
+            "rpc.method" = "DescribeDeliveries",
+            "sdk_invocation_id" = ::fastrand::u32(1_000_000..10_000_000),
+            "rpc.system" = "aws-api",
+        ))
+        .await
     }
 
     pub(crate) fn operation_runtime_plugins(
@@ -91,7 +107,10 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for Describ
             ::aws_smithy_runtime_api::client::auth::static_resolver::StaticAuthSchemeOptionResolverParams::new(),
         ));
 
-        cfg.store_put(::aws_smithy_http::operation::Metadata::new("DescribeDeliveries", "cloudwatchlogs"));
+        cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::Metadata::new(
+            "DescribeDeliveries",
+            "CloudWatch Logs",
+        ));
         let mut signing_options = ::aws_runtime::auth::SigningOptions::default();
         signing_options.double_uri_encode = true;
         signing_options.content_sha256_header = false;
@@ -112,11 +131,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for Describ
     ) -> ::std::borrow::Cow<'_, ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder> {
         #[allow(unused_mut)]
         let mut rcb = ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("DescribeDeliveries")
-            .with_interceptor(
-                ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::new(
-                    ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptorKind::ResponseBody,
-                ),
-            )
+            .with_interceptor(::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::default())
             .with_interceptor(DescribeDeliveriesEndpointParamsInterceptor)
             .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<
                 crate::operation::describe_deliveries::DescribeDeliveriesError,
@@ -242,18 +257,21 @@ impl ::aws_smithy_runtime_api::client::interceptors::Intercept for DescribeDeliv
     }
 }
 
+// The get_* functions below are generated from JMESPath expressions in the
+// operationContextParams trait. They target the operation's input shape.
+
 /// Error type for the `DescribeDeliveriesError` operation.
 #[non_exhaustive]
 #[derive(::std::fmt::Debug)]
 pub enum DescribeDeliveriesError {
-    /// <p>This request exceeds a service quota.</p>
-    ServiceQuotaExceededException(crate::types::error::ServiceQuotaExceededException),
-    /// <p>The service cannot complete the request.</p>
-    ServiceUnavailableException(crate::types::error::ServiceUnavailableException),
     /// <p>The request was throttled because of quota limits.</p>
     ThrottlingException(crate::types::error::ThrottlingException),
     /// <p>One of the parameters for the request is not valid.</p>
     ValidationException(crate::types::error::ValidationException),
+    /// <p>The service cannot complete the request.</p>
+    ServiceUnavailableException(crate::types::error::ServiceUnavailableException),
+    /// <p>This request exceeds a service quota.</p>
+    ServiceQuotaExceededException(crate::types::error::ServiceQuotaExceededException),
     /// An unexpected error occurred (e.g., invalid JSON returned by the service or an unknown error code).
     #[deprecated(note = "Matching `Unhandled` directly is not forwards compatible. Instead, match using a \
     variable wildcard pattern and check `.code()`:
@@ -287,20 +305,12 @@ impl DescribeDeliveriesError {
     ///
     pub fn meta(&self) -> &::aws_smithy_types::error::ErrorMetadata {
         match self {
-            Self::ServiceQuotaExceededException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
-            Self::ServiceUnavailableException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::ThrottlingException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::ValidationException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
+            Self::ServiceUnavailableException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
+            Self::ServiceQuotaExceededException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::Unhandled(e) => &e.meta,
         }
-    }
-    /// Returns `true` if the error kind is `DescribeDeliveriesError::ServiceQuotaExceededException`.
-    pub fn is_service_quota_exceeded_exception(&self) -> bool {
-        matches!(self, Self::ServiceQuotaExceededException(_))
-    }
-    /// Returns `true` if the error kind is `DescribeDeliveriesError::ServiceUnavailableException`.
-    pub fn is_service_unavailable_exception(&self) -> bool {
-        matches!(self, Self::ServiceUnavailableException(_))
     }
     /// Returns `true` if the error kind is `DescribeDeliveriesError::ThrottlingException`.
     pub fn is_throttling_exception(&self) -> bool {
@@ -310,14 +320,22 @@ impl DescribeDeliveriesError {
     pub fn is_validation_exception(&self) -> bool {
         matches!(self, Self::ValidationException(_))
     }
+    /// Returns `true` if the error kind is `DescribeDeliveriesError::ServiceUnavailableException`.
+    pub fn is_service_unavailable_exception(&self) -> bool {
+        matches!(self, Self::ServiceUnavailableException(_))
+    }
+    /// Returns `true` if the error kind is `DescribeDeliveriesError::ServiceQuotaExceededException`.
+    pub fn is_service_quota_exceeded_exception(&self) -> bool {
+        matches!(self, Self::ServiceQuotaExceededException(_))
+    }
 }
 impl ::std::error::Error for DescribeDeliveriesError {
     fn source(&self) -> ::std::option::Option<&(dyn ::std::error::Error + 'static)> {
         match self {
-            Self::ServiceQuotaExceededException(_inner) => ::std::option::Option::Some(_inner),
-            Self::ServiceUnavailableException(_inner) => ::std::option::Option::Some(_inner),
             Self::ThrottlingException(_inner) => ::std::option::Option::Some(_inner),
             Self::ValidationException(_inner) => ::std::option::Option::Some(_inner),
+            Self::ServiceUnavailableException(_inner) => ::std::option::Option::Some(_inner),
+            Self::ServiceQuotaExceededException(_inner) => ::std::option::Option::Some(_inner),
             Self::Unhandled(_inner) => ::std::option::Option::Some(&*_inner.source),
         }
     }
@@ -325,10 +343,10 @@ impl ::std::error::Error for DescribeDeliveriesError {
 impl ::std::fmt::Display for DescribeDeliveriesError {
     fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
         match self {
-            Self::ServiceQuotaExceededException(_inner) => _inner.fmt(f),
-            Self::ServiceUnavailableException(_inner) => _inner.fmt(f),
             Self::ThrottlingException(_inner) => _inner.fmt(f),
             Self::ValidationException(_inner) => _inner.fmt(f),
+            Self::ServiceUnavailableException(_inner) => _inner.fmt(f),
+            Self::ServiceQuotaExceededException(_inner) => _inner.fmt(f),
             Self::Unhandled(_inner) => {
                 if let ::std::option::Option::Some(code) = ::aws_smithy_types::error::metadata::ProvideErrorMetadata::code(self) {
                     write!(f, "unhandled error ({code})")
@@ -350,10 +368,10 @@ impl ::aws_smithy_types::retry::ProvideErrorKind for DescribeDeliveriesError {
 impl ::aws_smithy_types::error::metadata::ProvideErrorMetadata for DescribeDeliveriesError {
     fn meta(&self) -> &::aws_smithy_types::error::ErrorMetadata {
         match self {
-            Self::ServiceQuotaExceededException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
-            Self::ServiceUnavailableException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
             Self::ThrottlingException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
             Self::ValidationException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
+            Self::ServiceUnavailableException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
+            Self::ServiceQuotaExceededException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
             Self::Unhandled(_inner) => &_inner.meta,
         }
     }

@@ -2,7 +2,7 @@
 pub fn ser_redshift_destination_update(
     object: &mut ::aws_smithy_json::serialize::JsonObjectWriter,
     input: &crate::types::RedshiftDestinationUpdate,
-) -> Result<(), ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<(), ::aws_smithy_types::error::operation::SerializationError> {
     if let Some(var_1) = &input.role_arn {
         object.key("RoleARN").string(var_1.as_str());
     }
@@ -53,6 +53,12 @@ pub fn ser_redshift_destination_update(
         let mut object_17 = object.key("CloudWatchLoggingOptions").start_object();
         crate::protocol_serde::shape_cloud_watch_logging_options::ser_cloud_watch_logging_options(&mut object_17, var_16)?;
         object_17.finish();
+    }
+    if let Some(var_18) = &input.secrets_manager_configuration {
+        #[allow(unused_mut)]
+        let mut object_19 = object.key("SecretsManagerConfiguration").start_object();
+        crate::protocol_serde::shape_secrets_manager_configuration::ser_secrets_manager_configuration(&mut object_19, var_18)?;
+        object_19.finish();
     }
     Ok(())
 }

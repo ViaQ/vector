@@ -1,5 +1,3 @@
-// This file is dual-licensed under the Artistic License 2.0 as per the
-// LICENSE.ARTISTIC file, and the Creative Commons Zero 1.0 license.
 //! The `Event` type and the hierarchical `EventKind` descriptor.
 
 use std::{
@@ -306,6 +304,10 @@ pub struct Event {
     #[cfg_attr(
         all(feature = "serde", not(feature = "serialization-compat-6")),
         serde(flatten)
+    )]
+    #[cfg_attr(
+        all(feature = "serde", feature = "serialization-compat-6"),
+        serde(rename = "type")
     )]
     pub kind: EventKind,
 

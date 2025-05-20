@@ -3,7 +3,7 @@ pub use crate::operation::cancel_rotate_secret::_cancel_rotate_secret_output::Ca
 
 pub use crate::operation::cancel_rotate_secret::_cancel_rotate_secret_input::CancelRotateSecretInputBuilder;
 
-impl CancelRotateSecretInputBuilder {
+impl crate::operation::cancel_rotate_secret::builders::CancelRotateSecretInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -26,7 +26,7 @@ impl CancelRotateSecretInputBuilder {
 /// <p>If you cancel a rotation in progress, it can leave the <code>VersionStage</code> labels in an unexpected state. You might need to remove the staging label <code>AWSPENDING</code> from the partially created version. You also need to determine whether to roll back to the previous version of the secret by moving the staging label <code>AWSCURRENT</code> to the version that has <code>AWSPENDING</code>. To determine which version has a specific staging label, call <code>ListSecretVersionIds</code>. Then use <code>UpdateSecretVersionStage</code> to change staging labels. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/rotate-secrets_how.html">How rotation works</a>.</p>
 /// <p>To turn on automatic rotation again, call <code>RotateSecret</code>.</p>
 /// <p>Secrets Manager generates a CloudTrail log entry when you call this action. Do not include sensitive information in request parameters because it might be logged. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html">Logging Secrets Manager events with CloudTrail</a>.</p>
-/// <p> <b>Required permissions: </b> <code>secretsmanager:CancelRotateSecret</code>. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions"> IAM policy actions for Secrets Manager</a> and <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access.html">Authentication and access control in Secrets Manager</a>. </p>
+/// <p><b>Required permissions: </b> <code>secretsmanager:CancelRotateSecret</code>. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions"> IAM policy actions for Secrets Manager</a> and <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access.html">Authentication and access control in Secrets Manager</a>.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct CancelRotateSecretFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -52,7 +52,7 @@ impl
     }
 }
 impl CancelRotateSecretFluentBuilder {
-    /// Creates a new `CancelRotateSecret`.
+    /// Creates a new `CancelRotateSecretFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -103,12 +103,12 @@ impl CancelRotateSecretFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

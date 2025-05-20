@@ -2,7 +2,7 @@
 pub fn ser_create_log_group_input_input(
     object: &mut ::aws_smithy_json::serialize::JsonObjectWriter,
     input: &crate::operation::create_log_group::CreateLogGroupInput,
-) -> Result<(), ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<(), ::aws_smithy_types::error::operation::SerializationError> {
     if let Some(var_1) = &input.log_group_name {
         object.key("logGroupName").string(var_1.as_str());
     }
@@ -18,6 +18,9 @@ pub fn ser_create_log_group_input_input(
             }
         }
         object_4.finish();
+    }
+    if let Some(var_7) = &input.log_group_class {
+        object.key("logGroupClass").string(var_7.as_str());
     }
     Ok(())
 }

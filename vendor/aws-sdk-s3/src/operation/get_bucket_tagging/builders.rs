@@ -3,7 +3,7 @@ pub use crate::operation::get_bucket_tagging::_get_bucket_tagging_output::GetBuc
 
 pub use crate::operation::get_bucket_tagging::_get_bucket_tagging_input::GetBucketTaggingInputBuilder;
 
-impl GetBucketTaggingInputBuilder {
+impl crate::operation::get_bucket_tagging::builders::GetBucketTaggingInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -23,21 +23,25 @@ impl GetBucketTaggingInputBuilder {
 /// Fluent builder constructing a request to `GetBucketTagging`.
 ///
 /// <note>
-/// <p>This operation is not supported by directory buckets.</p>
+/// <p>This operation is not supported for directory buckets.</p>
 /// </note>
 /// <p>Returns the tag set associated with the bucket.</p>
 /// <p>To use this operation, you must have permission to perform the <code>s3:GetBucketTagging</code> action. By default, the bucket owner has this permission and can grant this permission to others.</p>
-/// <p> <code>GetBucketTagging</code> has the following special error:</p>
+/// <p><code>GetBucketTagging</code> has the following special error:</p>
 /// <ul>
-/// <li> <p>Error code: <code>NoSuchTagSet</code> </p>
+/// <li>
+/// <p>Error code: <code>NoSuchTagSet</code></p>
 /// <ul>
-/// <li> <p>Description: There is no tag set associated with the bucket.</p> </li>
-/// </ul> </li>
+/// <li>
+/// <p>Description: There is no tag set associated with the bucket.</p></li>
+/// </ul></li>
 /// </ul>
 /// <p>The following operations are related to <code>GetBucketTagging</code>:</p>
 /// <ul>
-/// <li> <p> <a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketTagging.html">PutBucketTagging</a> </p> </li>
-/// <li> <p> <a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_DeleteBucketTagging.html">DeleteBucketTagging</a> </p> </li>
+/// <li>
+/// <p><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketTagging.html">PutBucketTagging</a></p></li>
+/// <li>
+/// <p><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_DeleteBucketTagging.html">DeleteBucketTagging</a></p></li>
 /// </ul>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct GetBucketTaggingFluentBuilder {
@@ -64,7 +68,7 @@ impl
     }
 }
 impl GetBucketTaggingFluentBuilder {
-    /// Creates a new `GetBucketTagging`.
+    /// Creates a new `GetBucketTaggingFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -115,12 +119,12 @@ impl GetBucketTaggingFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

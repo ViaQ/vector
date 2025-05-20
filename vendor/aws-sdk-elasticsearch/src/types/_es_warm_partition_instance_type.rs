@@ -35,6 +35,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -93,6 +94,15 @@ impl EsWarmPartitionInstanceType {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for EsWarmPartitionInstanceType {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            EsWarmPartitionInstanceType::Ultrawarm1LargeElasticsearch => write!(f, "ultrawarm1.large.elasticsearch"),
+            EsWarmPartitionInstanceType::Ultrawarm1MediumElasticsearch => write!(f, "ultrawarm1.medium.elasticsearch"),
+            EsWarmPartitionInstanceType::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

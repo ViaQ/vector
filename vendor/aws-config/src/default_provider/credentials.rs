@@ -14,7 +14,7 @@ use crate::meta::credentials::CredentialsProviderChain;
 use crate::meta::region::ProvideRegion;
 use crate::provider_config::ProviderConfig;
 
-#[cfg(feature = "rustls")]
+#[cfg(any(feature = "default-https-client", feature = "rustls"))]
 /// Default Credentials Provider chain
 ///
 /// The region from the default region provider will be used
@@ -25,7 +25,7 @@ pub async fn default_provider() -> impl ProvideCredentials {
 /// Default AWS Credential Provider Chain
 ///
 /// Resolution order:
-/// 1. Environment variables: [`EnvironmentVariableCredentialsProvider`](crate::environment::EnvironmentVariableCredentialsProvider)
+/// 1. Environment variables: [`EnvironmentVariableCredentialsProvider`]
 /// 2. Shared config (`~/.aws/config`, `~/.aws/credentials`): [`SharedConfigCredentialsProvider`](crate::profile::ProfileFileCredentialsProvider)
 /// 3. [Web Identity Tokens](crate::web_identity_token)
 /// 4. ECS (IAM Roles for Tasks) & General HTTP credentials: [`ecs`](crate::ecs)
@@ -72,7 +72,7 @@ impl DefaultCredentialsChain {
     async fn credentials(&self) -> provider::Result {
         self.provider_chain
             .provide_credentials()
-            .instrument(tracing::debug_span!("provide_credentials", provider = %"default_chain"))
+            .instrument(tracing::debug_span!("default_credentials_chain"))
             .await
     }
 }
@@ -90,7 +90,7 @@ impl ProvideCredentials for DefaultCredentialsChain {
     }
 }
 
-/// Builder for [`DefaultCredentialsChain`](DefaultCredentialsChain)
+/// Builder for [`DefaultCredentialsChain`].
 #[derive(Debug, Default)]
 pub struct Builder {
     profile_file_builder: crate::profile::credentials::Builder,
@@ -170,7 +170,7 @@ impl Builder {
     /// Creates a `DefaultCredentialsChain`
     ///
     /// ## Panics
-    /// This function will panic if no connector has been set or the `rustls`
+    /// This function will panic if no connector has been set or the `default-https-client`
     /// feature has been disabled.
     pub async fn build(self) -> DefaultCredentialsChain {
         let region = match self.region_override {
@@ -198,18 +198,16 @@ impl Builder {
 
 #[cfg(test)]
 mod test {
+    use crate::default_provider::credentials::DefaultCredentialsChain;
+    use crate::test_case::{StaticTestProvider, TestEnvironment};
     use aws_credential_types::provider::ProvideCredentials;
     use aws_smithy_async::time::StaticTimeSource;
     use std::time::UNIX_EPOCH;
 
-    use crate::default_provider::credentials::DefaultCredentialsChain;
-
-    use crate::test_case::TestEnvironment;
-
     /// Test generation macro
     ///
     /// # Examples
-    /// **Run the test case in `test-data/default-provider-chain/test_name`
+    /// **Run the test case in `test-data/default-credential-provider-chain/test_name`
     /// ```no_run
     /// make_test!(test_name);
     /// ```
@@ -245,29 +243,34 @@ mod test {
             $(#[$m])*
             #[tokio::test]
             async fn $name() {
-                crate::test_case::TestEnvironment::from_dir(concat!(
-                    "./test-data/default-provider-chain/",
-                    stringify!($name)
-                ))
+                let _ = crate::test_case::TestEnvironment::from_dir(
+                    concat!(
+                        "./test-data/default-credential-provider-chain/",
+                        stringify!($name)
+                    ),
+                    crate::test_case::test_credentials_provider(|config| {
+                        async move {
+                            crate::default_provider::credentials::Builder::default()
+                                .configure(config)
+                                .build()
+                                .await
+                                .provide_credentials()
+                                .await
+                        }
+                    }),
+                )
                 .await
                 .unwrap()
-                .with_provider_config($provider_config_builder)
-                .$func(|conf| {
-                    let conf = conf.clone();
-                    async move {
-                        crate::default_provider::credentials::Builder::default()
-                            .configure(conf)
-                            .build()
-                            .await
-                    }
-                })
-                .await
+                .map_provider_config($provider_config_builder)
+                .$func()
+                .await;
             }
         };
     }
 
     make_test!(prefer_environment);
     make_test!(profile_static_keys);
+    make_test!(profile_static_keys_case_insensitive);
     make_test!(web_identity_token_env);
     make_test!(web_identity_source_profile_no_env);
     make_test!(web_identity_token_invalid_jwt);
@@ -275,6 +278,7 @@ mod test {
     make_test!(web_identity_token_profile);
     make_test!(profile_name);
     make_test!(profile_overrides_web_identity);
+    make_test!(environment_variables);
     make_test!(environment_variables_blank);
     make_test!(imds_token_fail);
 
@@ -295,52 +299,70 @@ mod test {
     make_test!(ecs_credentials);
     make_test!(ecs_credentials_invalid_profile);
 
+    make_test!(eks_pod_identity_credentials);
+    // TODO(https://github.com/awslabs/aws-sdk-rust/issues/1117) This test is disabled on Windows because it uses Unix-style paths
+    #[cfg(not(windows))]
+    make_test!(eks_pod_identity_no_token_file);
+
     #[cfg(not(feature = "sso"))]
     make_test!(sso_assume_role #[should_panic(expected = "This behavior requires following cargo feature(s) enabled: sso")]);
-    #[cfg(not(feature = "sso"))]
-    make_test!(sso_no_token_file #[should_panic(expected = "This behavior requires following cargo feature(s) enabled: sso")]);
 
     #[cfg(feature = "sso")]
     make_test!(sso_assume_role);
 
-    #[cfg(feature = "sso")]
+    // TODO(https://github.com/awslabs/aws-sdk-rust/issues/1117) This test is disabled on Windows because it uses Unix-style paths
+    #[cfg(not(any(feature = "sso", windows)))]
+    make_test!(sso_no_token_file #[should_panic(expected = "This behavior requires following cargo feature(s) enabled: sso")]);
+    // TODO(https://github.com/awslabs/aws-sdk-rust/issues/1117) This test is disabled on Windows because it uses Unix-style paths
+    #[cfg(all(feature = "sso", not(windows)))]
     make_test!(sso_no_token_file);
 
-    #[cfg(feature = "credentials-sso")]
+    #[cfg(feature = "sso")]
+    make_test!(sso_server_error, builder: |config| {
+        // disable retry to simplify traffic recording
+        config.with_retry_config(crate::retry::RetryConfig::disabled())
+    });
+
+    #[cfg(feature = "sso")]
     make_test!(e2e_fips_and_dual_stack_sso);
 
     #[tokio::test]
     async fn profile_name_override() {
-        let conf =
-            TestEnvironment::from_dir("./test-data/default-provider-chain/profile_static_keys")
-                .await
-                .unwrap()
-                .provider_config()
-                .clone();
-        let provider = DefaultCredentialsChain::builder()
+        // Only use the TestEnvironment to create a ProviderConfig from the
+        // profile_static_keys test directory. We don't actually want to
+        // use the expected test output from that directory since we're
+        // overriding the profile name on the credentials chain in this test.
+        let provider_config = TestEnvironment::<crate::test_case::Credentials, ()>::from_dir(
+            "./test-data/default-credential-provider-chain/profile_static_keys",
+            StaticTestProvider::new(|_| unreachable!()),
+        )
+        .await
+        .unwrap()
+        .provider_config()
+        .clone();
+
+        let creds = DefaultCredentialsChain::builder()
             .profile_name("secondary")
-            .configure(conf)
+            .configure(provider_config)
             .build()
-            .await;
-        let creds = provider
+            .await
             .provide_credentials()
             .await
             .expect("creds should load");
+
         assert_eq!(creds.access_key_id(), "correct_key_secondary");
     }
 
     #[tokio::test]
-    #[cfg(feature = "client-hyper")]
     async fn no_providers_configured_err() {
         use crate::provider_config::ProviderConfig;
         use aws_credential_types::provider::error::CredentialsError;
         use aws_smithy_async::rt::sleep::TokioSleep;
-        use aws_smithy_runtime::client::http::hyper_014::HyperClientBuilder;
-        use aws_smithy_runtime::client::http::test_util::NeverTcpConnector;
+        use aws_smithy_http_client::test_util::NeverTcpConnector;
 
         tokio::time::pause();
         let conf = ProviderConfig::no_configuration()
-            .with_http_client(HyperClientBuilder::new().build(NeverTcpConnector::new()))
+            .with_http_client(NeverTcpConnector::new().into_client())
             .with_time_source(StaticTimeSource::new(UNIX_EPOCH))
             .with_sleep_impl(TokioSleep::new());
         let provider = DefaultCredentialsChain::builder()

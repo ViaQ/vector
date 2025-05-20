@@ -1,8 +1,8 @@
 use crate::grammar::consts::INLINE;
 use crate::grammar::parse_tree::{
-    ActionKind, Alternative, Annotation, Condition, ConditionOp, ExprSymbol, Grammar, GrammarItem,
-    MacroSymbol, Name, NonterminalData, NonterminalString, Path, RepeatOp, RepeatSymbol, Span,
-    Symbol, SymbolKind, TerminalLiteral, TerminalString, TypeRef, Visibility,
+    ActionKind, Alternative, Attribute, AttributeArg, Condition, ConditionOp, ExprSymbol, Grammar,
+    GrammarItem, MacroSymbol, Name, NonterminalData, NonterminalString, Path, RepeatOp,
+    RepeatSymbol, Span, Symbol, SymbolKind, TerminalLiteral, TerminalString, TypeRef, Visibility,
 };
 use crate::normalize::norm_util::{self, Symbols};
 use crate::normalize::resolve;
@@ -15,7 +15,7 @@ use string_cache::DefaultAtom as Atom;
 #[cfg(test)]
 mod test;
 
-pub fn expand_macros(input: Grammar) -> NormResult<Grammar> {
+pub fn expand_macros(input: Grammar, recursion_limit: u16) -> NormResult<Grammar> {
     let input = resolve::resolve(input)?;
 
     let items = input.items;
@@ -32,7 +32,7 @@ pub fn expand_macros(input: Grammar) -> NormResult<Grammar> {
         .collect();
 
     let mut expander = MacroExpander::new(macro_defs);
-    expander.expand(&mut items)?;
+    expander.expand(&mut items, recursion_limit)?;
 
     Ok(Grammar { items, ..input })
 }
@@ -52,8 +52,10 @@ impl MacroExpander {
         }
     }
 
-    fn expand(&mut self, items: &mut Vec<GrammarItem>) -> NormResult<()> {
-        let mut counter = 0;
+    fn expand(&mut self, items: &mut Vec<GrammarItem>, recursion_limit: u16) -> NormResult<()> {
+        let mut counter = 0; // Number of items
+        let mut loop_counter = 0;
+
         loop {
             // Find any macro uses in items added since last round and
             // replace them in place with the expanded version:
@@ -61,10 +63,22 @@ impl MacroExpander {
                 self.replace_item(item);
             }
             counter = items.len();
+            loop_counter += 1;
 
             // No more expansion to do.
             if self.expansion_stack.is_empty() {
                 return Ok(());
+            }
+
+            if loop_counter > recursion_limit {
+                // Too much recursion
+                // We know unwrap() is safe, because we just checked is_empty()
+                let sym = self.expansion_stack.pop().unwrap();
+                return_err!(
+                            sym.span,
+                            "Exceeded recursion cap ({}) while expanding this macro.  This typically is a symptom of infinite recursion during macro resolution.  If you believe the recursion will complete eventually, you can increase this limit using Configuration::set_macro_recursion_limit().",
+                            recursion_limit
+                        );
             }
 
             // Drain expansion stack:
@@ -201,7 +215,7 @@ impl MacroExpander {
                 expr: self.macro_expand_expr_symbol(&args, &alternative.expr),
                 condition: None,
                 action: alternative.action.clone(),
-                annotations: alternative.annotations.clone(),
+                attributes: alternative.attributes.clone(),
             });
         }
 
@@ -209,7 +223,7 @@ impl MacroExpander {
             visibility: mdef.visibility.clone(),
             span,
             name: msym_name,
-            annotations: mdef.annotations.clone(),
+            attributes: mdef.attributes.clone(),
             args: vec![],
             type_decl,
             alternatives,
@@ -418,7 +432,7 @@ impl MacroExpander {
             visibility: Visibility::Priv,
             span,
             name,
-            annotations: inline(span),
+            attributes: inline(span),
             args: vec![],
             type_decl: Some(ty_ref),
             alternatives: vec![Alternative {
@@ -426,7 +440,7 @@ impl MacroExpander {
                 expr,
                 condition: None,
                 action,
-                annotations: Vec::new(),
+                attributes: Vec::new(),
             }],
         }))
     }
@@ -462,7 +476,7 @@ impl MacroExpander {
                     visibility: Visibility::Priv,
                     span,
                     name,
-                    annotations: inline(span),
+                    attributes: inline(span),
                     args: vec![],
                     type_decl: Some(ty_ref),
                     alternatives: vec![
@@ -472,7 +486,7 @@ impl MacroExpander {
                             expr: ExprSymbol { symbols: vec![] },
                             condition: None,
                             action: action("alloc::vec![]"),
-                            annotations: vec![],
+                            attributes: vec![],
                         },
                         // X* = <v:X+>
                         Alternative {
@@ -491,7 +505,7 @@ impl MacroExpander {
                             },
                             condition: None,
                             action: action("v"),
-                            annotations: vec![],
+                            attributes: vec![],
                         },
                     ],
                 }))
@@ -508,7 +522,7 @@ impl MacroExpander {
                     visibility: Visibility::Priv,
                     span,
                     name: name.clone(),
-                    annotations: vec![],
+                    attributes: vec![],
                     args: vec![],
                     type_decl: Some(ty_ref),
                     alternatives: vec![
@@ -520,7 +534,7 @@ impl MacroExpander {
                             },
                             condition: None,
                             action: action("alloc::vec![<>]"),
-                            annotations: vec![],
+                            attributes: vec![],
                         },
                         // X+ = <v:X+> <e:X>
                         Alternative {
@@ -545,7 +559,7 @@ impl MacroExpander {
                             },
                             condition: None,
                             action: action("{ let mut v = v; v.push(e); v }"),
-                            annotations: vec![],
+                            attributes: vec![],
                         },
                     ],
                 }))
@@ -562,7 +576,7 @@ impl MacroExpander {
                     visibility: Visibility::Priv,
                     span,
                     name,
-                    annotations: inline(span),
+                    attributes: inline(span),
                     args: vec![],
                     type_decl: Some(ty_ref),
                     alternatives: vec![
@@ -574,7 +588,7 @@ impl MacroExpander {
                             },
                             condition: None,
                             action: action("Some(<>)"),
-                            annotations: vec![],
+                            attributes: vec![],
                         },
                         // X? = { => None; }
                         Alternative {
@@ -582,7 +596,7 @@ impl MacroExpander {
                             expr: ExprSymbol { symbols: vec![] },
                             condition: None,
                             action: action("None"),
-                            annotations: vec![],
+                            attributes: vec![],
                         },
                     ],
                 }))
@@ -601,7 +615,7 @@ impl MacroExpander {
             visibility: Visibility::Priv,
             span,
             name,
-            annotations: inline(span),
+            attributes: inline(span),
             args: vec![],
             type_decl: None,
             alternatives: vec![Alternative {
@@ -609,7 +623,7 @@ impl MacroExpander {
                 expr: ExprSymbol { symbols: vec![] },
                 condition: None,
                 action: Some(action),
-                annotations: vec![],
+                attributes: vec![],
             }],
         }))
     }
@@ -627,10 +641,10 @@ fn action(s: &str) -> Option<ActionKind> {
     Some(ActionKind::User(s.to_string()))
 }
 
-fn inline(span: Span) -> Vec<Annotation> {
-    vec![Annotation {
+fn inline(span: Span) -> Vec<Attribute> {
+    vec![Attribute {
         id_span: span,
         id: Atom::from(INLINE),
-        arg: None,
+        arg: AttributeArg::Empty,
     }]
 }

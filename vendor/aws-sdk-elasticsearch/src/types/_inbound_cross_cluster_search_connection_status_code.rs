@@ -39,6 +39,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -115,6 +116,19 @@ impl InboundCrossClusterSearchConnectionStatusCode {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for InboundCrossClusterSearchConnectionStatusCode {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            InboundCrossClusterSearchConnectionStatusCode::Approved => write!(f, "APPROVED"),
+            InboundCrossClusterSearchConnectionStatusCode::Deleted => write!(f, "DELETED"),
+            InboundCrossClusterSearchConnectionStatusCode::Deleting => write!(f, "DELETING"),
+            InboundCrossClusterSearchConnectionStatusCode::PendingAcceptance => write!(f, "PENDING_ACCEPTANCE"),
+            InboundCrossClusterSearchConnectionStatusCode::Rejected => write!(f, "REJECTED"),
+            InboundCrossClusterSearchConnectionStatusCode::Rejecting => write!(f, "REJECTING"),
+            InboundCrossClusterSearchConnectionStatusCode::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

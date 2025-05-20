@@ -15,6 +15,7 @@ name = "heim-common"
 version = "0.1.0-rc.1"
 authors = ["svartalf <self@svartalf.info>"]
 build = "build.rs"
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

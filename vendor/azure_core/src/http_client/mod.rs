@@ -4,13 +4,13 @@ mod noop;
 mod reqwest;
 
 #[cfg(not(any(feature = "enable_reqwest", feature = "enable_reqwest_rustls")))]
-use self::noop::NoopClient;
+use self::noop::new_noop_client;
 #[cfg(any(feature = "enable_reqwest", feature = "enable_reqwest_rustls"))]
 use self::reqwest::new_reqwest_client;
 use crate::error::ErrorKind;
 use async_trait::async_trait;
 use bytes::Bytes;
-use serde::Serialize;
+use serde::{de::DeserializeOwned, Serialize};
 use std::sync::Arc;
 
 /// Construct a new `HttpClient`
@@ -21,7 +21,7 @@ pub fn new_http_client() -> Arc<dyn HttpClient> {
     }
     #[cfg(not(any(feature = "enable_reqwest", feature = "enable_reqwest_rustls")))]
     {
-        Arc::new(NoopClient)
+        new_noop_client()
     }
 }
 
@@ -49,7 +49,7 @@ pub trait HttpClient: Send + Sync + std::fmt::Debug {
         if status.is_success() {
             Ok(crate::CollectedResponse::new(status, headers, body))
         } else {
-            Err(ErrorKind::http_response_from_body(status, &body).into_error())
+            Err(ErrorKind::http_response_from_parts(status, &headers, &body).into_error())
         }
     }
 }
@@ -60,4 +60,13 @@ where
     T: ?Sized + Serialize,
 {
     Ok(Bytes::from(serde_json::to_vec(value)?))
+}
+
+/// Reads the XML from bytes.
+pub fn from_json<S, T>(body: S) -> crate::Result<T>
+where
+    S: AsRef<[u8]>,
+    T: DeserializeOwned,
+{
+    serde_json::from_slice(body.as_ref()).map_err(Into::into)
 }

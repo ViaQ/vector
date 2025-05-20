@@ -1,4 +1,4 @@
-use futures::FutureExt;
+use futures_util::FutureExt;
 use openssl::ssl::{SslConnector, SslMethod};
 use tokio::net::TcpStream;
 use tokio_postgres::tls::TlsConnect;
@@ -32,6 +32,19 @@ async fn require() {
     let ctx = builder.build();
     smoke_test(
         "user=ssl_user dbname=postgres sslmode=require",
+        TlsConnector::new(ctx.configure().unwrap(), "localhost"),
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn direct() {
+    let mut builder = SslConnector::builder(SslMethod::tls()).unwrap();
+    builder.set_ca_file("../test/server.crt").unwrap();
+    set_postgresql_alpn(&mut builder).unwrap();
+    let ctx = builder.build();
+    smoke_test(
+        "user=ssl_user dbname=postgres sslmode=require sslnegotiation=direct",
         TlsConnector::new(ctx.configure().unwrap(), "localhost"),
     )
     .await;

@@ -50,7 +50,18 @@ impl GetObject {
         >,
     > {
         let input = ::aws_smithy_runtime_api::client::interceptors::context::Input::erase(input);
-        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("s3", "GetObject", input, runtime_plugins, stop_point).await
+        use ::tracing::Instrument;
+        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("S3", "GetObject", input, runtime_plugins, stop_point)
+            // Create a parent span for the entire operation. Includes a random, internal-only,
+            // seven-digit ID for the operation orchestration so that it can be correlated in the logs.
+            .instrument(::tracing::debug_span!(
+                "S3.GetObject",
+                "rpc.service" = "S3",
+                "rpc.method" = "GetObject",
+                "sdk_invocation_id" = ::fastrand::u32(1_000_000..10_000_000),
+                "rpc.system" = "aws-api",
+            ))
+            .await
     }
 
     pub(crate) fn operation_runtime_plugins(
@@ -59,7 +70,7 @@ impl GetObject {
         config_override: ::std::option::Option<crate::config::Builder>,
     ) -> ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugins {
         let mut runtime_plugins = client_runtime_plugins.with_operation_plugin(Self::new());
-        runtime_plugins = runtime_plugins.with_client_plugin(crate::auth_plugin::DefaultAuthOptionsPlugin::new(vec![
+        runtime_plugins = runtime_plugins.with_client_plugin(crate::endpoint_auth_plugin::EndpointBasedAuthOptionsPlugin::new(vec![
             ::aws_runtime::auth::sigv4::SCHEME_ID,
             #[cfg(feature = "sigv4a")]
             {
@@ -96,7 +107,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for GetObje
         ));
 
         cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::SensitiveOutput);
-        cfg.store_put(::aws_smithy_http::operation::Metadata::new("GetObject", "s3"));
+        cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::Metadata::new("GetObject", "S3"));
         let mut signing_options = ::aws_runtime::auth::SigningOptions::default();
         signing_options.double_uri_encode = false;
         signing_options.content_sha256_header = true;
@@ -117,17 +128,48 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for GetObje
     ) -> ::std::borrow::Cow<'_, ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder> {
         #[allow(unused_mut)]
         let mut rcb = ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("GetObject")
-            .with_interceptor(
-                ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::new(
-                    ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptorKind::ResponseBody,
-                ),
-            )
+            .with_interceptor(::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::default())
             .with_interceptor(GetObjectEndpointParamsInterceptor)
+            .with_interceptor(crate::s3_expires_interceptor::S3ExpiresInterceptor)
             .with_interceptor(crate::http_response_checksum::ResponseChecksumInterceptor::new(
-                ["crc32", "crc32c", "sha256", "sha1"].as_slice(),
+                ["crc64nvme", "crc32", "crc32c", "sha256", "sha1"].as_slice(),
                 |input: &::aws_smithy_runtime_api::client::interceptors::context::Input| {
                     let input: &crate::operation::get_object::GetObjectInput = input.downcast_ref().expect("correct type");
                     matches!(input.checksum_mode(), ::std::option::Option::Some(crate::types::ChecksumMode::Enabled))
+                },
+                |input: &mut ::aws_smithy_runtime_api::client::interceptors::context::Input, cfg: &::aws_smithy_types::config_bag::ConfigBag| {
+                    let input = input
+                        .downcast_mut::<crate::operation::get_object::GetObjectInput>()
+                        .ok_or("failed to downcast to crate::operation::get_object::GetObjectInput")?;
+
+                    let request_validation_enabled = matches!(input.checksum_mode(), Some(crate::types::ChecksumMode::Enabled));
+
+                    if !request_validation_enabled {
+                        // This value is set by the user on the SdkConfig to indicate their preference
+                        let response_checksum_validation = cfg
+                            .load::<::aws_smithy_types::checksum_config::ResponseChecksumValidation>()
+                            .unwrap_or(&::aws_smithy_types::checksum_config::ResponseChecksumValidation::WhenSupported);
+
+                        let is_presigned_req = cfg.load::<crate::presigning::PresigningMarker>().is_some();
+
+                        // For presigned requests we do not enable the checksum-mode header.
+                        if is_presigned_req {
+                            return ::std::result::Result::Ok(());
+                        }
+
+                        // If validation setting is WhenSupported (or unknown) we enable response checksum
+                        // validation. If it is WhenRequired we do not enable (since there is no way to
+                        // indicate that a response checksum is required).
+                        #[allow(clippy::wildcard_in_or_patterns)]
+                        match response_checksum_validation {
+                            ::aws_smithy_types::checksum_config::ResponseChecksumValidation::WhenRequired => {}
+                            ::aws_smithy_types::checksum_config::ResponseChecksumValidation::WhenSupported | _ => {
+                                input.checksum_mode = Some(crate::types::ChecksumMode::Enabled);
+                            }
+                        }
+                    }
+
+                    ::std::result::Result::Ok(())
                 },
             ))
             .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<
@@ -136,9 +178,15 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for GetObje
             .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::ModeledAsRetryableClassifier::<
                 crate::operation::get_object::GetObjectError,
             >::new())
-            .with_retry_classifier(::aws_runtime::retries::classifiers::AwsErrorCodeClassifier::<
-                crate::operation::get_object::GetObjectError,
-            >::new());
+            .with_retry_classifier(
+                ::aws_runtime::retries::classifiers::AwsErrorCodeClassifier::<crate::operation::get_object::GetObjectError>::builder()
+                    .transient_errors({
+                        let mut transient_errors: Vec<&'static str> = ::aws_runtime::retries::classifiers::TRANSIENT_ERRORS.into();
+                        transient_errors.push("InternalError");
+                        ::std::borrow::Cow::Owned(transient_errors)
+                    })
+                    .build(),
+            );
 
         ::std::borrow::Cow::Owned(rcb)
     }
@@ -220,27 +268,27 @@ impl ::aws_smithy_runtime_api::client::ser_de::SerializeRequest for GetObjectReq
                 query.push_kv("x-id", "GetObject");
                 if let ::std::option::Option::Some(inner_2) = &_input.response_cache_control {
                     {
-                        query.push_kv("response-cache-control", &::aws_smithy_http::query::fmt_string(&inner_2));
+                        query.push_kv("response-cache-control", &::aws_smithy_http::query::fmt_string(inner_2));
                     }
                 }
                 if let ::std::option::Option::Some(inner_3) = &_input.response_content_disposition {
                     {
-                        query.push_kv("response-content-disposition", &::aws_smithy_http::query::fmt_string(&inner_3));
+                        query.push_kv("response-content-disposition", &::aws_smithy_http::query::fmt_string(inner_3));
                     }
                 }
                 if let ::std::option::Option::Some(inner_4) = &_input.response_content_encoding {
                     {
-                        query.push_kv("response-content-encoding", &::aws_smithy_http::query::fmt_string(&inner_4));
+                        query.push_kv("response-content-encoding", &::aws_smithy_http::query::fmt_string(inner_4));
                     }
                 }
                 if let ::std::option::Option::Some(inner_5) = &_input.response_content_language {
                     {
-                        query.push_kv("response-content-language", &::aws_smithy_http::query::fmt_string(&inner_5));
+                        query.push_kv("response-content-language", &::aws_smithy_http::query::fmt_string(inner_5));
                     }
                 }
                 if let ::std::option::Option::Some(inner_6) = &_input.response_content_type {
                     {
-                        query.push_kv("response-content-type", &::aws_smithy_http::query::fmt_string(&inner_6));
+                        query.push_kv("response-content-type", &::aws_smithy_http::query::fmt_string(inner_6));
                     }
                 }
                 if let ::std::option::Option::Some(inner_7) = &_input.response_expires {
@@ -253,11 +301,11 @@ impl ::aws_smithy_runtime_api::client::ser_de::SerializeRequest for GetObjectReq
                 }
                 if let ::std::option::Option::Some(inner_8) = &_input.version_id {
                     {
-                        query.push_kv("versionId", &::aws_smithy_http::query::fmt_string(&inner_8));
+                        query.push_kv("versionId", &::aws_smithy_http::query::fmt_string(inner_8));
                     }
                 }
                 if let ::std::option::Option::Some(inner_9) = &_input.part_number {
-                    if *inner_9 != 0 {
+                    {
                         query.push_kv("partNumber", ::aws_smithy_types::primitive::Encoder::from(*inner_9).encode());
                     }
                 }
@@ -336,6 +384,111 @@ impl ::aws_smithy_runtime_api::client::interceptors::Intercept for GetObjectEndp
         cfg.interceptor_state()
             .store_put(::aws_smithy_runtime_api::client::endpoint::EndpointResolverParams::new(params));
         ::std::result::Result::Ok(())
+    }
+}
+
+// The get_* functions below are generated from JMESPath expressions in the
+// operationContextParams trait. They target the operation's input shape.
+
+#[allow(unreachable_code, unused_variables)]
+#[cfg(test)]
+mod get_object_test {
+
+    /// https://github.com/awslabs/aws-sdk-rust/issues/818
+    /// Test ID: GetObjectIfModifiedSince
+    #[::tokio::test]
+    #[::tracing_test::traced_test]
+    async fn get_object_if_modified_since_request() {
+        let (http_client, request_receiver) = ::aws_smithy_http_client::test_util::capture_request(None);
+        let config_builder = crate::config::Config::builder().with_test_defaults().endpoint_url("https://example.com");
+        let config_builder = config_builder.region(::aws_types::region::Region::new("us-east-1"));
+        let mut config_builder = config_builder;
+        config_builder.set_region(Some(crate::config::Region::new("us-east-1")));
+
+        let config = config_builder.http_client(http_client).build();
+        let client = crate::Client::from_conf(config);
+        let result = client
+            .get_object()
+            .set_bucket(::std::option::Option::Some("test-bucket".to_owned()))
+            .set_key(::std::option::Option::Some("object.txt".to_owned()))
+            .set_if_modified_since(::std::option::Option::Some(::aws_smithy_types::DateTime::from_fractional_secs(
+                1626452453, 0.123_f64,
+            )))
+            .send()
+            .await;
+        let _ = dbg!(result);
+        let http_request = request_receiver.expect_request();
+        let expected_headers = [("if-modified-since", "Fri, 16 Jul 2021 16:20:53 GMT")];
+        ::aws_smithy_protocol_test::assert_ok(::aws_smithy_protocol_test::validate_headers(http_request.headers(), expected_headers));
+        let uri: ::http::Uri = http_request.uri().parse().expect("invalid URI sent");
+        ::pretty_assertions::assert_eq!(http_request.method(), "GET", "method was incorrect");
+        ::pretty_assertions::assert_eq!(uri.path(), "/object.txt", "path was incorrect");
+    }
+
+    /// S3 clients should not remove dot segments from request paths.
+    ///
+    /// Test ID: S3PreservesLeadingDotSegmentInUriLabel
+    #[::tokio::test]
+    #[::tracing_test::traced_test]
+    async fn s3_preserves_leading_dot_segment_in_uri_label_request() {
+        let (http_client, request_receiver) = ::aws_smithy_http_client::test_util::capture_request(None);
+        let config_builder = crate::config::Config::builder()
+            .with_test_defaults()
+            .endpoint_url("https://s3.us-west-2.amazonaws.com");
+
+        let mut config_builder = config_builder;
+        config_builder.set_region(Some(crate::config::Region::new("us-east-1")));
+
+        let config = config_builder.http_client(http_client).build();
+        let client = crate::Client::from_conf(config);
+        let result = client
+            .get_object()
+            .set_bucket(::std::option::Option::Some("mybucket".to_owned()))
+            .set_key(::std::option::Option::Some("../key.txt".to_owned()))
+            .send()
+            .await;
+        let _ = dbg!(result);
+        let http_request = request_receiver.expect_request();
+        let body = http_request.body().bytes().expect("body should be strict");
+        // No body.
+        ::pretty_assertions::assert_eq!(&body, &bytes::Bytes::new());
+        let uri: ::http::Uri = http_request.uri().parse().expect("invalid URI sent");
+        ::pretty_assertions::assert_eq!(http_request.method(), "GET", "method was incorrect");
+        ::pretty_assertions::assert_eq!(uri.path(), "/../key.txt", "path was incorrect");
+        ::pretty_assertions::assert_eq!(uri.host().expect("host should be set"), "mybucket.s3.us-west-2.amazonaws.com");
+    }
+
+    /// S3 clients should not remove dot segments from request paths.
+    ///
+    /// Test ID: S3PreservesEmbeddedDotSegmentInUriLabel
+    #[::tokio::test]
+    #[::tracing_test::traced_test]
+    async fn s3_preserves_embedded_dot_segment_in_uri_label_request() {
+        let (http_client, request_receiver) = ::aws_smithy_http_client::test_util::capture_request(None);
+        let config_builder = crate::config::Config::builder()
+            .with_test_defaults()
+            .endpoint_url("https://s3.us-west-2.amazonaws.com");
+
+        let mut config_builder = config_builder;
+        config_builder.set_region(Some(crate::config::Region::new("us-east-1")));
+
+        let config = config_builder.http_client(http_client).build();
+        let client = crate::Client::from_conf(config);
+        let result = client
+            .get_object()
+            .set_bucket(::std::option::Option::Some("mybucket".to_owned()))
+            .set_key(::std::option::Option::Some("foo/../key.txt".to_owned()))
+            .send()
+            .await;
+        let _ = dbg!(result);
+        let http_request = request_receiver.expect_request();
+        let body = http_request.body().bytes().expect("body should be strict");
+        // No body.
+        ::pretty_assertions::assert_eq!(&body, &bytes::Bytes::new());
+        let uri: ::http::Uri = http_request.uri().parse().expect("invalid URI sent");
+        ::pretty_assertions::assert_eq!(http_request.method(), "GET", "method was incorrect");
+        ::pretty_assertions::assert_eq!(uri.path(), "/foo/../key.txt", "path was incorrect");
+        ::pretty_assertions::assert_eq!(uri.host().expect("host should be set"), "mybucket.s3.us-west-2.amazonaws.com");
     }
 }
 

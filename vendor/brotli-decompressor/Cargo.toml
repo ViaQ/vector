@@ -11,7 +11,7 @@
 
 [package]
 name = "brotli-decompressor"
-version = "4.0.0"
+version = "5.0.0"
 authors = [
     "Daniel Reiter Horn <danielrh@dropbox.com>",
     "The Brotli Authors",
@@ -41,7 +41,7 @@ name = "brotli-decompressor"
 doc = false
 
 [dependencies.alloc-no-stdlib]
-version = "~2.0"
+version = "2.0"
 
 [dependencies.alloc-stdlib]
 version = "~0.2"

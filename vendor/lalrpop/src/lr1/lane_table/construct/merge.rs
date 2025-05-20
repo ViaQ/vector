@@ -14,7 +14,7 @@ use ena::unify::InPlaceUnificationTable;
 /// set of S will be compatible with the reduced context of T2).
 ///
 /// [r]: ../README.md
-pub struct Merge<'m, 'grammar: 'm> {
+pub struct Merge<'m, 'grammar> {
     table: &'m LaneTable<'grammar>,
     states: &'m mut Vec<Lr1State<'grammar>>,
     visited: Set<StateIndex>,
@@ -192,13 +192,14 @@ struct ContextSets<'m> {
     unify: &'m mut InPlaceUnificationTable<StateSet>,
 }
 
-impl<'m> ContextSets<'m> {
+impl ContextSets<'_> {
     fn context_set(&mut self, state: StateIndex) -> ContextSet {
         let state_set = self.state_sets[&state];
         self.unify.probe_value(state_set)
     }
 
     fn union(&mut self, source: StateIndex, target: StateIndex) -> bool {
+        debug!("state_sets: {:?}", self.state_sets);
         let set1 = self.state_sets[&source];
         let set2 = self.state_sets[&target];
         let result = self.unify.unify_var_var(set1, set2).is_ok();

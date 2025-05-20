@@ -16,8 +16,12 @@
 
 //! Query struct for looking up resource records
 
-use std::fmt;
-use std::fmt::{Display, Formatter};
+#[cfg(test)]
+use alloc::vec::Vec;
+use core::fmt::{self, Display, Formatter};
+
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 use crate::error::*;
 use crate::rr::dns_class::DNSClass;
@@ -59,19 +63,28 @@ const MDNS_UNICAST_RESPONSE: u16 = 1 << 15;
 ///
 /// ```
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+#[non_exhaustive]
 pub struct Query {
-    name: Name,
-    query_type: RecordType,
-    query_class: DNSClass,
+    /// QNAME
+    pub name: Name,
+
+    /// QTYPE
+    pub query_type: RecordType,
+
+    /// QCLASS
+    pub query_class: DNSClass,
+
+    /// mDNS unicast-response bit set or not
     #[cfg(feature = "mdns")]
-    mdns_unicast_response: bool,
+    pub mdns_unicast_response: bool,
 }
 
 impl Default for Query {
     /// Return a default query with an empty name and A, IN for the query_type and query_class
     fn default() -> Self {
         Self {
-            name: Name::new(),
+            name: Name::root(),
             query_type: RecordType::A,
             query_class: DNSClass::IN,
             #[cfg(feature = "mdns")]
@@ -119,7 +132,6 @@ impl Query {
     /// Changes mDNS unicast-response bit
     /// See [RFC 6762](https://tools.ietf.org/html/rfc6762#section-5.4)
     #[cfg(feature = "mdns")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "mdns")))]
     pub fn set_mdns_unicast_response(&mut self, flag: bool) -> &mut Self {
         self.mdns_unicast_response = flag;
         self
@@ -158,59 +170,8 @@ impl Query {
     /// Returns if the mDNS unicast-response bit is set or not
     /// See [RFC 6762](https://tools.ietf.org/html/rfc6762#section-5.4)
     #[cfg(feature = "mdns")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "mdns")))]
     pub fn mdns_unicast_response(&self) -> bool {
         self.mdns_unicast_response
-    }
-
-    /// Consumes `Query` and returns it's components
-    pub fn into_parts(self) -> QueryParts {
-        self.into()
-    }
-}
-
-/// Consumes `Query` giving public access to fields of `Query` so they can
-/// be destructured and taken by value.
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
-pub struct QueryParts {
-    /// QNAME
-    pub name: Name,
-    /// QTYPE
-    pub query_type: RecordType,
-    /// QCLASS
-    pub query_class: DNSClass,
-    /// mDNS unicast-response bit set or not
-    #[cfg(feature = "mdns")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "mdns")))]
-    pub mdns_unicast_response: bool,
-}
-
-impl From<Query> for QueryParts {
-    fn from(q: Query) -> Self {
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "mdns")] {
-                let Query {
-                    name,
-                    query_type,
-                    query_class,
-                    mdns_unicast_response,
-                } = q;
-            } else {
-                let Query {
-                    name,
-                    query_type,
-                    query_class,
-                } = q;
-            }
-        }
-
-        Self {
-            name,
-            query_type,
-            query_class,
-            #[cfg(feature = "mdns")]
-            mdns_unicast_response,
-        }
     }
 }
 
@@ -299,7 +260,7 @@ impl Display for Query {
 #[allow(clippy::needless_update)]
 fn test_read_and_emit() {
     let expect = Query {
-        name: Name::from_ascii("WWW.example.com").unwrap(),
+        name: Name::from_ascii("WWW.example.com.").unwrap(),
         query_type: RecordType::AAAA,
         query_class: DNSClass::IN,
         ..Query::default()
@@ -320,7 +281,7 @@ fn test_read_and_emit() {
 #[test]
 fn test_mdns_unicast_response_bit_handling() {
     const QCLASS_OFFSET: usize = 1 /* empty name */ +
-        std::mem::size_of::<u16>() /* query_type */;
+        core::mem::size_of::<u16>() /* query_type */;
 
     let mut query = Query::new();
     query.set_mdns_unicast_response(true);

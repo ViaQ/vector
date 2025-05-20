@@ -40,14 +40,6 @@ impl Hinter for () {
     type Hint = String;
 }
 
-impl<'r, H: ?Sized + Hinter> Hinter for &'r H {
-    type Hint = H::Hint;
-
-    fn hint(&self, line: &str, pos: usize, ctx: &Context<'_>) -> Option<Self::Hint> {
-        (**self).hint(line, pos, ctx)
-    }
-}
-
 /// Add suggestion based on previous history entries matching current user
 /// input.
 #[derive(Default)]
@@ -55,8 +47,8 @@ pub struct HistoryHinter {}
 
 impl HistoryHinter {
     /// Create a new `HistoryHinter`
-    pub fn new() -> HistoryHinter {
-        HistoryHinter::default()
+    pub fn new() -> Self {
+        Self::default()
     }
 }
 

@@ -352,6 +352,7 @@ where
             range.start,
             &input_and_params.0.slice()[..range.start],
             hasher,
+            true,
         );
     }
     let mut out_offset = 0usize;
@@ -451,6 +452,7 @@ where
             alloc_per_thread[num_threads - 1].0.unwrap_input().0,
             &mut hasher,
             &mut local_params,
+            None, // No unwrappable custom dict used here.
             &[],
             0,
             0,

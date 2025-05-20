@@ -7,23 +7,26 @@
 
 //! This module contains all the types for demuxing DNS oriented streams.
 
-use std::marker::PhantomData;
-use std::pin::Pin;
-use std::task::{Context, Poll};
+use core::future::Future;
+use core::marker::PhantomData;
+use core::pin::Pin;
+use core::task::{Context, Poll};
 
 use futures_channel::mpsc;
-use futures_util::future::{Future, FutureExt};
+use futures_util::future::FutureExt;
 use futures_util::stream::{Peekable, Stream, StreamExt};
-use tracing::{debug, warn};
+use tracing::debug;
 
 use crate::error::*;
-use crate::xfer::dns_handle::DnsHandle;
+#[cfg(feature = "std")]
+use crate::runtime::Time;
 use crate::xfer::DnsResponseReceiver;
+#[cfg(any(feature = "std", feature = "no-std-rand"))]
+use crate::xfer::dns_handle::DnsHandle;
 use crate::xfer::{
-    BufDnsRequestStreamHandle, DnsRequest, DnsRequestSender, DnsResponse, OneshotDnsRequest,
-    CHANNEL_BUFFER_SIZE,
+    BufDnsRequestStreamHandle, CHANNEL_BUFFER_SIZE, DnsRequest, DnsRequestSender, DnsResponse,
+    OneshotDnsRequest,
 };
-use crate::Time;
 
 /// This is a generic Exchange implemented over multiplexed DNS connection providers.
 ///
@@ -72,6 +75,7 @@ impl DnsExchange {
     /// Returns a future, which itself wraps a future which is awaiting connection.
     ///
     /// The connect_future should be lazy.
+    #[cfg(feature = "std")]
     pub fn connect<F, S, TE>(connect_future: F) -> DnsExchangeConnect<F, S, TE>
     where
         F: Future<Output = Result<S, ProtoError>> + 'static + Send + Unpin,
@@ -103,9 +107,9 @@ impl Clone for DnsExchange {
     }
 }
 
+#[cfg(any(feature = "std", feature = "no-std-rand"))]
 impl DnsHandle for DnsExchange {
     type Response = DnsExchangeSend;
-    type Error = ProtoError;
 
     fn send<R: Into<DnsRequest> + Unpin + Send + 'static>(&self, request: R) -> Self::Response {
         DnsExchangeSend {
@@ -212,7 +216,7 @@ where
                     match serial_response.send_response(io_stream.send_message(dns_request)) {
                         Ok(()) => (),
                         Err(_) => {
-                            warn!("failed to associate send_message response to the sender");
+                            debug!("failed to associate send_message response to the sender");
                         }
                     }
                 }
@@ -312,11 +316,11 @@ where
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         loop {
             let next;
-            match *self {
+            match &mut *self {
                 Self::Connecting {
-                    ref mut connect_future,
-                    ref mut outbound_messages,
-                    ref mut sender,
+                    connect_future,
+                    outbound_messages,
+                    sender,
                 } => {
                     let connect_future = Pin::new(connect_future);
                     match connect_future.poll(cx) {
@@ -349,8 +353,8 @@ where
                     };
                 }
                 Self::Connected {
-                    ref exchange,
-                    ref mut background,
+                    exchange,
+                    background,
                 } => {
                     let exchange = exchange.clone();
                     let background = background.take().expect("cannot poll after complete");
@@ -358,8 +362,8 @@ where
                     return Poll::Ready(Ok((exchange, background)));
                 }
                 Self::FailAll {
-                    ref error,
-                    ref mut outbound_messages,
+                    error,
+                    outbound_messages,
                 } => {
                     while let Some(outbound_message) = match outbound_messages.poll_next_unpin(cx) {
                         Poll::Ready(opt) => opt,
@@ -375,7 +379,7 @@ where
 
                     return Poll::Ready(Err(error.clone()));
                 }
-                Self::Error(ref error) => return Poll::Ready(Err(error.clone())),
+                Self::Error(error) => return Poll::Ready(Err(error.clone())),
             }
 
             *self = next;

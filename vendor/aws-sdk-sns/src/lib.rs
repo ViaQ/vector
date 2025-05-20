@@ -1,4 +1,5 @@
 #![allow(deprecated)]
+#![allow(unknown_lints)]
 #![allow(clippy::module_inception)]
 #![allow(clippy::upper_case_acronyms)]
 #![allow(clippy::large_enum_variant)]
@@ -10,8 +11,13 @@
 #![allow(clippy::needless_return)]
 #![allow(clippy::derive_partial_eq_without_eq)]
 #![allow(clippy::result_large_err)]
+#![allow(clippy::unnecessary_map_on_constructor)]
 #![allow(rustdoc::bare_urls)]
+#![allow(rustdoc::redundant_explicit_links)]
+#![allow(rustdoc::invalid_html_tags)]
+#![forbid(unsafe_code)]
 #![warn(missing_docs)]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 //! Amazon Simple Notification Service (Amazon SNS) is a web service that enables you to build distributed web-enabled applications. Applications can use Amazon SNS to easily push real-time notification messages to interested subscribers over multiple delivery protocols. For more information about this product see the [Amazon SNS product page](http://aws.amazon.com/sns/). For detailed information about Amazon SNS features and their associated API calls, see the [Amazon SNS Developer Guide](https://docs.aws.amazon.com/sns/latest/dg/).
 //!
 //! For information on the permissions you need to use this API, see [Identity and access management in Amazon SNS](https://docs.aws.amazon.com/sns/latest/dg/sns-authentication-and-access-control.html) in the _Amazon SNS Developer Guide._
@@ -29,8 +35,8 @@
 //!
 //! ```toml
 //! [dependencies]
-//! aws-config = { version = "1.0.1", features = ["behavior-version-latest"] }
-//! aws-sdk-sns = "1.3.0"
+//! aws-config = { version = "1.1.7", features = ["behavior-version-latest"] }
+//! aws-sdk-sns = "1.69.0"
 //! tokio = { version = "1", features = ["full"] }
 //! ```
 //!
@@ -115,9 +121,9 @@ pub use config::Config;
 /// # }
 /// ```
 ///
-/// Occasionally, SDKs may have additional service-specific that can be set on the [`Config`] that
+/// Occasionally, SDKs may have additional service-specific values that can be set on the [`Config`] that
 /// is absent from [`SdkConfig`], or slightly different settings for a specific client may be desired.
-/// The [`Config`] struct implements `From<&SdkConfig>`, so setting these specific settings can be
+/// The [`Builder`](crate::config::Builder) struct implements `From<&SdkConfig>`, so setting these specific settings can be
 /// done as follows:
 ///
 /// ```rust,no_run
@@ -188,13 +194,15 @@ mod auth_plugin;
 
 pub(crate) mod protocol_serde;
 
+mod sdk_feature_tracker;
+
 mod serialization_settings;
+
+mod endpoint_lib;
 
 mod lens;
 
 mod serde_util;
-
-mod endpoint_lib;
 
 mod rest_xml_wrapped_errors;
 

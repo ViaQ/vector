@@ -17,6 +17,21 @@ pub fn de_create_export_task_http_error(
 
     let _error_message = generic.message().map(|msg| msg.to_owned());
     Err(match error_code {
+        "ResourceNotFoundException" => crate::operation::create_export_task::CreateExportTaskError::ResourceNotFoundException({
+            #[allow(unused_mut)]
+            let mut tmp = {
+                #[allow(unused_mut)]
+                let mut output = crate::types::error::builders::ResourceNotFoundExceptionBuilder::default();
+                output = crate::protocol_serde::shape_resource_not_found_exception::de_resource_not_found_exception_json_err(_response_body, output)
+                    .map_err(crate::operation::create_export_task::CreateExportTaskError::unhandled)?;
+                let output = output.meta(generic);
+                output.build()
+            };
+            if tmp.message.is_none() {
+                tmp.message = _error_message;
+            }
+            tmp
+        }),
         "InvalidParameterException" => crate::operation::create_export_task::CreateExportTaskError::InvalidParameterException({
             #[allow(unused_mut)]
             let mut tmp = {
@@ -62,6 +77,22 @@ pub fn de_create_export_task_http_error(
             }
             tmp
         }),
+        "ServiceUnavailableException" => crate::operation::create_export_task::CreateExportTaskError::ServiceUnavailableException({
+            #[allow(unused_mut)]
+            let mut tmp = {
+                #[allow(unused_mut)]
+                let mut output = crate::types::error::builders::ServiceUnavailableExceptionBuilder::default();
+                output =
+                    crate::protocol_serde::shape_service_unavailable_exception::de_service_unavailable_exception_json_err(_response_body, output)
+                        .map_err(crate::operation::create_export_task::CreateExportTaskError::unhandled)?;
+                let output = output.meta(generic);
+                output.build()
+            };
+            if tmp.message.is_none() {
+                tmp.message = _error_message;
+            }
+            tmp
+        }),
         "ResourceAlreadyExistsException" => crate::operation::create_export_task::CreateExportTaskError::ResourceAlreadyExistsException({
             #[allow(unused_mut)]
             let mut tmp = {
@@ -72,37 +103,6 @@ pub fn de_create_export_task_http_error(
                     output,
                 )
                 .map_err(crate::operation::create_export_task::CreateExportTaskError::unhandled)?;
-                let output = output.meta(generic);
-                output.build()
-            };
-            if tmp.message.is_none() {
-                tmp.message = _error_message;
-            }
-            tmp
-        }),
-        "ResourceNotFoundException" => crate::operation::create_export_task::CreateExportTaskError::ResourceNotFoundException({
-            #[allow(unused_mut)]
-            let mut tmp = {
-                #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::ResourceNotFoundExceptionBuilder::default();
-                output = crate::protocol_serde::shape_resource_not_found_exception::de_resource_not_found_exception_json_err(_response_body, output)
-                    .map_err(crate::operation::create_export_task::CreateExportTaskError::unhandled)?;
-                let output = output.meta(generic);
-                output.build()
-            };
-            if tmp.message.is_none() {
-                tmp.message = _error_message;
-            }
-            tmp
-        }),
-        "ServiceUnavailableException" => crate::operation::create_export_task::CreateExportTaskError::ServiceUnavailableException({
-            #[allow(unused_mut)]
-            let mut tmp = {
-                #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::ServiceUnavailableExceptionBuilder::default();
-                output =
-                    crate::protocol_serde::shape_service_unavailable_exception::de_service_unavailable_exception_json_err(_response_body, output)
-                        .map_err(crate::operation::create_export_task::CreateExportTaskError::unhandled)?;
                 let output = output.meta(generic);
                 output.build()
             };
@@ -133,7 +133,7 @@ pub fn de_create_export_task_http_response(
 
 pub fn ser_create_export_task_input(
     input: &crate::operation::create_export_task::CreateExportTaskInput,
-) -> Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
     let mut out = String::new();
     let mut object = ::aws_smithy_json::serialize::JsonObjectWriter::new(&mut out);
     crate::protocol_serde::shape_create_export_task_input::ser_create_export_task_input_input(&mut object, input)?;
@@ -144,7 +144,10 @@ pub fn ser_create_export_task_input(
 pub(crate) fn de_create_export_task(
     value: &[u8],
     mut builder: crate::operation::create_export_task::builders::CreateExportTaskOutputBuilder,
-) -> Result<crate::operation::create_export_task::builders::CreateExportTaskOutputBuilder, ::aws_smithy_json::deserialize::error::DeserializeError> {
+) -> ::std::result::Result<
+    crate::operation::create_export_task::builders::CreateExportTaskOutputBuilder,
+    ::aws_smithy_json::deserialize::error::DeserializeError,
+> {
     let mut tokens_owned = ::aws_smithy_json::deserialize::json_token_iter(crate::protocol_serde::or_empty_doc(value)).peekable();
     let tokens = &mut tokens_owned;
     ::aws_smithy_json::deserialize::token::expect_start_object(tokens.next())?;

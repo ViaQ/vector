@@ -21,7 +21,7 @@ pub struct FromFieldImpl<'a> {
     pub from_ident: bool,
 }
 
-impl<'a> ToTokens for FromFieldImpl<'a> {
+impl ToTokens for FromFieldImpl<'_> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let input = self.param_name();
 
@@ -77,12 +77,12 @@ impl<'a> ToTokens for FromFieldImpl<'a> {
     }
 }
 
-impl<'a> ExtractAttribute for FromFieldImpl<'a> {
+impl ExtractAttribute for FromFieldImpl<'_> {
     fn attr_names(&self) -> &PathList {
         self.attr_names
     }
 
-    fn forward_attrs(&self) -> &super::ForwardAttrs {
+    fn forward_attrs(&self) -> &super::ForwardAttrs<'_> {
         &self.forward_attrs
     }
 

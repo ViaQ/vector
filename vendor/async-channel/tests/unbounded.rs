@@ -1,4 +1,4 @@
-#![allow(clippy::bool_assert_comparison)]
+#![allow(clippy::bool_assert_comparison, unused_imports)]
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread::sleep;
@@ -8,6 +8,10 @@ use async_channel::{unbounded, RecvError, SendError, TryRecvError, TrySendError}
 use easy_parallel::Parallel;
 use futures_lite::{future, prelude::*};
 
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_test::wasm_bindgen_test as test;
+
+#[cfg(not(target_family = "wasm"))]
 fn ms(ms: u64) -> Duration {
     Duration::from_millis(ms)
 }
@@ -24,6 +28,7 @@ fn smoke() {
     assert_eq!(r.try_recv(), Err(TryRecvError::Empty));
 }
 
+#[cfg(all(feature = "std", not(target_family = "wasm")))]
 #[test]
 fn smoke_blocking() {
     let (s, r) = unbounded();
@@ -77,6 +82,7 @@ fn len_empty_full() {
     assert_eq!(r.is_full(), false);
 }
 
+#[cfg(not(target_family = "wasm"))]
 #[test]
 fn try_recv() {
     let (s, r) = unbounded();
@@ -96,6 +102,7 @@ fn try_recv() {
         .run();
 }
 
+#[cfg(not(target_family = "wasm"))]
 #[test]
 fn recv() {
     let (s, r) = unbounded();
@@ -219,6 +226,7 @@ fn sender_count() {
     assert_eq!(r.receiver_count(), 1);
 }
 
+#[cfg(not(target_family = "wasm"))]
 #[test]
 fn close_wakes_receiver() {
     let (s, r) = unbounded::<()>();
@@ -234,6 +242,7 @@ fn close_wakes_receiver() {
         .run();
 }
 
+#[cfg(not(target_family = "wasm"))]
 #[test]
 fn spsc() {
     const COUNT: usize = 100_000;
@@ -255,6 +264,7 @@ fn spsc() {
         .run();
 }
 
+#[cfg(not(target_family = "wasm"))]
 #[test]
 fn mpmc() {
     const COUNT: usize = 25_000;
@@ -284,6 +294,7 @@ fn mpmc() {
     }
 }
 
+#[cfg(not(target_family = "wasm"))]
 #[test]
 fn mpmc_stream() {
     const COUNT: usize = 25_000;
@@ -295,8 +306,9 @@ fn mpmc_stream() {
 
     Parallel::new()
         .each(0..THREADS, {
-            let mut r = r.clone();
+            let r = r.clone();
             move |_| {
+                futures_lite::pin!(r);
                 for _ in 0..COUNT {
                     let n = future::block_on(r.next()).unwrap();
                     v[n].fetch_add(1, Ordering::SeqCst);
@@ -317,6 +329,7 @@ fn mpmc_stream() {
     }
 }
 
+#[cfg(all(feature = "std", not(target_family = "wasm")))]
 #[test]
 fn weak() {
     let (s, r) = unbounded::<usize>();

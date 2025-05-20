@@ -7,14 +7,14 @@
 //!
 //! The main modules are:
 //!
-//! - [`client`](crate::client) with the Kubernetes [`Client`](crate::Client) and its layers
-//! - [`config`](crate::config) for cluster [`Config`](crate::Config)
-//! - [`api`](crate::api) with the generic Kubernetes [`Api`](crate::Api)
-//! - [`derive`](kube_derive) with the [`CustomResource`](crate::CustomResource) derive for building controllers types
-//! - [`runtime`](crate::runtime) with a [`Controller`](crate::runtime::Controller) / [`watcher`](crate::runtime::watcher()) / [`reflector`](crate::runtime::reflector::reflector) / [`Store`](crate::runtime::reflector::Store)
-//! - [`core`](crate::core) with generics from `apimachinery`
+//! - [`client`] with the Kubernetes [`Client`] and its layers
+//! - [`config`] for cluster [`Config`]
+//! - [`api`] with the generic Kubernetes [`Api`]
+//! - [`derive`](kube_derive) with the [`CustomResource`] derive for building controllers types
+//! - [`runtime`] with a [`Controller`](crate::runtime::Controller) / [`watcher`](crate::runtime::watcher()) / [`reflector`](crate::runtime::reflector::reflector) / [`Store`](crate::runtime::reflector::Store)
+//! - [`core`] with generics from `apimachinery`
 //!
-//! You can use each of these as you need with the help of the [exported features](https://github.com/kube-rs/kube/blob/main/kube/Cargo.toml#L18).
+//! You can use each of these as you need with the help of the [exported features](https://kube.rs/features/).
 //!
 //! # Using the Client
 //! ```no_run
@@ -39,7 +39,7 @@
 //! For details, see:
 //!
 //! - [`Client`](crate::client) for the extensible Kubernetes client
-//! - [`Api`](crate::Api) for the generic api methods available on Kubernetes resources
+//! - [`Api`] for the generic api methods available on Kubernetes resources
 //! - [k8s-openapi](https://docs.rs/k8s-openapi/*/k8s_openapi/) for documentation about the generated Kubernetes types
 //!
 //! # Using the Runtime with the Derive macro
@@ -48,7 +48,6 @@
 //! use schemars::JsonSchema;
 //! use serde::{Deserialize, Serialize};
 //! use serde_json::json;
-//! use validator::Validate;
 //! use futures::{StreamExt, TryStreamExt};
 //! use k8s_openapi::apiextensions_apiserver::pkg::apis::apiextensions::v1::CustomResourceDefinition;
 //! use kube::{
@@ -59,11 +58,11 @@
 //! };
 //!
 //! // Our custom resource
-//! #[derive(CustomResource, Deserialize, Serialize, Clone, Debug, Validate, JsonSchema)]
+//! #[derive(CustomResource, Deserialize, Serialize, Clone, Debug, JsonSchema)]
 //! #[kube(group = "clux.dev", version = "v1", kind = "Foo", namespaced)]
 //! pub struct FooSpec {
 //!     info: String,
-//!     #[validate(length(min = 3))]
+//!     #[schemars(length(min = 3))]
 //!     name: String,
 //!     replicas: i32,
 //! }
@@ -98,15 +97,13 @@
 //!
 //! For details, see:
 //!
-//! - [`CustomResource`](crate::CustomResource) for documentation how to configure custom resources
+//! - [`CustomResource`] for documentation how to configure custom resources
 //! - [`runtime::watcher`](crate::runtime::watcher()) for how to long-running watches work and why you want to use this over [`Api::watch`](crate::Api::watch)
-//! - [`runtime`](crate::runtime) for abstractions that help with more complicated Kubernetes application
+//! - [`runtime`] for abstractions that help with more complicated Kubernetes application
 //!
 //! # Examples
 //! A large list of complete, runnable examples with explainations are available in the [examples folder](https://github.com/kube-rs/kube/tree/main/examples).
 #![cfg_attr(docsrs, feature(doc_cfg))]
-#![deny(missing_docs)]
-#![forbid(unsafe_code)]
 
 macro_rules! cfg_client {
     ($($item:item)*) => {
@@ -178,6 +175,37 @@ pub use crate::core::{CustomResourceExt, Resource, ResourceExt};
 /// Re-exports from `kube_core`
 #[doc(inline)]
 pub use kube_core as core;
+
+// Mock tests for the runtime
+#[cfg(test)]
+#[cfg(all(feature = "derive", feature = "runtime"))]
+mod mock_tests;
+
+pub mod prelude {
+    //! A "prelude" for kube client crate. Reduces the number of duplicated imports.
+    //!
+    //! This prelude is similar to the standard library's prelude in that you'll
+    //! almost always want to import its entire contents, but unlike the
+    //! standard library's prelude you'll have to do so manually:
+    //!
+    //! ```
+    //! use kube::prelude::*;
+    //! ```
+    //!
+    //! The prelude may grow over time as additional items see ubiquitous use.
+
+    #[cfg(feature = "client")]
+    #[allow(unreachable_pub)]
+    pub use crate::client::ConfigExt as _;
+
+    #[cfg(feature = "unstable-client")] pub use crate::client::scope::NamespacedRef;
+
+    #[allow(unreachable_pub)] pub use crate::core::PartialObjectMetaExt as _;
+    #[allow(unreachable_pub)] pub use crate::core::SelectorExt as _;
+    pub use crate::{core::crd::CustomResourceExt as _, Resource as _, ResourceExt as _};
+
+    #[cfg(feature = "runtime")] pub use crate::runtime::utils::WatchStreamExt as _;
+}
 
 // Tests that require a cluster and the complete feature set
 // Can be run with `cargo test -p kube --lib --features=runtime,derive -- --ignored`
@@ -357,7 +385,7 @@ mod test {
 
     #[tokio::test]
     #[ignore = "needs cluster (fetches api resources, and lists all)"]
-    #[cfg(all(feature = "derive"))]
+    #[cfg(feature = "derive")]
     async fn derived_resources_discoverable() -> Result<(), Box<dyn std::error::Error>> {
         use crate::{
             core::{DynamicObject, GroupVersion, GroupVersionKind},
@@ -433,7 +461,7 @@ mod test {
 
     #[tokio::test]
     #[ignore = "needs cluster (will create await a pod)"]
-    #[cfg(all(feature = "runtime"))]
+    #[cfg(feature = "runtime")]
     async fn pod_can_await_conditions() -> Result<(), Box<dyn std::error::Error>> {
         use crate::{
             api::{DeleteParams, PostParams},

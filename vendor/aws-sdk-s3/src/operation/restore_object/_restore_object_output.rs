@@ -3,7 +3,7 @@
 #[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::fmt::Debug)]
 pub struct RestoreObjectOutput {
-    /// <p>If present, indicates that the requester was successfully charged for the request.</p> <note>
+    /// <p>If present, indicates that the requester was successfully charged for the request.</p><note>
     /// <p>This functionality is not supported for directory buckets.</p>
     /// </note>
     pub request_charged: ::std::option::Option<crate::types::RequestCharged>,
@@ -13,7 +13,7 @@ pub struct RestoreObjectOutput {
     _request_id: Option<String>,
 }
 impl RestoreObjectOutput {
-    /// <p>If present, indicates that the requester was successfully charged for the request.</p> <note>
+    /// <p>If present, indicates that the requester was successfully charged for the request.</p><note>
     /// <p>This functionality is not supported for directory buckets.</p>
     /// </note>
     pub fn request_charged(&self) -> ::std::option::Option<&crate::types::RequestCharged> {
@@ -42,8 +42,8 @@ impl RestoreObjectOutput {
 }
 
 /// A builder for [`RestoreObjectOutput`](crate::operation::restore_object::RestoreObjectOutput).
-#[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::default::Default, ::std::fmt::Debug)]
+#[non_exhaustive]
 pub struct RestoreObjectOutputBuilder {
     pub(crate) request_charged: ::std::option::Option<crate::types::RequestCharged>,
     pub(crate) restore_output_path: ::std::option::Option<::std::string::String>,
@@ -51,21 +51,21 @@ pub struct RestoreObjectOutputBuilder {
     _request_id: Option<String>,
 }
 impl RestoreObjectOutputBuilder {
-    /// <p>If present, indicates that the requester was successfully charged for the request.</p> <note>
+    /// <p>If present, indicates that the requester was successfully charged for the request.</p><note>
     /// <p>This functionality is not supported for directory buckets.</p>
     /// </note>
     pub fn request_charged(mut self, input: crate::types::RequestCharged) -> Self {
         self.request_charged = ::std::option::Option::Some(input);
         self
     }
-    /// <p>If present, indicates that the requester was successfully charged for the request.</p> <note>
+    /// <p>If present, indicates that the requester was successfully charged for the request.</p><note>
     /// <p>This functionality is not supported for directory buckets.</p>
     /// </note>
     pub fn set_request_charged(mut self, input: ::std::option::Option<crate::types::RequestCharged>) -> Self {
         self.request_charged = input;
         self
     }
-    /// <p>If present, indicates that the requester was successfully charged for the request.</p> <note>
+    /// <p>If present, indicates that the requester was successfully charged for the request.</p><note>
     /// <p>This functionality is not supported for directory buckets.</p>
     /// </note>
     pub fn get_request_charged(&self) -> &::std::option::Option<crate::types::RequestCharged> {

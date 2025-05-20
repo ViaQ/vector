@@ -4,24 +4,22 @@ use crate::grammar::parse_tree::*;
 use crate::grammar::pattern::*;
 use crate::tok;
 
-#[cfg(not(feature = "test"))]
 #[rustfmt::skip]
 #[allow(dead_code)]
 #[allow(clippy::all)]
 mod lrgrammar;
 
-#[cfg(feature = "test")]
-lalrpop_mod!(
-    #[rustfmt::skip]
-    #[allow(dead_code)]
-    #[allow(clippy::all)]
-    lrgrammar,
-    "/src/parser/lrgrammar.rs"
-);
 
 #[cfg(test)]
 mod test;
 
+// The TypeRef and GrammarWhereClauses variants have data that is only read under cfg(test) (the
+// parse_type_ref() and parse_where_clauses() functions lower in this file).  Those functions use
+// the parser!() macro, which expects all variants to have a single data field.  They are set in
+// the parser.  So to have those fields only in the test configuration requires changes at multiple
+// code points across several files to define both a cfg(test) variant and a cfg(not(test))
+// variant, reducing readability.
+#[allow(dead_code)]
 pub enum Top {
     Grammar(Grammar),
     Pattern(Pattern<TypeRef>),

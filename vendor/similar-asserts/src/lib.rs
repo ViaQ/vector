@@ -61,6 +61,12 @@
 //! all truncation, otherwise it sets the maximum number of characters before truncation
 //! kicks in.
 //!
+//! # Context Size
+//!
+//! Diffs displayed by assertions have a default context size of 4 (show up to 4 lines above and
+//! below changes).   This can be changed with the `SIMILAR_ASSERTS_CONTEXT_SIZE` environment
+//! variable.
+//!
 //! # Manual Diff Printing
 //!
 //! If you want to build your own comparison macros and you need a quick and simple
@@ -72,6 +78,7 @@
 //! ```
 use std::borrow::Cow;
 use std::fmt::{self, Display};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 
 use console::{style, Style};
@@ -87,17 +94,27 @@ pub mod print;
 
 /// The maximum number of characters a string can be long before truncating.
 fn get_max_string_length() -> usize {
-    use std::sync::atomic::{AtomicUsize, Ordering};
     static TRUNCATE: AtomicUsize = AtomicUsize::new(!0);
-    let rv = TRUNCATE.load(Ordering::Relaxed);
+    get_usize_from_env(&TRUNCATE, "SIMILAR_ASSERTS_MAX_STRING_LENGTH", 200)
+}
+
+/// The context size for diff groups.
+fn get_context_size() -> usize {
+    static CONTEXT_SIZE: AtomicUsize = AtomicUsize::new(!0);
+    get_usize_from_env(&CONTEXT_SIZE, "SIMILAR_ASSERTS_CONTEXT_SIZE", 4)
+}
+
+/// Parse a `usize` value from an environment variable, cached in a static atomic.
+fn get_usize_from_env(value: &'static AtomicUsize, var: &str, default: usize) -> usize {
+    let rv = value.load(Ordering::Relaxed);
     if rv != !0 {
         return rv;
     }
-    let rv: usize = std::env::var("SIMILAR_ASSERTS_MAX_STRING_LENGTH")
+    let rv: usize = std::env::var(var)
         .ok()
         .and_then(|x| x.parse().ok())
-        .unwrap_or(200);
-    TRUNCATE.store(rv, Ordering::Relaxed);
+        .unwrap_or(default);
+    value.store(rv, Ordering::Relaxed);
     rv
 }
 
@@ -222,7 +239,7 @@ fn truncate_str(s: &str, chars: usize) -> (&str, bool) {
 
 struct DebugStrTruncated<'s>(&'s str, bool);
 
-impl<'s> fmt::Debug for DebugStrTruncated<'s> {
+impl fmt::Debug for DebugStrTruncated<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if self.1 {
             let s = format!("{}...", self.0);
@@ -289,7 +306,7 @@ fn newlines_matter(left: &str, right: &str) -> bool {
     }
 }
 
-impl<'a> fmt::Display for SimpleDiff<'a> {
+impl fmt::Display for SimpleDiff<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let left = self.left();
         let right = self.right();
@@ -318,7 +335,7 @@ impl<'a> fmt::Display for SimpleDiff<'a> {
             style("+").green().dim(),
             style(self.right_label).green(),
         )?;
-        for (idx, group) in diff.grouped_ops(4).into_iter().enumerate() {
+        for (idx, group) in diff.grouped_ops(get_context_size()).into_iter().enumerate() {
             if idx > 0 {
                 writeln!(f, "@ {}", style("~~~").dim())?;
             }

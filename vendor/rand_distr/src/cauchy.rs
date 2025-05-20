@@ -7,20 +7,37 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-//! The Cauchy distribution.
+//! The Cauchy distribution `Cauchy(x₀, γ)`.
 
-use num_traits::{Float, FloatConst};
-use crate::{Distribution, Standard};
-use rand::Rng;
+use crate::{Distribution, StandardUniform};
 use core::fmt;
+use num_traits::{Float, FloatConst};
+use rand::Rng;
 
-/// The Cauchy distribution `Cauchy(median, scale)`.
+/// The [Cauchy distribution](https://en.wikipedia.org/wiki/Cauchy_distribution) `Cauchy(x₀, γ)`.
 ///
-/// This distribution has a density function:
-/// `f(x) = 1 / (pi * scale * (1 + ((x - median) / scale)^2))`
+/// The Cauchy distribution is a continuous probability distribution with
+/// parameters `x₀` (median) and `γ` (scale).
+/// It describes the distribution of the ratio of two independent
+/// normally distributed random variables with means `x₀` and scales `γ`.
+/// In other words, if `X` and `Y` are independent normally distributed
+/// random variables with means `x₀` and scales `γ`, respectively, then
+/// `X / Y` is `Cauchy(x₀, γ)` distributed.
 ///
-/// Note that at least for `f32`, results are not fully portable due to minor
-/// differences in the target system's *tan* implementation, `tanf`.
+/// # Density function
+///
+/// `f(x) = 1 / (π * γ * (1 + ((x - x₀) / γ)²))`
+///
+/// # Plot
+///
+/// The plot illustrates the Cauchy distribution with various values of `x₀` and `γ`.
+/// Note how the median parameter `x₀` shifts the distribution along the x-axis,
+/// and how the scale `γ` changes the density around the median.
+///
+/// The standard Cauchy distribution is the special case with `x₀ = 0` and `γ = 1`,
+/// which corresponds to the ratio of two [`StandardNormal`](crate::StandardNormal) distributions.
+///
+/// ![Cauchy distribution](https://raw.githubusercontent.com/rust-random/charts/main/charts/cauchy.svg)
 ///
 /// # Example
 ///
@@ -28,19 +45,26 @@ use core::fmt;
 /// use rand_distr::{Cauchy, Distribution};
 ///
 /// let cau = Cauchy::new(2.0, 5.0).unwrap();
-/// let v = cau.sample(&mut rand::thread_rng());
+/// let v = cau.sample(&mut rand::rng());
 /// println!("{} is from a Cauchy(2, 5) distribution", v);
 /// ```
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "serde1", derive(serde::Serialize, serde::Deserialize))]
+///
+/// # Notes
+///
+/// Note that at least for `f32`, results are not fully portable due to minor
+/// differences in the target system's *tan* implementation, `tanf`.
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Cauchy<F>
-where F: Float + FloatConst, Standard: Distribution<F>
+where
+    F: Float + FloatConst,
+    StandardUniform: Distribution<F>,
 {
     median: F,
     scale: F,
 }
 
-/// Error type returned from `Cauchy::new`.
+/// Error type returned from [`Cauchy::new`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
     /// `scale <= 0` or `nan`.
@@ -56,11 +80,12 @@ impl fmt::Display for Error {
 }
 
 #[cfg(feature = "std")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "std")))]
 impl std::error::Error for Error {}
 
 impl<F> Cauchy<F>
-where F: Float + FloatConst, Standard: Distribution<F>
+where
+    F: Float + FloatConst,
+    StandardUniform: Distribution<F>,
 {
     /// Construct a new `Cauchy` with the given shape parameters
     /// `median` the peak location and `scale` the scale factor.
@@ -73,11 +98,13 @@ where F: Float + FloatConst, Standard: Distribution<F>
 }
 
 impl<F> Distribution<F> for Cauchy<F>
-where F: Float + FloatConst, Standard: Distribution<F>
+where
+    F: Float + FloatConst,
+    StandardUniform: Distribution<F>,
 {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> F {
         // sample from [0, 1)
-        let x = Standard.sample(rng);
+        let x = StandardUniform.sample(rng);
         // get standard cauchy random number
         // note that π/2 is not exactly representable, even if x=0.5 the result is finite
         let comp_dev = (F::PI() * x).tan();
@@ -137,23 +164,28 @@ mod test {
 
     #[test]
     fn value_stability() {
-        fn gen_samples<F: Float + FloatConst + core::fmt::Debug>(m: F, s: F, buf: &mut [F])
-        where Standard: Distribution<F> {
+        fn gen_samples<F: Float + FloatConst + fmt::Debug>(m: F, s: F, buf: &mut [F])
+        where
+            StandardUniform: Distribution<F>,
+        {
             let distr = Cauchy::new(m, s).unwrap();
             let mut rng = crate::test::rng(353);
             for x in buf {
-                *x = rng.sample(&distr);
+                *x = rng.sample(distr);
             }
         }
 
         let mut buf = [0.0; 4];
         gen_samples(100f64, 10.0, &mut buf);
-        assert_eq!(&buf, &[
-            77.93369152808678,
-            90.1606912098641,
-            125.31516221323625,
-            86.10217834773925
-        ]);
+        assert_eq!(
+            &buf,
+            &[
+                77.93369152808678,
+                90.1606912098641,
+                125.31516221323625,
+                86.10217834773925
+            ]
+        );
 
         // Unfortunately this test is not fully portable due to reliance on the
         // system's implementation of tanf (see doc on Cauchy struct).
@@ -163,5 +195,10 @@ mod test {
         for (a, b) in buf.iter().zip(expected.iter()) {
             assert_almost_eq!(*a, *b, 1e-5);
         }
+    }
+
+    #[test]
+    fn cauchy_distributions_can_be_compared() {
+        assert_eq!(Cauchy::new(1.0, 2.0), Cauchy::new(1.0, 2.0));
     }
 }

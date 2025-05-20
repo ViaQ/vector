@@ -12,10 +12,10 @@ use crate::{
     args::{self, RenameRuleExt, RenameTarget, Resolvability, TypeDirectiveLocation},
     output_type::OutputType,
     utils::{
-        extract_input_args, gen_deprecation, gen_directive_calls, generate_default,
-        generate_guards, get_cfg_attrs, get_crate_name, get_rustdoc, get_type_path_and_name,
-        parse_complexity_expr, parse_graphql_attrs, remove_graphql_attrs, visible_fn,
-        GeneratorResult,
+        extract_input_args, gen_boxed_trait, gen_deprecation, gen_directive_calls,
+        generate_default, generate_guards, get_cfg_attrs, get_crate_name, get_rustdoc,
+        get_type_path_and_name, parse_complexity_expr, parse_graphql_attrs, remove_graphql_attrs,
+        visible_fn, GeneratorResult,
     },
     validators::Validators,
 };
@@ -25,6 +25,7 @@ pub fn generate(
     item_impl: &mut ItemImpl,
 ) -> GeneratorResult<TokenStream> {
     let crate_name = get_crate_name(object_args.internal);
+    let boxed_trait = gen_boxed_trait(&crate_name);
     let (self_ty, self_name) = get_type_path_and_name(item_impl.self_ty.as_ref())?;
     let (impl_generics, _, where_clause) = item_impl.generics.split_for_impl();
     let extends = object_args.extends;
@@ -164,7 +165,7 @@ pub fn generate(
                 let cfg_attrs = get_cfg_attrs(&method.attrs);
 
                 if method.sig.asyncness.is_none() {
-                    return Err(Error::new_spanned(&method, "Must be asynchronous").into());
+                    return Err(Error::new_spanned(method, "Must be asynchronous").into());
                 }
 
                 let args = extract_input_args::<args::Argument>(&crate_name, method)?;
@@ -282,7 +283,7 @@ pub fn generate(
                 ));
             } else if !method_args.skip {
                 if method.sig.asyncness.is_none() {
-                    return Err(Error::new_spanned(&method, "Must be asynchronous").into());
+                    return Err(Error::new_spanned(method, "Must be asynchronous").into());
                 }
                 let cfg_attrs = get_cfg_attrs(&method.attrs);
 
@@ -400,6 +401,7 @@ pub fn generate(
                         inaccessible,
                         tags,
                         directives,
+                        deprecation,
                         ..
                     },
                 ) in &args
@@ -430,14 +432,16 @@ pub fn generate(
                         .iter()
                         .map(|tag| quote!(::std::string::ToString::to_string(#tag)))
                         .collect::<Vec<_>>();
+                    let deprecation = gen_deprecation(deprecation, &crate_name);
                     let directives =
-                        gen_directive_calls(&directives, TypeDirectiveLocation::ArgumentDefinition);
+                        gen_directive_calls(directives, TypeDirectiveLocation::ArgumentDefinition);
 
                     schema_args.push(quote! {
                             args.insert(::std::borrow::ToOwned::to_owned(#name), #crate_name::registry::MetaInputValue {
                                 name: ::std::string::ToString::to_string(#name),
                                 description: #desc,
                                 ty: <#ty as #crate_name::InputType>::create_type_info(registry),
+                                deprecation: #deprecation,
                                 default_value: #schema_default,
                                 visible: #visible,
                                 inaccessible: #inaccessible,
@@ -647,6 +651,7 @@ pub fn generate(
 
                 #[allow(clippy::all, clippy::pedantic, clippy::suspicious_else_formatting)]
                 #[allow(unused_braces, unused_variables, unused_parens, unused_mut)]
+                #boxed_trait
                 impl #impl_generics #crate_name::resolver_utils::ContainerType for #self_ty #where_clause {
                     async fn resolve_field(&self, ctx: &#crate_name::Context<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::Value>> {
                         #resolve_field_resolver_match
@@ -672,6 +677,7 @@ pub fn generate(
                 }
 
                 #[allow(clippy::all, clippy::pedantic)]
+                #boxed_trait
                 impl #impl_generics #crate_name::OutputType for #self_ty #where_clause {
                     fn type_name() -> ::std::borrow::Cow<'static, ::std::primitive::str> {
                         #gql_typename
@@ -802,6 +808,7 @@ pub fn generate(
             };
 
             codes.push(quote! {
+                #boxed_trait
                 impl #def_bounds #crate_name::resolver_utils::ContainerType for #concrete_type {
                     async fn resolve_field(&self, ctx: &#crate_name::Context<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::Value>> {
                         self.__internal_resolve_field(ctx).await
@@ -812,6 +819,7 @@ pub fn generate(
                     }
                 }
 
+                #boxed_trait
                 impl #def_bounds #crate_name::OutputType for #concrete_type {
                     fn type_name() -> ::std::borrow::Cow<'static, ::std::primitive::str> {
                         ::std::borrow::Cow::Borrowed(#gql_typename)
@@ -887,8 +895,8 @@ fn generate_fields_enum(
         }
 
         impl __FieldIdent {
-            fn from_name(name: &#crate_name::Name) -> ::std::option::Option<__FieldIdent> {
-                match name.as_str() {
+            fn from_name(__name: &#crate_name::Name) -> ::std::option::Option<__FieldIdent> {
+                match __name.as_str() {
                     #(#matches)*
                     _ => ::std::option::Option::None
                 }

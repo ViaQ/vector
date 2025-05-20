@@ -3,7 +3,7 @@ pub use crate::operation::list_streams::_list_streams_output::ListStreamsOutputB
 
 pub use crate::operation::list_streams::_list_streams_input::ListStreamsInputBuilder;
 
-impl ListStreamsInputBuilder {
+impl crate::operation::list_streams::builders::ListStreamsInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -24,8 +24,8 @@ impl ListStreamsInputBuilder {
 ///
 /// <p>Lists your Kinesis data streams.</p>
 /// <p>The number of streams may be too large to return from a single call to <code>ListStreams</code>. You can limit the number of returned streams using the <code>Limit</code> parameter. If you do not specify a value for the <code>Limit</code> parameter, Kinesis Data Streams uses the default limit, which is currently 100.</p>
-/// <p>You can detect if there are more streams available to list by using the <code>HasMoreStreams</code> flag from the returned output. If there are more streams available, you can request more streams by using the name of the last stream returned by the <code>ListStreams</code> request in the <code>ExclusiveStartStreamName</code> parameter in a subsequent request to <code>ListStreams</code>. The group of stream names returned by the subsequent request is then added to the list. You can continue this process until all the stream names have been collected in the list. </p>
-/// <p> <code>ListStreams</code> has a limit of five transactions per second per account.</p>
+/// <p>You can detect if there are more streams available to list by using the <code>HasMoreStreams</code> flag from the returned output. If there are more streams available, you can request more streams by using the name of the last stream returned by the <code>ListStreams</code> request in the <code>ExclusiveStartStreamName</code> parameter in a subsequent request to <code>ListStreams</code>. The group of stream names returned by the subsequent request is then added to the list. You can continue this process until all the stream names have been collected in the list.</p>
+/// <p><code>ListStreams</code> has a limit of five transactions per second per account.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct ListStreamsFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -51,7 +51,7 @@ impl
     }
 }
 impl ListStreamsFluentBuilder {
-    /// Creates a new `ListStreams`.
+    /// Creates a new `ListStreamsFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -102,12 +102,12 @@ impl ListStreamsFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

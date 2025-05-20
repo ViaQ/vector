@@ -13,8 +13,14 @@
 edition = "2021"
 rust-version = "1.62"
 name = "inventory"
-version = "0.3.15"
+version = "0.3.20"
 authors = ["David Tolnay <dtolnay@gmail.com>"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Typed distributed plugin registration"
 documentation = "https://docs.rs/inventory"
 readme = "README.md"
@@ -29,11 +35,29 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/dtolnay/inventory"
 
 [package.metadata.docs.rs]
-rustdoc-args = ["--generate-link-to-definition"]
+rustdoc-args = [
+    "--generate-link-to-definition",
+    "--extern-html-root-url=core=https://doc.rust-lang.org",
+    "--extern-html-root-url=alloc=https://doc.rust-lang.org",
+    "--extern-html-root-url=std=https://doc.rust-lang.org",
+]
 targets = ["x86_64-unknown-linux-gnu"]
 
 [lib]
-doc-scrape-examples = false
+name = "inventory"
+path = "src/lib.rs"
+
+[[example]]
+name = "flags"
+path = "examples/flags.rs"
+
+[[test]]
+name = "compiletest"
+path = "tests/compiletest.rs"
+
+[[test]]
+name = "test"
+path = "tests/test.rs"
 
 [dev-dependencies.rustversion]
 version = "1.0"
@@ -41,3 +65,6 @@ version = "1.0"
 [dev-dependencies.trybuild]
 version = "1.0.89"
 features = ["diff"]
+
+[target.'cfg(target_family = "wasm")'.dependencies.rustversion]
+version = "1.0"

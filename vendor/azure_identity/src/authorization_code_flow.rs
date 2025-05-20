@@ -3,12 +3,13 @@
 //! You can learn more about the `OAuth2` authorization code flow [here](https://docs.microsoft.com/azure/active-directory/develop/v2-oauth2-auth-code-flow).
 
 use crate::oauth2_http_client::Oauth2HttpClient;
-use azure_core::error::{ErrorKind, ResultExt};
-use azure_core::HttpClient;
-use oauth2::basic::BasicClient;
+use azure_core::{
+    error::{ErrorKind, ResultExt},
+    HttpClient, Url,
+};
+use oauth2::{basic::BasicClient, Scope};
 use oauth2::{ClientId, ClientSecret};
 use std::sync::Arc;
-use url::Url;
 
 /// Start an authorization code flow.
 ///
@@ -19,7 +20,7 @@ pub fn start(
     client_secret: Option<ClientSecret>,
     tenant_id: &str,
     redirect_url: Url,
-    resource: &str,
+    scopes: &[&str],
 ) -> AuthorizationCodeFlow {
     let auth_url = oauth2::AuthUrl::from_url(
         Url::parse(&format!(
@@ -45,10 +46,12 @@ pub fn start(
     // Create a PKCE code verifier and SHA-256 encode it as a code challenge.
     let (pkce_code_challenge, pkce_code_verifier) = oauth2::PkceCodeChallenge::new_random_sha256();
 
+    let scopes = scopes.iter().map(ToString::to_string).map(Scope::new);
+
     // Generate the authorization URL to which we'll redirect the user.
     let (authorize_url, csrf_state) = client
         .authorize_url(oauth2::CsrfToken::new_random)
-        .add_extra_param("scope", resource)
+        .add_scopes(scopes)
         .set_pkce_challenge(pkce_code_challenge)
         .url();
 

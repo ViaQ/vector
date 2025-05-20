@@ -7,7 +7,7 @@
 //!
 //! The functions in this module also fail early: errors are checked on-the-fly as the string is processed and once
 //! an invalid UTF-8 sequence is encountered, it returns without processing the rest of the data.
-//! This comes at a slight performance penality compared to the [`crate::basic`] module if the input is valid UTF-8.
+//! This comes at a slight performance penalty compared to the [`crate::basic`] module if the input is valid UTF-8.
 
 use core::fmt::Display;
 use core::fmt::Formatter;
@@ -32,7 +32,6 @@ impl Utf8Error {
     /// ...
     #[inline]
     #[must_use]
-    #[allow(clippy::missing_const_for_fn)] // would not provide any benefit
     pub fn valid_up_to(&self) -> usize {
         self.valid_up_to
     }
@@ -68,7 +67,7 @@ impl Display for Utf8Error {
 #[cfg(feature = "std")]
 impl std::error::Error for Utf8Error {}
 
-/// Analogue to [`std::str::from_utf8_mut()`].
+/// Analogue to [`std::str::from_utf8()`].
 ///
 /// Checks if the passed byte sequence is valid UTF-8 and returns an
 /// [`std::str`] reference to the passed byte slice wrapped in `Ok()` if it is.
@@ -104,7 +103,7 @@ pub fn from_utf8_mut(input: &mut [u8]) -> Result<&mut str, Utf8Error> {
 #[cfg(feature = "public_imp")]
 pub mod imp {
     /// Includes the x86/x86-64 SIMD implementations.
-    #[cfg(all(any(target_arch = "x86", target_arch = "x86_64")))]
+    #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     pub mod x86 {
         /// Includes the validation implementation for AVX 2-compatible CPUs.
         pub mod avx2 {

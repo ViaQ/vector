@@ -7,7 +7,7 @@ use aws_credential_types::provider::SharedCredentialsProvider;
 use aws_sdk_s3::primitives::ByteStream;
 use aws_sdk_s3::Config;
 use aws_sdk_s3::{config::Credentials, config::Region, Client};
-use aws_smithy_runtime::client::http::test_util::capture_request;
+use aws_smithy_http_client::test_util::capture_request;
 
 #[tokio::test]
 async fn test_operation_should_not_normalize_uri_path() {
@@ -34,18 +34,7 @@ async fn test_operation_should_not_normalize_uri_path() {
         .unwrap();
 
     let request = rx.expect_request();
-    let actual_auth =
-        std::str::from_utf8(request.headers().get("authorization").unwrap().as_bytes()).unwrap();
-
     let actual_uri = request.uri();
     let expected_uri = "https://test-bucket-ad7c9f01-7f7b-4669-b550-75cc6d4df0f1.s3.us-east-1.amazonaws.com/a/.././b.txt?x-id=PutObject";
-    assert_eq!(actual_uri, expected_uri);
-
-    let expected_sig = "Signature=404fb9502378c8f46fb83544848c42d29d55610a14b4bed9577542e49e549d08";
-    assert!(
-        actual_auth.contains(expected_sig),
-        "authorization header signature did not match expected signature: expected {} but not found in {}",
-        expected_sig,
-        actual_auth,
-    );
+    assert_eq!(expected_uri, actual_uri);
 }

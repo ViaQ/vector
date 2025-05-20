@@ -1,4 +1,7 @@
-use crate::service::operations::*;
+use crate::{
+    clients::{BlobClient, BlobLeaseClient, ContainerClient, ContainerLeaseClient},
+    service::operations::*,
+};
 use azure_core::{
     headers::Headers, request_options::LeaseId, Body, ClientOptions, Context, Method, Pipeline,
     Request, Response, Url,
@@ -10,8 +13,6 @@ use azure_storage::{
     CloudLocation, StorageCredentials,
 };
 use time::OffsetDateTime;
-
-use super::{BlobClient, BlobLeaseClient, ContainerClient, ContainerLeaseClient};
 
 /// A builder for the blob service client.
 #[derive(Debug, Clone)]
@@ -177,6 +178,10 @@ impl BlobServiceClient {
         ClientBuilder::new(account, credentials)
     }
 
+    pub fn account(&self) -> &str {
+        self.cloud_location.account()
+    }
+
     /// Get information about the blob storage account
     pub fn get_account_information(&self) -> GetAccountInformationBuilder {
         GetAccountInformationBuilder::new(self.clone())
@@ -192,7 +197,11 @@ impl BlobServiceClient {
         ListContainersBuilder::new(self.clone())
     }
 
-    pub fn url(&self) -> azure_core::Result<url::Url> {
+    pub fn get_properties(&self) -> GetBlobServicePropertiesBuilder {
+        GetBlobServicePropertiesBuilder::new(self.clone())
+    }
+
+    pub fn url(&self) -> azure_core::Result<Url> {
         self.cloud_location.url(ServiceType::Blob)
     }
 
@@ -224,6 +233,13 @@ impl BlobServiceClient {
         .await
     }
 
+    pub async fn update_credentials(
+        &self,
+        new_credentials: StorageCredentials,
+    ) -> azure_core::Result<()> {
+        self.credentials.replace(new_credentials).await
+    }
+
     pub(crate) fn credentials(&self) -> &StorageCredentials {
         &self.credentials
     }
@@ -245,5 +261,36 @@ impl BlobServiceClient {
         self.pipeline
             .send(context.insert(ServiceType::Blob), request)
             .await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use azure_storage::StorageCredentialsInner;
+    use std::ops::Deref;
+
+    #[tokio::test]
+    async fn update_credentials() -> azure_core::Result<()> {
+        let account = "test";
+
+        let keyed = StorageCredentials::access_key(account, "test");
+        let anonymous = StorageCredentials::anonymous();
+
+        let service_client = BlobServiceClient::new(account, keyed);
+        let container_client = service_client.container_client("test");
+        let blob_client = container_client.blob_client("test");
+
+        service_client.update_credentials(anonymous).await?;
+
+        // check that the update occurred
+        let credentials = blob_client.container_client().credentials();
+        let locked = credentials.0.read().await;
+        assert!(matches!(
+            locked.deref(),
+            &StorageCredentialsInner::Anonymous
+        ));
+
+        Ok(())
     }
 }

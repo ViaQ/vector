@@ -24,6 +24,21 @@ pub fn de_get_data_protection_policy_http_error(
 
     let _error_message = generic.message().map(|msg| msg.to_owned());
     Err(match error_code {
+        "ResourceNotFoundException" => crate::operation::get_data_protection_policy::GetDataProtectionPolicyError::ResourceNotFoundException({
+            #[allow(unused_mut)]
+            let mut tmp = {
+                #[allow(unused_mut)]
+                let mut output = crate::types::error::builders::ResourceNotFoundExceptionBuilder::default();
+                output = crate::protocol_serde::shape_resource_not_found_exception::de_resource_not_found_exception_json_err(_response_body, output)
+                    .map_err(crate::operation::get_data_protection_policy::GetDataProtectionPolicyError::unhandled)?;
+                let output = output.meta(generic);
+                output.build()
+            };
+            if tmp.message.is_none() {
+                tmp.message = _error_message;
+            }
+            tmp
+        }),
         "InvalidParameterException" => crate::operation::get_data_protection_policy::GetDataProtectionPolicyError::InvalidParameterException({
             #[allow(unused_mut)]
             let mut tmp = {
@@ -45,21 +60,6 @@ pub fn de_get_data_protection_policy_http_error(
                 #[allow(unused_mut)]
                 let mut output = crate::types::error::builders::OperationAbortedExceptionBuilder::default();
                 output = crate::protocol_serde::shape_operation_aborted_exception::de_operation_aborted_exception_json_err(_response_body, output)
-                    .map_err(crate::operation::get_data_protection_policy::GetDataProtectionPolicyError::unhandled)?;
-                let output = output.meta(generic);
-                output.build()
-            };
-            if tmp.message.is_none() {
-                tmp.message = _error_message;
-            }
-            tmp
-        }),
-        "ResourceNotFoundException" => crate::operation::get_data_protection_policy::GetDataProtectionPolicyError::ResourceNotFoundException({
-            #[allow(unused_mut)]
-            let mut tmp = {
-                #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::ResourceNotFoundExceptionBuilder::default();
-                output = crate::protocol_serde::shape_resource_not_found_exception::de_resource_not_found_exception_json_err(_response_body, output)
                     .map_err(crate::operation::get_data_protection_policy::GetDataProtectionPolicyError::unhandled)?;
                 let output = output.meta(generic);
                 output.build()
@@ -110,7 +110,7 @@ pub fn de_get_data_protection_policy_http_response(
 
 pub fn ser_get_data_protection_policy_input(
     input: &crate::operation::get_data_protection_policy::GetDataProtectionPolicyInput,
-) -> Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
     let mut out = String::new();
     let mut object = ::aws_smithy_json::serialize::JsonObjectWriter::new(&mut out);
     crate::protocol_serde::shape_get_data_protection_policy_input::ser_get_data_protection_policy_input_input(&mut object, input)?;
@@ -121,7 +121,7 @@ pub fn ser_get_data_protection_policy_input(
 pub(crate) fn de_get_data_protection_policy(
     value: &[u8],
     mut builder: crate::operation::get_data_protection_policy::builders::GetDataProtectionPolicyOutputBuilder,
-) -> Result<
+) -> ::std::result::Result<
     crate::operation::get_data_protection_policy::builders::GetDataProtectionPolicyOutputBuilder,
     ::aws_smithy_json::deserialize::error::DeserializeError,
 > {

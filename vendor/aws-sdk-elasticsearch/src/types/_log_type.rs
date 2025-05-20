@@ -37,6 +37,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 /// <p>Type of Log File, it can be one of the following:
 /// <ul>
 /// <li>INDEX_SLOW_LOGS: Index slow logs contain insert requests that took more time than configured index query log threshold to execute.</li>
@@ -110,6 +111,17 @@ impl LogType {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for LogType {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            LogType::AuditLogs => write!(f, "AUDIT_LOGS"),
+            LogType::EsApplicationLogs => write!(f, "ES_APPLICATION_LOGS"),
+            LogType::IndexSlowLogs => write!(f, "INDEX_SLOW_LOGS"),
+            LogType::SearchSlowLogs => write!(f, "SEARCH_SLOW_LOGS"),
+            LogType::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

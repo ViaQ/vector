@@ -1,8 +1,10 @@
-use core::cmp::Ordering;
-use std::net::{
-	IpAddr,
-	Ipv4Addr,
-	Ipv6Addr,
+use core::{
+	cmp::Ordering,
+	net::{
+		IpAddr,
+		Ipv4Addr,
+		Ipv6Addr,
+	},
 };
 
 use crate::{
@@ -300,35 +302,35 @@ fn parse_v4_33bit_2() {
 #[test]
 fn test_v4_representations_32bit() {
 	assert_eq!(
-		format!("{}", "127.0.0.1".parse::<Ipv4Cidr>().unwrap()),
+		format_cidr_fixed!("{}", "127.0.0.1".parse::<Ipv4Cidr>().unwrap()),
 		"127.0.0.1"
 	);
 	assert_eq!(
-		format!("{:#}", "127.0.0.1".parse::<Ipv4Cidr>().unwrap()),
+		format_cidr_fixed!("{:#}", "127.0.0.1".parse::<Ipv4Cidr>().unwrap()),
 		"127.0.0.1/32"
 	);
 
 	assert_eq!(
-		format!("{}", "127.0.0.1".parse::<IpCidr>().unwrap()),
+		format_cidr_fixed!("{}", "127.0.0.1".parse::<IpCidr>().unwrap()),
 		"127.0.0.1"
 	);
 	assert_eq!(
-		format!("{:#}", "127.0.0.1".parse::<IpCidr>().unwrap()),
+		format_cidr_fixed!("{:#}", "127.0.0.1".parse::<IpCidr>().unwrap()),
 		"127.0.0.1/32"
 	);
 
 	assert_eq!(
-		format!("{:?}", "127.0.0.1".parse::<Ipv4Cidr>().unwrap()),
+		format_cidr_fixed!("{:?}", "127.0.0.1".parse::<Ipv4Cidr>().unwrap()),
 		"127.0.0.1/32"
 	);
 
 	assert_eq!(
-		format!("{:?}", "127.0.0.1".parse::<IpCidr>().unwrap()),
+		format_cidr_fixed!("{:?}", "127.0.0.1".parse::<IpCidr>().unwrap()),
 		"V4(127.0.0.1/32)"
 	);
 
 	assert_eq!(
-		format!("{:#}", "127.0.0.1".parse::<IpCidr>().unwrap()),
+		format_cidr_fixed!("{:#}", "127.0.0.1".parse::<IpCidr>().unwrap()),
 		"127.0.0.1/32"
 	);
 }
@@ -336,22 +338,22 @@ fn test_v4_representations_32bit() {
 #[test]
 fn test_v4_representations_8bit() {
 	assert_eq!(
-		format!("{}", "10.0.0.0/8".parse::<Ipv4Cidr>().unwrap()),
+		format_cidr_fixed!("{}", "10.0.0.0/8".parse::<Ipv4Cidr>().unwrap()),
 		"10.0.0.0/8"
 	);
 
 	assert_eq!(
-		format!("{}", "10.0.0.0/8".parse::<IpCidr>().unwrap()),
+		format_cidr_fixed!("{}", "10.0.0.0/8".parse::<IpCidr>().unwrap()),
 		"10.0.0.0/8"
 	);
 
 	assert_eq!(
-		format!("{:?}", "10.0.0.0/8".parse::<Ipv4Cidr>().unwrap()),
+		format_cidr_fixed!("{:?}", "10.0.0.0/8".parse::<Ipv4Cidr>().unwrap()),
 		"10.0.0.0/8"
 	);
 
 	assert_eq!(
-		format!("{:?}", "10.0.0.0/8".parse::<IpCidr>().unwrap()),
+		format_cidr_fixed!("{:?}", "10.0.0.0/8".parse::<IpCidr>().unwrap()),
 		"V4(10.0.0.0/8)"
 	);
 }
@@ -359,22 +361,22 @@ fn test_v4_representations_8bit() {
 #[test]
 fn test_v4_representations_0bit() {
 	assert_eq!(
-		format!("{}", "0.0.0.0/0".parse::<Ipv4Cidr>().unwrap()),
+		format_cidr_fixed!("{}", "0.0.0.0/0".parse::<Ipv4Cidr>().unwrap()),
 		"0.0.0.0/0"
 	);
 
 	assert_eq!(
-		format!("{}", "0.0.0.0/0".parse::<IpCidr>().unwrap()),
+		format_cidr_fixed!("{}", "0.0.0.0/0".parse::<IpCidr>().unwrap()),
 		"0.0.0.0/0"
 	);
 
 	assert_eq!(
-		format!("{:?}", "0.0.0.0/0".parse::<Ipv4Cidr>().unwrap()),
+		format_cidr_fixed!("{:?}", "0.0.0.0/0".parse::<Ipv4Cidr>().unwrap()),
 		"0.0.0.0/0"
 	);
 
 	assert_eq!(
-		format!("{:?}", "0.0.0.0/0".parse::<IpCidr>().unwrap()),
+		format_cidr_fixed!("{:?}", "0.0.0.0/0".parse::<IpCidr>().unwrap()),
 		"V4(0.0.0.0/0)"
 	);
 }
@@ -458,6 +460,7 @@ fn parse_v4_8bit() {
 }
 
 #[test]
+#[should_panic(expected = "invalid IPv4 address syntax")]
 fn parse_v4_8bit_short() {
 	test_v4(
 		"10/8",
@@ -480,6 +483,7 @@ fn parse_v4_0bit() {
 }
 
 #[test]
+#[should_panic(expected = "invalid IPv4 address syntax")]
 fn parse_v4_0bit_short() {
 	test_v4(
 		"0/0",
@@ -529,36 +533,75 @@ fn parse_v6_33bit_2() {
 
 #[test]
 fn test_v6_representations_128bit() {
-	assert_eq!(format!("{}", "::".parse::<Ipv6Cidr>().unwrap()), "::");
-	assert_eq!(format!("{:#}", "::".parse::<Ipv6Cidr>().unwrap()), "::/128");
-
-	assert_eq!(format!("{}", "::".parse::<IpCidr>().unwrap()), "::");
-	assert_eq!(format!("{:#}", "::".parse::<IpCidr>().unwrap()), "::/128");
-
-	assert_eq!(format!("{:?}", "::".parse::<Ipv6Cidr>().unwrap()), "::/128");
+	assert_eq!(
+		format_cidr_fixed!("{}", "::".parse::<Ipv6Cidr>().unwrap()),
+		"::"
+	);
+	assert_eq!(
+		format_cidr_fixed!("{:#}", "::".parse::<Ipv6Cidr>().unwrap()),
+		"::/128"
+	);
+	assert_eq!(
+		format_cidr_fixed!("{:?}", "::".parse::<Ipv6Cidr>().unwrap()),
+		"::/128"
+	);
 
 	assert_eq!(
-		format!("{:?}", "::".parse::<IpCidr>().unwrap()),
+		format_cidr_fixed!("{}", "::".parse::<IpCidr>().unwrap()),
+		"::"
+	);
+	assert_eq!(
+		format_cidr_fixed!("{:#}", "::".parse::<IpCidr>().unwrap()),
+		"::/128"
+	);
+	assert_eq!(
+		format_cidr_fixed!("{:?}", "::".parse::<IpCidr>().unwrap()),
 		"V6(::/128)"
 	);
 
-	assert_eq!(format!("{:#}", "::".parse::<IpCidr>().unwrap()), "::/128");
+	assert_eq!(
+		format_cidr_fixed!(
+			"{}",
+			"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128"
+				.parse::<IpCidr>()
+				.unwrap()
+		),
+		"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"
+	);
+	assert_eq!(
+		format_cidr_fixed!(
+			"{:#}",
+			"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128"
+				.parse::<IpCidr>()
+				.unwrap()
+		),
+		"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128"
+	);
+	assert_eq!(
+		format_cidr_fixed!(
+			"{:?}",
+			"ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128"
+				.parse::<IpCidr>()
+				.unwrap()
+		),
+		"V6(ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff/128)"
+	);
 }
 
 #[test]
 fn test_v6_representations_64bit() {
 	assert_eq!(
-		format!("{}", "2001:DB8:1234:5678::/64".parse::<Ipv6Cidr>().unwrap()),
+		format_cidr_fixed!("{}", "2001:DB8:1234:5678::/64".parse::<Ipv6Cidr>().unwrap()),
 		"2001:db8:1234:5678::/64"
 	);
 
 	assert_eq!(
-		format!("{}", "2001:DB8:1234:5678::/64".parse::<IpCidr>().unwrap()),
+		format_cidr_fixed!("{}", "2001:DB8:1234:5678::/64".parse::<IpCidr>().unwrap()),
 		"2001:db8:1234:5678::/64"
 	);
 
 	assert_eq!(
-		format!(
+		format_cidr_fixed!(
 			"{:?}",
 			"2001:DB8:1234:5678::/64".parse::<Ipv6Cidr>().unwrap()
 		),
@@ -566,21 +609,30 @@ fn test_v6_representations_64bit() {
 	);
 
 	assert_eq!(
-		format!("{:?}", "2001:DB8:1234:5678::/64".parse::<IpCidr>().unwrap()),
+		format_cidr_fixed!("{:?}", "2001:DB8:1234:5678::/64".parse::<IpCidr>().unwrap()),
 		"V6(2001:db8:1234:5678::/64)"
 	);
 }
 
 #[test]
 fn test_v6_representations_0bit() {
-	assert_eq!(format!("{}", "::/0".parse::<Ipv6Cidr>().unwrap()), "::/0");
-
-	assert_eq!(format!("{}", "::/0".parse::<IpCidr>().unwrap()), "::/0");
-
-	assert_eq!(format!("{:?}", "::/0".parse::<Ipv6Cidr>().unwrap()), "::/0");
+	assert_eq!(
+		format_cidr_fixed!("{}", "::/0".parse::<Ipv6Cidr>().unwrap()),
+		"::/0"
+	);
 
 	assert_eq!(
-		format!("{:?}", "::/0".parse::<IpCidr>().unwrap()),
+		format_cidr_fixed!("{}", "::/0".parse::<IpCidr>().unwrap()),
+		"::/0"
+	);
+
+	assert_eq!(
+		format_cidr_fixed!("{:?}", "::/0".parse::<Ipv6Cidr>().unwrap()),
+		"::/0"
+	);
+
+	assert_eq!(
+		format_cidr_fixed!("{:?}", "::/0".parse::<IpCidr>().unwrap()),
 		"V6(::/0)"
 	);
 }

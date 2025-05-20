@@ -27,8 +27,8 @@ use {
 // Re-export for convenience
 pub(crate) use cell::UserDataStorage;
 pub use cell::{UserDataRef, UserDataRefMut};
-pub(crate) use registry::UserDataProxy;
 pub use registry::UserDataRegistry;
+pub(crate) use registry::{RawUserDataRegistry, UserDataProxy};
 
 /// Kinds of metamethods that can be overridden.
 ///
@@ -1073,7 +1073,7 @@ impl Serialize for AnyUserData {
     }
 }
 
-pub(crate) struct WrappedUserdata<F: FnOnce(&Lua) -> Result<AnyUserData>>(F);
+struct WrappedUserdata<F: FnOnce(&Lua) -> Result<AnyUserData>>(F);
 
 impl AnyUserData {
     /// Wraps any Rust type, returning an opaque type that implements [`IntoLua`] trait.

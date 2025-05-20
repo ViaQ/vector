@@ -59,29 +59,48 @@ pub fn generate_guards(
     })
 }
 
-pub fn get_rustdoc(attrs: &[Attribute]) -> GeneratorResult<Option<String>> {
-    let mut full_docs = String::new();
+pub fn get_rustdoc(attrs: &[Attribute]) -> GeneratorResult<Option<TokenStream>> {
+    let mut full_docs: Vec<TokenStream> = vec![];
+    let mut combined_docs_literal = String::new();
     for attr in attrs {
         if let Meta::NameValue(nv) = &attr.meta {
             if nv.path.is_ident("doc") {
-                if let Expr::Lit(ExprLit {
-                    lit: Lit::Str(doc), ..
-                }) = &nv.value
-                {
-                    let doc = doc.value();
-                    let doc_str = doc.trim();
-                    if !full_docs.is_empty() {
-                        full_docs += "\n";
+                match &nv.value {
+                    Expr::Lit(ExprLit {
+                        lit: Lit::Str(doc), ..
+                    }) => {
+                        let doc = doc.value();
+                        let doc_str = doc.trim();
+                        combined_docs_literal += "\n";
+                        combined_docs_literal += doc_str;
                     }
-                    full_docs += doc_str;
+                    Expr::Macro(include_macro) => {
+                        if !combined_docs_literal.is_empty() {
+                            combined_docs_literal += "\n";
+                            let lit = LitStr::new(&combined_docs_literal, Span::call_site());
+                            full_docs.push(quote!( #lit ));
+                            combined_docs_literal.clear();
+                        }
+                        full_docs.push(quote!( #include_macro ));
+                    }
+                    _ => (),
                 }
             }
         }
     }
+
+    if !combined_docs_literal.is_empty() {
+        let lit = LitStr::new(&combined_docs_literal, Span::call_site());
+        full_docs.push(quote!( #lit ));
+        combined_docs_literal.clear();
+    }
+
     Ok(if full_docs.is_empty() {
         None
     } else {
-        Some(full_docs)
+        Some(quote!(::core::primitive::str::trim(
+            ::std::concat!( #( #full_docs ),* )
+        )))
     })
 }
 
@@ -322,24 +341,42 @@ pub fn gen_directive_calls(
     directive_calls
         .iter()
         .map(|directive| {
-            let directive_name = if let Expr::Call(expr) = directive {
-                if let Expr::Path(ref expr) = *expr.func {
-                    expr.path.segments.first().map(|s| s.ident.clone())
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
-            .expect(
-                "Directive invocation expression format must be <directive_name>::apply(<args>)",
+            let directive_path = extract_directive_call_path(directive).expect(
+                "Directive invocation expression format must be [<directive_path>::]<directive_name>::apply(<args>)",
             );
             let identifier = location.location_trait_identifier();
             quote!({
-                <#directive_name as async_graphql::registry::location_traits::#identifier>::check();
-                <#directive_name as async_graphql::TypeDirective>::register(&#directive_name, registry);
+                <#directive_path as async_graphql::registry::location_traits::#identifier>::check();
+                <#directive_path as async_graphql::TypeDirective>::register(&#directive_path, registry);
                 #directive
             })
         })
         .collect::<Vec<_>>()
+}
+
+fn extract_directive_call_path(directive: &Expr) -> Option<syn::Path> {
+    if let Expr::Call(expr) = directive {
+        if let Expr::Path(ref expr) = *expr.func {
+            let mut path = expr.path.clone();
+            if path.segments.pop()?.value().ident != "apply" {
+                return None;
+            }
+
+            path.segments.pop_punct()?;
+
+            return Some(path);
+        }
+    }
+
+    None
+}
+
+pub fn gen_boxed_trait(crate_name: &TokenStream) -> TokenStream {
+    if cfg!(feature = "boxed-trait") {
+        quote! {
+            #[#crate_name::async_trait::async_trait]
+        }
+    } else {
+        quote! {}
+    }
 }

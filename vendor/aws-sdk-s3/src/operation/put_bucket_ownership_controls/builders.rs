@@ -3,7 +3,7 @@ pub use crate::operation::put_bucket_ownership_controls::_put_bucket_ownership_c
 
 pub use crate::operation::put_bucket_ownership_controls::_put_bucket_ownership_controls_input::PutBucketOwnershipControlsInputBuilder;
 
-impl PutBucketOwnershipControlsInputBuilder {
+impl crate::operation::put_bucket_ownership_controls::builders::PutBucketOwnershipControlsInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -23,14 +23,16 @@ impl PutBucketOwnershipControlsInputBuilder {
 /// Fluent builder constructing a request to `PutBucketOwnershipControls`.
 ///
 /// <note>
-/// <p>This operation is not supported by directory buckets.</p>
+/// <p>This operation is not supported for directory buckets.</p>
 /// </note>
-/// <p>Creates or modifies <code>OwnershipControls</code> for an Amazon S3 bucket. To use this operation, you must have the <code>s3:PutBucketOwnershipControls</code> permission. For more information about Amazon S3 permissions, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/user-guide/using-with-s3-actions.html">Specifying permissions in a policy</a>. </p>
-/// <p>For information about Amazon S3 Object Ownership, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/user-guide/about-object-ownership.html">Using object ownership</a>. </p>
+/// <p>Creates or modifies <code>OwnershipControls</code> for an Amazon S3 bucket. To use this operation, you must have the <code>s3:PutBucketOwnershipControls</code> permission. For more information about Amazon S3 permissions, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/user-guide/using-with-s3-actions.html">Specifying permissions in a policy</a>.</p>
+/// <p>For information about Amazon S3 Object Ownership, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/user-guide/about-object-ownership.html">Using object ownership</a>.</p>
 /// <p>The following operations are related to <code>PutBucketOwnershipControls</code>:</p>
 /// <ul>
-/// <li> <p> <code>GetBucketOwnershipControls</code> </p> </li>
-/// <li> <p> <code>DeleteBucketOwnershipControls</code> </p> </li>
+/// <li>
+/// <p><code>GetBucketOwnershipControls</code></p></li>
+/// <li>
+/// <p><code>DeleteBucketOwnershipControls</code></p></li>
 /// </ul>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct PutBucketOwnershipControlsFluentBuilder {
@@ -57,7 +59,7 @@ impl
     }
 }
 impl PutBucketOwnershipControlsFluentBuilder {
-    /// Creates a new `PutBucketOwnershipControls`.
+    /// Creates a new `PutBucketOwnershipControlsFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -108,12 +110,12 @@ impl PutBucketOwnershipControlsFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -131,19 +133,19 @@ impl PutBucketOwnershipControlsFluentBuilder {
     pub fn get_bucket(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_bucket()
     }
-    /// <p>The MD5 hash of the <code>OwnershipControls</code> request body. </p>
+    /// <p>The MD5 hash of the <code>OwnershipControls</code> request body.</p>
     /// <p>For requests made using the Amazon Web Services Command Line Interface (CLI) or Amazon Web Services SDKs, this field is calculated automatically.</p>
     pub fn content_md5(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.content_md5(input.into());
         self
     }
-    /// <p>The MD5 hash of the <code>OwnershipControls</code> request body. </p>
+    /// <p>The MD5 hash of the <code>OwnershipControls</code> request body.</p>
     /// <p>For requests made using the Amazon Web Services Command Line Interface (CLI) or Amazon Web Services SDKs, this field is calculated automatically.</p>
     pub fn set_content_md5(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_content_md5(input);
         self
     }
-    /// <p>The MD5 hash of the <code>OwnershipControls</code> request body. </p>
+    /// <p>The MD5 hash of the <code>OwnershipControls</code> request body.</p>
     /// <p>For requests made using the Amazon Web Services Command Line Interface (CLI) or Amazon Web Services SDKs, this field is calculated automatically.</p>
     pub fn get_content_md5(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_content_md5()

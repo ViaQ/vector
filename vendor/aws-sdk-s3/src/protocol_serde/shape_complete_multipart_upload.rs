@@ -87,120 +87,158 @@ pub fn ser_complete_multipart_upload_headers(
 ) -> std::result::Result<::http::request::Builder, ::aws_smithy_types::error::operation::BuildError> {
     if let ::std::option::Option::Some(inner_1) = &input.checksum_crc32 {
         let formatted_2 = inner_1.as_str();
-        if !formatted_2.is_empty() {
-            let header_value = formatted_2;
-            let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
-                ::aws_smithy_types::error::operation::BuildError::invalid_field(
-                    "checksum_crc32",
-                    format!("`{}` cannot be used as a header value: {}", &header_value, err),
-                )
-            })?;
-            builder = builder.header("x-amz-checksum-crc32", header_value);
-        }
+        let header_value = formatted_2;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "checksum_crc32",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("x-amz-checksum-crc32", header_value);
     }
     if let ::std::option::Option::Some(inner_3) = &input.checksum_crc32_c {
         let formatted_4 = inner_3.as_str();
-        if !formatted_4.is_empty() {
-            let header_value = formatted_4;
-            let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
-                ::aws_smithy_types::error::operation::BuildError::invalid_field(
-                    "checksum_crc32_c",
-                    format!("`{}` cannot be used as a header value: {}", &header_value, err),
-                )
-            })?;
-            builder = builder.header("x-amz-checksum-crc32c", header_value);
-        }
+        let header_value = formatted_4;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "checksum_crc32_c",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("x-amz-checksum-crc32c", header_value);
     }
-    if let ::std::option::Option::Some(inner_5) = &input.checksum_sha1 {
+    if let ::std::option::Option::Some(inner_5) = &input.checksum_crc64_nvme {
         let formatted_6 = inner_5.as_str();
-        if !formatted_6.is_empty() {
-            let header_value = formatted_6;
-            let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
-                ::aws_smithy_types::error::operation::BuildError::invalid_field(
-                    "checksum_sha1",
-                    format!("`{}` cannot be used as a header value: {}", &header_value, err),
-                )
-            })?;
-            builder = builder.header("x-amz-checksum-sha1", header_value);
-        }
+        let header_value = formatted_6;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "checksum_crc64_nvme",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("x-amz-checksum-crc64nvme", header_value);
     }
-    if let ::std::option::Option::Some(inner_7) = &input.checksum_sha256 {
+    if let ::std::option::Option::Some(inner_7) = &input.checksum_sha1 {
         let formatted_8 = inner_7.as_str();
-        if !formatted_8.is_empty() {
-            let header_value = formatted_8;
-            let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
-                ::aws_smithy_types::error::operation::BuildError::invalid_field(
-                    "checksum_sha256",
-                    format!("`{}` cannot be used as a header value: {}", &header_value, err),
-                )
-            })?;
-            builder = builder.header("x-amz-checksum-sha256", header_value);
-        }
+        let header_value = formatted_8;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "checksum_sha1",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("x-amz-checksum-sha1", header_value);
     }
-    if let ::std::option::Option::Some(inner_9) = &input.request_payer {
+    if let ::std::option::Option::Some(inner_9) = &input.checksum_sha256 {
         let formatted_10 = inner_9.as_str();
-        if !formatted_10.is_empty() {
-            let header_value = formatted_10;
-            let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
-                ::aws_smithy_types::error::operation::BuildError::invalid_field(
-                    "request_payer",
-                    format!("`{}` cannot be used as a header value: {}", &header_value, err),
-                )
-            })?;
-            builder = builder.header("x-amz-request-payer", header_value);
-        }
+        let header_value = formatted_10;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "checksum_sha256",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("x-amz-checksum-sha256", header_value);
     }
-    if let ::std::option::Option::Some(inner_11) = &input.expected_bucket_owner {
+    if let ::std::option::Option::Some(inner_11) = &input.checksum_type {
         let formatted_12 = inner_11.as_str();
-        if !formatted_12.is_empty() {
-            let header_value = formatted_12;
-            let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
-                ::aws_smithy_types::error::operation::BuildError::invalid_field(
-                    "expected_bucket_owner",
-                    format!("`{}` cannot be used as a header value: {}", &header_value, err),
-                )
-            })?;
-            builder = builder.header("x-amz-expected-bucket-owner", header_value);
-        }
+        let header_value = formatted_12;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "checksum_type",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("x-amz-checksum-type", header_value);
     }
-    if let ::std::option::Option::Some(inner_13) = &input.sse_customer_algorithm {
-        let formatted_14 = inner_13.as_str();
-        if !formatted_14.is_empty() {
-            let header_value = formatted_14;
-            let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
-                ::aws_smithy_types::error::operation::BuildError::invalid_field(
-                    "sse_customer_algorithm",
-                    format!("`{}` cannot be used as a header value: {}", &header_value, err),
-                )
-            })?;
-            builder = builder.header("x-amz-server-side-encryption-customer-algorithm", header_value);
-        }
+    if let ::std::option::Option::Some(inner_13) = &input.mpu_object_size {
+        let mut encoder = ::aws_smithy_types::primitive::Encoder::from(*inner_13);
+        let formatted_14 = encoder.encode();
+        let header_value = formatted_14;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "mpu_object_size",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("x-amz-mp-object-size", header_value);
     }
-    if let ::std::option::Option::Some(inner_15) = &input.sse_customer_key {
+    if let ::std::option::Option::Some(inner_15) = &input.request_payer {
         let formatted_16 = inner_15.as_str();
-        if !formatted_16.is_empty() {
-            let header_value = formatted_16;
-            let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
-                ::aws_smithy_types::error::operation::BuildError::invalid_field(
-                    "sse_customer_key",
-                    format!("`{}` cannot be used as a header value: {}", &"*** Sensitive Data Redacted ***", err),
-                )
-            })?;
-            builder = builder.header("x-amz-server-side-encryption-customer-key", header_value);
-        }
+        let header_value = formatted_16;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "request_payer",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("x-amz-request-payer", header_value);
     }
-    if let ::std::option::Option::Some(inner_17) = &input.sse_customer_key_md5 {
+    if let ::std::option::Option::Some(inner_17) = &input.expected_bucket_owner {
         let formatted_18 = inner_17.as_str();
-        if !formatted_18.is_empty() {
-            let header_value = formatted_18;
-            let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
-                ::aws_smithy_types::error::operation::BuildError::invalid_field(
-                    "sse_customer_key_md5",
-                    format!("`{}` cannot be used as a header value: {}", &header_value, err),
-                )
-            })?;
-            builder = builder.header("x-amz-server-side-encryption-customer-key-MD5", header_value);
-        }
+        let header_value = formatted_18;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "expected_bucket_owner",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("x-amz-expected-bucket-owner", header_value);
+    }
+    if let ::std::option::Option::Some(inner_19) = &input.if_match {
+        let formatted_20 = inner_19.as_str();
+        let header_value = formatted_20;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "if_match",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("If-Match", header_value);
+    }
+    if let ::std::option::Option::Some(inner_21) = &input.if_none_match {
+        let formatted_22 = inner_21.as_str();
+        let header_value = formatted_22;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "if_none_match",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("If-None-Match", header_value);
+    }
+    if let ::std::option::Option::Some(inner_23) = &input.sse_customer_algorithm {
+        let formatted_24 = inner_23.as_str();
+        let header_value = formatted_24;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "sse_customer_algorithm",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("x-amz-server-side-encryption-customer-algorithm", header_value);
+    }
+    if let ::std::option::Option::Some(inner_25) = &input.sse_customer_key {
+        let formatted_26 = inner_25.as_str();
+        let header_value = formatted_26;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "sse_customer_key",
+                format!("`{}` cannot be used as a header value: {}", &"*** Sensitive Data Redacted ***", err),
+            )
+        })?;
+        builder = builder.header("x-amz-server-side-encryption-customer-key", header_value);
+    }
+    if let ::std::option::Option::Some(inner_27) = &input.sse_customer_key_md5 {
+        let formatted_28 = inner_27.as_str();
+        let header_value = formatted_28;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "sse_customer_key_md5",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("x-amz-server-side-encryption-customer-key-MD5", header_value);
     }
     Ok(builder)
 }
@@ -209,7 +247,10 @@ pub fn ser_complete_multipart_upload_headers(
 pub fn de_complete_multipart_upload(
     inp: &[u8],
     mut builder: crate::operation::complete_multipart_upload::builders::CompleteMultipartUploadOutputBuilder,
-) -> Result<crate::operation::complete_multipart_upload::builders::CompleteMultipartUploadOutputBuilder, ::aws_smithy_xml::decode::XmlDecodeError> {
+) -> std::result::Result<
+    crate::operation::complete_multipart_upload::builders::CompleteMultipartUploadOutputBuilder,
+    ::aws_smithy_xml::decode::XmlDecodeError,
+> {
     let mut doc = ::aws_smithy_xml::decode::Document::try_from(inp)?;
 
     #[allow(unused_mut)]
@@ -225,7 +266,7 @@ pub fn de_complete_multipart_upload(
     while let Some(mut tag) = decoder.next_tag() {
         match tag.start_el() {
             s if s.matches("ChecksumSHA1") /* ChecksumSHA1 com.amazonaws.s3.synthetic#CompleteMultipartUploadOutput$ChecksumSHA1 */ =>  {
-                let var_19 =
+                let var_29 =
                     Some(
                         Result::<::std::string::String, ::aws_smithy_xml::decode::XmlDecodeError>::Ok(
                             ::aws_smithy_xml::decode::try_data(&mut tag)?.as_ref()
@@ -234,11 +275,25 @@ pub fn de_complete_multipart_upload(
                         ?
                     )
                 ;
-                builder = builder.set_checksum_sha1(var_19);
+                builder = builder.set_checksum_sha1(var_29);
+            }
+            ,
+            s if s.matches("ChecksumType") /* ChecksumType com.amazonaws.s3.synthetic#CompleteMultipartUploadOutput$ChecksumType */ =>  {
+                let var_30 =
+                    Some(
+                        Result::<crate::types::ChecksumType, ::aws_smithy_xml::decode::XmlDecodeError>::Ok(
+                            crate::types::ChecksumType::from(
+                                ::aws_smithy_xml::decode::try_data(&mut tag)?.as_ref()
+                            )
+                        )
+                        ?
+                    )
+                ;
+                builder = builder.set_checksum_type(var_30);
             }
             ,
             s if s.matches("ChecksumSHA256") /* ChecksumSHA256 com.amazonaws.s3.synthetic#CompleteMultipartUploadOutput$ChecksumSHA256 */ =>  {
-                let var_20 =
+                let var_31 =
                     Some(
                         Result::<::std::string::String, ::aws_smithy_xml::decode::XmlDecodeError>::Ok(
                             ::aws_smithy_xml::decode::try_data(&mut tag)?.as_ref()
@@ -247,11 +302,24 @@ pub fn de_complete_multipart_upload(
                         ?
                     )
                 ;
-                builder = builder.set_checksum_sha256(var_20);
+                builder = builder.set_checksum_sha256(var_31);
+            }
+            ,
+            s if s.matches("ChecksumCRC64NVME") /* ChecksumCRC64NVME com.amazonaws.s3.synthetic#CompleteMultipartUploadOutput$ChecksumCRC64NVME */ =>  {
+                let var_32 =
+                    Some(
+                        Result::<::std::string::String, ::aws_smithy_xml::decode::XmlDecodeError>::Ok(
+                            ::aws_smithy_xml::decode::try_data(&mut tag)?.as_ref()
+                            .into()
+                        )
+                        ?
+                    )
+                ;
+                builder = builder.set_checksum_crc64_nvme(var_32);
             }
             ,
             s if s.matches("Bucket") /* Bucket com.amazonaws.s3.synthetic#CompleteMultipartUploadOutput$Bucket */ =>  {
-                let var_21 =
+                let var_33 =
                     Some(
                         Result::<::std::string::String, ::aws_smithy_xml::decode::XmlDecodeError>::Ok(
                             ::aws_smithy_xml::decode::try_data(&mut tag)?.as_ref()
@@ -260,11 +328,11 @@ pub fn de_complete_multipart_upload(
                         ?
                     )
                 ;
-                builder = builder.set_bucket(var_21);
+                builder = builder.set_bucket(var_33);
             }
             ,
             s if s.matches("ETag") /* ETag com.amazonaws.s3.synthetic#CompleteMultipartUploadOutput$ETag */ =>  {
-                let var_22 =
+                let var_34 =
                     Some(
                         Result::<::std::string::String, ::aws_smithy_xml::decode::XmlDecodeError>::Ok(
                             ::aws_smithy_xml::decode::try_data(&mut tag)?.as_ref()
@@ -273,11 +341,11 @@ pub fn de_complete_multipart_upload(
                         ?
                     )
                 ;
-                builder = builder.set_e_tag(var_22);
+                builder = builder.set_e_tag(var_34);
             }
             ,
             s if s.matches("ChecksumCRC32C") /* ChecksumCRC32C com.amazonaws.s3.synthetic#CompleteMultipartUploadOutput$ChecksumCRC32C */ =>  {
-                let var_23 =
+                let var_35 =
                     Some(
                         Result::<::std::string::String, ::aws_smithy_xml::decode::XmlDecodeError>::Ok(
                             ::aws_smithy_xml::decode::try_data(&mut tag)?.as_ref()
@@ -286,11 +354,11 @@ pub fn de_complete_multipart_upload(
                         ?
                     )
                 ;
-                builder = builder.set_checksum_crc32_c(var_23);
+                builder = builder.set_checksum_crc32_c(var_35);
             }
             ,
             s if s.matches("ChecksumCRC32") /* ChecksumCRC32 com.amazonaws.s3.synthetic#CompleteMultipartUploadOutput$ChecksumCRC32 */ =>  {
-                let var_24 =
+                let var_36 =
                     Some(
                         Result::<::std::string::String, ::aws_smithy_xml::decode::XmlDecodeError>::Ok(
                             ::aws_smithy_xml::decode::try_data(&mut tag)?.as_ref()
@@ -299,11 +367,11 @@ pub fn de_complete_multipart_upload(
                         ?
                     )
                 ;
-                builder = builder.set_checksum_crc32(var_24);
+                builder = builder.set_checksum_crc32(var_36);
             }
             ,
             s if s.matches("Key") /* Key com.amazonaws.s3.synthetic#CompleteMultipartUploadOutput$Key */ =>  {
-                let var_25 =
+                let var_37 =
                     Some(
                         Result::<::std::string::String, ::aws_smithy_xml::decode::XmlDecodeError>::Ok(
                             ::aws_smithy_xml::decode::try_data(&mut tag)?.as_ref()
@@ -312,11 +380,11 @@ pub fn de_complete_multipart_upload(
                         ?
                     )
                 ;
-                builder = builder.set_key(var_25);
+                builder = builder.set_key(var_37);
             }
             ,
             s if s.matches("Location") /* Location com.amazonaws.s3.synthetic#CompleteMultipartUploadOutput$Location */ =>  {
-                let var_26 =
+                let var_38 =
                     Some(
                         Result::<::std::string::String, ::aws_smithy_xml::decode::XmlDecodeError>::Ok(
                             ::aws_smithy_xml::decode::try_data(&mut tag)?.as_ref()
@@ -325,7 +393,7 @@ pub fn de_complete_multipart_upload(
                         ?
                     )
                 ;
-                builder = builder.set_location(var_26);
+                builder = builder.set_location(var_38);
             }
             ,
             _ => {}

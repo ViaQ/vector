@@ -20,6 +20,21 @@ pub fn de_get_delivery_destination_policy_http_error(
 
     let _error_message = generic.message().map(|msg| msg.to_owned());
     Err(match error_code {
+        "ValidationException" => crate::operation::get_delivery_destination_policy::GetDeliveryDestinationPolicyError::ValidationException({
+            #[allow(unused_mut)]
+            let mut tmp = {
+                #[allow(unused_mut)]
+                let mut output = crate::types::error::builders::ValidationExceptionBuilder::default();
+                output = crate::protocol_serde::shape_validation_exception::de_validation_exception_json_err(_response_body, output)
+                    .map_err(crate::operation::get_delivery_destination_policy::GetDeliveryDestinationPolicyError::unhandled)?;
+                let output = output.meta(generic);
+                output.build()
+            };
+            if tmp.message.is_none() {
+                tmp.message = _error_message;
+            }
+            tmp
+        }),
         "ResourceNotFoundException" => {
             crate::operation::get_delivery_destination_policy::GetDeliveryDestinationPolicyError::ResourceNotFoundException({
                 #[allow(unused_mut)]
@@ -56,21 +71,6 @@ pub fn de_get_delivery_destination_policy_http_error(
                 tmp
             })
         }
-        "ValidationException" => crate::operation::get_delivery_destination_policy::GetDeliveryDestinationPolicyError::ValidationException({
-            #[allow(unused_mut)]
-            let mut tmp = {
-                #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::ValidationExceptionBuilder::default();
-                output = crate::protocol_serde::shape_validation_exception::de_validation_exception_json_err(_response_body, output)
-                    .map_err(crate::operation::get_delivery_destination_policy::GetDeliveryDestinationPolicyError::unhandled)?;
-                let output = output.meta(generic);
-                output.build()
-            };
-            if tmp.message.is_none() {
-                tmp.message = _error_message;
-            }
-            tmp
-        }),
         _ => crate::operation::get_delivery_destination_policy::GetDeliveryDestinationPolicyError::generic(generic),
     })
 }
@@ -96,7 +96,7 @@ pub fn de_get_delivery_destination_policy_http_response(
 
 pub fn ser_get_delivery_destination_policy_input(
     input: &crate::operation::get_delivery_destination_policy::GetDeliveryDestinationPolicyInput,
-) -> Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
     let mut out = String::new();
     let mut object = ::aws_smithy_json::serialize::JsonObjectWriter::new(&mut out);
     crate::protocol_serde::shape_get_delivery_destination_policy_input::ser_get_delivery_destination_policy_input_input(&mut object, input)?;
@@ -107,7 +107,7 @@ pub fn ser_get_delivery_destination_policy_input(
 pub(crate) fn de_get_delivery_destination_policy(
     value: &[u8],
     mut builder: crate::operation::get_delivery_destination_policy::builders::GetDeliveryDestinationPolicyOutputBuilder,
-) -> Result<
+) -> ::std::result::Result<
     crate::operation::get_delivery_destination_policy::builders::GetDeliveryDestinationPolicyOutputBuilder,
     ::aws_smithy_json::deserialize::error::DeserializeError,
 > {

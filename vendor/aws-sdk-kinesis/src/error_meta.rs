@@ -9,6 +9,8 @@ pub enum Error {
     ExpiredIteratorException(crate::types::error::ExpiredIteratorException),
     /// <p>The pagination token passed to the operation is expired.</p>
     ExpiredNextTokenException(crate::types::error::ExpiredNextTokenException),
+    /// <p>The processing of the request failed because of an unknown error, exception, or failure.</p>
+    InternalFailureException(crate::types::error::InternalFailureException),
     /// <p>A specified parameter exceeds its restrictions, is not supported, or can't be used. For more information, see the returned message.</p>
     InvalidArgumentException(crate::types::error::InvalidArgumentException),
     /// <p>The ciphertext references a key that doesn't exist or that you don't have access to.</p>
@@ -23,7 +25,7 @@ pub enum Error {
     KmsOptInRequired(crate::types::error::KmsOptInRequired),
     /// <p>The request was denied due to request throttling. For more information about throttling, see <a href="https://docs.aws.amazon.com/kms/latest/developerguide/limits.html#requests-per-second">Limits</a> in the <i>Amazon Web Services Key Management Service Developer Guide</i>.</p>
     KmsThrottlingException(crate::types::error::KmsThrottlingException),
-    /// <p>The requested resource exceeds the maximum number allowed, or the number of concurrent stream requests exceeds the maximum number allowed. </p>
+    /// <p>The requested resource exceeds the maximum number allowed, or the number of concurrent stream requests exceeds the maximum number allowed.</p>
     LimitExceededException(crate::types::error::LimitExceededException),
     /// <p>The request rate for the stream is too high, or the requested data is too large for the available throughput. Reduce the frequency or size of your requests. For more information, see <a href="https://docs.aws.amazon.com/kinesis/latest/dev/service-sizes-and-limits.html">Streams Limits</a> in the <i>Amazon Kinesis Data Streams Developer Guide</i>, and <a href="https://docs.aws.amazon.com/general/latest/gr/api-retries.html">Error Retries and Exponential Backoff in Amazon Web Services</a> in the <i>Amazon Web Services General Reference</i>.</p>
     ProvisionedThroughputExceededException(crate::types::error::ProvisionedThroughputExceededException),
@@ -31,7 +33,7 @@ pub enum Error {
     ResourceInUseException(crate::types::error::ResourceInUseException),
     /// <p>The requested resource could not be found. The stream might not be specified correctly.</p>
     ResourceNotFoundException(crate::types::error::ResourceNotFoundException),
-    /// <p>Specifies that you tried to invoke this API for a data stream with the on-demand capacity mode. This API is only supported for data streams with the provisioned capacity mode. </p>
+    /// <p>Specifies that you tried to invoke this API for a data stream with the on-demand capacity mode. This API is only supported for data streams with the provisioned capacity mode.</p>
     ValidationException(crate::types::error::ValidationException),
     /// An unexpected error occurred (e.g., invalid JSON returned by the service or an unknown error code).
     #[deprecated(note = "Matching `Unhandled` directly is not forwards compatible. Instead, match using a \
@@ -48,6 +50,7 @@ impl ::std::fmt::Display for Error {
             Error::AccessDeniedException(inner) => inner.fmt(f),
             Error::ExpiredIteratorException(inner) => inner.fmt(f),
             Error::ExpiredNextTokenException(inner) => inner.fmt(f),
+            Error::InternalFailureException(inner) => inner.fmt(f),
             Error::InvalidArgumentException(inner) => inner.fmt(f),
             Error::KmsAccessDeniedException(inner) => inner.fmt(f),
             Error::KmsDisabledException(inner) => inner.fmt(f),
@@ -84,6 +87,7 @@ impl ::aws_smithy_types::error::metadata::ProvideErrorMetadata for Error {
             Self::AccessDeniedException(inner) => inner.meta(),
             Self::ExpiredIteratorException(inner) => inner.meta(),
             Self::ExpiredNextTokenException(inner) => inner.meta(),
+            Self::InternalFailureException(inner) => inner.meta(),
             Self::InvalidArgumentException(inner) => inner.meta(),
             Self::KmsAccessDeniedException(inner) => inner.meta(),
             Self::KmsDisabledException(inner) => inner.meta(),
@@ -496,19 +500,20 @@ where
 impl From<crate::operation::get_records::GetRecordsError> for Error {
     fn from(err: crate::operation::get_records::GetRecordsError) -> Self {
         match err {
-            crate::operation::get_records::GetRecordsError::KmsAccessDeniedException(inner) => Error::KmsAccessDeniedException(inner),
-            crate::operation::get_records::GetRecordsError::KmsDisabledException(inner) => Error::KmsDisabledException(inner),
             crate::operation::get_records::GetRecordsError::AccessDeniedException(inner) => Error::AccessDeniedException(inner),
             crate::operation::get_records::GetRecordsError::KmsNotFoundException(inner) => Error::KmsNotFoundException(inner),
             crate::operation::get_records::GetRecordsError::ExpiredIteratorException(inner) => Error::ExpiredIteratorException(inner),
             crate::operation::get_records::GetRecordsError::KmsOptInRequired(inner) => Error::KmsOptInRequired(inner),
-            crate::operation::get_records::GetRecordsError::KmsThrottlingException(inner) => Error::KmsThrottlingException(inner),
             crate::operation::get_records::GetRecordsError::ProvisionedThroughputExceededException(inner) => {
                 Error::ProvisionedThroughputExceededException(inner)
             }
+            crate::operation::get_records::GetRecordsError::ResourceNotFoundException(inner) => Error::ResourceNotFoundException(inner),
+            crate::operation::get_records::GetRecordsError::InternalFailureException(inner) => Error::InternalFailureException(inner),
+            crate::operation::get_records::GetRecordsError::KmsAccessDeniedException(inner) => Error::KmsAccessDeniedException(inner),
+            crate::operation::get_records::GetRecordsError::KmsDisabledException(inner) => Error::KmsDisabledException(inner),
+            crate::operation::get_records::GetRecordsError::KmsThrottlingException(inner) => Error::KmsThrottlingException(inner),
             crate::operation::get_records::GetRecordsError::InvalidArgumentException(inner) => Error::InvalidArgumentException(inner),
             crate::operation::get_records::GetRecordsError::KmsInvalidStateException(inner) => Error::KmsInvalidStateException(inner),
-            crate::operation::get_records::GetRecordsError::ResourceNotFoundException(inner) => Error::ResourceNotFoundException(inner),
             crate::operation::get_records::GetRecordsError::Unhandled(inner) => Error::Unhandled(inner),
         }
     }
@@ -532,6 +537,7 @@ impl From<crate::operation::get_resource_policy::GetResourcePolicyError> for Err
         match err {
             crate::operation::get_resource_policy::GetResourcePolicyError::AccessDeniedException(inner) => Error::AccessDeniedException(inner),
             crate::operation::get_resource_policy::GetResourcePolicyError::InvalidArgumentException(inner) => Error::InvalidArgumentException(inner),
+            crate::operation::get_resource_policy::GetResourcePolicyError::ResourceInUseException(inner) => Error::ResourceInUseException(inner),
             crate::operation::get_resource_policy::GetResourcePolicyError::LimitExceededException(inner) => Error::LimitExceededException(inner),
             crate::operation::get_resource_policy::GetResourcePolicyError::ResourceNotFoundException(inner) => {
                 Error::ResourceNotFoundException(inner)
@@ -557,6 +563,7 @@ where
 impl From<crate::operation::get_shard_iterator::GetShardIteratorError> for Error {
     fn from(err: crate::operation::get_shard_iterator::GetShardIteratorError) -> Self {
         match err {
+            crate::operation::get_shard_iterator::GetShardIteratorError::InternalFailureException(inner) => Error::InternalFailureException(inner),
             crate::operation::get_shard_iterator::GetShardIteratorError::AccessDeniedException(inner) => Error::AccessDeniedException(inner),
             crate::operation::get_shard_iterator::GetShardIteratorError::ProvisionedThroughputExceededException(inner) => {
                 Error::ProvisionedThroughputExceededException(inner)
@@ -694,6 +701,36 @@ impl From<crate::operation::list_streams::ListStreamsError> for Error {
         }
     }
 }
+impl<R> From<::aws_smithy_runtime_api::client::result::SdkError<crate::operation::list_tags_for_resource::ListTagsForResourceError, R>> for Error
+where
+    R: Send + Sync + std::fmt::Debug + 'static,
+{
+    fn from(err: ::aws_smithy_runtime_api::client::result::SdkError<crate::operation::list_tags_for_resource::ListTagsForResourceError, R>) -> Self {
+        match err {
+            ::aws_smithy_runtime_api::client::result::SdkError::ServiceError(context) => Self::from(context.into_err()),
+            _ => Error::Unhandled(crate::error::sealed_unhandled::Unhandled {
+                meta: ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(&err).clone(),
+                source: err.into(),
+            }),
+        }
+    }
+}
+impl From<crate::operation::list_tags_for_resource::ListTagsForResourceError> for Error {
+    fn from(err: crate::operation::list_tags_for_resource::ListTagsForResourceError) -> Self {
+        match err {
+            crate::operation::list_tags_for_resource::ListTagsForResourceError::AccessDeniedException(inner) => Error::AccessDeniedException(inner),
+            crate::operation::list_tags_for_resource::ListTagsForResourceError::InvalidArgumentException(inner) => {
+                Error::InvalidArgumentException(inner)
+            }
+            crate::operation::list_tags_for_resource::ListTagsForResourceError::ResourceInUseException(inner) => Error::ResourceInUseException(inner),
+            crate::operation::list_tags_for_resource::ListTagsForResourceError::LimitExceededException(inner) => Error::LimitExceededException(inner),
+            crate::operation::list_tags_for_resource::ListTagsForResourceError::ResourceNotFoundException(inner) => {
+                Error::ResourceNotFoundException(inner)
+            }
+            crate::operation::list_tags_for_resource::ListTagsForResourceError::Unhandled(inner) => Error::Unhandled(inner),
+        }
+    }
+}
 impl<R> From<::aws_smithy_runtime_api::client::result::SdkError<crate::operation::list_tags_for_stream::ListTagsForStreamError, R>> for Error
 where
     R: Send + Sync + std::fmt::Debug + 'static,
@@ -765,6 +802,7 @@ where
 impl From<crate::operation::put_record::PutRecordError> for Error {
     fn from(err: crate::operation::put_record::PutRecordError) -> Self {
         match err {
+            crate::operation::put_record::PutRecordError::InternalFailureException(inner) => Error::InternalFailureException(inner),
             crate::operation::put_record::PutRecordError::KmsAccessDeniedException(inner) => Error::KmsAccessDeniedException(inner),
             crate::operation::put_record::PutRecordError::KmsDisabledException(inner) => Error::KmsDisabledException(inner),
             crate::operation::put_record::PutRecordError::AccessDeniedException(inner) => Error::AccessDeniedException(inner),
@@ -798,6 +836,7 @@ where
 impl From<crate::operation::put_records::PutRecordsError> for Error {
     fn from(err: crate::operation::put_records::PutRecordsError) -> Self {
         match err {
+            crate::operation::put_records::PutRecordsError::InternalFailureException(inner) => Error::InternalFailureException(inner),
             crate::operation::put_records::PutRecordsError::KmsAccessDeniedException(inner) => Error::KmsAccessDeniedException(inner),
             crate::operation::put_records::PutRecordsError::KmsDisabledException(inner) => Error::KmsDisabledException(inner),
             crate::operation::put_records::PutRecordsError::AccessDeniedException(inner) => Error::AccessDeniedException(inner),
@@ -1024,6 +1063,91 @@ impl From<crate::operation::stop_stream_encryption::StopStreamEncryptionError> f
         }
     }
 }
+impl<R> From<::aws_smithy_runtime_api::client::result::SdkError<crate::operation::subscribe_to_shard::SubscribeToShardError, R>> for Error
+where
+    R: Send + Sync + std::fmt::Debug + 'static,
+{
+    fn from(err: ::aws_smithy_runtime_api::client::result::SdkError<crate::operation::subscribe_to_shard::SubscribeToShardError, R>) -> Self {
+        match err {
+            ::aws_smithy_runtime_api::client::result::SdkError::ServiceError(context) => Self::from(context.into_err()),
+            _ => Error::Unhandled(crate::error::sealed_unhandled::Unhandled {
+                meta: ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(&err).clone(),
+                source: err.into(),
+            }),
+        }
+    }
+}
+impl From<crate::operation::subscribe_to_shard::SubscribeToShardError> for Error {
+    fn from(err: crate::operation::subscribe_to_shard::SubscribeToShardError) -> Self {
+        match err {
+            crate::operation::subscribe_to_shard::SubscribeToShardError::AccessDeniedException(inner) => Error::AccessDeniedException(inner),
+            crate::operation::subscribe_to_shard::SubscribeToShardError::KmsNotFoundException(inner) => Error::KmsNotFoundException(inner),
+            crate::operation::subscribe_to_shard::SubscribeToShardError::KmsOptInRequired(inner) => Error::KmsOptInRequired(inner),
+            crate::operation::subscribe_to_shard::SubscribeToShardError::ResourceNotFoundException(inner) => Error::ResourceNotFoundException(inner),
+            crate::operation::subscribe_to_shard::SubscribeToShardError::KmsDisabledException(inner) => Error::KmsDisabledException(inner),
+            crate::operation::subscribe_to_shard::SubscribeToShardError::KmsAccessDeniedException(inner) => Error::KmsAccessDeniedException(inner),
+            crate::operation::subscribe_to_shard::SubscribeToShardError::InternalFailureException(inner) => Error::InternalFailureException(inner),
+            crate::operation::subscribe_to_shard::SubscribeToShardError::KmsThrottlingException(inner) => Error::KmsThrottlingException(inner),
+            crate::operation::subscribe_to_shard::SubscribeToShardError::InvalidArgumentException(inner) => Error::InvalidArgumentException(inner),
+            crate::operation::subscribe_to_shard::SubscribeToShardError::ResourceInUseException(inner) => Error::ResourceInUseException(inner),
+            crate::operation::subscribe_to_shard::SubscribeToShardError::KmsInvalidStateException(inner) => Error::KmsInvalidStateException(inner),
+            crate::operation::subscribe_to_shard::SubscribeToShardError::LimitExceededException(inner) => Error::LimitExceededException(inner),
+            crate::operation::subscribe_to_shard::SubscribeToShardError::Unhandled(inner) => Error::Unhandled(inner),
+        }
+    }
+}
+impl<R> From<::aws_smithy_runtime_api::client::result::SdkError<crate::operation::tag_resource::TagResourceError, R>> for Error
+where
+    R: Send + Sync + std::fmt::Debug + 'static,
+{
+    fn from(err: ::aws_smithy_runtime_api::client::result::SdkError<crate::operation::tag_resource::TagResourceError, R>) -> Self {
+        match err {
+            ::aws_smithy_runtime_api::client::result::SdkError::ServiceError(context) => Self::from(context.into_err()),
+            _ => Error::Unhandled(crate::error::sealed_unhandled::Unhandled {
+                meta: ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(&err).clone(),
+                source: err.into(),
+            }),
+        }
+    }
+}
+impl From<crate::operation::tag_resource::TagResourceError> for Error {
+    fn from(err: crate::operation::tag_resource::TagResourceError) -> Self {
+        match err {
+            crate::operation::tag_resource::TagResourceError::AccessDeniedException(inner) => Error::AccessDeniedException(inner),
+            crate::operation::tag_resource::TagResourceError::InvalidArgumentException(inner) => Error::InvalidArgumentException(inner),
+            crate::operation::tag_resource::TagResourceError::ResourceInUseException(inner) => Error::ResourceInUseException(inner),
+            crate::operation::tag_resource::TagResourceError::LimitExceededException(inner) => Error::LimitExceededException(inner),
+            crate::operation::tag_resource::TagResourceError::ResourceNotFoundException(inner) => Error::ResourceNotFoundException(inner),
+            crate::operation::tag_resource::TagResourceError::Unhandled(inner) => Error::Unhandled(inner),
+        }
+    }
+}
+impl<R> From<::aws_smithy_runtime_api::client::result::SdkError<crate::operation::untag_resource::UntagResourceError, R>> for Error
+where
+    R: Send + Sync + std::fmt::Debug + 'static,
+{
+    fn from(err: ::aws_smithy_runtime_api::client::result::SdkError<crate::operation::untag_resource::UntagResourceError, R>) -> Self {
+        match err {
+            ::aws_smithy_runtime_api::client::result::SdkError::ServiceError(context) => Self::from(context.into_err()),
+            _ => Error::Unhandled(crate::error::sealed_unhandled::Unhandled {
+                meta: ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(&err).clone(),
+                source: err.into(),
+            }),
+        }
+    }
+}
+impl From<crate::operation::untag_resource::UntagResourceError> for Error {
+    fn from(err: crate::operation::untag_resource::UntagResourceError) -> Self {
+        match err {
+            crate::operation::untag_resource::UntagResourceError::AccessDeniedException(inner) => Error::AccessDeniedException(inner),
+            crate::operation::untag_resource::UntagResourceError::InvalidArgumentException(inner) => Error::InvalidArgumentException(inner),
+            crate::operation::untag_resource::UntagResourceError::ResourceInUseException(inner) => Error::ResourceInUseException(inner),
+            crate::operation::untag_resource::UntagResourceError::LimitExceededException(inner) => Error::LimitExceededException(inner),
+            crate::operation::untag_resource::UntagResourceError::ResourceNotFoundException(inner) => Error::ResourceNotFoundException(inner),
+            crate::operation::untag_resource::UntagResourceError::Unhandled(inner) => Error::Unhandled(inner),
+        }
+    }
+}
 impl<R> From<::aws_smithy_runtime_api::client::result::SdkError<crate::operation::update_shard_count::UpdateShardCountError, R>> for Error
 where
     R: Send + Sync + std::fmt::Debug + 'static,
@@ -1076,12 +1200,55 @@ impl From<crate::operation::update_stream_mode::UpdateStreamModeError> for Error
         }
     }
 }
+impl<O, E> ::std::convert::From<::aws_smithy_runtime_api::client::waiters::error::WaiterError<O, E>> for Error
+where
+    O: ::std::fmt::Debug + ::std::marker::Send + ::std::marker::Sync + 'static,
+    E: ::std::error::Error + ::std::marker::Send + ::std::marker::Sync + 'static,
+{
+    fn from(err: ::aws_smithy_runtime_api::client::waiters::error::WaiterError<O, E>) -> Self {
+        Error::Unhandled(crate::error::sealed_unhandled::Unhandled {
+            meta: ::std::default::Default::default(),
+            source: err.into(),
+        })
+    }
+}
+impl<R> From<::aws_smithy_runtime_api::client::result::SdkError<crate::types::error::SubscribeToShardEventStreamError, R>> for Error
+where
+    R: Send + Sync + std::fmt::Debug + 'static,
+{
+    fn from(err: ::aws_smithy_runtime_api::client::result::SdkError<crate::types::error::SubscribeToShardEventStreamError, R>) -> Self {
+        match err {
+            ::aws_smithy_runtime_api::client::result::SdkError::ServiceError(context) => Self::from(context.into_err()),
+            _ => Error::Unhandled(crate::error::sealed_unhandled::Unhandled {
+                meta: ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(&err).clone(),
+                source: err.into(),
+            }),
+        }
+    }
+}
+impl From<crate::types::error::SubscribeToShardEventStreamError> for Error {
+    fn from(err: crate::types::error::SubscribeToShardEventStreamError) -> Self {
+        match err {
+            crate::types::error::SubscribeToShardEventStreamError::ResourceNotFoundException(inner) => Error::ResourceNotFoundException(inner),
+            crate::types::error::SubscribeToShardEventStreamError::ResourceInUseException(inner) => Error::ResourceInUseException(inner),
+            crate::types::error::SubscribeToShardEventStreamError::KmsDisabledException(inner) => Error::KmsDisabledException(inner),
+            crate::types::error::SubscribeToShardEventStreamError::KmsInvalidStateException(inner) => Error::KmsInvalidStateException(inner),
+            crate::types::error::SubscribeToShardEventStreamError::KmsAccessDeniedException(inner) => Error::KmsAccessDeniedException(inner),
+            crate::types::error::SubscribeToShardEventStreamError::KmsNotFoundException(inner) => Error::KmsNotFoundException(inner),
+            crate::types::error::SubscribeToShardEventStreamError::KmsOptInRequired(inner) => Error::KmsOptInRequired(inner),
+            crate::types::error::SubscribeToShardEventStreamError::KmsThrottlingException(inner) => Error::KmsThrottlingException(inner),
+            crate::types::error::SubscribeToShardEventStreamError::InternalFailureException(inner) => Error::InternalFailureException(inner),
+            crate::types::error::SubscribeToShardEventStreamError::Unhandled(inner) => Error::Unhandled(inner),
+        }
+    }
+}
 impl ::std::error::Error for Error {
     fn source(&self) -> std::option::Option<&(dyn ::std::error::Error + 'static)> {
         match self {
             Error::AccessDeniedException(inner) => inner.source(),
             Error::ExpiredIteratorException(inner) => inner.source(),
             Error::ExpiredNextTokenException(inner) => inner.source(),
+            Error::InternalFailureException(inner) => inner.source(),
             Error::InvalidArgumentException(inner) => inner.source(),
             Error::KmsAccessDeniedException(inner) => inner.source(),
             Error::KmsDisabledException(inner) => inner.source(),
@@ -1104,6 +1271,7 @@ impl ::aws_types::request_id::RequestId for Error {
             Self::AccessDeniedException(e) => e.request_id(),
             Self::ExpiredIteratorException(e) => e.request_id(),
             Self::ExpiredNextTokenException(e) => e.request_id(),
+            Self::InternalFailureException(e) => e.request_id(),
             Self::InvalidArgumentException(e) => e.request_id(),
             Self::KmsAccessDeniedException(e) => e.request_id(),
             Self::KmsDisabledException(e) => e.request_id(),

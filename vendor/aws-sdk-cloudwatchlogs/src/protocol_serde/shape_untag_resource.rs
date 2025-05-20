@@ -17,12 +17,12 @@ pub fn de_untag_resource_http_error(
 
     let _error_message = generic.message().map(|msg| msg.to_owned());
     Err(match error_code {
-        "InvalidParameterException" => crate::operation::untag_resource::UntagResourceError::InvalidParameterException({
+        "ResourceNotFoundException" => crate::operation::untag_resource::UntagResourceError::ResourceNotFoundException({
             #[allow(unused_mut)]
             let mut tmp = {
                 #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::InvalidParameterExceptionBuilder::default();
-                output = crate::protocol_serde::shape_invalid_parameter_exception::de_invalid_parameter_exception_json_err(_response_body, output)
+                let mut output = crate::types::error::builders::ResourceNotFoundExceptionBuilder::default();
+                output = crate::protocol_serde::shape_resource_not_found_exception::de_resource_not_found_exception_json_err(_response_body, output)
                     .map_err(crate::operation::untag_resource::UntagResourceError::unhandled)?;
                 let output = output.meta(generic);
                 output.build()
@@ -32,12 +32,12 @@ pub fn de_untag_resource_http_error(
             }
             tmp
         }),
-        "ResourceNotFoundException" => crate::operation::untag_resource::UntagResourceError::ResourceNotFoundException({
+        "InvalidParameterException" => crate::operation::untag_resource::UntagResourceError::InvalidParameterException({
             #[allow(unused_mut)]
             let mut tmp = {
                 #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::ResourceNotFoundExceptionBuilder::default();
-                output = crate::protocol_serde::shape_resource_not_found_exception::de_resource_not_found_exception_json_err(_response_body, output)
+                let mut output = crate::types::error::builders::InvalidParameterExceptionBuilder::default();
+                output = crate::protocol_serde::shape_invalid_parameter_exception::de_invalid_parameter_exception_json_err(_response_body, output)
                     .map_err(crate::operation::untag_resource::UntagResourceError::unhandled)?;
                 let output = output.meta(generic);
                 output.build()
@@ -83,7 +83,7 @@ pub fn de_untag_resource_http_response(
 
 pub fn ser_untag_resource_input(
     input: &crate::operation::untag_resource::UntagResourceInput,
-) -> Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
     let mut out = String::new();
     let mut object = ::aws_smithy_json::serialize::JsonObjectWriter::new(&mut out);
     crate::protocol_serde::shape_untag_resource_input::ser_untag_resource_input_input(&mut object, input)?;

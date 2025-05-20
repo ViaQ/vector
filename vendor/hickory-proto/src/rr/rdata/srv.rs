@@ -6,14 +6,14 @@
 // copied, modified, or distributed except according to those terms.
 
 //! service records for identify port mapping for specific services on a host
-use std::fmt;
+use core::fmt;
 
-#[cfg(feature = "serde-config")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::{
     error::ProtoResult,
-    rr::{domain::Name, RData, RecordData, RecordType},
+    rr::{RData, RecordData, RecordType, domain::Name},
     serialize::binary::{BinDecodable, BinDecoder, BinEncodable, BinEncoder},
 };
 
@@ -77,7 +77,7 @@ use crate::{
 /// Class.
 ///
 /// ```
-#[cfg_attr(feature = "serde-config", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct SRV {
     priority: u16,
@@ -92,7 +92,7 @@ impl SRV {
     /// # Arguments
     ///
     /// * `priority` - lower values have a higher priority and clients will attempt to use these
-    ///                first.
+    ///   first.
     /// * `weight` - for servers with the same priority, higher weights will be chosen more often.
     /// * `port` - the socket port number on which the service is listening.
     /// * `target` - like CNAME, this is the target domain name to which the service is associated.
@@ -287,19 +287,24 @@ impl fmt::Display for SRV {
 mod tests {
     #![allow(clippy::dbg_macro, clippy::print_stdout)]
 
+    use alloc::vec::Vec;
+    #[cfg(feature = "std")]
+    use std::println;
+
     use super::*;
 
     #[test]
     fn test() {
-        use std::str::FromStr;
+        use core::str::FromStr;
 
-        let rdata = SRV::new(1, 2, 3, Name::from_str("_dns._tcp.example.com").unwrap());
+        let rdata = SRV::new(1, 2, 3, Name::from_str("_dns._tcp.example.com.").unwrap());
 
         let mut bytes = Vec::new();
         let mut encoder: BinEncoder<'_> = BinEncoder::new(&mut bytes);
         assert!(rdata.emit(&mut encoder).is_ok());
         let bytes = encoder.into_bytes();
 
+        #[cfg(feature = "std")]
         println!("bytes: {bytes:?}");
 
         let mut decoder: BinDecoder<'_> = BinDecoder::new(bytes);

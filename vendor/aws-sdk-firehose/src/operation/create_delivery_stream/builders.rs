@@ -3,7 +3,7 @@ pub use crate::operation::create_delivery_stream::_create_delivery_stream_output
 
 pub use crate::operation::create_delivery_stream::_create_delivery_stream_input::CreateDeliveryStreamInputBuilder;
 
-impl CreateDeliveryStreamInputBuilder {
+impl crate::operation::create_delivery_stream::builders::CreateDeliveryStreamInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,21 +22,24 @@ impl CreateDeliveryStreamInputBuilder {
 }
 /// Fluent builder constructing a request to `CreateDeliveryStream`.
 ///
-/// <p>Creates a Kinesis Data Firehose delivery stream.</p>
-/// <p>By default, you can create up to 50 delivery streams per Amazon Web Services Region.</p>
-/// <p>This is an asynchronous operation that immediately returns. The initial status of the delivery stream is <code>CREATING</code>. After the delivery stream is created, its status is <code>ACTIVE</code> and it now accepts data. If the delivery stream creation fails, the status transitions to <code>CREATING_FAILED</code>. Attempts to send data to a delivery stream that is not in the <code>ACTIVE</code> state cause an exception. To check the state of a delivery stream, use <code>DescribeDeliveryStream</code>.</p>
-/// <p>If the status of a delivery stream is <code>CREATING_FAILED</code>, this status doesn't change, and you can't invoke <code>CreateDeliveryStream</code> again on it. However, you can invoke the <code>DeleteDeliveryStream</code> operation to delete it.</p>
-/// <p>A Kinesis Data Firehose delivery stream can be configured to receive records directly from providers using <code>PutRecord</code> or <code>PutRecordBatch</code>, or it can be configured to use an existing Kinesis stream as its source. To specify a Kinesis data stream as input, set the <code>DeliveryStreamType</code> parameter to <code>KinesisStreamAsSource</code>, and provide the Kinesis stream Amazon Resource Name (ARN) and role ARN in the <code>KinesisStreamSourceConfiguration</code> parameter.</p>
-/// <p>To create a delivery stream with server-side encryption (SSE) enabled, include <code>DeliveryStreamEncryptionConfigurationInput</code> in your request. This is optional. You can also invoke <code>StartDeliveryStreamEncryption</code> to turn on SSE for an existing delivery stream that doesn't have SSE enabled.</p>
-/// <p>A delivery stream is configured with a single destination, such as Amazon Simple Storage Service (Amazon S3), Amazon Redshift, Amazon OpenSearch Service, Amazon OpenSearch Serverless, Splunk, and any custom HTTP endpoint or HTTP endpoints owned by or supported by third-party service providers, including Datadog, Dynatrace, LogicMonitor, MongoDB, New Relic, and Sumo Logic. You must specify only one of the following destination configuration parameters: <code>ExtendedS3DestinationConfiguration</code>, <code>S3DestinationConfiguration</code>, <code>ElasticsearchDestinationConfiguration</code>, <code>RedshiftDestinationConfiguration</code>, or <code>SplunkDestinationConfiguration</code>.</p>
-/// <p>When you specify <code>S3DestinationConfiguration</code>, you can also provide the following optional values: BufferingHints, <code>EncryptionConfiguration</code>, and <code>CompressionFormat</code>. By default, if no <code>BufferingHints</code> value is provided, Kinesis Data Firehose buffers data up to 5 MB or for 5 minutes, whichever condition is satisfied first. <code>BufferingHints</code> is a hint, so there are some cases where the service cannot adhere to these conditions strictly. For example, record boundaries might be such that the size is a little over or under the configured buffering size. By default, no encryption is performed. We strongly recommend that you enable encryption to ensure secure data storage in Amazon S3.</p>
+/// <p>Creates a Firehose stream.</p>
+/// <p>By default, you can create up to 5,000 Firehose streams per Amazon Web Services Region.</p>
+/// <p>This is an asynchronous operation that immediately returns. The initial status of the Firehose stream is <code>CREATING</code>. After the Firehose stream is created, its status is <code>ACTIVE</code> and it now accepts data. If the Firehose stream creation fails, the status transitions to <code>CREATING_FAILED</code>. Attempts to send data to a delivery stream that is not in the <code>ACTIVE</code> state cause an exception. To check the state of a Firehose stream, use <code>DescribeDeliveryStream</code>.</p>
+/// <p>If the status of a Firehose stream is <code>CREATING_FAILED</code>, this status doesn't change, and you can't invoke <code>CreateDeliveryStream</code> again on it. However, you can invoke the <code>DeleteDeliveryStream</code> operation to delete it.</p>
+/// <p>A Firehose stream can be configured to receive records directly from providers using <code>PutRecord</code> or <code>PutRecordBatch</code>, or it can be configured to use an existing Kinesis stream as its source. To specify a Kinesis data stream as input, set the <code>DeliveryStreamType</code> parameter to <code>KinesisStreamAsSource</code>, and provide the Kinesis stream Amazon Resource Name (ARN) and role ARN in the <code>KinesisStreamSourceConfiguration</code> parameter.</p>
+/// <p>To create a Firehose stream with server-side encryption (SSE) enabled, include <code>DeliveryStreamEncryptionConfigurationInput</code> in your request. This is optional. You can also invoke <code>StartDeliveryStreamEncryption</code> to turn on SSE for an existing Firehose stream that doesn't have SSE enabled.</p>
+/// <p>A Firehose stream is configured with a single destination, such as Amazon Simple Storage Service (Amazon S3), Amazon Redshift, Amazon OpenSearch Service, Amazon OpenSearch Serverless, Splunk, and any custom HTTP endpoint or HTTP endpoints owned by or supported by third-party service providers, including Datadog, Dynatrace, LogicMonitor, MongoDB, New Relic, and Sumo Logic. You must specify only one of the following destination configuration parameters: <code>ExtendedS3DestinationConfiguration</code>, <code>S3DestinationConfiguration</code>, <code>ElasticsearchDestinationConfiguration</code>, <code>RedshiftDestinationConfiguration</code>, or <code>SplunkDestinationConfiguration</code>.</p>
+/// <p>When you specify <code>S3DestinationConfiguration</code>, you can also provide the following optional values: BufferingHints, <code>EncryptionConfiguration</code>, and <code>CompressionFormat</code>. By default, if no <code>BufferingHints</code> value is provided, Firehose buffers data up to 5 MB or for 5 minutes, whichever condition is satisfied first. <code>BufferingHints</code> is a hint, so there are some cases where the service cannot adhere to these conditions strictly. For example, record boundaries might be such that the size is a little over or under the configured buffering size. By default, no encryption is performed. We strongly recommend that you enable encryption to ensure secure data storage in Amazon S3.</p>
 /// <p>A few notes about Amazon Redshift as a destination:</p>
 /// <ul>
-/// <li> <p>An Amazon Redshift destination requires an S3 bucket as intermediate location. Kinesis Data Firehose first delivers data to Amazon S3 and then uses <code>COPY</code> syntax to load data into an Amazon Redshift table. This is specified in the <code>RedshiftDestinationConfiguration.S3Configuration</code> parameter.</p> </li>
-/// <li> <p>The compression formats <code>SNAPPY</code> or <code>ZIP</code> cannot be specified in <code>RedshiftDestinationConfiguration.S3Configuration</code> because the Amazon Redshift <code>COPY</code> operation that reads from the S3 bucket doesn't support these compression formats.</p> </li>
-/// <li> <p>We strongly recommend that you use the user name and password you provide exclusively with Kinesis Data Firehose, and that the permissions for the account are restricted for Amazon Redshift <code>INSERT</code> permissions.</p> </li>
+/// <li>
+/// <p>An Amazon Redshift destination requires an S3 bucket as intermediate location. Firehose first delivers data to Amazon S3 and then uses <code>COPY</code> syntax to load data into an Amazon Redshift table. This is specified in the <code>RedshiftDestinationConfiguration.S3Configuration</code> parameter.</p></li>
+/// <li>
+/// <p>The compression formats <code>SNAPPY</code> or <code>ZIP</code> cannot be specified in <code>RedshiftDestinationConfiguration.S3Configuration</code> because the Amazon Redshift <code>COPY</code> operation that reads from the S3 bucket doesn't support these compression formats.</p></li>
+/// <li>
+/// <p>We strongly recommend that you use the user name and password you provide exclusively with Firehose, and that the permissions for the account are restricted for Amazon Redshift <code>INSERT</code> permissions.</p></li>
 /// </ul>
-/// <p>Kinesis Data Firehose assumes the IAM role that is configured as part of the destination. The role should allow the Kinesis Data Firehose principal to assume the role, and the role should have permissions that allow the service to deliver the data. For more information, see <a href="https://docs.aws.amazon.com/firehose/latest/dev/controlling-access.html#using-iam-s3">Grant Kinesis Data Firehose Access to an Amazon S3 Destination</a> in the <i>Amazon Kinesis Data Firehose Developer Guide</i>.</p>
+/// <p>Firehose assumes the IAM role that is configured as part of the destination. The role should allow the Firehose principal to assume the role, and the role should have permissions that allow the service to deliver the data. For more information, see <a href="https://docs.aws.amazon.com/firehose/latest/dev/controlling-access.html#using-iam-s3">Grant Firehose Access to an Amazon S3 Destination</a> in the <i>Amazon Firehose Developer Guide</i>.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct CreateDeliveryStreamFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -62,7 +65,7 @@ impl
     }
 }
 impl CreateDeliveryStreamFluentBuilder {
-    /// Creates a new `CreateDeliveryStream`.
+    /// Creates a new `CreateDeliveryStreamFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -113,66 +116,86 @@ impl CreateDeliveryStreamFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
-    /// <p>The name of the delivery stream. This name must be unique per Amazon Web Services account in the same Amazon Web Services Region. If the delivery streams are in different accounts or different Regions, you can have multiple delivery streams with the same name.</p>
+    /// <p>The name of the Firehose stream. This name must be unique per Amazon Web Services account in the same Amazon Web Services Region. If the Firehose streams are in different accounts or different Regions, you can have multiple Firehose streams with the same name.</p>
     pub fn delivery_stream_name(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.delivery_stream_name(input.into());
         self
     }
-    /// <p>The name of the delivery stream. This name must be unique per Amazon Web Services account in the same Amazon Web Services Region. If the delivery streams are in different accounts or different Regions, you can have multiple delivery streams with the same name.</p>
+    /// <p>The name of the Firehose stream. This name must be unique per Amazon Web Services account in the same Amazon Web Services Region. If the Firehose streams are in different accounts or different Regions, you can have multiple Firehose streams with the same name.</p>
     pub fn set_delivery_stream_name(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_delivery_stream_name(input);
         self
     }
-    /// <p>The name of the delivery stream. This name must be unique per Amazon Web Services account in the same Amazon Web Services Region. If the delivery streams are in different accounts or different Regions, you can have multiple delivery streams with the same name.</p>
+    /// <p>The name of the Firehose stream. This name must be unique per Amazon Web Services account in the same Amazon Web Services Region. If the Firehose streams are in different accounts or different Regions, you can have multiple Firehose streams with the same name.</p>
     pub fn get_delivery_stream_name(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_delivery_stream_name()
     }
-    /// <p>The delivery stream type. This parameter can be one of the following values:</p>
+    /// <p>The Firehose stream type. This parameter can be one of the following values:</p>
     /// <ul>
-    /// <li> <p> <code>DirectPut</code>: Provider applications access the delivery stream directly.</p> </li>
-    /// <li> <p> <code>KinesisStreamAsSource</code>: The delivery stream uses a Kinesis data stream as a source.</p> </li>
+    /// <li>
+    /// <p><code>DirectPut</code>: Provider applications access the Firehose stream directly.</p></li>
+    /// <li>
+    /// <p><code>KinesisStreamAsSource</code>: The Firehose stream uses a Kinesis data stream as a source.</p></li>
     /// </ul>
     pub fn delivery_stream_type(mut self, input: crate::types::DeliveryStreamType) -> Self {
         self.inner = self.inner.delivery_stream_type(input);
         self
     }
-    /// <p>The delivery stream type. This parameter can be one of the following values:</p>
+    /// <p>The Firehose stream type. This parameter can be one of the following values:</p>
     /// <ul>
-    /// <li> <p> <code>DirectPut</code>: Provider applications access the delivery stream directly.</p> </li>
-    /// <li> <p> <code>KinesisStreamAsSource</code>: The delivery stream uses a Kinesis data stream as a source.</p> </li>
+    /// <li>
+    /// <p><code>DirectPut</code>: Provider applications access the Firehose stream directly.</p></li>
+    /// <li>
+    /// <p><code>KinesisStreamAsSource</code>: The Firehose stream uses a Kinesis data stream as a source.</p></li>
     /// </ul>
     pub fn set_delivery_stream_type(mut self, input: ::std::option::Option<crate::types::DeliveryStreamType>) -> Self {
         self.inner = self.inner.set_delivery_stream_type(input);
         self
     }
-    /// <p>The delivery stream type. This parameter can be one of the following values:</p>
+    /// <p>The Firehose stream type. This parameter can be one of the following values:</p>
     /// <ul>
-    /// <li> <p> <code>DirectPut</code>: Provider applications access the delivery stream directly.</p> </li>
-    /// <li> <p> <code>KinesisStreamAsSource</code>: The delivery stream uses a Kinesis data stream as a source.</p> </li>
+    /// <li>
+    /// <p><code>DirectPut</code>: Provider applications access the Firehose stream directly.</p></li>
+    /// <li>
+    /// <p><code>KinesisStreamAsSource</code>: The Firehose stream uses a Kinesis data stream as a source.</p></li>
     /// </ul>
     pub fn get_delivery_stream_type(&self) -> &::std::option::Option<crate::types::DeliveryStreamType> {
         self.inner.get_delivery_stream_type()
     }
-    /// <p>When a Kinesis data stream is used as the source for the delivery stream, a <code>KinesisStreamSourceConfiguration</code> containing the Kinesis data stream Amazon Resource Name (ARN) and the role ARN for the source stream.</p>
+    /// <p>The structure that configures parameters such as <code>ThroughputHintInMBs</code> for a stream configured with Direct PUT as a source.</p>
+    pub fn direct_put_source_configuration(mut self, input: crate::types::DirectPutSourceConfiguration) -> Self {
+        self.inner = self.inner.direct_put_source_configuration(input);
+        self
+    }
+    /// <p>The structure that configures parameters such as <code>ThroughputHintInMBs</code> for a stream configured with Direct PUT as a source.</p>
+    pub fn set_direct_put_source_configuration(mut self, input: ::std::option::Option<crate::types::DirectPutSourceConfiguration>) -> Self {
+        self.inner = self.inner.set_direct_put_source_configuration(input);
+        self
+    }
+    /// <p>The structure that configures parameters such as <code>ThroughputHintInMBs</code> for a stream configured with Direct PUT as a source.</p>
+    pub fn get_direct_put_source_configuration(&self) -> &::std::option::Option<crate::types::DirectPutSourceConfiguration> {
+        self.inner.get_direct_put_source_configuration()
+    }
+    /// <p>When a Kinesis data stream is used as the source for the Firehose stream, a <code>KinesisStreamSourceConfiguration</code> containing the Kinesis data stream Amazon Resource Name (ARN) and the role ARN for the source stream.</p>
     pub fn kinesis_stream_source_configuration(mut self, input: crate::types::KinesisStreamSourceConfiguration) -> Self {
         self.inner = self.inner.kinesis_stream_source_configuration(input);
         self
     }
-    /// <p>When a Kinesis data stream is used as the source for the delivery stream, a <code>KinesisStreamSourceConfiguration</code> containing the Kinesis data stream Amazon Resource Name (ARN) and the role ARN for the source stream.</p>
+    /// <p>When a Kinesis data stream is used as the source for the Firehose stream, a <code>KinesisStreamSourceConfiguration</code> containing the Kinesis data stream Amazon Resource Name (ARN) and the role ARN for the source stream.</p>
     pub fn set_kinesis_stream_source_configuration(mut self, input: ::std::option::Option<crate::types::KinesisStreamSourceConfiguration>) -> Self {
         self.inner = self.inner.set_kinesis_stream_source_configuration(input);
         self
     }
-    /// <p>When a Kinesis data stream is used as the source for the delivery stream, a <code>KinesisStreamSourceConfiguration</code> containing the Kinesis data stream Amazon Resource Name (ARN) and the role ARN for the source stream.</p>
+    /// <p>When a Kinesis data stream is used as the source for the Firehose stream, a <code>KinesisStreamSourceConfiguration</code> containing the Kinesis data stream Amazon Resource Name (ARN) and the role ARN for the source stream.</p>
     pub fn get_kinesis_stream_source_configuration(&self) -> &::std::option::Option<crate::types::KinesisStreamSourceConfiguration> {
         self.inner.get_kinesis_stream_source_configuration()
     }
@@ -195,19 +218,19 @@ impl CreateDeliveryStreamFluentBuilder {
     ) -> &::std::option::Option<crate::types::DeliveryStreamEncryptionConfigurationInput> {
         self.inner.get_delivery_stream_encryption_configuration_input()
     }
-    /// <p>[Deprecated] The destination in Amazon S3. You can specify only one destination.</p>
+    /// <p>\[Deprecated\] The destination in Amazon S3. You can specify only one destination.</p>
     #[deprecated]
     pub fn s3_destination_configuration(mut self, input: crate::types::S3DestinationConfiguration) -> Self {
         self.inner = self.inner.s3_destination_configuration(input);
         self
     }
-    /// <p>[Deprecated] The destination in Amazon S3. You can specify only one destination.</p>
+    /// <p>\[Deprecated\] The destination in Amazon S3. You can specify only one destination.</p>
     #[deprecated]
     pub fn set_s3_destination_configuration(mut self, input: ::std::option::Option<crate::types::S3DestinationConfiguration>) -> Self {
         self.inner = self.inner.set_s3_destination_configuration(input);
         self
     }
-    /// <p>[Deprecated] The destination in Amazon S3. You can specify only one destination.</p>
+    /// <p>\[Deprecated\] The destination in Amazon S3. You can specify only one destination.</p>
     #[deprecated]
     pub fn get_s3_destination_configuration(&self) -> &::std::option::Option<crate::types::S3DestinationConfiguration> {
         self.inner.get_s3_destination_configuration()
@@ -243,12 +266,12 @@ impl CreateDeliveryStreamFluentBuilder {
     pub fn get_redshift_destination_configuration(&self) -> &::std::option::Option<crate::types::RedshiftDestinationConfiguration> {
         self.inner.get_redshift_destination_configuration()
     }
-    /// <p>The destination in Amazon ES. You can specify only one destination.</p>
+    /// <p>The destination in Amazon OpenSearch Service. You can specify only one destination.</p>
     pub fn elasticsearch_destination_configuration(mut self, input: crate::types::ElasticsearchDestinationConfiguration) -> Self {
         self.inner = self.inner.elasticsearch_destination_configuration(input);
         self
     }
-    /// <p>The destination in Amazon ES. You can specify only one destination.</p>
+    /// <p>The destination in Amazon OpenSearch Service. You can specify only one destination.</p>
     pub fn set_elasticsearch_destination_configuration(
         mut self,
         input: ::std::option::Option<crate::types::ElasticsearchDestinationConfiguration>,
@@ -256,7 +279,7 @@ impl CreateDeliveryStreamFluentBuilder {
         self.inner = self.inner.set_elasticsearch_destination_configuration(input);
         self
     }
-    /// <p>The destination in Amazon ES. You can specify only one destination.</p>
+    /// <p>The destination in Amazon OpenSearch Service. You can specify only one destination.</p>
     pub fn get_elasticsearch_destination_configuration(&self) -> &::std::option::Option<crate::types::ElasticsearchDestinationConfiguration> {
         self.inner.get_elasticsearch_destination_configuration()
     }
@@ -310,24 +333,37 @@ impl CreateDeliveryStreamFluentBuilder {
     pub fn get_http_endpoint_destination_configuration(&self) -> &::std::option::Option<crate::types::HttpEndpointDestinationConfiguration> {
         self.inner.get_http_endpoint_destination_configuration()
     }
+    ///
     /// Appends an item to `Tags`.
     ///
     /// To override the contents of this collection use [`set_tags`](Self::set_tags).
     ///
-    /// <p>A set of tags to assign to the delivery stream. A tag is a key-value pair that you can define and assign to Amazon Web Services resources. Tags are metadata. For example, you can add friendly names and descriptions or other types of information that can help you distinguish the delivery stream. For more information about tags, see <a href="https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/cost-alloc-tags.html">Using Cost Allocation Tags</a> in the Amazon Web Services Billing and Cost Management User Guide.</p>
-    /// <p>You can specify up to 50 tags when creating a delivery stream.</p>
+    /// <p>A set of tags to assign to the Firehose stream. A tag is a key-value pair that you can define and assign to Amazon Web Services resources. Tags are metadata. For example, you can add friendly names and descriptions or other types of information that can help you distinguish the Firehose stream. For more information about tags, see <a href="https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/cost-alloc-tags.html">Using Cost Allocation Tags</a> in the Amazon Web Services Billing and Cost Management User Guide.</p>
+    /// <p>You can specify up to 50 tags when creating a Firehose stream.</p>
+    /// <p>If you specify tags in the <code>CreateDeliveryStream</code> action, Amazon Data Firehose performs an additional authorization on the <code>firehose:TagDeliveryStream</code> action to verify if users have permissions to create tags. If you do not provide this permission, requests to create new Firehose streams with IAM resource tags will fail with an <code>AccessDeniedException</code> such as following.</p>
+    /// <p><b>AccessDeniedException</b></p>
+    /// <p>User: arn:aws:sts::x:assumed-role/x/x is not authorized to perform: firehose:TagDeliveryStream on resource: arn:aws:firehose:us-east-1:x:deliverystream/x with an explicit deny in an identity-based policy.</p>
+    /// <p>For an example IAM policy, see <a href="https://docs.aws.amazon.com/firehose/latest/APIReference/API_CreateDeliveryStream.html#API_CreateDeliveryStream_Examples">Tag example.</a></p>
     pub fn tags(mut self, input: crate::types::Tag) -> Self {
         self.inner = self.inner.tags(input);
         self
     }
-    /// <p>A set of tags to assign to the delivery stream. A tag is a key-value pair that you can define and assign to Amazon Web Services resources. Tags are metadata. For example, you can add friendly names and descriptions or other types of information that can help you distinguish the delivery stream. For more information about tags, see <a href="https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/cost-alloc-tags.html">Using Cost Allocation Tags</a> in the Amazon Web Services Billing and Cost Management User Guide.</p>
-    /// <p>You can specify up to 50 tags when creating a delivery stream.</p>
+    /// <p>A set of tags to assign to the Firehose stream. A tag is a key-value pair that you can define and assign to Amazon Web Services resources. Tags are metadata. For example, you can add friendly names and descriptions or other types of information that can help you distinguish the Firehose stream. For more information about tags, see <a href="https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/cost-alloc-tags.html">Using Cost Allocation Tags</a> in the Amazon Web Services Billing and Cost Management User Guide.</p>
+    /// <p>You can specify up to 50 tags when creating a Firehose stream.</p>
+    /// <p>If you specify tags in the <code>CreateDeliveryStream</code> action, Amazon Data Firehose performs an additional authorization on the <code>firehose:TagDeliveryStream</code> action to verify if users have permissions to create tags. If you do not provide this permission, requests to create new Firehose streams with IAM resource tags will fail with an <code>AccessDeniedException</code> such as following.</p>
+    /// <p><b>AccessDeniedException</b></p>
+    /// <p>User: arn:aws:sts::x:assumed-role/x/x is not authorized to perform: firehose:TagDeliveryStream on resource: arn:aws:firehose:us-east-1:x:deliverystream/x with an explicit deny in an identity-based policy.</p>
+    /// <p>For an example IAM policy, see <a href="https://docs.aws.amazon.com/firehose/latest/APIReference/API_CreateDeliveryStream.html#API_CreateDeliveryStream_Examples">Tag example.</a></p>
     pub fn set_tags(mut self, input: ::std::option::Option<::std::vec::Vec<crate::types::Tag>>) -> Self {
         self.inner = self.inner.set_tags(input);
         self
     }
-    /// <p>A set of tags to assign to the delivery stream. A tag is a key-value pair that you can define and assign to Amazon Web Services resources. Tags are metadata. For example, you can add friendly names and descriptions or other types of information that can help you distinguish the delivery stream. For more information about tags, see <a href="https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/cost-alloc-tags.html">Using Cost Allocation Tags</a> in the Amazon Web Services Billing and Cost Management User Guide.</p>
-    /// <p>You can specify up to 50 tags when creating a delivery stream.</p>
+    /// <p>A set of tags to assign to the Firehose stream. A tag is a key-value pair that you can define and assign to Amazon Web Services resources. Tags are metadata. For example, you can add friendly names and descriptions or other types of information that can help you distinguish the Firehose stream. For more information about tags, see <a href="https://docs.aws.amazon.com/awsaccountbilling/latest/aboutv2/cost-alloc-tags.html">Using Cost Allocation Tags</a> in the Amazon Web Services Billing and Cost Management User Guide.</p>
+    /// <p>You can specify up to 50 tags when creating a Firehose stream.</p>
+    /// <p>If you specify tags in the <code>CreateDeliveryStream</code> action, Amazon Data Firehose performs an additional authorization on the <code>firehose:TagDeliveryStream</code> action to verify if users have permissions to create tags. If you do not provide this permission, requests to create new Firehose streams with IAM resource tags will fail with an <code>AccessDeniedException</code> such as following.</p>
+    /// <p><b>AccessDeniedException</b></p>
+    /// <p>User: arn:aws:sts::x:assumed-role/x/x is not authorized to perform: firehose:TagDeliveryStream on resource: arn:aws:firehose:us-east-1:x:deliverystream/x with an explicit deny in an identity-based policy.</p>
+    /// <p>For an example IAM policy, see <a href="https://docs.aws.amazon.com/firehose/latest/APIReference/API_CreateDeliveryStream.html#API_CreateDeliveryStream_Examples">Tag example.</a></p>
     pub fn get_tags(&self) -> &::std::option::Option<::std::vec::Vec<crate::types::Tag>> {
         self.inner.get_tags()
     }
@@ -366,5 +402,50 @@ impl CreateDeliveryStreamFluentBuilder {
     /// <p>The configuration for the Amazon MSK cluster to be used as the source for a delivery stream.</p>
     pub fn get_msk_source_configuration(&self) -> &::std::option::Option<crate::types::MskSourceConfiguration> {
         self.inner.get_msk_source_configuration()
+    }
+    /// <p>Configure Snowflake destination</p>
+    pub fn snowflake_destination_configuration(mut self, input: crate::types::SnowflakeDestinationConfiguration) -> Self {
+        self.inner = self.inner.snowflake_destination_configuration(input);
+        self
+    }
+    /// <p>Configure Snowflake destination</p>
+    pub fn set_snowflake_destination_configuration(mut self, input: ::std::option::Option<crate::types::SnowflakeDestinationConfiguration>) -> Self {
+        self.inner = self.inner.set_snowflake_destination_configuration(input);
+        self
+    }
+    /// <p>Configure Snowflake destination</p>
+    pub fn get_snowflake_destination_configuration(&self) -> &::std::option::Option<crate::types::SnowflakeDestinationConfiguration> {
+        self.inner.get_snowflake_destination_configuration()
+    }
+    /// <p>Configure Apache Iceberg Tables destination.</p>
+    pub fn iceberg_destination_configuration(mut self, input: crate::types::IcebergDestinationConfiguration) -> Self {
+        self.inner = self.inner.iceberg_destination_configuration(input);
+        self
+    }
+    /// <p>Configure Apache Iceberg Tables destination.</p>
+    pub fn set_iceberg_destination_configuration(mut self, input: ::std::option::Option<crate::types::IcebergDestinationConfiguration>) -> Self {
+        self.inner = self.inner.set_iceberg_destination_configuration(input);
+        self
+    }
+    /// <p>Configure Apache Iceberg Tables destination.</p>
+    pub fn get_iceberg_destination_configuration(&self) -> &::std::option::Option<crate::types::IcebergDestinationConfiguration> {
+        self.inner.get_iceberg_destination_configuration()
+    }
+    /// <p>The top level object for configuring streams with database as a source.</p>
+    /// <p>Amazon Data Firehose is in preview release and is subject to change.</p>
+    pub fn database_source_configuration(mut self, input: crate::types::DatabaseSourceConfiguration) -> Self {
+        self.inner = self.inner.database_source_configuration(input);
+        self
+    }
+    /// <p>The top level object for configuring streams with database as a source.</p>
+    /// <p>Amazon Data Firehose is in preview release and is subject to change.</p>
+    pub fn set_database_source_configuration(mut self, input: ::std::option::Option<crate::types::DatabaseSourceConfiguration>) -> Self {
+        self.inner = self.inner.set_database_source_configuration(input);
+        self
+    }
+    /// <p>The top level object for configuring streams with database as a source.</p>
+    /// <p>Amazon Data Firehose is in preview release and is subject to change.</p>
+    pub fn get_database_source_configuration(&self) -> &::std::option::Option<crate::types::DatabaseSourceConfiguration> {
+        self.inner.get_database_source_configuration()
     }
 }

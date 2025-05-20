@@ -7,14 +7,15 @@
 
 //! Dynamic Delegation Discovery System
 
-use std::fmt;
+use alloc::{boxed::Box, string::String};
+use core::fmt;
 
-#[cfg(feature = "serde-config")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::{
     error::{ProtoError, ProtoResult},
-    rr::{domain::Name, RData, RecordData, RecordType},
+    rr::{RData, RecordData, RecordType, domain::Name},
     serialize::binary::*,
 };
 
@@ -47,7 +48,7 @@ use crate::{
 ///   <character-string> and <domain-name> as used here are defined in RFC
 ///   1035 [7].
 /// ```
-#[cfg_attr(feature = "serde-config", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct NAPTR {
     order: u16,
@@ -274,7 +275,7 @@ impl RecordData for NAPTR {
 ///   care.  See Section 10 for how to correctly enter and escape the
 ///   regular expression.
 ///
-/// ;;      order pref flags service           regexp replacement
+/// ;;      order pflags service           regexp replacement
 /// IN NAPTR 100  50  "a"    "z3950+N2L+N2C"     ""   cidserver.example.com.
 /// IN NAPTR 100  50  "a"    "rcds+N2C"          ""   cidserver.example.com.
 /// IN NAPTR 100  50  "s"    "http+N2L+N2C+N2R"  ""   www.example.com.
@@ -298,10 +299,14 @@ impl fmt::Display for NAPTR {
 mod tests {
     #![allow(clippy::dbg_macro, clippy::print_stdout)]
 
+    use alloc::vec::Vec;
+    #[cfg(feature = "std")]
+    use std::println;
+
     use super::*;
     #[test]
     fn test() {
-        use std::str::FromStr;
+        use core::str::FromStr;
 
         let rdata = NAPTR::new(
             8,
@@ -309,7 +314,7 @@ mod tests {
             b"aa11AA".to_vec().into_boxed_slice(),
             b"services".to_vec().into_boxed_slice(),
             b"regexpr".to_vec().into_boxed_slice(),
-            Name::from_str("naptr.example.com").unwrap(),
+            Name::from_str("naptr.example.com.").unwrap(),
         );
 
         let mut bytes = Vec::new();
@@ -317,6 +322,7 @@ mod tests {
         assert!(rdata.emit(&mut encoder).is_ok());
         let bytes = encoder.into_bytes();
 
+        #[cfg(feature = "std")]
         println!("bytes: {bytes:?}");
 
         let mut decoder: BinDecoder<'_> = BinDecoder::new(bytes);
@@ -326,7 +332,7 @@ mod tests {
 
     #[test]
     fn test_bad_data() {
-        use std::str::FromStr;
+        use core::str::FromStr;
 
         let rdata = NAPTR::new(
             8,
@@ -342,6 +348,7 @@ mod tests {
         assert!(rdata.emit(&mut encoder).is_ok());
         let bytes = encoder.into_bytes();
 
+        #[cfg(feature = "std")]
         println!("bytes: {bytes:?}");
 
         let mut decoder: BinDecoder<'_> = BinDecoder::new(bytes);

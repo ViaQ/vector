@@ -42,6 +42,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 /// <p>Specifies the Auto-Tune state for the Elasticsearch domain. For valid states see the <a href="https://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/auto-tune.html" target="_blank">Developer Guide</a>.</p>
 #[non_exhaustive]
 #[derive(
@@ -138,6 +139,22 @@ impl AutoTuneState {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for AutoTuneState {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            AutoTuneState::Disabled => write!(f, "DISABLED"),
+            AutoTuneState::DisabledAndRollbackComplete => write!(f, "DISABLED_AND_ROLLBACK_COMPLETE"),
+            AutoTuneState::DisabledAndRollbackError => write!(f, "DISABLED_AND_ROLLBACK_ERROR"),
+            AutoTuneState::DisabledAndRollbackInProgress => write!(f, "DISABLED_AND_ROLLBACK_IN_PROGRESS"),
+            AutoTuneState::DisabledAndRollbackScheduled => write!(f, "DISABLED_AND_ROLLBACK_SCHEDULED"),
+            AutoTuneState::DisableInProgress => write!(f, "DISABLE_IN_PROGRESS"),
+            AutoTuneState::Enabled => write!(f, "ENABLED"),
+            AutoTuneState::EnableInProgress => write!(f, "ENABLE_IN_PROGRESS"),
+            AutoTuneState::Error => write!(f, "ERROR"),
+            AutoTuneState::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

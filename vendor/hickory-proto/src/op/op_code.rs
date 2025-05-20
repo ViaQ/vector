@@ -7,9 +7,10 @@
 
 //! Operation code for queries, updates, and responses
 
-use std::{convert::From, fmt};
+use core::{convert::From, fmt};
 
-use crate::error::*;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 
 /// Operation code for queries, updates, and responses
 ///
@@ -29,6 +30,7 @@ use crate::error::*;
 ///                 3-15            reserved for future use
 /// ```
 #[derive(Debug, PartialEq, Eq, PartialOrd, Copy, Clone, Hash)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[allow(dead_code)]
 pub enum OpCode {
     /// Query request [RFC 1035](https://tools.ietf.org/html/rfc1035)
@@ -42,18 +44,20 @@ pub enum OpCode {
 
     /// Update message [RFC 2136](https://tools.ietf.org/html/rfc2136)
     Update,
+
+    /// Any other opcode
+    Unknown(u8),
 }
 
 impl fmt::Display for OpCode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        let s = match self {
-            Self::Query => "QUERY",
-            Self::Status => "STATUS",
-            Self::Notify => "NOTIFY",
-            Self::Update => "UPDATE",
-        };
-
-        f.write_str(s)
+        match self {
+            Self::Query => f.write_str("QUERY"),
+            Self::Status => f.write_str("STATUS"),
+            Self::Notify => f.write_str("NOTIFY"),
+            Self::Update => f.write_str("UPDATE"),
+            Self::Unknown(opcode) => write!(f, "Unknown opcode ({opcode})"),
+        }
     }
 }
 
@@ -78,6 +82,7 @@ impl From<OpCode> for u8 {
             OpCode::Notify => 4,
             OpCode::Update => 5,
             // 6-15	Unassigned
+            OpCode::Unknown(opcode) => opcode,
         }
     }
 }
@@ -87,18 +92,18 @@ impl From<OpCode> for u8 {
 /// ```
 /// use hickory_proto::op::op_code::OpCode;
 ///
-/// let var: OpCode = OpCode::from_u8(0).unwrap();
+/// let var: OpCode = OpCode::from_u8(0);
 /// assert_eq!(OpCode::Query, var);
 /// ```
 impl OpCode {
     /// Decodes the binary value of the OpCode
-    pub fn from_u8(value: u8) -> ProtoResult<Self> {
+    pub fn from_u8(value: u8) -> Self {
         match value {
-            0 => Ok(Self::Query),
-            2 => Ok(Self::Status),
-            4 => Ok(Self::Notify),
-            5 => Ok(Self::Update),
-            _ => Err(format!("unknown OpCode: {value}").into()),
+            0 => Self::Query,
+            2 => Self::Status,
+            4 => Self::Notify,
+            5 => Self::Update,
+            _ => Self::Unknown(value),
         }
     }
 }

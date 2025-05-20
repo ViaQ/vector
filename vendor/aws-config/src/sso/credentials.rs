@@ -23,7 +23,6 @@ use aws_smithy_types::DateTime;
 use aws_types::os_shim_internal::{Env, Fs};
 use aws_types::region::Region;
 use aws_types::SdkConfig;
-use std::convert::TryInto;
 
 /// SSO Credentials Provider
 ///
@@ -63,7 +62,7 @@ impl SsoCredentialsProvider {
                     .start_url(&sso_provider_config.start_url)
                     .session_name(session_name)
                     .region(sso_provider_config.region.clone())
-                    .build_sync(),
+                    .build_with(env.clone(), fs.clone()),
             )
         } else {
             None
@@ -282,11 +281,12 @@ async fn load_sso_credentials(
                 err
             ))
         })?;
-    Ok(Credentials::new(
-        akid,
-        secret_key,
-        credentials.session_token,
-        Some(expiration),
-        "SSO",
-    ))
+    let mut builder = Credentials::builder()
+        .access_key_id(akid)
+        .secret_access_key(secret_key)
+        .account_id(&sso_provider_config.account_id)
+        .expiry(expiration)
+        .provider_name("SSO");
+    builder.set_session_token(credentials.session_token);
+    Ok(builder.build())
 }

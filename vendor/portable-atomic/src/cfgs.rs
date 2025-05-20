@@ -137,6 +137,12 @@ mod atomic_32_macros {
         ),
         not(portable_atomic_no_atomic_64),
         not(any(target_pointer_width = "16", target_pointer_width = "32")),
+        all(
+            target_arch = "riscv32",
+            not(any(miri, portable_atomic_sanitize_thread)),
+            any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
+            any(target_feature = "zacas", portable_atomic_target_feature = "zacas"),
+        ),
     ))
 )]
 #[cfg_attr(
@@ -154,6 +160,12 @@ mod atomic_32_macros {
         ),
         target_has_atomic = "64",
         not(any(target_pointer_width = "16", target_pointer_width = "32")),
+        all(
+            target_arch = "riscv32",
+            not(any(miri, portable_atomic_sanitize_thread)),
+            any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
+            any(target_feature = "zacas", portable_atomic_target_feature = "zacas"),
+        ),
     ))
 )]
 #[macro_use]
@@ -184,6 +196,12 @@ mod atomic_64_macros {
         ),
         not(portable_atomic_no_atomic_64),
         not(any(target_pointer_width = "16", target_pointer_width = "32")),
+        all(
+            target_arch = "riscv32",
+            not(any(miri, portable_atomic_sanitize_thread)),
+            any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
+            any(target_feature = "zacas", portable_atomic_target_feature = "zacas"),
+        ),
     )))
 )]
 #[cfg_attr(
@@ -201,6 +219,12 @@ mod atomic_64_macros {
         ),
         target_has_atomic = "64",
         not(any(target_pointer_width = "16", target_pointer_width = "32")),
+        all(
+            target_arch = "riscv32",
+            not(any(miri, portable_atomic_sanitize_thread)),
+            any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
+            any(target_feature = "zacas", portable_atomic_target_feature = "zacas"),
+        ),
     )))
 )]
 #[macro_use]
@@ -224,19 +248,21 @@ mod atomic_64_macros {
             target_arch = "aarch64",
             any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
         ),
+        all(target_arch = "arm64ec", not(portable_atomic_no_asm)),
         all(
             target_arch = "x86_64",
+            not(all(
+                any(miri, portable_atomic_sanitize_thread),
+                portable_atomic_no_cmpxchg16b_intrinsic,
+            )),
             any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
-            any(
-                target_feature = "cmpxchg16b",
-                portable_atomic_target_feature = "cmpxchg16b",
-                all(
-                    feature = "fallback",
-                    not(portable_atomic_no_cmpxchg16b_target_feature),
-                    not(portable_atomic_no_outline_atomics),
-                    not(any(target_env = "sgx", miri)),
-                ),
-            ),
+            any(target_feature = "cmpxchg16b", portable_atomic_target_feature = "cmpxchg16b"),
+        ),
+        all(
+            target_arch = "riscv64",
+            not(any(miri, portable_atomic_sanitize_thread)),
+            any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
+            any(target_feature = "zacas", portable_atomic_target_feature = "zacas"),
         ),
         all(
             target_arch = "powerpc64",
@@ -244,30 +270,9 @@ mod atomic_64_macros {
             any(
                 target_feature = "quadword-atomics",
                 portable_atomic_target_feature = "quadword-atomics",
-                all(
-                    feature = "fallback",
-                    not(portable_atomic_no_outline_atomics),
-                    portable_atomic_outline_atomics, // TODO(powerpc64): currently disabled by default
-                    any(
-                        all(
-                            target_os = "linux",
-                            any(
-                                target_env = "gnu",
-                                all(
-                                    any(target_env = "musl", target_env = "ohos"),
-                                    not(target_feature = "crt-static"),
-                                ),
-                                portable_atomic_outline_atomics,
-                            ),
-                        ),
-                        target_os = "android",
-                        target_os = "freebsd",
-                    ),
-                    not(any(miri, portable_atomic_sanitize_thread)),
-                ),
             ),
         ),
-        all(target_arch = "s390x", portable_atomic_unstable_asm_experimental_arch),
+        all(target_arch = "s390x", not(portable_atomic_no_asm)),
     ))
 )]
 #[cfg_attr(
@@ -310,19 +315,21 @@ mod atomic_128_macros {
             target_arch = "aarch64",
             any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
         ),
+        all(target_arch = "arm64ec", not(portable_atomic_no_asm)),
         all(
             target_arch = "x86_64",
+            not(all(
+                any(miri, portable_atomic_sanitize_thread),
+                portable_atomic_no_cmpxchg16b_intrinsic,
+            )),
             any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
-            any(
-                target_feature = "cmpxchg16b",
-                portable_atomic_target_feature = "cmpxchg16b",
-                all(
-                    feature = "fallback",
-                    not(portable_atomic_no_cmpxchg16b_target_feature),
-                    not(portable_atomic_no_outline_atomics),
-                    not(any(target_env = "sgx", miri)),
-                ),
-            ),
+            any(target_feature = "cmpxchg16b", portable_atomic_target_feature = "cmpxchg16b"),
+        ),
+        all(
+            target_arch = "riscv64",
+            not(any(miri, portable_atomic_sanitize_thread)),
+            any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
+            any(target_feature = "zacas", portable_atomic_target_feature = "zacas"),
         ),
         all(
             target_arch = "powerpc64",
@@ -330,30 +337,9 @@ mod atomic_128_macros {
             any(
                 target_feature = "quadword-atomics",
                 portable_atomic_target_feature = "quadword-atomics",
-                all(
-                    feature = "fallback",
-                    not(portable_atomic_no_outline_atomics),
-                    portable_atomic_outline_atomics, // TODO(powerpc64): currently disabled by default
-                    any(
-                        all(
-                            target_os = "linux",
-                            any(
-                                target_env = "gnu",
-                                all(
-                                    any(target_env = "musl", target_env = "ohos"),
-                                    not(target_feature = "crt-static"),
-                                ),
-                                portable_atomic_outline_atomics,
-                            ),
-                        ),
-                        target_os = "android",
-                        target_os = "freebsd",
-                    ),
-                    not(any(miri, portable_atomic_sanitize_thread)),
-                ),
             ),
         ),
-        all(target_arch = "s390x", portable_atomic_unstable_asm_experimental_arch),
+        all(target_arch = "s390x", not(portable_atomic_no_asm)),
     )))
 )]
 #[cfg_attr(
@@ -422,6 +408,17 @@ mod atomic_cas_macros {
     macro_rules! cfg_no_atomic_cas {
         ($($tt:tt)*) => {};
     }
+    // private
+    macro_rules! cfg_has_atomic_cas_or_amo32 {
+        ($($tt:tt)*) => {
+            $($tt)*
+        };
+    }
+    macro_rules! cfg_has_atomic_cas_or_amo8 {
+        ($($tt:tt)*) => {
+            $($tt)*
+        };
+    }
 }
 #[cfg_attr(
     portable_atomic_no_cfg_target_has_atomic,
@@ -455,6 +452,73 @@ mod atomic_cas_macros {
             $($tt)*
         };
     }
+    // private
+    #[cfg_attr(
+        any(target_arch = "riscv32", target_arch = "riscv64"),
+        cfg(not(any(target_feature = "zaamo", portable_atomic_target_feature = "zaamo")))
+    )]
+    macro_rules! cfg_has_atomic_cas_or_amo32 {
+        ($($tt:tt)*) => {};
+    }
+    #[cfg_attr(
+        any(target_arch = "riscv32", target_arch = "riscv64"),
+        cfg(not(any(target_feature = "zaamo", portable_atomic_target_feature = "zaamo")))
+    )]
+    macro_rules! cfg_no_atomic_cas_or_amo32 {
+        ($($tt:tt)*) => {
+            $($tt)*
+        };
+    }
+    #[cfg(all(
+        any(target_arch = "riscv32", target_arch = "riscv64"),
+        any(target_feature = "zaamo", portable_atomic_target_feature = "zaamo"),
+    ))]
+    macro_rules! cfg_has_atomic_cas_or_amo32 {
+        ($($tt:tt)*) => {
+            $($tt)*
+        };
+    }
+    #[cfg(all(
+        any(target_arch = "riscv32", target_arch = "riscv64"),
+        any(target_feature = "zaamo", portable_atomic_target_feature = "zaamo"),
+    ))]
+    macro_rules! cfg_no_atomic_cas_or_amo32 {
+        ($($tt:tt)*) => {};
+    }
+    #[cfg_attr(
+        any(target_arch = "riscv32", target_arch = "riscv64"),
+        cfg(not(any(target_feature = "zabha", portable_atomic_target_feature = "zabha")))
+    )]
+    #[allow(unused_macros)]
+    macro_rules! cfg_has_atomic_cas_or_amo8 {
+        ($($tt:tt)*) => {};
+    }
+    #[cfg_attr(
+        any(target_arch = "riscv32", target_arch = "riscv64"),
+        cfg(not(any(target_feature = "zabha", portable_atomic_target_feature = "zabha")))
+    )]
+    #[cfg_attr(target_arch = "bpf", allow(unused_macros))]
+    macro_rules! cfg_no_atomic_cas_or_amo8 {
+        ($($tt:tt)*) => {
+            $($tt)*
+        };
+    }
+    #[cfg(all(
+        any(target_arch = "riscv32", target_arch = "riscv64"),
+        any(target_feature = "zabha", portable_atomic_target_feature = "zabha"),
+    ))]
+    macro_rules! cfg_has_atomic_cas_or_amo8 {
+        ($($tt:tt)*) => {
+            $($tt)*
+        };
+    }
+    #[cfg(all(
+        any(target_arch = "riscv32", target_arch = "riscv64"),
+        any(target_feature = "zabha", portable_atomic_target_feature = "zabha"),
+    ))]
+    macro_rules! cfg_no_atomic_cas_or_amo8 {
+        ($($tt:tt)*) => {};
+    }
 }
 
 // Check that all cfg_ macros work.
@@ -474,8 +538,8 @@ mod check {
     crate::cfg_has_atomic_cas! { type __AtomicPtr = (); }
     crate::cfg_no_atomic_cas! { type __AtomicPtr = (); }
     #[allow(unused_imports)]
-    use {
-        _Atomic128 as _, _Atomic16 as _, _Atomic32 as _, _Atomic64 as _, _Atomic8 as _,
-        _AtomicPtr as _, __AtomicPtr as _,
+    use self::{
+        __AtomicPtr as _, _Atomic8 as _, _Atomic16 as _, _Atomic32 as _, _Atomic64 as _,
+        _Atomic128 as _, _AtomicPtr as _,
     };
 }

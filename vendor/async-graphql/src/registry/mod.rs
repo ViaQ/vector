@@ -34,7 +34,7 @@ pub enum MetaTypeName<'a> {
     Named(&'a str),
 }
 
-impl<'a> Display for MetaTypeName<'a> {
+impl Display for MetaTypeName<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             MetaTypeName::Named(name) => write!(f, "{}", name),
@@ -44,7 +44,7 @@ impl<'a> Display for MetaTypeName<'a> {
     }
 }
 
-impl<'a> MetaTypeName<'a> {
+impl MetaTypeName<'_> {
     #[inline]
     pub fn create(type_name: &str) -> MetaTypeName {
         if let Some(type_name) = type_name.strip_suffix('!') {
@@ -142,6 +142,8 @@ pub struct MetaInputValue {
     pub description: Option<String>,
     /// The type of the input value
     pub ty: String,
+    /// Field deprecation
+    pub deprecation: Deprecation,
     /// The default value of the input value
     pub default_value: Option<String>,
     /// A function that uses to check if the input value should be exported to
@@ -272,6 +274,7 @@ impl MetaTypeId {
                 inaccessible: false,
                 tags: vec![],
                 specified_by_url: None,
+                directive_invocations: vec![],
             },
             MetaTypeId::Object => MetaType::Object {
                 name: "".to_string(),
@@ -311,6 +314,7 @@ impl MetaTypeId {
                 inaccessible: false,
                 tags: vec![],
                 rust_typename: Some(rust_typename),
+                directive_invocations: vec![],
             },
             MetaTypeId::Enum => MetaType::Enum {
                 name: "".to_string(),
@@ -383,6 +387,8 @@ pub enum MetaType {
         /// human-readable specification of the data format, serialization and
         /// coercion rules for this scalar.
         specified_by_url: Option<String>,
+        /// custom directive invocations
+        directive_invocations: Vec<MetaDirectiveInvocation>,
     },
     /// Object
     ///
@@ -518,6 +524,8 @@ pub enum MetaType {
         tags: Vec<String>,
         /// The Rust typename corresponding to the union
         rust_typename: Option<&'static str>,
+        /// custom directive invocations
+        directive_invocations: Vec<MetaDirectiveInvocation>,
     },
     /// Enum
     ///
@@ -782,6 +790,7 @@ impl Registry {
                     name: "if".to_string(),
                     description: Some("Skipped when true.".to_string()),
                     ty: "Boolean!".to_string(),
+                    deprecation: Deprecation::NoDeprecated,
                     default_value: None,
                     visible: None,
                     inaccessible: false,
@@ -810,6 +819,7 @@ impl Registry {
                     name: "if".to_string(),
                     description: Some("Included when true.".to_string()),
                     ty: "Boolean!".to_string(),
+                    deprecation: Deprecation::NoDeprecated,
                     default_value: None,
                     visible: None,
                     inaccessible: false,
@@ -846,6 +856,7 @@ impl Registry {
                                 .into(),
                         ),
                         ty: "String".into(),
+                        deprecation: Deprecation::NoDeprecated,
                         default_value: Some(r#""No longer supported""#.into()),
                         visible: None,
                         inaccessible: false,
@@ -873,6 +884,7 @@ impl Registry {
                         name: "url".into(),
                         description: Some("URL that specifies the behavior of this scalar.".into()),
                         ty: "String!".into(),
+                        deprecation: Deprecation::NoDeprecated,
                         default_value: None,
                         visible: None,
                         inaccessible: false,
@@ -912,7 +924,7 @@ impl Registry {
 
     pub fn create_input_type<T, F>(&mut self, type_id: MetaTypeId, mut f: F) -> String
     where
-        T: InputType + ?Sized,
+        T: InputType,
         F: FnMut(&mut Registry) -> MetaType,
     {
         self.create_type(&mut f, &T::type_name(), std::any::type_name::<T>(), type_id);
@@ -1129,6 +1141,7 @@ impl Registry {
                     inaccessible: false,
                     tags: Default::default(),
                     rust_typename: Some("async_graphql::federation::Entity"),
+                    directive_invocations: vec![],
                 },
             );
 
@@ -1146,6 +1159,7 @@ impl Registry {
                                     name: "representations".to_string(),
                                     description: None,
                                     ty: "[_Any!]!".to_string(),
+                                    deprecation: Deprecation::NoDeprecated,
                                     default_value: None,
                                     visible: None,
                                     inaccessible: false,
@@ -1214,6 +1228,7 @@ impl Registry {
                                 name: "name".to_string(),
                                 description: None,
                                 ty: "String!".to_string(),
+                                deprecation: Deprecation::NoDeprecated,
                                 default_value: None,
                                 visible: None,
                                 inaccessible: false,

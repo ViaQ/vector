@@ -1,17 +1,28 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-// Adapted from https://github.com/Rahix/avr-device.
-//
-// Refs:
-// - AVR Instruction Set Manual https://ww1.microchip.com/downloads/en/DeviceDoc/AVR-InstructionSet-Manual-DS40002198.pdf
+/*
+Adapted from https://github.com/Rahix/avr-device.
+
+See also src/imp/avr.rs.
+
+Refs:
+- AVR® Instruction Set Manual, Rev. DS40002198B
+  https://ww1.microchip.com/downloads/en/DeviceDoc/AVR-InstructionSet-Manual-DS40002198.pdf
+
+Generated asm:
+- avr https://godbolt.org/z/W5jxGsToc
+*/
 
 #[cfg(not(portable_atomic_no_asm))]
 use core::arch::asm;
 
+#[cfg(not(portable_atomic_no_asm))]
+pub(super) use super::super::avr as atomic;
+
 pub(super) type State = u8;
 
 /// Disables interrupts and returns the previous interrupt state.
-#[inline]
+#[inline(always)]
 pub(super) fn disable() -> State {
     let sreg: State;
     // SAFETY: reading the status register (SREG) and disabling interrupts are safe.
@@ -22,9 +33,9 @@ pub(super) fn disable() -> State {
         // Refs: https://ww1.microchip.com/downloads/en/DeviceDoc/AVR-InstructionSet-Manual-DS40002198.pdf#page=58
         #[cfg(not(portable_atomic_no_asm))]
         asm!(
-            "in {0}, 0x3F",
-            "cli",
-            out(reg) sreg,
+            "in {sreg}, 0x3F", // sreg = SREG
+            "cli",             // SREG.I = 0
+            sreg = out(reg) sreg,
             options(nostack),
         );
         #[cfg(portable_atomic_no_asm)]
@@ -41,8 +52,8 @@ pub(super) fn disable() -> State {
 /// # Safety
 ///
 /// The state must be the one retrieved by the previous `disable`.
-#[inline]
-pub(super) unsafe fn restore(sreg: State) {
+#[inline(always)]
+pub(super) unsafe fn restore(prev_sreg: State) {
     // SAFETY: the caller must guarantee that the state was retrieved by the previous `disable`,
     unsafe {
         // This clobbers the entire status register. See msp430.rs to safety on this.
@@ -50,8 +61,12 @@ pub(super) unsafe fn restore(sreg: State) {
         // Do not use `nomem` and `readonly` because prevent preceding memory accesses from being reordered after interrupts are enabled.
         // Do not use `preserves_flags` because OUT modifies the status register (SREG).
         #[cfg(not(portable_atomic_no_asm))]
-        asm!("out 0x3F, {0}", in(reg) sreg, options(nostack));
+        asm!(
+            "out 0x3F, {prev_sreg}", // SREG = prev_sreg
+            prev_sreg = in(reg) prev_sreg,
+            options(nostack),
+        );
         #[cfg(portable_atomic_no_asm)]
-        llvm_asm!("out 0x3F, $0" :: "r"(sreg) : "memory" : "volatile");
+        llvm_asm!("out 0x3F, $0" :: "r"(prev_sreg) : "memory" : "volatile");
     }
 }

@@ -3,7 +3,7 @@ pub use crate::operation::describe_account_policies::_describe_account_policies_
 
 pub use crate::operation::describe_account_policies::_describe_account_policies_input::DescribeAccountPoliciesInputBuilder;
 
-impl DescribeAccountPoliciesInputBuilder {
+impl crate::operation::describe_account_policies::builders::DescribeAccountPoliciesInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -23,6 +23,17 @@ impl DescribeAccountPoliciesInputBuilder {
 /// Fluent builder constructing a request to `DescribeAccountPolicies`.
 ///
 /// <p>Returns a list of all CloudWatch Logs account policies in the account.</p>
+/// <p>To use this operation, you must be signed on with the correct permissions depending on the type of policy that you are retrieving information for.</p>
+/// <ul>
+/// <li>
+/// <p>To see data protection policies, you must have the <code>logs:GetDataProtectionPolicy</code> and <code>logs:DescribeAccountPolicies</code> permissions.</p></li>
+/// <li>
+/// <p>To see subscription filter policies, you must have the <code>logs:DescribeSubscriptionFilters</code> and <code>logs:DescribeAccountPolicies</code> permissions.</p></li>
+/// <li>
+/// <p>To see transformer policies, you must have the <code>logs:GetTransformer</code> and <code>logs:DescribeAccountPolicies</code> permissions.</p></li>
+/// <li>
+/// <p>To see field index policies, you must have the <code>logs:DescribeIndexPolicies</code> and <code>logs:DescribeAccountPolicies</code> permissions.</p></li>
+/// </ul>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct DescribeAccountPoliciesFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -48,7 +59,7 @@ impl
     }
 }
 impl DescribeAccountPoliciesFluentBuilder {
-    /// Creates a new `DescribeAccountPolicies`.
+    /// Creates a new `DescribeAccountPoliciesFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -99,26 +110,26 @@ impl DescribeAccountPoliciesFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
-    /// <p>Use this parameter to limit the returned policies to only the policies that match the policy type that you specify. Currently, the only valid value is <code>DATA_PROTECTION_POLICY</code>.</p>
+    /// <p>Use this parameter to limit the returned policies to only the policies that match the policy type that you specify.</p>
     pub fn policy_type(mut self, input: crate::types::PolicyType) -> Self {
         self.inner = self.inner.policy_type(input);
         self
     }
-    /// <p>Use this parameter to limit the returned policies to only the policies that match the policy type that you specify. Currently, the only valid value is <code>DATA_PROTECTION_POLICY</code>.</p>
+    /// <p>Use this parameter to limit the returned policies to only the policies that match the policy type that you specify.</p>
     pub fn set_policy_type(mut self, input: ::std::option::Option<crate::types::PolicyType>) -> Self {
         self.inner = self.inner.set_policy_type(input);
         self
     }
-    /// <p>Use this parameter to limit the returned policies to only the policies that match the policy type that you specify. Currently, the only valid value is <code>DATA_PROTECTION_POLICY</code>.</p>
+    /// <p>Use this parameter to limit the returned policies to only the policies that match the policy type that you specify.</p>
     pub fn get_policy_type(&self) -> &::std::option::Option<crate::types::PolicyType> {
         self.inner.get_policy_type()
     }
@@ -136,6 +147,7 @@ impl DescribeAccountPoliciesFluentBuilder {
     pub fn get_policy_name(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_policy_name()
     }
+    ///
     /// Appends an item to `accountIdentifiers`.
     ///
     /// To override the contents of this collection use [`set_account_identifiers`](Self::set_account_identifiers).
@@ -156,5 +168,19 @@ impl DescribeAccountPoliciesFluentBuilder {
     /// <p>If you omit this parameter, only the policy in the current account is returned.</p>
     pub fn get_account_identifiers(&self) -> &::std::option::Option<::std::vec::Vec<::std::string::String>> {
         self.inner.get_account_identifiers()
+    }
+    /// <p>The token for the next set of items to return. (You received this token from a previous call.)</p>
+    pub fn next_token(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
+        self.inner = self.inner.next_token(input.into());
+        self
+    }
+    /// <p>The token for the next set of items to return. (You received this token from a previous call.)</p>
+    pub fn set_next_token(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+        self.inner = self.inner.set_next_token(input);
+        self
+    }
+    /// <p>The token for the next set of items to return. (You received this token from a previous call.)</p>
+    pub fn get_next_token(&self) -> &::std::option::Option<::std::string::String> {
+        self.inner.get_next_token()
     }
 }

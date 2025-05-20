@@ -50,7 +50,18 @@ impl PutObject {
         >,
     > {
         let input = ::aws_smithy_runtime_api::client::interceptors::context::Input::erase(input);
-        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("s3", "PutObject", input, runtime_plugins, stop_point).await
+        use ::tracing::Instrument;
+        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("S3", "PutObject", input, runtime_plugins, stop_point)
+            // Create a parent span for the entire operation. Includes a random, internal-only,
+            // seven-digit ID for the operation orchestration so that it can be correlated in the logs.
+            .instrument(::tracing::debug_span!(
+                "S3.PutObject",
+                "rpc.service" = "S3",
+                "rpc.method" = "PutObject",
+                "sdk_invocation_id" = ::fastrand::u32(1_000_000..10_000_000),
+                "rpc.system" = "aws-api",
+            ))
+            .await
     }
 
     pub(crate) fn operation_runtime_plugins(
@@ -59,7 +70,7 @@ impl PutObject {
         config_override: ::std::option::Option<crate::config::Builder>,
     ) -> ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugins {
         let mut runtime_plugins = client_runtime_plugins.with_operation_plugin(Self::new());
-        runtime_plugins = runtime_plugins.with_client_plugin(crate::auth_plugin::DefaultAuthOptionsPlugin::new(vec![
+        runtime_plugins = runtime_plugins.with_client_plugin(crate::endpoint_auth_plugin::EndpointBasedAuthOptionsPlugin::new(vec![
             ::aws_runtime::auth::sigv4::SCHEME_ID,
             #[cfg(feature = "sigv4a")]
             {
@@ -96,7 +107,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for PutObje
         ));
 
         cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::SensitiveOutput);
-        cfg.store_put(::aws_smithy_http::operation::Metadata::new("PutObject", "s3"));
+        cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::Metadata::new("PutObject", "S3"));
         let mut signing_options = ::aws_runtime::auth::SigningOptions::default();
         signing_options.double_uri_encode = false;
         signing_options.content_sha256_header = true;
@@ -117,25 +128,64 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for PutObje
     ) -> ::std::borrow::Cow<'_, ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder> {
         #[allow(unused_mut)]
         let mut rcb = ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("PutObject")
-            .with_interceptor(
-                ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::new(
-                    ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptorKind::ResponseBody,
-                ),
-            )
+            .with_interceptor(::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::default())
             .with_interceptor(PutObjectEndpointParamsInterceptor)
             .with_interceptor(crate::http_request_checksum::RequestChecksumInterceptor::new(
                 |input: &::aws_smithy_runtime_api::client::interceptors::context::Input| {
                     let input: &crate::operation::put_object::PutObjectInput = input.downcast_ref().expect("correct type");
                     let checksum_algorithm = input.checksum_algorithm();
                     let checksum_algorithm = checksum_algorithm.map(|algorithm| algorithm.as_str());
-                    let checksum_algorithm = match checksum_algorithm {
-                        Some(algo) => Some(
-                            algo.parse::<::aws_smithy_checksums::ChecksumAlgorithm>()
-                                .map_err(::aws_smithy_types::error::operation::BuildError::other)?,
-                        ),
-                        None => None,
-                    };
-                    ::std::result::Result::<_, ::aws_smithy_runtime_api::box_error::BoxError>::Ok(checksum_algorithm)
+                    (checksum_algorithm.map(|s| s.to_string()), false)
+                },
+                |request: &mut ::aws_smithy_runtime_api::http::Request, cfg: &::aws_smithy_types::config_bag::ConfigBag| {
+                    // We check if the user has set any of the checksum values manually
+                    let mut user_set_checksum_value = false;
+                    let headers_to_check =
+                        request
+                            .headers()
+                            .iter()
+                            .filter_map(|(name, _val)| if name.starts_with("x-amz-checksum-") { Some(name) } else { None });
+                    for algo_header in headers_to_check {
+                        if request.headers().get(algo_header).is_some() {
+                            user_set_checksum_value = true;
+                        }
+                    }
+
+                    // We check if the user set the checksum algo manually
+                    let user_set_checksum_algo = request.headers().get("x-amz-sdk-checksum-algorithm").is_some();
+
+                    // This value is set by the user on the SdkConfig to indicate their preference
+                    let request_checksum_calculation = cfg
+                        .load::<::aws_smithy_types::checksum_config::RequestChecksumCalculation>()
+                        .unwrap_or(&::aws_smithy_types::checksum_config::RequestChecksumCalculation::WhenSupported);
+
+                    // From the httpChecksum trait
+                    let http_checksum_required = false;
+
+                    let is_presigned_req = cfg.load::<crate::presigning::PresigningMarker>().is_some();
+
+                    // If the request is presigned we do not set a default.
+                    // If the RequestChecksumCalculation is WhenSupported and the user has not set a checksum value or algo
+                    // we default to Crc32. If it is WhenRequired and a checksum is required by the trait and the user has not
+                    // set a checksum value or algo we also set the default. In all other cases we do nothing.
+                    match (
+                        request_checksum_calculation,
+                        http_checksum_required,
+                        user_set_checksum_value,
+                        user_set_checksum_algo,
+                        is_presigned_req,
+                    ) {
+                        (_, _, _, _, true) => {}
+                        (::aws_smithy_types::checksum_config::RequestChecksumCalculation::WhenSupported, _, false, false, _)
+                        | (::aws_smithy_types::checksum_config::RequestChecksumCalculation::WhenRequired, true, false, false, _) => {
+                            request.headers_mut().insert("x-amz-sdk-checksum-algorithm", "CRC32");
+                        }
+                        _ => {}
+                    }
+
+                    // We return a bool indicating if the user did set the checksum value, if they did
+                    // we can short circuit and exit the interceptor early.
+                    Ok(user_set_checksum_value)
                 },
             ))
             .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<
@@ -144,9 +194,15 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for PutObje
             .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::ModeledAsRetryableClassifier::<
                 crate::operation::put_object::PutObjectError,
             >::new())
-            .with_retry_classifier(::aws_runtime::retries::classifiers::AwsErrorCodeClassifier::<
-                crate::operation::put_object::PutObjectError,
-            >::new());
+            .with_retry_classifier(
+                ::aws_runtime::retries::classifiers::AwsErrorCodeClassifier::<crate::operation::put_object::PutObjectError>::builder()
+                    .transient_errors({
+                        let mut transient_errors: Vec<&'static str> = ::aws_runtime::retries::classifiers::TRANSIENT_ERRORS.into();
+                        transient_errors.push("InternalError");
+                        ::std::borrow::Cow::Owned(transient_errors)
+                    })
+                    .build(),
+            );
 
         ::std::borrow::Cow::Owned(rcb)
     }
@@ -298,15 +354,20 @@ impl ::aws_smithy_runtime_api::client::interceptors::Intercept for PutObjectEndp
         ::std::result::Result::Ok(())
     }
 }
+
+// The get_* functions below are generated from JMESPath expressions in the
+// operationContextParams trait. They target the operation's input shape.
+
 #[allow(unreachable_code, unused_variables)]
 #[cfg(test)]
-mod put_object_request_test {
+mod put_object_test {
+
     /// This test validates that if a content-type is specified, that only one content-type header is sent
     /// Test ID: DontSendDuplicateContentType
     #[::tokio::test]
-    #[allow(unused_mut)]
+    #[::tracing_test::traced_test]
     async fn dont_send_duplicate_content_type_request() {
-        let (http_client, request_receiver) = ::aws_smithy_runtime::client::http::test_util::capture_request(None);
+        let (http_client, request_receiver) = ::aws_smithy_http_client::test_util::capture_request(None);
         let config_builder = crate::config::Config::builder().with_test_defaults().endpoint_url("https://example.com");
         let config_builder = config_builder.region(::aws_types::region::Region::new("us-east-1"));
         let mut config_builder = config_builder;
@@ -329,12 +390,13 @@ mod put_object_request_test {
         ::pretty_assertions::assert_eq!(http_request.method(), "PUT", "method was incorrect");
         ::pretty_assertions::assert_eq!(uri.path(), "/test-key", "path was incorrect");
     }
+
     /// This test validates that if a content-length is specified, that only one content-length header is sent
     /// Test ID: DontSendDuplicateContentLength
     #[::tokio::test]
-    #[allow(unused_mut)]
+    #[::tracing_test::traced_test]
     async fn dont_send_duplicate_content_length_request() {
-        let (http_client, request_receiver) = ::aws_smithy_runtime::client::http::test_util::capture_request(None);
+        let (http_client, request_receiver) = ::aws_smithy_http_client::test_util::capture_request(None);
         let config_builder = crate::config::Config::builder().with_test_defaults().endpoint_url("https://example.com");
         let config_builder = config_builder.region(::aws_types::region::Region::new("us-east-1"));
         let mut config_builder = config_builder;
@@ -366,6 +428,22 @@ mod put_object_request_test {
 #[non_exhaustive]
 #[derive(::std::fmt::Debug)]
 pub enum PutObjectError {
+    /// <p>The existing object was created with a different encryption type. Subsequent write requests must include the appropriate encryption parameters in the request or while creating the session.</p>
+    EncryptionTypeMismatch(crate::types::error::EncryptionTypeMismatch),
+    /// <p>You may receive this error in multiple cases. Depending on the reason for the error, you may receive one of the messages below:</p>
+    /// <ul>
+    /// <li>
+    /// <p>Cannot specify both a write offset value and user-defined object metadata for existing objects.</p></li>
+    /// <li>
+    /// <p>Checksum Type mismatch occurred, expected checksum Type: sha1, actual checksum Type: crc32c.</p></li>
+    /// <li>
+    /// <p>Request body cannot be empty when 'write offset' is specified.</p></li>
+    /// </ul>
+    InvalidRequest(crate::types::error::InvalidRequest),
+    /// <p>The write offset value that you specified does not match the current object size.</p>
+    InvalidWriteOffset(crate::types::error::InvalidWriteOffset),
+    /// <p>You have attempted to add more parts than the maximum of 10000 that are allowed for this object. You can use the CopyObject operation to copy this object to another and then add more data to the newly copied object.</p>
+    TooManyParts(crate::types::error::TooManyParts),
     /// An unexpected error occurred (e.g., invalid JSON returned by the service or an unknown error code).
     #[deprecated(note = "Matching `Unhandled` directly is not forwards compatible. Instead, match using a \
     variable wildcard pattern and check `.code()`:
@@ -399,13 +477,37 @@ impl PutObjectError {
     ///
     pub fn meta(&self) -> &::aws_smithy_types::error::ErrorMetadata {
         match self {
+            Self::EncryptionTypeMismatch(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
+            Self::InvalidRequest(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
+            Self::InvalidWriteOffset(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
+            Self::TooManyParts(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::Unhandled(e) => &e.meta,
         }
+    }
+    /// Returns `true` if the error kind is `PutObjectError::EncryptionTypeMismatch`.
+    pub fn is_encryption_type_mismatch(&self) -> bool {
+        matches!(self, Self::EncryptionTypeMismatch(_))
+    }
+    /// Returns `true` if the error kind is `PutObjectError::InvalidRequest`.
+    pub fn is_invalid_request(&self) -> bool {
+        matches!(self, Self::InvalidRequest(_))
+    }
+    /// Returns `true` if the error kind is `PutObjectError::InvalidWriteOffset`.
+    pub fn is_invalid_write_offset(&self) -> bool {
+        matches!(self, Self::InvalidWriteOffset(_))
+    }
+    /// Returns `true` if the error kind is `PutObjectError::TooManyParts`.
+    pub fn is_too_many_parts(&self) -> bool {
+        matches!(self, Self::TooManyParts(_))
     }
 }
 impl ::std::error::Error for PutObjectError {
     fn source(&self) -> ::std::option::Option<&(dyn ::std::error::Error + 'static)> {
         match self {
+            Self::EncryptionTypeMismatch(_inner) => ::std::option::Option::Some(_inner),
+            Self::InvalidRequest(_inner) => ::std::option::Option::Some(_inner),
+            Self::InvalidWriteOffset(_inner) => ::std::option::Option::Some(_inner),
+            Self::TooManyParts(_inner) => ::std::option::Option::Some(_inner),
             Self::Unhandled(_inner) => ::std::option::Option::Some(&*_inner.source),
         }
     }
@@ -413,6 +515,10 @@ impl ::std::error::Error for PutObjectError {
 impl ::std::fmt::Display for PutObjectError {
     fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
         match self {
+            Self::EncryptionTypeMismatch(_inner) => _inner.fmt(f),
+            Self::InvalidRequest(_inner) => _inner.fmt(f),
+            Self::InvalidWriteOffset(_inner) => _inner.fmt(f),
+            Self::TooManyParts(_inner) => _inner.fmt(f),
             Self::Unhandled(_inner) => {
                 if let ::std::option::Option::Some(code) = ::aws_smithy_types::error::metadata::ProvideErrorMetadata::code(self) {
                     write!(f, "unhandled error ({code})")
@@ -434,6 +540,10 @@ impl ::aws_smithy_types::retry::ProvideErrorKind for PutObjectError {
 impl ::aws_smithy_types::error::metadata::ProvideErrorMetadata for PutObjectError {
     fn meta(&self) -> &::aws_smithy_types::error::ErrorMetadata {
         match self {
+            Self::EncryptionTypeMismatch(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
+            Self::InvalidRequest(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
+            Self::InvalidWriteOffset(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
+            Self::TooManyParts(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
             Self::Unhandled(_inner) => &_inner.meta,
         }
     }

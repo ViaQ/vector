@@ -14,6 +14,11 @@ mod subresource;
 pub use subresource::{Attach, AttachParams, Execute, Portforward};
 pub use subresource::{Evict, EvictParams, Log, LogParams, ScaleSpec, ScaleStatus};
 
+// Ephemeral containers were stabilized in Kubernetes 1.25.
+k8s_openapi::k8s_if_ge_1_25! {
+    pub use subresource::Ephemeral;
+}
+
 mod util;
 
 pub mod entry;
@@ -34,7 +39,7 @@ pub use kube_core::{
 };
 use kube_core::{DynamicResourceScope, NamespaceResourceScope};
 pub use params::{
-    DeleteParams, ListParams, Patch, PatchParams, PostParams, Preconditions, PropagationPolicy,
+    DeleteParams, GetParams, ListParams, Patch, PatchParams, PostParams, Preconditions, PropagationPolicy,
     ValidationDirective, VersionMatch, WatchParams,
 };
 
@@ -65,6 +70,11 @@ impl<K: Resource> Api<K> {
     /// Cluster level resources, or resources viewed across all namespaces
     ///
     /// This function accepts `K::DynamicType` so it can be used with dynamic resources.
+    ///
+    /// # Warning
+    ///
+    /// This variant **can only `list` and `watch` namespaced resources** and is commonly used with a `watcher`.
+    /// If you need to create/patch/replace/get on a namespaced resource, you need a separate `Api::namespaced`.
     pub fn all_with(client: Client, dyntype: &K::DynamicType) -> Self {
         let url = K::url_path(dyntype, None);
         Self {
@@ -144,6 +154,11 @@ where
     /// use k8s_openapi::api::core::v1::Node;
     /// let api: Api<Node> = Api::all(client);
     /// ```
+    ///
+    /// # Warning
+    ///
+    /// This variant **can only `list` and `watch` namespaced resources** and is commonly used with a `watcher`.
+    /// If you need to create/patch/replace/get on a namespaced resource, you need a separate `Api::namespaced`.
     pub fn all(client: Client) -> Self {
         Self::all_with(client, &K::DynamicType::default())
     }
@@ -237,11 +252,10 @@ impl<K> Debug for Api<K> {
 /// Sanity test on scope restrictions
 #[cfg(test)]
 mod test {
-    use crate::{Api, Client};
+    use crate::{client::Body, Api, Client};
     use k8s_openapi::api::core::v1 as corev1;
 
     use http::{Request, Response};
-    use hyper::Body;
     use tower_test::mock;
 
     #[tokio::test]

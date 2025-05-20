@@ -40,6 +40,8 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
+///
 /// _Note: `QueryStatus::Unknown` has been renamed to `::UnknownValue`._
 #[non_exhaustive]
 #[derive(
@@ -58,6 +60,7 @@ pub enum QueryStatus {
     Scheduled,
     #[allow(missing_docs)] // documentation missing in model
     Timeout,
+    ///
     /// _Note: `::Unknown` has been renamed to `::UnknownValue`._
     UnknownValue,
     /// `Unknown` contains new variants that have been added since this code was generated.
@@ -118,6 +121,20 @@ impl QueryStatus {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for QueryStatus {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            QueryStatus::Cancelled => write!(f, "Cancelled"),
+            QueryStatus::Complete => write!(f, "Complete"),
+            QueryStatus::Failed => write!(f, "Failed"),
+            QueryStatus::Running => write!(f, "Running"),
+            QueryStatus::Scheduled => write!(f, "Scheduled"),
+            QueryStatus::Timeout => write!(f, "Timeout"),
+            QueryStatus::UnknownValue => write!(f, "Unknown"),
+            QueryStatus::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

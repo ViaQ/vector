@@ -6,6 +6,43 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0), 
 
 ## Unreleased
 
+## [0.4.23](https://github.com/Nullus157/async-compression/compare/v0.4.22...v0.4.23) - 2025-04-21
+
+### Other
+
+- *(deps)* update brotli requirement from 7.0 to 8.0
+- *(deps)* update liblzma requirement from 0.3.6 to 0.4.0
+
+## [0.4.22](https://github.com/Nullus157/async-compression/compare/v0.4.21...v0.4.22) - 2025-03-25
+
+### Other
+
+- Add lz4 encoder/decoder
+- Expose total_in/total_out in DeflateEncoder
+
+## [0.4.21](https://github.com/Nullus157/async-compression/compare/v0.4.20...v0.4.21) - 2025-03-15
+
+### Fixed
+
+- When flate encoding, do not mark internal state as flushed if it ran out of buffer space.
+- Add debug assertion in `produce` method to check buffer capacity in implementations for `BufWriter`.
+
+## [0.4.20](https://github.com/Nullus157/async-compression/compare/v0.4.19...v0.4.20) - 2025-02-28
+
+### Added
+
+- Add support for `wasm32-wasip1-*` targets.
+
+## [0.4.19](https://github.com/Nullus157/async-compression/compare/v0.4.18...v0.4.19) - 2025-02-27
+
+### Changed
+
+- Update `bzip2` dependency to `0.5`.
+
+### Fixed
+
+- Ensure that flush finishes before continuing.
+
 ## [0.4.18](https://github.com/Nullus157/async-compression/compare/v0.4.17...v0.4.18) - 2024-11-23
 
 ### Fixed

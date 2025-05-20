@@ -35,9 +35,12 @@ pub fn use_lane_table() -> bool {
 
 pub fn build_lr1_states(grammar: &Grammar, start: NonterminalString) -> Lr1Result<'_> {
     let (method_name, method_fn) = if use_lane_table() {
-        ("lane", build_lane_table_states as ConstructionFunction)
+        ("lane", build_lane_table_states as ConstructionFunction<'_>)
     } else {
-        ("legacy", build_lr1_states_legacy as ConstructionFunction)
+        (
+            "legacy",
+            build_lr1_states_legacy as ConstructionFunction<'_>,
+        )
     };
 
     profile! {
@@ -162,7 +165,7 @@ impl<'grammar, L: LookaheadBuild> Lr<'grammar, L> {
                     .push((item.lookahead.clone(), item.production));
             }
 
-            // check for shift-reduce conflicts (reduce-reduce detected above)
+            // check for conflicts
             conflicts.extend(L::conflicts(&this_state));
 
             // extract a new state
@@ -297,7 +300,7 @@ impl<'grammar, L: LookaheadBuild> Kernel<'grammar, L> {
     }
 }
 
-impl<'grammar, L: LookaheadBuild> kernel_set::Kernel for Kernel<'grammar, L> {
+impl<L: LookaheadBuild> kernel_set::Kernel for Kernel<'_, L> {
     type Index = StateIndex;
 
     fn index(c: usize) -> StateIndex {

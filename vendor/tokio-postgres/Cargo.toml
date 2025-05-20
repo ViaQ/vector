@@ -12,8 +12,14 @@
 [package]
 edition = "2018"
 name = "tokio-postgres"
-version = "0.7.12"
+version = "0.7.13"
 authors = ["Steven Fackler <sfackler@gmail.com>"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "A native, asynchronous PostgreSQL client"
 readme = "README.md"
 keywords = [
@@ -32,10 +38,17 @@ resolver = "2"
 all-features = true
 
 [lib]
+name = "tokio_postgres"
+path = "src/lib.rs"
 test = false
+
+[[test]]
+name = "test"
+path = "tests/test/main.rs"
 
 [[bench]]
 name = "bench"
+path = "benches/bench.rs"
 harness = false
 
 [dependencies.async-trait]
@@ -74,13 +87,13 @@ version = "0.11"
 version = "0.2"
 
 [dependencies.postgres-protocol]
-version = "0.6.7"
+version = "0.6.8"
 
 [dependencies.postgres-types]
-version = "0.2.8"
+version = "0.2.9"
 
 [dependencies.rand]
-version = "0.8.5"
+version = "0.9.0"
 
 [dependencies.tokio]
 version = "1.27"
@@ -180,6 +193,8 @@ runtime = [
 ]
 with-bit-vec-0_6 = ["postgres-types/with-bit-vec-0_6"]
 with-chrono-0_4 = ["postgres-types/with-chrono-0_4"]
+with-cidr-0_2 = ["postgres-types/with-cidr-0_2"]
+with-cidr-0_3 = ["postgres-types/with-cidr-0_3"]
 with-eui48-0_4 = ["postgres-types/with-eui48-0_4"]
 with-eui48-1 = ["postgres-types/with-eui48-1"]
 with-geo-types-0_6 = ["postgres-types/with-geo-types-0_6"]
@@ -192,7 +207,7 @@ with-time-0_3 = ["postgres-types/with-time-0_3"]
 with-uuid-0_8 = ["postgres-types/with-uuid-0_8"]
 with-uuid-1 = ["postgres-types/with-uuid-1"]
 
-[target."cfg(not(target_arch = \"wasm32\"))".dependencies.socket2]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies.socket2]
 version = "0.5"
 features = ["all"]
 

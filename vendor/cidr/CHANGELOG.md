@@ -1,5 +1,28 @@
 # Change Log
 
+## [0.3.1] - 2025-01-18
+
+- raise serde version to support no-std builds
+- enable all Error impls in no-std (actually making std-feature unused)
+
+## [0.3.0] - 2024-09-30
+
+- remove short IPv4 address support in `FromStr` implementations
+- implement `From<Ip*Addr>` for cidr and inet types
+- remove `std` requirement - both `net` and `error` now in `core`
+- move to bitstring 0.2
+
+## [0.2.3] - 2024-06-25
+
+- `parsers` module:
+    * `inet_addr` compatible parser
+    * parser combinators to build custom parsing
+    * "short IPv4 address" parser (incompatible with `inet_addr`).
+- short IPv4 address support in `FromStr` implementations is deprecated and
+  going to be removed in 0.3.0
+- `no_unsafe` feature to use safe but slower fallbacks
+- `overflowing_add` and `overflowing_sub` methods on `Inet` types
+
 ## [0.2.2] - 2023-06-25
 
 - Make all functions const if possible
@@ -29,3 +52,6 @@
 [0.2.0]: https://github.com/stbuehler/rust-cidr/compare/cidr-0.1.1...cidr-0.2.0
 [0.2.1]: https://github.com/stbuehler/rust-cidr/compare/cidr-0.2.0...cidr-0.2.1
 [0.2.2]: https://github.com/stbuehler/rust-cidr/compare/cidr-0.2.1...cidr-0.2.2
+[0.2.3]: https://github.com/stbuehler/rust-cidr/compare/cidr-0.2.2...cidr-0.2.3
+[0.3.0]: https://github.com/stbuehler/rust-cidr/compare/cidr-0.2.3...cidr-0.3.0
+[0.3.1]: https://github.com/stbuehler/rust-cidr/compare/cidr-0.3.0...cidr-0.3.1

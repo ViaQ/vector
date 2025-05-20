@@ -3,7 +3,7 @@ pub use crate::operation::get_records::_get_records_output::GetRecordsOutputBuil
 
 pub use crate::operation::get_records::_get_records_input::GetRecordsInputBuilder;
 
-impl GetRecordsInputBuilder {
+impl crate::operation::get_records::builders::GetRecordsInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,7 +22,7 @@ impl GetRecordsInputBuilder {
 }
 /// Fluent builder constructing a request to `GetRecords`.
 ///
-/// <p>Gets data records from a Kinesis data stream's shard.</p> <note>
+/// <p>Gets data records from a Kinesis data stream's shard.</p><note>
 /// <p>When invoking this API, you must use either the <code>StreamARN</code> or the <code>StreamName</code> parameter, or both. It is recommended that you use the <code>StreamARN</code> input parameter when you invoke this API.</p>
 /// </note>
 /// <p>Specify a shard iterator using the <code>ShardIterator</code> parameter. The shard iterator specifies the position in the shard from which you want to start reading data records sequentially. If there are no records available in the portion of the shard that the iterator points to, <code>GetRecords</code> returns an empty list. It might take multiple calls to get to a portion of the shard that contains records.</p>
@@ -57,7 +57,7 @@ impl
     }
 }
 impl GetRecordsFluentBuilder {
-    /// Creates a new `GetRecords`.
+    /// Creates a new `GetRecordsFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -108,12 +108,12 @@ impl GetRecordsFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

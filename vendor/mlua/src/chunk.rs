@@ -2,6 +2,8 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::io::Result as IoResult;
+use std::marker::PhantomData;
+use std::panic::Location;
 use std::path::{Path, PathBuf};
 use std::string::String as StdString;
 
@@ -9,13 +11,16 @@ use crate::error::{Error, Result};
 use crate::function::Function;
 use crate::state::{Lua, WeakLua};
 use crate::table::Table;
-use crate::traits::{FromLuaMulti, IntoLuaMulti};
+use crate::traits::{FromLuaMulti, IntoLua, IntoLuaMulti};
+use crate::value::Value;
 
 /// Trait for types [loadable by Lua] and convertible to a [`Chunk`]
 ///
 /// [loadable by Lua]: https://www.lua.org/manual/5.4/manual.html#3.3.2
 pub trait AsChunk<'a> {
     /// Returns optional chunk name
+    ///
+    /// See [`Chunk::set_name`] for possible name prefixes.
     fn name(&self) -> Option<StdString> {
         None
     }
@@ -303,6 +308,11 @@ impl Compiler {
 
 impl Chunk<'_> {
     /// Sets the name of this chunk, which results in more informative error traces.
+    ///
+    /// Possible name prefixes:
+    /// - `@` - file path (when truncation is needed, the end of the file path is kept, as this is
+    ///   more useful for identifying the file)
+    /// - `=` - custom chunk name (when truncation is needed, the beginning of the name is kept)
     pub fn set_name(mut self, name: impl Into<String>) -> Self {
         self.name = name.into();
         self
@@ -559,5 +569,35 @@ impl Chunk<'_> {
         buf.extend(b"return ");
         buf.extend(source);
         buf
+    }
+}
+
+struct WrappedChunk<'a, T: AsChunk<'a>> {
+    chunk: T,
+    caller: &'static Location<'static>,
+    _marker: PhantomData<&'a T>,
+}
+
+impl<'a> Chunk<'a> {
+    /// Wraps a chunk of Lua code, returning an opaque type that implements [`IntoLua`] trait.
+    ///
+    /// The resulted `IntoLua` implementation will convert the chunk into a Lua function without
+    /// executing it.
+    #[doc(hidden)]
+    #[track_caller]
+    pub fn wrap(chunk: impl AsChunk<'a> + 'a) -> impl IntoLua + 'a {
+        WrappedChunk {
+            chunk,
+            caller: Location::caller(),
+            _marker: PhantomData,
+        }
+    }
+}
+
+impl<'a, T: AsChunk<'a>> IntoLua for WrappedChunk<'a, T> {
+    fn into_lua(self, lua: &Lua) -> Result<Value> {
+        lua.load_with_location(self.chunk, self.caller)
+            .into_function()
+            .map(Value::Function)
     }
 }

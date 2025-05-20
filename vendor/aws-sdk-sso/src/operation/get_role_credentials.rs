@@ -50,7 +50,18 @@ impl GetRoleCredentials {
         >,
     > {
         let input = ::aws_smithy_runtime_api::client::interceptors::context::Input::erase(input);
-        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("sso", "GetRoleCredentials", input, runtime_plugins, stop_point).await
+        use ::tracing::Instrument;
+        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("SSO", "GetRoleCredentials", input, runtime_plugins, stop_point)
+            // Create a parent span for the entire operation. Includes a random, internal-only,
+            // seven-digit ID for the operation orchestration so that it can be correlated in the logs.
+            .instrument(::tracing::debug_span!(
+                "SSO.GetRoleCredentials",
+                "rpc.service" = "SSO",
+                "rpc.method" = "GetRoleCredentials",
+                "sdk_invocation_id" = ::fastrand::u32(1_000_000..10_000_000),
+                "rpc.system" = "aws-api",
+            ))
+            .await
     }
 
     pub(crate) fn operation_runtime_plugins(
@@ -91,7 +102,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for GetRole
         ));
 
         cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::SensitiveOutput);
-        cfg.store_put(::aws_smithy_http::operation::Metadata::new("GetRoleCredentials", "sso"));
+        cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::Metadata::new("GetRoleCredentials", "SSO"));
 
         ::std::option::Option::Some(cfg.freeze())
     }
@@ -102,11 +113,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for GetRole
     ) -> ::std::borrow::Cow<'_, ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder> {
         #[allow(unused_mut)]
         let mut rcb = ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("GetRoleCredentials")
-            .with_interceptor(
-                ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::new(
-                    ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptorKind::ResponseBody,
-                ),
-            )
+            .with_interceptor(::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::default())
             .with_interceptor(GetRoleCredentialsEndpointParamsInterceptor)
             .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<
                 crate::operation::get_role_credentials::GetRoleCredentialsError,
@@ -183,7 +190,7 @@ impl ::aws_smithy_runtime_api::client::ser_de::SerializeRequest for GetRoleCrede
                         "cannot be empty or unset",
                     ));
                 }
-                query.push_kv("role_name", &::aws_smithy_http::query::fmt_string(&inner_1));
+                query.push_kv("role_name", &::aws_smithy_http::query::fmt_string(inner_1));
                 let inner_2 = &_input.account_id;
                 let inner_2 = inner_2
                     .as_ref()
@@ -194,7 +201,7 @@ impl ::aws_smithy_runtime_api::client::ser_de::SerializeRequest for GetRoleCrede
                         "cannot be empty or unset",
                     ));
                 }
-                query.push_kv("account_id", &::aws_smithy_http::query::fmt_string(&inner_2));
+                query.push_kv("account_id", &::aws_smithy_http::query::fmt_string(inner_2));
                 ::std::result::Result::Ok(())
             }
             #[allow(clippy::unnecessary_wraps)]
@@ -253,6 +260,9 @@ impl ::aws_smithy_runtime_api::client::interceptors::Intercept for GetRoleCreden
         ::std::result::Result::Ok(())
     }
 }
+
+// The get_* functions below are generated from JMESPath expressions in the
+// operationContextParams trait. They target the operation's input shape.
 
 /// Error type for the `GetRoleCredentialsError` operation.
 #[non_exhaustive]

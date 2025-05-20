@@ -171,14 +171,16 @@ impl Instant {
     /// `Instant` (which means it's inside the bounds of the underlying data structure), `None`
     /// otherwise.
     pub fn checked_add(&self, duration: Duration) -> Option<Instant> {
-        self.0.checked_add(duration.as_nanos() as u64).map(Instant)
+        let total_nanos = u64::try_from(duration.as_nanos()).ok()?;
+        self.0.checked_add(total_nanos).map(Instant)
     }
 
     /// Returns `Some(t)` where `t` is the time `self - duration` if `t` can be represented as
     /// `Instant` (which means it's inside the bounds of the underlying data structure), `None`
     /// otherwise.
     pub fn checked_sub(&self, duration: Duration) -> Option<Instant> {
-        self.0.checked_sub(duration.as_nanos() as u64).map(Instant)
+        let total_nanos = u64::try_from(duration.as_nanos()).ok()?;
+        self.0.checked_sub(total_nanos).map(Instant)
     }
 }
 
@@ -292,8 +294,6 @@ mod tests {
         ignore = "WASM thread cannot sleep"
     )]
     fn test_now() {
-        let _guard = RECENT_LOCK.lock().unwrap();
-
         let t0 = Instant::now();
         thread::sleep(Duration::from_millis(15));
         let t1 = Instant::now();
@@ -328,8 +328,8 @@ mod tests {
         let threshold = Duration::from_millis(14);
         assert!(
             result > threshold,
-            "t1 should be greater than t0 by at least 14ms, was only {}ms (t0: {}, t1: {})",
-            result.as_millis(),
+            "t1 should be greater than t0 by at least 14ms, was only {:?} (t0: {}, t1: {})",
+            result,
             t0.0,
             t1.0
         );
@@ -372,5 +372,32 @@ mod tests {
             let t4 = Instant::recent();
             assert_eq!(t4.0, 1440);
         })
+    }
+
+    // Test fix for issue #109
+    #[test]
+    #[cfg_attr(
+        all(target_arch = "wasm32", target_os = "unknown"),
+        wasm_bindgen_test::wasm_bindgen_test
+    )]
+    fn checked_arithmetic_u64_overflow() {
+        fn nanos_to_dur(total_nanos: u128) -> Duration {
+            let nanos_per_sec = Duration::from_secs(1).as_nanos();
+            let secs = total_nanos / nanos_per_sec;
+            let nanos = total_nanos % nanos_per_sec;
+            let dur = Duration::new(secs as _, nanos as _);
+            assert_eq!(dur.as_nanos(), total_nanos);
+            dur
+        }
+
+        let dur = nanos_to_dur(1 << 64);
+        let now = Instant::now();
+
+        let behind = now.checked_sub(dur);
+        let ahead = now.checked_add(dur);
+
+        assert_ne!(Duration::ZERO, dur);
+        assert_ne!(Some(now), behind);
+        assert_ne!(Some(now), ahead);
     }
 }

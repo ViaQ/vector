@@ -10,11 +10,10 @@ use azure_core::{
     date,
     error::{Error, ErrorKind},
     headers::*,
-    Body, ClientOptions, Method, Pipeline, Request,
+    Body, ClientOptions, Method, Pipeline, Request, Url,
 };
 use std::{ops::Deref, sync::Arc};
 use time::OffsetDateTime;
-use url::Url;
 
 /// The well-known account used by Azurite and the legacy Azure Storage Emulator.
 /// <https://docs.microsoft.com/azure/storage/common/storage-use-azurite#well-known-storage-account-and-key>
@@ -25,7 +24,7 @@ pub const EMULATOR_ACCOUNT: &str = "devstoreaccount1";
 pub const EMULATOR_ACCOUNT_KEY: &str =
     "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==";
 
-const AZURE_VERSION: HeaderValue = HeaderValue::from_static("2020-10-02");
+const AZURE_VERSION: HeaderValue = HeaderValue::from_static("2022-11-02");
 
 #[derive(Debug, Clone, Copy)]
 pub enum ServiceType {
@@ -54,7 +53,7 @@ pub async fn shared_access_signature(
     expiry: OffsetDateTime,
     permissions: AccountSasPermissions,
 ) -> Result<AccountSharedAccessSignature, Error> {
-    let creds = storage_credentials.0.lock().await;
+    let creds = storage_credentials.0.read().await;
     let StorageCredentialsInner::Key(account, key) = creds.deref() else {
         return Err(Error::message(
             ErrorKind::Credential,

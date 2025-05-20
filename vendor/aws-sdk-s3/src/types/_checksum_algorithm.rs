@@ -14,6 +14,7 @@
 /// match checksumalgorithm {
 ///     ChecksumAlgorithm::Crc32 => { /* ... */ },
 ///     ChecksumAlgorithm::Crc32C => { /* ... */ },
+///     ChecksumAlgorithm::Crc64Nvme => { /* ... */ },
 ///     ChecksumAlgorithm::Sha1 => { /* ... */ },
 ///     ChecksumAlgorithm::Sha256 => { /* ... */ },
 ///     other @ _ if other.as_str() == "NewFeature" => { /* handles a case for `NewFeature` */ },
@@ -37,6 +38,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -47,6 +49,8 @@ pub enum ChecksumAlgorithm {
     Crc32,
     #[allow(missing_docs)] // documentation missing in model
     Crc32C,
+    #[allow(missing_docs)] // documentation missing in model
+    Crc64Nvme,
     #[allow(missing_docs)] // documentation missing in model
     Sha1,
     #[allow(missing_docs)] // documentation missing in model
@@ -60,6 +64,7 @@ impl ::std::convert::From<&str> for ChecksumAlgorithm {
         match s {
             "CRC32" => ChecksumAlgorithm::Crc32,
             "CRC32C" => ChecksumAlgorithm::Crc32C,
+            "CRC64NVME" => ChecksumAlgorithm::Crc64Nvme,
             "SHA1" => ChecksumAlgorithm::Sha1,
             "SHA256" => ChecksumAlgorithm::Sha256,
             other => ChecksumAlgorithm::Unknown(crate::primitives::sealed_enum_unknown::UnknownVariantValue(other.to_owned())),
@@ -79,6 +84,7 @@ impl ChecksumAlgorithm {
         match self {
             ChecksumAlgorithm::Crc32 => "CRC32",
             ChecksumAlgorithm::Crc32C => "CRC32C",
+            ChecksumAlgorithm::Crc64Nvme => "CRC64NVME",
             ChecksumAlgorithm::Sha1 => "SHA1",
             ChecksumAlgorithm::Sha256 => "SHA256",
             ChecksumAlgorithm::Unknown(value) => value.as_str(),
@@ -86,7 +92,7 @@ impl ChecksumAlgorithm {
     }
     /// Returns all the `&str` representations of the enum members.
     pub const fn values() -> &'static [&'static str] {
-        &["CRC32", "CRC32C", "SHA1", "SHA256"]
+        &["CRC32", "CRC32C", "CRC64NVME", "SHA1", "SHA256"]
     }
 }
 impl ::std::convert::AsRef<str> for ChecksumAlgorithm {
@@ -103,6 +109,18 @@ impl ChecksumAlgorithm {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for ChecksumAlgorithm {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            ChecksumAlgorithm::Crc32 => write!(f, "CRC32"),
+            ChecksumAlgorithm::Crc32C => write!(f, "CRC32C"),
+            ChecksumAlgorithm::Crc64Nvme => write!(f, "CRC64NVME"),
+            ChecksumAlgorithm::Sha1 => write!(f, "SHA1"),
+            ChecksumAlgorithm::Sha256 => write!(f, "SHA256"),
+            ChecksumAlgorithm::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

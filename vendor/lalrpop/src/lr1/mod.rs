@@ -20,7 +20,7 @@ use std::io::{self, Write};
 #[cfg(test)]
 mod interpret;
 
-pub use self::core::{Lr1Result, Lr1TableConstructionError};
+pub use self::core::Lr1Result;
 pub use self::error::report_error;
 pub use self::tls::Lr1Tls;
 
@@ -45,14 +45,14 @@ pub fn generate_report<'grammar, W: Write + 'grammar>(
 
 /// By packing all states which start a reduction we can generate a smaller goto table as any
 /// states not starting a reduction will not need a row
-fn rewrite_state_indices(grammar: &Grammar, states: &mut [core::Lr1State]) {
+fn rewrite_state_indices(grammar: &Grammar, states: &mut [core::Lr1State<'_>]) {
     let mut start_states = vec![false; states.len()];
     for (index, state) in states.iter_mut().enumerate() {
         debug_assert!(state.index.0 == index);
         if grammar
             .nonterminals
             .keys()
-            .any(|nonterminal| state.gotos.get(nonterminal).is_some())
+            .any(|nonterminal| state.gotos.contains_key(nonterminal))
         {
             start_states[index] = true;
         }

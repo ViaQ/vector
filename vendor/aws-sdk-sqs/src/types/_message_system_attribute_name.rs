@@ -13,6 +13,7 @@
 /// # let messagesystemattributename = unimplemented!();
 /// match messagesystemattributename {
 ///     MessageSystemAttributeName::AwsTraceHeader => { /* ... */ },
+///     MessageSystemAttributeName::All => { /* ... */ },
 ///     MessageSystemAttributeName::ApproximateFirstReceiveTimestamp => { /* ... */ },
 ///     MessageSystemAttributeName::ApproximateReceiveCount => { /* ... */ },
 ///     MessageSystemAttributeName::DeadLetterQueueSourceArn => { /* ... */ },
@@ -42,6 +43,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -50,6 +52,8 @@
 pub enum MessageSystemAttributeName {
     #[allow(missing_docs)] // documentation missing in model
     AwsTraceHeader,
+    #[allow(missing_docs)] // documentation missing in model
+    All,
     #[allow(missing_docs)] // documentation missing in model
     ApproximateFirstReceiveTimestamp,
     #[allow(missing_docs)] // documentation missing in model
@@ -74,6 +78,7 @@ impl ::std::convert::From<&str> for MessageSystemAttributeName {
     fn from(s: &str) -> Self {
         match s {
             "AWSTraceHeader" => MessageSystemAttributeName::AwsTraceHeader,
+            "All" => MessageSystemAttributeName::All,
             "ApproximateFirstReceiveTimestamp" => MessageSystemAttributeName::ApproximateFirstReceiveTimestamp,
             "ApproximateReceiveCount" => MessageSystemAttributeName::ApproximateReceiveCount,
             "DeadLetterQueueSourceArn" => MessageSystemAttributeName::DeadLetterQueueSourceArn,
@@ -98,6 +103,7 @@ impl MessageSystemAttributeName {
     pub fn as_str(&self) -> &str {
         match self {
             MessageSystemAttributeName::AwsTraceHeader => "AWSTraceHeader",
+            MessageSystemAttributeName::All => "All",
             MessageSystemAttributeName::ApproximateFirstReceiveTimestamp => "ApproximateFirstReceiveTimestamp",
             MessageSystemAttributeName::ApproximateReceiveCount => "ApproximateReceiveCount",
             MessageSystemAttributeName::DeadLetterQueueSourceArn => "DeadLetterQueueSourceArn",
@@ -113,6 +119,7 @@ impl MessageSystemAttributeName {
     pub const fn values() -> &'static [&'static str] {
         &[
             "AWSTraceHeader",
+            "All",
             "ApproximateFirstReceiveTimestamp",
             "ApproximateReceiveCount",
             "DeadLetterQueueSourceArn",
@@ -138,6 +145,23 @@ impl MessageSystemAttributeName {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for MessageSystemAttributeName {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            MessageSystemAttributeName::AwsTraceHeader => write!(f, "AWSTraceHeader"),
+            MessageSystemAttributeName::All => write!(f, "All"),
+            MessageSystemAttributeName::ApproximateFirstReceiveTimestamp => write!(f, "ApproximateFirstReceiveTimestamp"),
+            MessageSystemAttributeName::ApproximateReceiveCount => write!(f, "ApproximateReceiveCount"),
+            MessageSystemAttributeName::DeadLetterQueueSourceArn => write!(f, "DeadLetterQueueSourceArn"),
+            MessageSystemAttributeName::MessageDeduplicationId => write!(f, "MessageDeduplicationId"),
+            MessageSystemAttributeName::MessageGroupId => write!(f, "MessageGroupId"),
+            MessageSystemAttributeName::SenderId => write!(f, "SenderId"),
+            MessageSystemAttributeName::SentTimestamp => write!(f, "SentTimestamp"),
+            MessageSystemAttributeName::SequenceNumber => write!(f, "SequenceNumber"),
+            MessageSystemAttributeName::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

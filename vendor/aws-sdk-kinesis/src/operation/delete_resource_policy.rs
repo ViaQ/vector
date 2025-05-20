@@ -50,7 +50,17 @@ impl DeleteResourcePolicy {
         >,
     > {
         let input = ::aws_smithy_runtime_api::client::interceptors::context::Input::erase(input);
-        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("kinesis", "DeleteResourcePolicy", input, runtime_plugins, stop_point)
+        use ::tracing::Instrument;
+        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("Kinesis", "DeleteResourcePolicy", input, runtime_plugins, stop_point)
+            // Create a parent span for the entire operation. Includes a random, internal-only,
+            // seven-digit ID for the operation orchestration so that it can be correlated in the logs.
+            .instrument(::tracing::debug_span!(
+                "Kinesis.DeleteResourcePolicy",
+                "rpc.service" = "Kinesis",
+                "rpc.method" = "DeleteResourcePolicy",
+                "sdk_invocation_id" = ::fastrand::u32(1_000_000..10_000_000),
+                "rpc.system" = "aws-api",
+            ))
             .await
     }
 
@@ -91,7 +101,10 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for DeleteR
             ::aws_smithy_runtime_api::client::auth::static_resolver::StaticAuthSchemeOptionResolverParams::new(),
         ));
 
-        cfg.store_put(::aws_smithy_http::operation::Metadata::new("DeleteResourcePolicy", "kinesis"));
+        cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::Metadata::new(
+            "DeleteResourcePolicy",
+            "Kinesis",
+        ));
         let mut signing_options = ::aws_runtime::auth::SigningOptions::default();
         signing_options.double_uri_encode = true;
         signing_options.content_sha256_header = false;
@@ -112,11 +125,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for DeleteR
     ) -> ::std::borrow::Cow<'_, ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder> {
         #[allow(unused_mut)]
         let mut rcb = ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("DeleteResourcePolicy")
-            .with_interceptor(
-                ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::new(
-                    ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptorKind::ResponseBody,
-                ),
-            )
+            .with_interceptor(::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::default())
             .with_interceptor(DeleteResourcePolicyEndpointParamsInterceptor)
             .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<
                 crate::operation::delete_resource_policy::DeleteResourcePolicyError,
@@ -252,6 +261,9 @@ impl ::aws_smithy_runtime_api::client::interceptors::Intercept for DeleteResourc
     }
 }
 
+// The get_* functions below are generated from JMESPath expressions in the
+// operationContextParams trait. They target the operation's input shape.
+
 /// Error type for the `DeleteResourcePolicyError` operation.
 #[non_exhaustive]
 #[derive(::std::fmt::Debug)]
@@ -262,7 +274,7 @@ pub enum DeleteResourcePolicyError {
     InvalidArgumentException(crate::types::error::InvalidArgumentException),
     /// <p>The resource is not available for this operation. For successful operation, the resource must be in the <code>ACTIVE</code> state.</p>
     ResourceInUseException(crate::types::error::ResourceInUseException),
-    /// <p>The requested resource exceeds the maximum number allowed, or the number of concurrent stream requests exceeds the maximum number allowed. </p>
+    /// <p>The requested resource exceeds the maximum number allowed, or the number of concurrent stream requests exceeds the maximum number allowed.</p>
     LimitExceededException(crate::types::error::LimitExceededException),
     /// <p>The requested resource could not be found. The stream might not be specified correctly.</p>
     ResourceNotFoundException(crate::types::error::ResourceNotFoundException),

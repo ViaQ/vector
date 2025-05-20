@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.71"
 name = "mlua-sys"
-version = "0.6.5"
+version = "0.6.7"
 authors = ["Aleksandr Orlenko <zxteam@pm.me>"]
 build = "build/main.rs"
 links = "lua"
@@ -41,6 +41,22 @@ rustdoc-args = [
     "docsrs",
 ]
 
+[features]
+lua51 = []
+lua52 = []
+lua53 = []
+lua54 = []
+luajit = []
+luajit52 = ["luajit"]
+luau = ["luau0-src"]
+luau-codegen = ["luau"]
+luau-vector4 = ["luau"]
+module = []
+vendored = [
+    "lua-src",
+    "luajit-src",
+]
+
 [lib]
 name = "mlua_sys"
 path = "src/lib.rs"
@@ -62,27 +78,11 @@ version = ">= 210.5.0, < 210.6.0"
 optional = true
 
 [build-dependencies.luau0-src]
-version = "0.11.1"
+version = "0.12.0"
 optional = true
 
 [build-dependencies.pkg-config]
 version = "0.3.17"
-
-[features]
-lua51 = []
-lua52 = []
-lua53 = []
-lua54 = []
-luajit = []
-luajit52 = ["luajit"]
-luau = ["luau0-src"]
-luau-codegen = ["luau"]
-luau-vector4 = ["luau"]
-module = []
-vendored = [
-    "lua-src",
-    "luajit-src",
-]
 
 [lints.rust.unexpected_cfgs]
 level = "allow"

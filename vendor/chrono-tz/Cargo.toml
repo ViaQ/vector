@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.60"
+rust-version = "1.65"
 name = "chrono-tz"
-version = "0.10.0"
+version = "0.10.3"
 build = "build.rs"
 include = [
     "src/*.rs",
@@ -31,6 +31,7 @@ include = [
     "tz/southamerica",
     "tz/NEWS",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -55,6 +56,17 @@ rustdoc-args = [
     "--cfg",
     "docsrs",
 ]
+
+[features]
+case-insensitive = [
+    "dep:uncased",
+    "chrono-tz-build/case-insensitive",
+    "phf/uncased",
+]
+default = ["std"]
+filter-by-regex = ["chrono-tz-build/filter-by-regex"]
+serde = ["dep:serde"]
+std = []
 
 [lib]
 name = "chrono_tz"
@@ -97,14 +109,3 @@ version = "1"
 
 [build-dependencies.chrono-tz-build]
 version = "0.4"
-
-[features]
-case-insensitive = [
-    "dep:uncased",
-    "chrono-tz-build/case-insensitive",
-    "phf/uncased",
-]
-default = ["std"]
-filter-by-regex = ["chrono-tz-build/filter-by-regex"]
-serde = ["dep:serde"]
-std = []

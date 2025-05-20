@@ -12,12 +12,13 @@ pub const ARRAY_LIMIT: u64 = 4096;
 use alloc::vec::Vec;
 
 #[derive(PartialEq, Clone)]
-pub struct Container {
+pub(crate) struct Container {
     pub key: u16,
     pub store: Store,
 }
 
-pub struct Iter<'a> {
+#[derive(Clone)]
+pub(crate) struct Iter<'a> {
     pub key: u16,
     inner: store::Iter<'a>,
 }
@@ -30,6 +31,10 @@ impl Container {
     pub fn full(key: u16) -> Container {
         Container { key, store: Store::full() }
     }
+
+    pub fn from_lsb0_bytes(key: u16, bytes: &[u8], byte_offset: usize) -> Option<Self> {
+        Some(Container { key, store: Store::from_lsb0_bytes(bytes, byte_offset)? })
+    }
 }
 
 impl Container {
@@ -41,6 +46,7 @@ impl Container {
         self.store.is_empty()
     }
 
+    #[inline]
     pub fn insert(&mut self, index: u16) -> bool {
         if self.store.insert(index) {
             self.ensure_correct_store();
@@ -159,6 +165,7 @@ impl Container {
         self.store.min()
     }
 
+    #[inline]
     pub fn max(&self) -> Option<u16> {
         self.store.max()
     }
@@ -295,16 +302,43 @@ impl IntoIterator for Container {
     }
 }
 
-impl<'a> Iterator for Iter<'a> {
+impl Iterator for Iter<'_> {
     type Item = u32;
     fn next(&mut self) -> Option<u32> {
         self.inner.next().map(|i| util::join(self.key, i))
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.inner.size_hint()
+    }
+
+    fn count(self) -> usize
+    where
+        Self: Sized,
+    {
+        self.inner.count()
+    }
+
+    fn nth(&mut self, n: usize) -> Option<Self::Item> {
+        self.inner.nth(n).map(|i| util::join(self.key, i))
     }
 }
 
 impl DoubleEndedIterator for Iter<'_> {
     fn next_back(&mut self) -> Option<Self::Item> {
         self.inner.next_back().map(|i| util::join(self.key, i))
+    }
+}
+
+impl ExactSizeIterator for Iter<'_> {}
+
+impl Iter<'_> {
+    pub(crate) fn advance_to(&mut self, index: u16) {
+        self.inner.advance_to(index);
+    }
+
+    pub(crate) fn advance_back_to(&mut self, index: u16) {
+        self.inner.advance_back_to(index);
     }
 }
 

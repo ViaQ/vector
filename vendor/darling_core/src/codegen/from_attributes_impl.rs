@@ -38,6 +38,7 @@ impl ToTokens for FromAttributesImpl<'_> {
             }
         }
 
+        let passed_attrs = self.forward_attrs.as_initializer();
         let inits = self.base.initializers();
         let default = self.base.fallback_decl();
 
@@ -61,6 +62,7 @@ impl ToTokens for FromAttributesImpl<'_> {
                     #default
 
                     ::darling::export::Ok(#ty_ident {
+                        #passed_attrs
                         #inits
                     }) #post_transform
                 }
@@ -70,7 +72,7 @@ impl ToTokens for FromAttributesImpl<'_> {
     }
 }
 
-impl<'a> ExtractAttribute for FromAttributesImpl<'a> {
+impl ExtractAttribute for FromAttributesImpl<'_> {
     fn local_declarations(&self) -> TokenStream {
         self.base.local_declarations()
     }
@@ -79,7 +81,7 @@ impl<'a> ExtractAttribute for FromAttributesImpl<'a> {
         self.attr_names
     }
 
-    fn forward_attrs(&self) -> &super::ForwardAttrs {
+    fn forward_attrs(&self) -> &super::ForwardAttrs<'_> {
         &self.forward_attrs
     }
 

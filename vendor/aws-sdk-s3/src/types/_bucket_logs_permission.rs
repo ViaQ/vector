@@ -36,6 +36,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -98,6 +99,16 @@ impl BucketLogsPermission {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for BucketLogsPermission {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            BucketLogsPermission::FullControl => write!(f, "FULL_CONTROL"),
+            BucketLogsPermission::Read => write!(f, "READ"),
+            BucketLogsPermission::Write => write!(f, "WRITE"),
+            BucketLogsPermission::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

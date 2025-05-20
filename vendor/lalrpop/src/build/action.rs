@@ -28,7 +28,7 @@
 //! ```
 //!
 //! * -- in this case, those "user-declared" parameters are inserted by
-//! the "internal tokenizer".
+//!   the "internal tokenizer".
 
 use crate::grammar::repr as r;
 use crate::rust::RustWrite;
@@ -120,7 +120,7 @@ fn emit_user_action_code<W: Write>(
         ]);
     }
 
-    rust!(rust, "#[allow(clippy::too_many_arguments)]");
+    rust!(rust, "#[allow(clippy::too_many_arguments, clippy::needless_lifetimes, clippy::just_underscores_and_digits)]");
     rust.fn_header(
         &r::Visibility::Priv,
         format!("{}action{}", grammar.prefix, index),
@@ -148,6 +148,7 @@ fn emit_lookaround_action_code<W: Write>(
     _defn: &r::ActionFnDefn,
     data: &r::LookaroundActionFnDefn,
 ) -> io::Result<()> {
+    rust!(rust, "#[allow(clippy::needless_lifetimes)]");
     rust.fn_header(
         &r::Visibility::Priv,
         format!("{}action{}", grammar.prefix, index),
@@ -234,7 +235,11 @@ fn emit_inline_action_code<W: Write>(
         ]);
     }
 
-    rust!(rust, "#[allow(clippy::too_many_arguments)]");
+    rust!(
+        rust,
+        "#[allow(clippy::too_many_arguments, clippy::needless_lifetimes,
+    clippy::just_underscores_and_digits)]"
+    );
     rust.fn_header(
         &r::Visibility::Priv,
         format!("{}action{}", grammar.prefix, index),

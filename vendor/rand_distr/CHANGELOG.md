@@ -4,6 +4,60 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1]
+
+### Testing
+- Added building the crate to CI
+
+### Fixes
+- Fix missing import for `no_std` builds
+
+## [0.5.0] - 2025-01-27
+
+### Dependencies and features
+- Bump the MSRV to 1.61.0 (#1207, #1246, #1269, #1341, #1416); note that 1.60.0 may work for dependents when using `--ignore-rust-version`
+- Update to `rand` v0.9.0 (#1558)
+- Rename feature `serde1` to `serde` (#1477)
+
+### API changes
+- Make distributions comparable with `PartialEq` (#1218)
+- `Dirichlet` now uses `const` generics, which means that its size is required at compile time (#1292)
+- The `Dirichlet::new_with_size` constructor was removed (#1292)
+- Add `WeightedIndexTree` (#1372, #1444)
+- Add `PertBuilder` to allow specification of `mean` or `mode` (#1452)
+- Rename `Zeta`'s parameter `a` to `s` (#1466)
+- Mark `WeightError`, `PoissonError`, `BinomialError` as `#[non_exhaustive]` (#1480)
+- Remove support for usage of `isize` as a `WeightedAliasIndex` weight (#1487)
+- Change parameter type of `Zipf::new`: `n` is now floating-point (#1518)
+
+### API changes: renames
+- Move `Slice` -> `slice::Choose`, `EmptySlice` -> `slice::Empty` (#1548)
+- Rename trait `DistString` -> `SampleString` (#1548)
+- Rename `DistIter` -> `Iter`, `DistMap` -> `Map` (#1548)
+- Move `{Weight, WeightError, WeightedIndex}` -> `weighted::{Weight, Error, WeightedIndex}` (#1548)
+- Move `weighted_alias::{AliasableWeight, WeightedAliasIndex}` -> `weighted::{..}` (#1548)
+- Move `weighted_tree::WeightedTreeIndex` -> `weighted::WeightedTreeIndex` (#1548)
+
+### Testing
+- Add Kolmogorov Smirnov tests for distributions (#1494, #1504, #1525, #1530)
+
+### Fixes
+- Fix Knuth's method so `Poisson` doesn't return -1.0 for small lambda (#1284)
+- Fix `Poisson` distribution instantiation so it return an error if lambda is infinite (#1291)
+- Fix Dirichlet sample for small alpha values to avoid NaN samples (#1209)
+- Fix infinite loop in `Binomial` distribution (#1325)
+- Fix `Pert` distribution where `mode` is close to `(min + max) / 2` (#1452)
+- Fix panic in Binomial (#1484)
+- Limit the maximal acceptable lambda for `Poisson` to solve (#1312) (#1498)
+- Fix bug in `Hypergeometric`, this is a Value-breaking change (#1510)
+
+### Other changes
+- Remove unused fields from `Gamma`, `NormalInverseGaussian` and `Zipf` distributions (#1184)
+  This breaks serialization compatibility with older versions.
+- Add plots for `rand_distr` distributions to documentation (#1434)
+- Move some of the computations in Binomial from `sample` to `new` (#1484)
+- Reimplement `Poisson`'s rejection method to improve performance and correct sampling inaccuracies for large lambda values, this is a Value-breaking change (#1560)
+
 ## [0.4.3] - 2021-12-30
 - Fix `no_std` build (#1208)
 

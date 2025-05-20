@@ -1,13 +1,19 @@
-use azure_core::auth::{AccessToken, TokenCredential, TokenResponse};
-use azure_core::error::{Error, ErrorKind, ResultExt};
+use crate::token_credentials::cache::TokenCache;
+use async_process::Command;
+use azure_core::{
+    auth::{AccessToken, Secret, TokenCredential},
+    error::{Error, ErrorKind, ResultExt},
+    from_json,
+};
 use serde::Deserialize;
-use std::process::Command;
 use std::str;
 use time::OffsetDateTime;
+use tracing::trace;
 
+#[cfg(feature = "old_azure_cli")]
 mod az_cli_date_format {
     use azure_core::error::{ErrorKind, ResultExt};
-    use serde::{self, Deserialize, Deserializer};
+    use serde::{Deserialize, Deserializer};
     use time::format_description::FormatItem;
     use time::macros::format_description;
     #[cfg(not(unix))]
@@ -91,32 +97,79 @@ mod az_cli_date_format {
     }
 }
 
+/// The response from `az account get-access-token --output json`.
 #[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
 struct CliTokenResponse {
-    pub access_token: AccessToken,
-    #[serde(with = "az_cli_date_format")]
-    pub expires_on: OffsetDateTime,
+    #[serde(rename = "accessToken")]
+    pub access_token: Secret,
+    #[cfg(feature = "old_azure_cli")]
+    #[serde(rename = "expiresOn", with = "az_cli_date_format")]
+    /// The token's expiry time formatted in the local timezone.
+    /// Unfortunately, this requires additional timezone dependencies.
+    /// See https://github.com/Azure/azure-cli/issues/19700 for details.
+    pub local_expires_on: OffsetDateTime,
+    #[serde(rename = "expires_on")]
+    /// The token's expiry time in seconds since the epoch, a unix timestamp.
+    /// Available in Azure CLI 2.54.0 or newer.
+    pub expires_on: Option<i64>,
     pub subscription: String,
     pub tenant: String,
     #[allow(unused)]
+    #[serde(rename = "tokenType")]
     pub token_type: String,
 }
 
+impl CliTokenResponse {
+    pub fn expires_on(&self) -> azure_core::Result<OffsetDateTime> {
+        match self.expires_on {
+            Some(timestamp) => Ok(OffsetDateTime::from_unix_timestamp(timestamp)
+                .with_context(ErrorKind::DataConversion, || {
+                    format!("unable to parse expires_on '{timestamp}'")
+                })?),
+            None => {
+                #[cfg(feature = "old_azure_cli")]
+                {
+                    Ok(self.local_expires_on)
+                }
+                #[cfg(not(feature = "old_azure_cli"))]
+                {
+                    Err(Error::message(
+                        ErrorKind::DataConversion,
+                        "expires_on field not found. Please use Azure CLI 2.54.0 or newer.",
+                    ))
+                }
+            }
+        }
+    }
+}
+
 /// Enables authentication to Azure Active Directory using Azure CLI to obtain an access token.
-#[derive(Default)]
+#[derive(Debug)]
 pub struct AzureCliCredential {
-    _private: (),
+    cache: TokenCache,
+}
+
+impl Default for AzureCliCredential {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl AzureCliCredential {
+    pub fn create() -> azure_core::Result<Self> {
+        // TODO check `az version` to see if it's installed
+        Ok(AzureCliCredential::new())
+    }
+
     /// Create a new `AzureCliCredential`
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            cache: TokenCache::new(),
+        }
     }
 
     /// Get an access token for an optional resource
-    fn get_access_token(resource: Option<&str>) -> azure_core::Result<CliTokenResponse> {
+    async fn get_access_token(scopes: Option<&[&str]>) -> azure_core::Result<CliTokenResponse> {
         // on window az is a cmd and it should be called like this
         // see https://doc.rust-lang.org/nightly/std/process/struct.Command.html
         let program = if cfg!(target_os = "windows") {
@@ -133,18 +186,25 @@ impl AzureCliCredential {
         args.push("get-access-token");
         args.push("--output");
         args.push("json");
-        if let Some(resource) = resource {
-            args.push("--resource");
-            args.push(resource);
+
+        let scopes = scopes.map(|x| x.join(" "));
+
+        if let Some(scopes) = &scopes {
+            args.push("--scope");
+            args.push(scopes);
         }
 
-        match Command::new(program).args(args).output() {
+        trace!(
+            "fetching credential via Azure CLI: {program} {}",
+            args.join(" "),
+        );
+
+        match Command::new(program).args(args).output().await {
             Ok(az_output) if az_output.status.success() => {
                 let output = str::from_utf8(&az_output.stdout)?;
 
-                let token_response = serde_json::from_str::<CliTokenResponse>(output)
-                    .map_kind(ErrorKind::DataConversion)?;
-                Ok(token_response)
+                let access_token = from_json(output)?;
+                Ok(access_token)
             }
             Ok(az_output) => {
                 let output = String::from_utf8_lossy(&az_output.stderr);
@@ -164,33 +224,46 @@ impl AzureCliCredential {
     }
 
     /// Returns the current subscription ID from the Azure CLI.
-    pub fn get_subscription() -> azure_core::Result<String> {
-        let tr = Self::get_access_token(None)?;
+    pub async fn get_subscription() -> azure_core::Result<String> {
+        let tr = Self::get_access_token(None).await?;
         Ok(tr.subscription)
     }
 
     /// Returns the current tenant ID from the Azure CLI.
-    pub fn get_tenant() -> azure_core::Result<String> {
-        let tr = Self::get_access_token(None)?;
+    pub async fn get_tenant() -> azure_core::Result<String> {
+        let tr = Self::get_access_token(None).await?;
         Ok(tr.tenant)
+    }
+
+    async fn get_token(&self, scopes: &[&str]) -> azure_core::Result<AccessToken> {
+        let tr = Self::get_access_token(Some(scopes)).await?;
+        let expires_on = tr.expires_on()?;
+        Ok(AccessToken::new(tr.access_token, expires_on))
     }
 }
 
 #[cfg_attr(target_arch = "wasm32", async_trait::async_trait(?Send))]
 #[cfg_attr(not(target_arch = "wasm32"), async_trait::async_trait)]
 impl TokenCredential for AzureCliCredential {
-    async fn get_token(&self, resource: &str) -> azure_core::Result<TokenResponse> {
-        let tr = Self::get_access_token(Some(resource))?;
-        Ok(TokenResponse::new(tr.access_token, tr.expires_on))
+    async fn get_token(&self, scopes: &[&str]) -> azure_core::Result<AccessToken> {
+        self.cache.get_token(scopes, self.get_token(scopes)).await
+    }
+
+    /// Clear the credential's cache.
+    async fn clear_cache(&self) -> azure_core::Result<()> {
+        self.cache.clear().await
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(feature = "old_azure_cli")]
     use serial_test::serial;
+    #[cfg(feature = "old_azure_cli")]
     use time::macros::datetime;
 
+    #[cfg(feature = "old_azure_cli")]
     #[test]
     #[serial]
     fn can_parse_expires_on() -> azure_core::Result<()> {
@@ -203,7 +276,7 @@ mod tests {
         Ok(())
     }
 
-    #[cfg(unix)]
+    #[cfg(all(feature = "old_azure_cli", unix))]
     #[test]
     #[serial]
     /// test the timezone conversion works as expected on unix platforms
@@ -226,6 +299,49 @@ mod tests {
         let expected = datetime!(2022-11-30 20:12:53.0).assume_utc();
         assert_eq!(expected, result?);
 
+        Ok(())
+    }
+
+    /// Test `from_json` for `CliTokenResponse` for old Azure CLI
+    #[test]
+    fn read_old_cli_token_response() -> azure_core::Result<()> {
+        let json = br#"
+        {
+            "accessToken": "MuchLonger_NotTheRealOne_Sv8Orn0Wq0OaXuQEg",
+            "expiresOn": "2024-01-01 19:23:16.000000",
+            "subscription": "33b83be5-faf7-42ea-a712-320a5f9dd111",
+            "tenant": "065e9f5e-870d-4ed1-af2b-1b58092353f3",
+            "tokenType": "Bearer"
+          }
+        "#;
+        let token_response: CliTokenResponse = from_json(json)?;
+        assert_eq!(
+            token_response.tenant,
+            "065e9f5e-870d-4ed1-af2b-1b58092353f3"
+        );
+        Ok(())
+    }
+
+    /// Test `from_json` for `CliTokenResponse` for current Azure CLI
+    #[test]
+    fn read_cli_token_response() -> azure_core::Result<()> {
+        let json = br#"
+        {
+            "accessToken": "MuchLonger_NotTheRealOne_Sv8Orn0Wq0OaXuQEg",
+            "expiresOn": "2024-01-01 19:23:16.000000",
+            "expires_on": 1704158596,
+            "subscription": "33b83be5-faf7-42ea-a712-320a5f9dd111",
+            "tenant": "065e9f5e-870d-4ed1-af2b-1b58092353f3",
+            "tokenType": "Bearer"
+        }
+        "#;
+        let token_response: CliTokenResponse = from_json(json)?;
+        assert_eq!(
+            token_response.tenant,
+            "065e9f5e-870d-4ed1-af2b-1b58092353f3"
+        );
+        assert_eq!(token_response.expires_on, Some(1704158596));
+        assert_eq!(token_response.expires_on()?.unix_timestamp(), 1704158596);
         Ok(())
     }
 }

@@ -19,7 +19,7 @@ pub fn parse_http_error_metadata(
     _response_status: u16,
     response_headers: &::aws_smithy_runtime_api::http::Headers,
     response_body: &[u8],
-) -> Result<::aws_smithy_types::error::metadata::Builder, ::aws_smithy_json::deserialize::error::DeserializeError> {
+) -> ::std::result::Result<::aws_smithy_types::error::metadata::Builder, ::aws_smithy_json::deserialize::error::DeserializeError> {
     crate::json_errors::parse_error_metadata(response_body, response_headers)
 }
 
@@ -57,6 +57,8 @@ pub(crate) mod shape_invalid_client_metadata_exception;
 
 pub(crate) mod shape_invalid_grant_exception;
 
+pub(crate) mod shape_invalid_redirect_uri_exception;
+
 pub(crate) mod shape_invalid_request_exception;
 
 pub(crate) mod shape_invalid_request_region_exception;
@@ -72,5 +74,7 @@ pub(crate) mod shape_start_device_authorization_input;
 pub(crate) mod shape_unauthorized_client_exception;
 
 pub(crate) mod shape_unsupported_grant_type_exception;
+
+pub(crate) mod shape_aws_additional_details;
 
 pub(crate) mod shape_scopes;

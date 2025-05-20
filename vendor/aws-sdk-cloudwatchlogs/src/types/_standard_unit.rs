@@ -60,6 +60,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -246,6 +247,40 @@ impl StandardUnit {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for StandardUnit {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            StandardUnit::Bits => write!(f, "Bits"),
+            StandardUnit::BitsSecond => write!(f, "Bits/Second"),
+            StandardUnit::Bytes => write!(f, "Bytes"),
+            StandardUnit::BytesSecond => write!(f, "Bytes/Second"),
+            StandardUnit::Count => write!(f, "Count"),
+            StandardUnit::CountSecond => write!(f, "Count/Second"),
+            StandardUnit::Gigabits => write!(f, "Gigabits"),
+            StandardUnit::GigabitsSecond => write!(f, "Gigabits/Second"),
+            StandardUnit::Gigabytes => write!(f, "Gigabytes"),
+            StandardUnit::GigabytesSecond => write!(f, "Gigabytes/Second"),
+            StandardUnit::Kilobits => write!(f, "Kilobits"),
+            StandardUnit::KilobitsSecond => write!(f, "Kilobits/Second"),
+            StandardUnit::Kilobytes => write!(f, "Kilobytes"),
+            StandardUnit::KilobytesSecond => write!(f, "Kilobytes/Second"),
+            StandardUnit::Megabits => write!(f, "Megabits"),
+            StandardUnit::MegabitsSecond => write!(f, "Megabits/Second"),
+            StandardUnit::Megabytes => write!(f, "Megabytes"),
+            StandardUnit::MegabytesSecond => write!(f, "Megabytes/Second"),
+            StandardUnit::Microseconds => write!(f, "Microseconds"),
+            StandardUnit::Milliseconds => write!(f, "Milliseconds"),
+            StandardUnit::None => write!(f, "None"),
+            StandardUnit::Percent => write!(f, "Percent"),
+            StandardUnit::Seconds => write!(f, "Seconds"),
+            StandardUnit::Terabits => write!(f, "Terabits"),
+            StandardUnit::TerabitsSecond => write!(f, "Terabits/Second"),
+            StandardUnit::Terabytes => write!(f, "Terabytes"),
+            StandardUnit::TerabytesSecond => write!(f, "Terabytes/Second"),
+            StandardUnit::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

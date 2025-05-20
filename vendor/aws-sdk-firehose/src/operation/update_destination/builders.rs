@@ -3,7 +3,7 @@ pub use crate::operation::update_destination::_update_destination_output::Update
 
 pub use crate::operation::update_destination::_update_destination_input::UpdateDestinationInputBuilder;
 
-impl UpdateDestinationInputBuilder {
+impl crate::operation::update_destination::builders::UpdateDestinationInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,12 +22,12 @@ impl UpdateDestinationInputBuilder {
 }
 /// Fluent builder constructing a request to `UpdateDestination`.
 ///
-/// <p>Updates the specified destination of the specified delivery stream.</p>
-/// <p>Use this operation to change the destination type (for example, to replace the Amazon S3 destination with Amazon Redshift) or change the parameters associated with a destination (for example, to change the bucket name of the Amazon S3 destination). The update might not occur immediately. The target delivery stream remains active while the configurations are updated, so data writes to the delivery stream can continue during this process. The updated configurations are usually effective within a few minutes.</p>
+/// <p>Updates the specified destination of the specified Firehose stream.</p>
+/// <p>Use this operation to change the destination type (for example, to replace the Amazon S3 destination with Amazon Redshift) or change the parameters associated with a destination (for example, to change the bucket name of the Amazon S3 destination). The update might not occur immediately. The target Firehose stream remains active while the configurations are updated, so data writes to the Firehose stream can continue during this process. The updated configurations are usually effective within a few minutes.</p>
 /// <p>Switching between Amazon OpenSearch Service and other services is not supported. For an Amazon OpenSearch Service destination, you can only update to another Amazon OpenSearch Service destination.</p>
-/// <p>If the destination type is the same, Kinesis Data Firehose merges the configuration parameters specified with the destination configuration that already exists on the delivery stream. If any of the parameters are not specified in the call, the existing values are retained. For example, in the Amazon S3 destination, if <code>EncryptionConfiguration</code> is not specified, then the existing <code>EncryptionConfiguration</code> is maintained on the destination.</p>
-/// <p>If the destination type is not the same, for example, changing the destination from Amazon S3 to Amazon Redshift, Kinesis Data Firehose does not merge any parameters. In this case, all parameters must be specified.</p>
-/// <p>Kinesis Data Firehose uses <code>CurrentDeliveryStreamVersionId</code> to avoid race conditions and conflicting merges. This is a required field, and the service updates the configuration only if the existing configuration has a version ID that matches. After the update is applied successfully, the version ID is updated, and can be retrieved using <code>DescribeDeliveryStream</code>. Use the new version ID to set <code>CurrentDeliveryStreamVersionId</code> in the next call.</p>
+/// <p>If the destination type is the same, Firehose merges the configuration parameters specified with the destination configuration that already exists on the delivery stream. If any of the parameters are not specified in the call, the existing values are retained. For example, in the Amazon S3 destination, if <code>EncryptionConfiguration</code> is not specified, then the existing <code>EncryptionConfiguration</code> is maintained on the destination.</p>
+/// <p>If the destination type is not the same, for example, changing the destination from Amazon S3 to Amazon Redshift, Firehose does not merge any parameters. In this case, all parameters must be specified.</p>
+/// <p>Firehose uses <code>CurrentDeliveryStreamVersionId</code> to avoid race conditions and conflicting merges. This is a required field, and the service updates the configuration only if the existing configuration has a version ID that matches. After the update is applied successfully, the version ID is updated, and can be retrieved using <code>DescribeDeliveryStream</code>. Use the new version ID to set <code>CurrentDeliveryStreamVersionId</code> in the next call.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct UpdateDestinationFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -53,7 +53,7 @@ impl
     }
 }
 impl UpdateDestinationFluentBuilder {
-    /// Creates a new `UpdateDestination`.
+    /// Creates a new `UpdateDestinationFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -104,26 +104,26 @@ impl UpdateDestinationFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
-    /// <p>The name of the delivery stream.</p>
+    /// <p>The name of the Firehose stream.</p>
     pub fn delivery_stream_name(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.delivery_stream_name(input.into());
         self
     }
-    /// <p>The name of the delivery stream.</p>
+    /// <p>The name of the Firehose stream.</p>
     pub fn set_delivery_stream_name(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_delivery_stream_name(input);
         self
     }
-    /// <p>The name of the delivery stream.</p>
+    /// <p>The name of the Firehose stream.</p>
     pub fn get_delivery_stream_name(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_delivery_stream_name()
     }
@@ -155,19 +155,19 @@ impl UpdateDestinationFluentBuilder {
     pub fn get_destination_id(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_destination_id()
     }
-    /// <p>[Deprecated] Describes an update for a destination in Amazon S3.</p>
+    /// <p>\[Deprecated\] Describes an update for a destination in Amazon S3.</p>
     #[deprecated]
     pub fn s3_destination_update(mut self, input: crate::types::S3DestinationUpdate) -> Self {
         self.inner = self.inner.s3_destination_update(input);
         self
     }
-    /// <p>[Deprecated] Describes an update for a destination in Amazon S3.</p>
+    /// <p>\[Deprecated\] Describes an update for a destination in Amazon S3.</p>
     #[deprecated]
     pub fn set_s3_destination_update(mut self, input: ::std::option::Option<crate::types::S3DestinationUpdate>) -> Self {
         self.inner = self.inner.set_s3_destination_update(input);
         self
     }
-    /// <p>[Deprecated] Describes an update for a destination in Amazon S3.</p>
+    /// <p>\[Deprecated\] Describes an update for a destination in Amazon S3.</p>
     #[deprecated]
     pub fn get_s3_destination_update(&self) -> &::std::option::Option<crate::types::S3DestinationUpdate> {
         self.inner.get_s3_destination_update()
@@ -200,17 +200,17 @@ impl UpdateDestinationFluentBuilder {
     pub fn get_redshift_destination_update(&self) -> &::std::option::Option<crate::types::RedshiftDestinationUpdate> {
         self.inner.get_redshift_destination_update()
     }
-    /// <p>Describes an update for a destination in Amazon ES.</p>
+    /// <p>Describes an update for a destination in Amazon OpenSearch Service.</p>
     pub fn elasticsearch_destination_update(mut self, input: crate::types::ElasticsearchDestinationUpdate) -> Self {
         self.inner = self.inner.elasticsearch_destination_update(input);
         self
     }
-    /// <p>Describes an update for a destination in Amazon ES.</p>
+    /// <p>Describes an update for a destination in Amazon OpenSearch Service.</p>
     pub fn set_elasticsearch_destination_update(mut self, input: ::std::option::Option<crate::types::ElasticsearchDestinationUpdate>) -> Self {
         self.inner = self.inner.set_elasticsearch_destination_update(input);
         self
     }
-    /// <p>Describes an update for a destination in Amazon ES.</p>
+    /// <p>Describes an update for a destination in Amazon OpenSearch Service.</p>
     pub fn get_elasticsearch_destination_update(&self) -> &::std::option::Option<crate::types::ElasticsearchDestinationUpdate> {
         self.inner.get_elasticsearch_destination_update()
     }
@@ -277,5 +277,33 @@ impl UpdateDestinationFluentBuilder {
         &self,
     ) -> &::std::option::Option<crate::types::AmazonOpenSearchServerlessDestinationUpdate> {
         self.inner.get_amazon_open_search_serverless_destination_update()
+    }
+    /// <p>Update to the Snowflake destination configuration settings.</p>
+    pub fn snowflake_destination_update(mut self, input: crate::types::SnowflakeDestinationUpdate) -> Self {
+        self.inner = self.inner.snowflake_destination_update(input);
+        self
+    }
+    /// <p>Update to the Snowflake destination configuration settings.</p>
+    pub fn set_snowflake_destination_update(mut self, input: ::std::option::Option<crate::types::SnowflakeDestinationUpdate>) -> Self {
+        self.inner = self.inner.set_snowflake_destination_update(input);
+        self
+    }
+    /// <p>Update to the Snowflake destination configuration settings.</p>
+    pub fn get_snowflake_destination_update(&self) -> &::std::option::Option<crate::types::SnowflakeDestinationUpdate> {
+        self.inner.get_snowflake_destination_update()
+    }
+    /// <p>Describes an update for a destination in Apache Iceberg Tables.</p>
+    pub fn iceberg_destination_update(mut self, input: crate::types::IcebergDestinationUpdate) -> Self {
+        self.inner = self.inner.iceberg_destination_update(input);
+        self
+    }
+    /// <p>Describes an update for a destination in Apache Iceberg Tables.</p>
+    pub fn set_iceberg_destination_update(mut self, input: ::std::option::Option<crate::types::IcebergDestinationUpdate>) -> Self {
+        self.inner = self.inner.set_iceberg_destination_update(input);
+        self
+    }
+    /// <p>Describes an update for a destination in Apache Iceberg Tables.</p>
+    pub fn get_iceberg_destination_update(&self) -> &::std::option::Option<crate::types::IcebergDestinationUpdate> {
+        self.inner.get_iceberg_destination_update()
     }
 }

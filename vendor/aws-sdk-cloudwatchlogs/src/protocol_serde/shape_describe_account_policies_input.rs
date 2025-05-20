@@ -2,7 +2,7 @@
 pub fn ser_describe_account_policies_input_input(
     object: &mut ::aws_smithy_json::serialize::JsonObjectWriter,
     input: &crate::operation::describe_account_policies::DescribeAccountPoliciesInput,
-) -> Result<(), ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<(), ::aws_smithy_types::error::operation::SerializationError> {
     if let Some(var_1) = &input.policy_type {
         object.key("policyType").string(var_1.as_str());
     }
@@ -17,6 +17,9 @@ pub fn ser_describe_account_policies_input_input(
             }
         }
         array_4.finish();
+    }
+    if let Some(var_6) = &input.next_token {
+        object.key("nextToken").string(var_6.as_str());
     }
     Ok(())
 }

@@ -4,6 +4,72 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# [7.0.16] 2025-03-20
+
+- dynamic: fixed `__typename` always returned `null` when introspection was disabled.
+- update MSRV to `1.83.0`
+
+# [7.0.15] 2025-02-03
+
+- feat: Add `custom-error-conversion` feature [#1631](https://github.com/async-graphql/async-graphql/pull/1631)
+- Update graphql annotation directive property to support paths [#1663](https://github.com/async-graphql/async-graphql/pull/1663)
+
+# [7.0.14] 2025-01-22
+
+- Update error messages for character length validation [#1657](https://github.com/async-graphql/async-graphql/pull/1657)
+- Upgrade to axum v0.8 [#1653](https://github.com/async-graphql/async-graphql/pull/1653)
+- Fix position calculator for unicode symbols [#1648](https://github.com/async-graphql/async-graphql/pull/1648)
+
+# [7.0.13] 2024-12-10
+
+- add support introspection inputValueDeprecation [#1621](https://github.com/async-graphql/async-graphql/issues/1621)
+
+# [7.0.12] 2024-12-08
+
+- update MSRV to `1.83.0`
+- Add specified complexity for fields in `SimpleObject`.
+- feat: expose SDL export utilities in ExtensionContext [#1606](https://github.com/async-graphql/async-graphql/pull/1606)
+- feat(dynamic-schema): specify type directives in schema [#1607](https://github.com/async-graphql/async-graphql/pull/1607)
+- Make http2 optional for actix [#1612](https://github.com/async-graphql/async-graphql/pull/1612)
+- chore: use std OnceLock instead LazyLock [#1613](https://github.com/async-graphql/async-graphql/pull/1613)
+- Add UUID validator [#1588](https://github.com/async-graphql/async-graphql/pull/1588)
+- Update secrecy and support new types [#1627](https://github.com/async-graphql/async-graphql/pull/1627)
+- fix [#1626](https://github.com/async-graphql/async-graphql/issues/1626)
+- Allow non-native concrete types in generic structs deriving SimpleObject + InputObject [#1629](https://github.com/async-graphql/async-graphql/pull/1629)
+- chore: update opentelemetry to 0.27 [#1614](https://github.com/async-graphql/async-graphql/pull/1614)
+- connection: Allow 'first' and 'last' parameters to exist at the same time [#1602](https://github.com/async-graphql/async-graphql/pull/1602)
+- feat(dynamic-schema): specify type directives in schema [#1607](https://github.com/async-graphql/async-graphql/pull/1607)
+- Make boxed_any and borrowed_any for FieldValue work with trait objects again [#1636](https://github.com/async-graphql/async-graphql/pull/1636)
+- Add new altair option [#1642](https://github.com/async-graphql/async-graphql/pull/1642)
+- Fix Clippy for latest stable [#1639](https://github.com/async-graphql/async-graphql/pull/1639)
+- Add `boxed-trait` feature [#1641](https://github.com/async-graphql/async-graphql/pull/1641)
+- Support directive in complex object [#1644](https://github.com/async-graphql/async-graphql/pull/1644)
+
+# [7.0.11] 2024-09-26
+
+- fix [#1598](https://github.com/async-graphql/async-graphql/issues/1598)
+
+# [7.0.10] 2024-09-24
+
+- add `SchemeBuilder.limit_directives` method to set the maximum number of directives on a single field.
+- remove needless ?Sized [#1593](https://github.com/async-graphql/async-graphql/pull/1593)
+- fix: generate each variant description correctly. [#1589](https://github.com/async-graphql/async-graphql/pull/1589)
+- Make `From<T>` for [Error] set source [#1561](https://github.com/async-graphql/async-graphql/pull/1561)
+- feat(graphiql): add support for WS connection params [#1597](https://github.com/async-graphql/async-graphql/pull/1597)
+
+# [7.0.9] 2024-09-02
+
+- add `on_ping` callback to `WebSocket`
+
+# [7.0.8] 2024-09-01
+
+- chore: Make Extensions nullable [#1563](https://github.com/async-graphql/async-graphql/pull/1563)
+- expose `rejection` in `async_graphql_axum` [#1571](https://github.com/async-graphql/async-graphql/pull/1571)
+- Updated crate `time` to `3.36`, as it fixes a compilation error in rust `1.80` [#1572](https://github.com/async-graphql/async-graphql/pull/1572)
+- Impl `Debug` for `dynamic::FieldValue` & Improve error messages for its methods [#1582](https://github.com/async-graphql/async-graphql/pull/1582)
+- Support scraping `#[doc = ...]` attributes when generating descriptions [#1581](https://github.com/async-graphql/async-graphql/pull/1581)
+- add `Websocket::keepalive_timeout` method to sets a timeout for receiving an acknowledgement of the keep-alive ping.
+
 # [7.0.7] 2024-07-14
 
 - Support raw values from serde_json [#1554](https://github.com/async-graphql/async-graphql/pull/1554)

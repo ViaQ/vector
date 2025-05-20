@@ -10,11 +10,19 @@ releases: "0.43.1": {
 		This patch release contains fixes for regressions in 0.43.0.
 		"""
 
+	known_issues: [
+		"""
+			The `vector-0.43.1-x86_64-apple-darwin.tar.gz` executable has the wrong architecture, see
+			[#22129](https://github.com/vectordotdev/vector/issues/22129). This will be fixed in
+			`v0.44`.
+			""",
+	]
+
 	changelog: [
 		{
 			type: "fix"
 			description: """
-				Update to VRL v0.20.1 which a reverts to previous `to_float` behavior for non-normal floats.
+				Update to VRL v0.20.1 which reverts to previous `to_float` behavior for non-normal floats.
 				"""
 			contributors: ["pront"]
 		},

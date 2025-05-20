@@ -35,6 +35,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -93,6 +94,15 @@ impl BucketAccelerateStatus {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for BucketAccelerateStatus {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            BucketAccelerateStatus::Enabled => write!(f, "Enabled"),
+            BucketAccelerateStatus::Suspended => write!(f, "Suspended"),
+            BucketAccelerateStatus::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

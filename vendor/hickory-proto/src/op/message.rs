@@ -7,8 +7,11 @@
 
 //! Basic protocol message for DNS
 
-use std::{fmt, iter, mem, ops::Deref, sync::Arc};
+use alloc::{boxed::Box, fmt, vec::Vec};
+use core::{iter, mem, ops::Deref};
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use tracing::{debug, warn};
 
 use crate::{
@@ -62,6 +65,7 @@ use crate::{
 /// By default Message is a Query. Use the Message::as_update() to create and update, or
 ///  Message::new_update()
 #[derive(Clone, Debug, PartialEq, Eq, Default)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Message {
     header: Header,
     queries: Vec<Query>,
@@ -70,44 +74,6 @@ pub struct Message {
     additionals: Vec<Record>,
     signature: Vec<Record>,
     edns: Option<Edns>,
-}
-
-/// Returns a new Header with accurate counts for each Message section
-pub fn update_header_counts(
-    current_header: &Header,
-    is_truncated: bool,
-    counts: HeaderCounts,
-) -> Header {
-    assert!(counts.query_count <= u16::max_value() as usize);
-    assert!(counts.answer_count <= u16::max_value() as usize);
-    assert!(counts.nameserver_count <= u16::max_value() as usize);
-    assert!(counts.additional_count <= u16::max_value() as usize);
-
-    // TODO: should the function just take by value?
-    let mut header = *current_header;
-    header
-        .set_query_count(counts.query_count as u16)
-        .set_answer_count(counts.answer_count as u16)
-        .set_name_server_count(counts.nameserver_count as u16)
-        .set_additional_count(counts.additional_count as u16)
-        .set_truncated(is_truncated);
-
-    header
-}
-
-/// Tracks the counts of the records in the Message.
-///
-/// This is only used internally during serialization.
-#[derive(Clone, Copy, Debug)]
-pub struct HeaderCounts {
-    /// The number of queries in the Message
-    pub query_count: usize,
-    /// The number of answers in the Message
-    pub answer_count: usize,
-    /// The number of nameservers or authorities in the Message
-    pub nameserver_count: usize,
-    /// The number of additional records in the Message
-    pub additional_count: usize,
 }
 
 impl Message {
@@ -144,15 +110,26 @@ impl Message {
 
     /// Truncates a Message, this blindly removes all response fields and sets truncated to `true`
     pub fn truncate(&self) -> Self {
-        let mut truncated = self.clone();
-        truncated.set_truncated(true);
-        // drops additional/answer/queries so len is 0
-        truncated.take_additionals();
-        truncated.take_answers();
-        truncated.take_queries();
+        // copy header
+        let mut header = self.header;
+        header.set_truncated(true);
+        header
+            .set_additional_count(0)
+            .set_answer_count(0)
+            .set_name_server_count(0);
+
+        let mut msg = Self::new();
+        // drops additional/answer/nameservers/signature
+        // adds query/OPT
+        msg.add_queries(self.queries().iter().cloned());
+        if let Some(edns) = self.extensions().clone() {
+            msg.set_edns(edns);
+        }
+        // set header
+        msg.set_header(header);
 
         // TODO, perhaps just quickly add a few response records here? that we know would fit?
-        truncated
+        msg
     }
 
     /// Sets the `Header` with provided
@@ -218,6 +195,42 @@ impl Message {
     /// see `Header::set_response_code`
     pub fn set_response_code(&mut self, response_code: ResponseCode) -> &mut Self {
         self.header.set_response_code(response_code);
+        self
+    }
+
+    /// see `Header::set_query_count`
+    ///
+    /// this count will be ignored during serialization,
+    /// where the length of the associated records will be used instead.
+    pub fn set_query_count(&mut self, query_count: u16) -> &mut Self {
+        self.header.set_query_count(query_count);
+        self
+    }
+
+    /// see `Header::set_answer_count`
+    ///
+    /// this count will be ignored during serialization,
+    /// where the length of the associated records will be used instead.
+    pub fn set_answer_count(&mut self, answer_count: u16) -> &mut Self {
+        self.header.set_answer_count(answer_count);
+        self
+    }
+
+    /// see `Header::set_name_server_count`
+    ///
+    /// this count will be ignored during serialization,
+    /// where the length of the associated records will be used instead.
+    pub fn set_name_server_count(&mut self, name_server_count: u16) -> &mut Self {
+        self.header.set_name_server_count(name_server_count);
+        self
+    }
+
+    /// see `Header::set_additional_count`
+    ///
+    /// this count will be ignored during serialization,
+    /// where the length of the associated records will be used instead.
+    pub fn set_additional_count(&mut self, additional_count: u16) -> &mut Self {
+        self.header.set_additional_count(additional_count);
         self
     }
 
@@ -336,8 +349,7 @@ impl Message {
     /// Add a SIG0 record, i.e. sign this message
     ///
     /// This must be used only after all records have been associated. Generally this will be handled by the client and not need to be used directly
-    #[cfg(feature = "dnssec")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "dnssec")))]
+    #[cfg(feature = "__dnssec")]
     pub fn add_sig0(&mut self, record: Record) -> &mut Self {
         assert_eq!(RecordType::SIG, record.record_type());
         self.signature.push(record);
@@ -347,8 +359,7 @@ impl Message {
     /// Add a TSIG record, i.e. authenticate this message
     ///
     /// This must be used only after all records have been associated. Generally this will be handled by the client and not need to be used directly
-    #[cfg(feature = "dnssec")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "dnssec")))]
+    #[cfg(feature = "__dnssec")]
     pub fn add_tsig(&mut self, record: Record) -> &mut Self {
         assert_eq!(RecordType::TSIG, record.record_type());
         self.signature.push(record);
@@ -560,11 +571,7 @@ impl Message {
     /// the max payload value as it's defined in the EDNS section.
     pub fn max_payload(&self) -> u16 {
         let max_size = self.edns.as_ref().map_or(512, Edns::max_payload);
-        if max_size < 512 {
-            512
-        } else {
-            max_size
-        }
+        if max_size < 512 { 512 } else { max_size }
     }
 
     /// # Return value
@@ -649,7 +656,7 @@ impl Message {
     /// # Returns
     ///
     /// This returns a tuple of first standard Records, then a possibly associated Edns, and then finally any optionally associated SIG0 and TSIG records.
-    #[cfg_attr(not(feature = "dnssec"), allow(unused_mut))]
+    #[cfg_attr(not(feature = "__dnssec"), allow(unused_mut))]
     pub fn read_records(
         decoder: &mut BinDecoder<'_>,
         count: usize,
@@ -675,12 +682,12 @@ impl Message {
                 records.push(record)
             } else {
                 match record.record_type() {
-                    #[cfg(feature = "dnssec")]
+                    #[cfg(feature = "__dnssec")]
                     RecordType::SIG => {
                         saw_sig0 = true;
                         sigs.push(record);
                     }
-                    #[cfg(feature = "dnssec")]
+                    #[cfg(feature = "__dnssec")]
                     RecordType::TSIG => {
                         if saw_sig0 {
                             return Err("sig0 must be final resource record".into());
@@ -734,9 +741,9 @@ impl Message {
     ///
     /// Subsequent to calling this, the Message should not change.
     #[allow(clippy::match_single_binding)]
-    pub fn finalize<MF: MessageFinalizer>(
+    pub fn finalize(
         &mut self,
-        finalizer: &MF,
+        finalizer: &dyn MessageFinalizer,
         inception_time: u32,
     ) -> ProtoResult<Option<MessageVerifier>> {
         debug!("finalizing message: {:?}", self);
@@ -747,9 +754,9 @@ impl Message {
         for fin in finals {
             match fin.record_type() {
                 // SIG0's are special, and come at the very end of the message
-                #[cfg(feature = "dnssec")]
+                #[cfg(feature = "__dnssec")]
                 RecordType::SIG => self.add_sig0(fin),
-                #[cfg(feature = "dnssec")]
+                #[cfg(feature = "__dnssec")]
                 RecordType::TSIG => self.add_tsig(fin),
                 _ => self.add_additional(fin),
             };
@@ -761,6 +768,37 @@ impl Message {
     /// Consumes `Message` and returns into components
     pub fn into_parts(self) -> MessageParts {
         self.into()
+    }
+}
+
+impl From<MessageParts> for Message {
+    fn from(msg: MessageParts) -> Self {
+        let MessageParts {
+            header,
+            queries,
+            answers,
+            name_servers,
+            additionals,
+            sig0,
+            edns,
+        } = msg;
+        Self {
+            header,
+            queries,
+            answers,
+            name_servers,
+            additionals,
+            signature: sig0,
+            edns,
+        }
+    }
+}
+
+impl Deref for Message {
+    type Target = Header;
+
+    fn deref(&self) -> &Self::Target {
+        &self.header
     }
 }
 
@@ -815,35 +853,42 @@ impl From<Message> for MessageParts {
     }
 }
 
-impl From<MessageParts> for Message {
-    fn from(msg: MessageParts) -> Self {
-        let MessageParts {
-            header,
-            queries,
-            answers,
-            name_servers,
-            additionals,
-            sig0,
-            edns,
-        } = msg;
-        Self {
-            header,
-            queries,
-            answers,
-            name_servers,
-            additionals,
-            signature: sig0,
-            edns,
-        }
-    }
+/// Tracks the counts of the records in the Message.
+///
+/// This is only used internally during serialization.
+#[derive(Clone, Copy, Debug)]
+pub struct HeaderCounts {
+    /// The number of queries in the Message
+    pub query_count: usize,
+    /// The number of answers in the Message
+    pub answer_count: usize,
+    /// The number of nameservers or authorities in the Message
+    pub nameserver_count: usize,
+    /// The number of additional records in the Message
+    pub additional_count: usize,
 }
 
-impl Deref for Message {
-    type Target = Header;
+/// Returns a new Header with accurate counts for each Message section
+pub fn update_header_counts(
+    current_header: &Header,
+    is_truncated: bool,
+    counts: HeaderCounts,
+) -> Header {
+    assert!(counts.query_count <= u16::MAX as usize);
+    assert!(counts.answer_count <= u16::MAX as usize);
+    assert!(counts.nameserver_count <= u16::MAX as usize);
+    assert!(counts.additional_count <= u16::MAX as usize);
 
-    fn deref(&self) -> &Self::Target {
-        &self.header
-    }
+    // TODO: should the function just take by value?
+    let mut header = *current_header;
+    header
+        .set_query_count(counts.query_count as u16)
+        .set_answer_count(counts.answer_count as u16)
+        .set_name_server_count(counts.nameserver_count as u16)
+        .set_additional_count(counts.additional_count as u16)
+        .set_truncated(is_truncated);
+
+    header
 }
 
 /// Alias for a function verifying if a message is properly signed
@@ -882,42 +927,15 @@ pub trait MessageFinalizer: Send + Sync + 'static {
     }
 }
 
-/// A MessageFinalizer which does nothing
-///
-/// *WARNING* This should only be used in None context, it will panic in all cases where finalize is called.
-#[derive(Clone, Copy, Debug)]
-pub struct NoopMessageFinalizer;
-
-impl NoopMessageFinalizer {
-    /// Always returns None
-    pub fn new() -> Option<Arc<Self>> {
-        None
-    }
-}
-
-impl MessageFinalizer for NoopMessageFinalizer {
-    fn finalize_message(
-        &self,
-        _: &Message,
-        _: u32,
-    ) -> ProtoResult<(Vec<Record>, Option<MessageVerifier>)> {
-        panic!("Misused NoopMessageFinalizer, None should be used instead")
-    }
-
-    fn should_finalize_message(&self, _: &Message) -> bool {
-        true
-    }
-}
-
 /// Returns the count written and a boolean if it was truncated
 pub fn count_was_truncated(result: ProtoResult<usize>) -> ProtoResult<(usize, bool)> {
-    result.map(|count| (count, false)).or_else(|e| {
-        if let ProtoErrorKind::NotAllRecordsWritten { count } = e.kind() {
-            return Ok((*count, true));
-        }
-
-        Err(e)
-    })
+    match result {
+        Ok(count) => Ok((count, false)),
+        Err(e) => match e.kind() {
+            ProtoErrorKind::NotAllRecordsWritten { count } => Ok((*count, true)),
+            _ => Err(e),
+        },
+    }
 }
 
 /// A trait that defines types which can be emitted as a set, with the associated count returned.
@@ -954,7 +972,7 @@ where
     N: EmitAndCount,
     D: EmitAndCount,
 {
-    let include_signature: bool = encoder.mode() != EncodeMode::Signing;
+    let include_signature = encoder.mode() != EncodeMode::Signing;
     let place = encoder.place::<Header>()?;
 
     let query_count = queries.emit(encoder)?;
@@ -1155,10 +1173,10 @@ mod tests {
             .set_checking_disabled(true)
             .set_response_code(ResponseCode::ServFail);
 
-        message.add_answer(Record::new());
-        message.add_name_server(Record::new());
-        message.add_additional(Record::new());
-        message.update_counts(); // needed for the comparison...
+        message.add_answer(Record::stub());
+        message.add_name_server(Record::stub());
+        message.add_additional(Record::stub());
+        message.update_counts();
 
         test_emit_and_read(message);
     }
@@ -1178,6 +1196,56 @@ mod tests {
     }
 
     #[test]
+    fn test_header_counts_correction_after_emit_read() {
+        let mut message = Message::new();
+
+        message
+            .set_id(10)
+            .set_message_type(MessageType::Response)
+            .set_op_code(OpCode::Update)
+            .set_authoritative(true)
+            .set_truncated(true)
+            .set_recursion_desired(true)
+            .set_recursion_available(true)
+            .set_authentic_data(true)
+            .set_checking_disabled(true)
+            .set_response_code(ResponseCode::ServFail);
+
+        message.add_answer(Record::stub());
+        message.add_name_server(Record::stub());
+        message.add_additional(Record::stub());
+
+        // at here, we don't call update_counts and we even set wrong count,
+        // because we are trying to test whether the counts in the header
+        // are correct after the message is emitted and read.
+        message.set_query_count(1);
+        message.set_answer_count(5);
+        message.set_name_server_count(5);
+        // message.set_additional_count(1);
+
+        let got = get_message_after_emitting_and_reading(message);
+
+        // make comparison
+        assert_eq!(got.query_count(), 0);
+        assert_eq!(got.answer_count(), 1);
+        assert_eq!(got.name_server_count(), 1);
+        assert_eq!(got.additional_count(), 1);
+    }
+
+    #[cfg(test)]
+    fn get_message_after_emitting_and_reading(message: Message) -> Message {
+        let mut byte_vec: Vec<u8> = Vec::with_capacity(512);
+        {
+            let mut encoder = BinEncoder::new(&mut byte_vec);
+            message.emit(&mut encoder).unwrap();
+        }
+
+        let mut decoder = BinDecoder::new(&byte_vec);
+
+        Message::read(&mut decoder).unwrap()
+    }
+
+    #[test]
     fn test_legit_message() {
         #[rustfmt::skip]
         let buf: Vec<u8> = vec![
@@ -1190,18 +1258,18 @@ mod tests {
             b'm', b'p', b'l', b'e', //
             0x03, b'c', b'o', b'm', //
             0x00,                   // 0 = endname
-            0x00, 0x01, 0x00, 0x01, // ReordType = A, Class = IN
+            0x00, 0x01, 0x00, 0x01, // RecordType = A, Class = IN
             0xC0, 0x0C,             // name pointer to www.example.com
             0x00, 0x01, 0x00, 0x01, // RecordType = A, Class = IN
             0x00, 0x00, 0x00, 0x02, // TTL = 2 seconds
             0x00, 0x04,             // record length = 4 (ipv4 address)
-            0x5D, 0xB8, 0xD8, 0x22, // address = 93.184.216.34
+            0x5D, 0xB8, 0xD7, 0x0E, // address = 93.184.215.14
         ];
 
         let mut decoder = BinDecoder::new(&buf);
         let message = Message::read(&mut decoder).unwrap();
 
-        assert_eq!(message.id(), 4096);
+        assert_eq!(message.id(), 4_096);
 
         let mut buf: Vec<u8> = Vec::with_capacity(512);
         {
@@ -1212,7 +1280,7 @@ mod tests {
         let mut decoder = BinDecoder::new(&buf);
         let message = Message::read(&mut decoder).unwrap();
 
-        assert_eq!(message.id(), 4096);
+        assert_eq!(message.id(), 4_096);
     }
 
     #[test]
@@ -1236,5 +1304,13 @@ mod tests {
         ];
 
         Message::from_vec(CRASHING_MESSAGE).expect("failed to parse message");
+    }
+
+    #[test]
+    fn prior_to_pointer() {
+        const MESSAGE: &[u8] = include_bytes!("../../tests/test-data/fuzz-prior-to-pointer.rdata");
+        let message = Message::from_bytes(MESSAGE).expect("failed to parse message");
+        let encoded = message.to_bytes().unwrap();
+        Message::from_bytes(&encoded).expect("failed to parse encoded message");
     }
 }

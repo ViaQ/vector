@@ -484,6 +484,16 @@ mod generic {
     trait Generic<T> {}
 }
 
+#[rustversion::since(1.74)]
+mod assoc_type {
+    #[typetag::serde]
+    trait Trait {
+        type AssocType
+        where
+            Self: Sized;
+    }
+}
+
 mod macro_expanded {
     use super::A;
 
@@ -557,5 +567,52 @@ mod tag_mismatch {
         let err = serde_json::to_string(trait_object).unwrap_err();
         let expected = r#"mismatched value for tag "type": "Tagged" vs non-string"#;
         assert_eq!(err.to_string(), expected);
+    }
+}
+
+mod async_traits {
+    use async_trait::async_trait;
+    use serde::{Deserialize, Serialize};
+
+    #[derive(Serialize, Deserialize)]
+    pub struct InOrder;
+
+    #[derive(Serialize, Deserialize)]
+    pub struct OutOfOrder;
+
+    #[typetag::serde]
+    #[async_trait]
+    trait TypetagAsync {
+        async fn f(&self) {}
+    }
+
+    #[typetag::serde]
+    #[async_trait]
+    impl TypetagAsync for InOrder {
+        async fn f(&self) {}
+    }
+
+    #[async_trait]
+    #[typetag::serde]
+    impl TypetagAsync for OutOfOrder {
+        async fn f(&self) {}
+    }
+
+    #[async_trait]
+    #[typetag::serde]
+    trait AsyncTypetag {
+        async fn f(&self) {}
+    }
+
+    #[async_trait]
+    #[typetag::serde]
+    impl AsyncTypetag for InOrder {
+        async fn f(&self) {}
+    }
+
+    #[typetag::serde]
+    #[async_trait]
+    impl AsyncTypetag for OutOfOrder {
+        async fn f(&self) {}
     }
 }

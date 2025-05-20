@@ -3,7 +3,7 @@ pub use crate::operation::publish_batch::_publish_batch_output::PublishBatchOutp
 
 pub use crate::operation::publish_batch::_publish_batch_input::PublishBatchInputBuilder;
 
-impl PublishBatchInputBuilder {
+impl crate::operation::publish_batch::builders::PublishBatchInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -24,8 +24,8 @@ impl PublishBatchInputBuilder {
 ///
 /// <p>Publishes up to ten messages to the specified topic. This is a batch version of <code>Publish</code>. For FIFO topics, multiple messages within a single batch are published in the order they are sent, and messages are deduplicated within the batch and across batches for 5 minutes.</p>
 /// <p>The result of publishing each message is reported individually in the response. Because the batch request can result in a combination of successful and unsuccessful actions, you should check for batch errors even when the call returns an HTTP status code of <code>200</code>.</p>
-/// <p>The maximum allowed individual message size and the maximum total payload size (the sum of the individual lengths of all of the batched messages) are both 256 KB (262,144 bytes). </p>
-/// <p>Some actions take lists of parameters. These lists are specified using the <code>param.n</code> notation. Values of <code>n</code> are integers starting from 1. For example, a parameter list with two elements looks like this: </p>
+/// <p>The maximum allowed individual message size and the maximum total payload size (the sum of the individual lengths of all of the batched messages) are both 256 KB (262,144 bytes).</p>
+/// <p>Some actions take lists of parameters. These lists are specified using the <code>param.n</code> notation. Values of <code>n</code> are integers starting from 1. For example, a parameter list with two elements looks like this:</p>
 /// <p>&amp;AttributeName.1=first</p>
 /// <p>&amp;AttributeName.2=second</p>
 /// <p>If you send a batch message to a topic, Amazon SNS publishes the batch message to each endpoint that is subscribed to the topic. The format of the batch message depends on the notification protocol for each subscribed endpoint.</p>
@@ -55,7 +55,7 @@ impl
     }
 }
 impl PublishBatchFluentBuilder {
-    /// Creates a new `PublishBatch`.
+    /// Creates a new `PublishBatchFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -106,12 +106,12 @@ impl PublishBatchFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -129,6 +129,7 @@ impl PublishBatchFluentBuilder {
     pub fn get_topic_arn(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_topic_arn()
     }
+    ///
     /// Appends an item to `PublishBatchRequestEntries`.
     ///
     /// To override the contents of this collection use [`set_publish_batch_request_entries`](Self::set_publish_batch_request_entries).

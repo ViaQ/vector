@@ -5,15 +5,17 @@
 // https://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
-use std::fmt::{self, Display};
-use std::future::Future;
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::sync::Arc;
+use core::fmt::{self, Display};
+use core::future::Future;
+use core::ops::DerefMut;
+use core::pin::Pin;
+use core::str::FromStr;
+use core::task::{Context, Poll};
 use std::io;
 use std::net::SocketAddr;
-use std::ops::DerefMut;
-use std::pin::Pin;
-use std::str::FromStr;
-use std::sync::Arc;
-use std::task::{Context, Poll};
 
 use bytes::{Buf, Bytes, BytesMut};
 use futures_util::future::{FutureExt, TryFutureExt};
@@ -22,17 +24,17 @@ use futures_util::stream::Stream;
 use h2::client::{Connection, SendRequest};
 use http::header::{self, CONTENT_LENGTH};
 use rustls::ClientConfig;
-use tokio_rustls::{
-    client::TlsStream as TokioTlsClientStream, Connect as TokioTlsConnect, TlsConnector,
-};
+use rustls::pki_types::ServerName;
+use tokio::time::{error, timeout};
+use tokio_rustls::{TlsConnector, client::TlsStream as TokioTlsClientStream};
 use tracing::{debug, warn};
 
 use crate::error::ProtoError;
 use crate::http::Version;
-use crate::iocompat::AsyncIoStdAsTokio;
-use crate::op::Message;
-use crate::tcp::{Connect, DnsTcpStream};
-use crate::xfer::{DnsRequest, DnsRequestSender, DnsResponse, DnsResponseStream};
+use crate::runtime::RuntimeProvider;
+use crate::runtime::iocompat::AsyncIoStdAsTokio;
+use crate::tcp::DnsTcpStream;
+use crate::xfer::{CONNECT_TIMEOUT, DnsRequest, DnsRequestSender, DnsResponse, DnsResponseStream};
 
 const ALPN_H2: &[u8] = b"h2";
 
@@ -42,6 +44,7 @@ const ALPN_H2: &[u8] = b"h2";
 pub struct HttpsClientStream {
     // Corresponds to the dns-name of the HTTPS server
     name_server_name: Arc<str>,
+    query_path: Arc<str>,
     name_server: SocketAddr,
     h2: SendRequest<Bytes>,
     is_shutdown: bool,
@@ -62,6 +65,7 @@ impl HttpsClientStream {
         h2: SendRequest<Bytes>,
         message: Bytes,
         name_server_name: Arc<str>,
+        query_path: Arc<str>,
     ) -> Result<DnsResponse, ProtoError> {
         let mut h2 = match h2.ready().await {
             Ok(h2) => h2,
@@ -72,8 +76,12 @@ impl HttpsClientStream {
         };
 
         // build up the http request
-        let request =
-            crate::http::request::new(Version::Http2, &name_server_name, message.remaining());
+        let request = crate::http::request::new(
+            Version::Http2,
+            &name_server_name,
+            &query_path,
+            message.remaining(),
+        );
 
         let request =
             request.map_err(|err| ProtoError::from(format!("bad http request: {err}")))?;
@@ -110,7 +118,7 @@ impl HttpsClientStream {
         // clamp(512, 4096) says make sure it is at least 512 bytes, and min 4096 says it is at most 4k
         // just a little protection from malicious actors.
         let mut response_bytes =
-            BytesMut::with_capacity(content_length.unwrap_or(512).clamp(512, 4096));
+            BytesMut::with_capacity(content_length.unwrap_or(512).clamp(512, 4_096));
 
         while let Some(partial_bytes) = response_stream.body_mut().data().await {
             let partial_bytes =
@@ -175,8 +183,7 @@ impl HttpsClientStream {
         };
 
         // and finally convert the bytes into a DNS message
-        let message = Message::from_vec(&response_bytes)?;
-        Ok(DnsResponse::new(message, response_bytes.to_vec()))
+        DnsResponse::from_buffer(response_bytes.to_vec())
     }
 }
 
@@ -187,56 +194,60 @@ impl DnsRequestSender for HttpsClientStream {
     ///   this will have no date.
     ///
     /// ```text
-    /// 5.2.  The HTTP Response
+    /// RFC 8484              DNS Queries over HTTPS (DoH)          October 2018
     ///
-    ///    An HTTP response with a 2xx status code ([RFC7231] Section 6.3)
-    ///    indicates a valid DNS response to the query made in the HTTP request.
-    ///    A valid DNS response includes both success and failure responses.
-    ///    For example, a DNS failure response such as SERVFAIL or NXDOMAIN will
-    ///    be the message in a successful 2xx HTTP response even though there
-    ///    was a failure at the DNS layer.  Responses with non-successful HTTP
-    ///    status codes do not contain DNS answers to the question in the
-    ///    corresponding request.  Some of these non-successful HTTP responses
-    ///    (e.g., redirects or authentication failures) could mean that clients
-    ///    need to make new requests to satisfy the original question.
     ///
-    ///    Different response media types will provide more or less information
-    ///    from a DNS response.  For example, one response type might include
-    ///    the information from the DNS header bytes while another might omit
-    ///    it.  The amount and type of information that a media type gives is
-    ///    solely up to the format, and not defined in this protocol.
+    /// 4.2.  The HTTP Response
     ///
     ///    The only response type defined in this document is "application/dns-
     ///    message", but it is possible that other response formats will be
-    ///    defined in the future.
+    ///    defined in the future.  A DoH server MUST be able to process
+    ///    "application/dns-message" request messages.
     ///
-    ///    The DNS response for "application/dns-message" in Section 7 MAY have
-    ///    one or more EDNS options [RFC6891], depending on the extension
-    ///    definition of the extensions given in the DNS request.
+    ///    Different response media types will provide more or less information
+    ///    from a DNS response.  For example, one response type might include
+    ///    information from the DNS header bytes while another might omit it.
+    ///    The amount and type of information that a media type gives are solely
+    ///    up to the format, which is not defined in this protocol.
     ///
-    ///    Each DNS request-response pair is matched to one HTTP exchange.  The
+    ///    Each DNS request-response pair is mapped to one HTTP exchange.  The
     ///    responses may be processed and transported in any order using HTTP's
-    ///    multi-streaming functionality ([RFC7540] Section 5).
+    ///    multi-streaming functionality (see Section 5 of [RFC7540]).
     ///
-    ///    Section 6.1 discusses the relationship between DNS and HTTP response
+    ///    Section 5.1 discusses the relationship between DNS and HTTP response
     ///    caching.
     ///
-    ///    A DNS API server MUST be able to process application/dns-message
-    ///    request messages.
+    /// 4.2.1.  Handling DNS and HTTP Errors
     ///
-    ///    A DNS API server SHOULD respond with HTTP status code 415
-    ///    (Unsupported Media Type) upon receiving a media type it is unable to
-    ///    process.
+    ///    DNS response codes indicate either success or failure for the DNS
+    ///    query.  A successful HTTP response with a 2xx status code (see
+    ///    Section 6.3 of [RFC7231]) is used for any valid DNS response,
+    ///    regardless of the DNS response code.  For example, a successful 2xx
+    ///    HTTP status code is used even with a DNS message whose DNS response
+    ///    code indicates failure, such as SERVFAIL or NXDOMAIN.
+    ///
+    ///    HTTP responses with non-successful HTTP status codes do not contain
+    ///    replies to the original DNS question in the HTTP request.  DoH
+    ///    clients need to use the same semantic processing of non-successful
+    ///    HTTP status codes as other HTTP clients.  This might mean that the
+    ///    DoH client retries the query with the same DoH server, such as if
+    ///    there are authorization failures (HTTP status code 401; see
+    ///    Section 3.1 of [RFC7235]).  It could also mean that the DoH client
+    ///    retries with a different DoH server, such as for unsupported media
+    ///    types (HTTP status code 415; see Section 6.5.13 of [RFC7231]), or
+    ///    where the server cannot generate a representation suitable for the
+    ///    client (HTTP status code 406; see Section 6.5.6 of [RFC7231]), and so
+    ///    on.
     /// ```
-    fn send_message(&mut self, mut message: DnsRequest) -> DnsResponseStream {
+    fn send_message(&mut self, mut request: DnsRequest) -> DnsResponseStream {
         if self.is_shutdown {
             panic!("can not send messages after stream is shutdown")
         }
 
         // per the RFC, a zero id allows for the HTTP packet to be cached better
-        message.set_id(0);
+        request.set_id(0);
 
-        let bytes = match message.to_vec() {
+        let bytes = match request.to_vec() {
             Ok(bytes) => bytes,
             Err(err) => return err.into(),
         };
@@ -245,6 +256,7 @@ impl DnsRequestSender for HttpsClientStream {
             self.h2.clone(),
             Bytes::from(bytes),
             Arc::clone(&self.name_server_name),
+            Arc::clone(&self.query_path),
         ))
         .into()
     }
@@ -279,15 +291,17 @@ impl Stream for HttpsClientStream {
 
 /// A HTTPS connection builder for DNS-over-HTTPS
 #[derive(Clone)]
-pub struct HttpsClientStreamBuilder {
+pub struct HttpsClientStreamBuilder<P> {
+    provider: P,
     client_config: Arc<ClientConfig>,
     bind_addr: Option<SocketAddr>,
 }
 
-impl HttpsClientStreamBuilder {
+impl<P: RuntimeProvider> HttpsClientStreamBuilder<P> {
     /// Constructs a new TlsStreamBuilder with the associated ClientConfig
-    pub fn with_client_config(client_config: Arc<ClientConfig>) -> Self {
+    pub fn with_client_config(client_config: Arc<ClientConfig>, provider: P) -> Self {
         Self {
+            provider,
             client_config,
             bind_addr: None,
         }
@@ -303,12 +317,14 @@ impl HttpsClientStreamBuilder {
     /// # Arguments
     ///
     /// * `name_server` - IP and Port for the remote DNS resolver
-    /// * `dns_name` - The DNS name, Subject Public Key Info (SPKI) name, as associated to a certificate
-    pub fn build<S: Connect>(
+    /// * `dns_name` - The DNS name associated with a certificate
+    /// * `http_endpoint` - The HTTP endpoint where the remote DNS resolver provides service, typically `/dns-query`
+    pub fn build(
         mut self,
         name_server: SocketAddr,
         dns_name: String,
-    ) -> HttpsClientConnect<S> {
+        http_endpoint: String,
+    ) -> HttpsClientConnect<P::Tcp> {
         // ensure the ALPN protocol is set correctly
         if self.client_config.alpn_protocols.is_empty() {
             let mut client_config = (*self.client_config).clone();
@@ -320,24 +336,32 @@ impl HttpsClientStreamBuilder {
         let tls = TlsConfig {
             client_config: self.client_config,
             dns_name: Arc::from(dns_name),
+            http_endpoint: Arc::from(http_endpoint),
         };
 
-        let connect = S::connect_with_bind(name_server, self.bind_addr);
-
-        HttpsClientConnect::<S>(HttpsClientConnectState::TcpConnecting {
+        let connect = self.provider.connect_tcp(name_server, self.bind_addr, None);
+        HttpsClientConnect(HttpsClientConnectState::TcpConnecting {
             connect,
             name_server,
             tls: Some(tls),
         })
     }
+}
 
+/// A future that resolves to an HttpsClientStream
+pub struct HttpsClientConnect<S>(HttpsClientConnectState<S>)
+where
+    S: DnsTcpStream;
+
+impl<S: DnsTcpStream> HttpsClientConnect<S> {
     /// Creates a new HttpsStream with existing connection
-    pub fn build_with_future<S, F>(
+    pub fn new<F>(
         future: F,
         mut client_config: Arc<ClientConfig>,
         name_server: SocketAddr,
         dns_name: String,
-    ) -> HttpsClientConnect<S>
+        http_endpoint: String,
+    ) -> Self
     where
         S: DnsTcpStream,
         F: Future<Output = std::io::Result<S>> + Send + Unpin + 'static,
@@ -353,20 +377,16 @@ impl HttpsClientStreamBuilder {
         let tls = TlsConfig {
             client_config,
             dns_name: Arc::from(dns_name),
+            http_endpoint: Arc::from(http_endpoint),
         };
 
-        HttpsClientConnect::<S>(HttpsClientConnectState::TcpConnecting {
+        Self(HttpsClientConnectState::TcpConnecting {
             connect: Box::pin(future),
             name_server,
             tls: Some(tls),
         })
     }
 }
-
-/// A future that resolves to an HttpsClientStream
-pub struct HttpsClientConnect<S>(HttpsClientConnectState<S>)
-where
-    S: DnsTcpStream;
 
 impl<S> Future for HttpsClientConnect<S>
 where
@@ -382,6 +402,7 @@ where
 struct TlsConfig {
     client_config: Arc<ClientConfig>,
     dns_name: Arc<str>,
+    http_endpoint: Arc<str>,
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -397,9 +418,19 @@ where
     },
     TlsConnecting {
         // TODO: also abstract away Tokio TLS in RuntimeProvider.
-        tls: TokioTlsConnect<AsyncIoStdAsTokio<S>>,
+        tls: Pin<
+            Box<
+                dyn Future<
+                        Output = Result<
+                            Result<TokioTlsClientStream<AsyncIoStdAsTokio<S>>, io::Error>,
+                            error::Elapsed,
+                        >,
+                    > + Send,
+            >,
+        >,
         name_server_name: Arc<str>,
         name_server: SocketAddr,
+        query_path: Arc<str>,
     },
     H2Handshake {
         handshake: Pin<
@@ -417,6 +448,7 @@ where
         >,
         name_server_name: Arc<str>,
         name_server: SocketAddr,
+        query_path: Arc<str>,
     },
     Connected(Option<HttpsClientStream>),
     Errored(Option<ProtoError>),
@@ -430,11 +462,11 @@ where
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         loop {
-            let next = match *self {
+            let next = match &mut *self.as_mut() {
                 Self::TcpConnecting {
-                    ref mut connect,
+                    connect,
                     name_server,
-                    ref mut tls,
+                    tls,
                 } => {
                     let tcp = ready!(connect.poll_unpin(cx))?;
 
@@ -443,17 +475,19 @@ where
                         .take()
                         .expect("programming error, tls should not be None here");
                     let name_server_name = Arc::clone(&tls.dns_name);
+                    let query_path = Arc::clone(&tls.http_endpoint);
 
-                    match tls.dns_name.as_ref().try_into() {
-                        Ok(dns_name) => {
-                            let tls = TlsConnector::from(tls.client_config);
-                            let tls = tls.connect(dns_name, AsyncIoStdAsTokio(tcp));
-                            Self::TlsConnecting {
-                                name_server_name,
-                                name_server,
-                                tls,
-                            }
-                        }
+                    match ServerName::try_from(&*tls.dns_name) {
+                        Ok(dns_name) => Self::TlsConnecting {
+                            name_server_name,
+                            name_server: *name_server,
+                            tls: Box::pin(timeout(
+                                CONNECT_TIMEOUT,
+                                TlsConnector::from(tls.client_config)
+                                    .connect(dns_name.to_owned(), AsyncIoStdAsTokio(tcp)),
+                            )),
+                            query_path,
+                        },
                         Err(_) => Self::Errored(Some(ProtoError::from(format!(
                             "bad dns_name: {}",
                             &tls.dns_name
@@ -461,11 +495,18 @@ where
                     }
                 }
                 Self::TlsConnecting {
-                    ref name_server_name,
+                    name_server_name,
                     name_server,
-                    ref mut tls,
+                    query_path,
+                    tls,
                 } => {
-                    let tls = ready!(tls.poll_unpin(cx))?;
+                    let Ok(res) = ready!(tls.poll_unpin(cx)) else {
+                        return Poll::Ready(Err(format!(
+                            "TLS handshake timed out after {CONNECT_TIMEOUT:?}"
+                        )
+                        .into()));
+                    };
+                    let tls = res?;
                     debug!("tls connection established to: {}", name_server);
                     let mut handshake = h2::client::Builder::new();
                     handshake.enable_push(false);
@@ -473,18 +514,22 @@ where
                     let handshake = handshake.handshake(tls);
                     Self::H2Handshake {
                         name_server_name: Arc::clone(name_server_name),
-                        name_server,
+                        name_server: *name_server,
+                        query_path: Arc::clone(query_path),
                         handshake: Box::pin(handshake),
                     }
                 }
                 Self::H2Handshake {
-                    ref name_server_name,
+                    name_server_name,
                     name_server,
-                    ref mut handshake,
+                    query_path,
+                    handshake,
                 } => {
-                    let (send_request, connection) = ready!(handshake
-                        .poll_unpin(cx)
-                        .map_err(|e| ProtoError::from(format!("h2 handshake error: {e}"))))?;
+                    let (send_request, connection) = ready!(
+                        handshake
+                            .poll_unpin(cx)
+                            .map_err(|e| ProtoError::from(format!("h2 handshake error: {e}")))
+                    )?;
 
                     // TODO: hand this back for others to run rather than spawning here?
                     debug!("h2 connection established to: {}", name_server);
@@ -496,16 +541,17 @@ where
 
                     Self::Connected(Some(HttpsClientStream {
                         name_server_name: Arc::clone(name_server_name),
-                        name_server,
+                        name_server: *name_server,
+                        query_path: Arc::clone(query_path),
                         h2: send_request,
                         is_shutdown: false,
                     }))
                 }
-                Self::Connected(ref mut conn) => {
-                    return Poll::Ready(Ok(conn.take().expect("cannot poll after complete")))
+                Self::Connected(conn) => {
+                    return Poll::Ready(Ok(conn.take().expect("cannot poll after complete")));
                 }
-                Self::Errored(ref mut err) => {
-                    return Poll::Ready(Err(err.take().expect("cannot poll after complete")))
+                Self::Errored(err) => {
+                    return Poll::Ready(Err(err.take().expect("cannot poll after complete")));
                 }
             };
 
@@ -527,57 +573,62 @@ impl Future for HttpsClientResponse {
     }
 }
 
-#[cfg(any(feature = "webpki-roots", feature = "native-certs"))]
+#[cfg(any(feature = "webpki-roots", feature = "rustls-platform-verifier"))]
 #[cfg(test)]
 mod tests {
+    use alloc::string::ToString;
     use std::net::SocketAddr;
-    use std::str::FromStr;
 
     use rustls::KeyLogFile;
-    use tokio::net::TcpStream as TokioTcpStream;
-    use tokio::runtime::Runtime;
+    use test_support::subscribe;
 
-    use crate::iocompat::AsyncIoTokioAsStd;
-    use crate::op::{Message, Query, ResponseCode};
-    use crate::rr::rdata::{A, AAAA};
-    use crate::rr::{Name, RData, RecordType};
+    use crate::op::{Edns, Message, Query};
+    use crate::rr::{Name, RecordType};
+    use crate::runtime::TokioRuntimeProvider;
+    use crate::rustls::client_config;
     use crate::xfer::{DnsRequestOptions, FirstAnswer};
 
     use super::*;
 
-    #[test]
-    fn test_https_google() {
-        //env_logger::try_init().ok();
+    #[tokio::test]
+    async fn test_https_google() {
+        subscribe();
 
         let google = SocketAddr::from(([8, 8, 8, 8], 443));
         let mut request = Message::new();
         let query = Query::query(Name::from_str("www.example.com.").unwrap(), RecordType::A);
         request.add_query(query);
+        request.set_recursion_desired(true);
+        let mut edns = Edns::new();
+        edns.set_version(0);
+        edns.set_max_payload(1232);
+        *request.extensions_mut() = Some(edns);
 
         let request = DnsRequest::new(request, DnsRequestOptions::default());
 
-        let mut client_config = client_config_tls12();
+        let mut client_config = client_config_h2();
         client_config.key_log = Arc::new(KeyLogFile::new());
 
-        let https_builder = HttpsClientStreamBuilder::with_client_config(Arc::new(client_config));
-        let connect = https_builder
-            .build::<AsyncIoTokioAsStd<TokioTcpStream>>(google, "dns.google".to_string());
+        let provider = TokioRuntimeProvider::new();
+        let https_builder =
+            HttpsClientStreamBuilder::with_client_config(Arc::new(client_config), provider);
+        let connect =
+            https_builder.build(google, "dns.google".to_string(), "/dns-query".to_string());
 
-        // tokio runtime stuff...
-        let runtime = Runtime::new().expect("could not start runtime");
-        let mut https = runtime.block_on(connect).expect("https connect failed");
+        let mut https = connect.await.expect("https connect failed");
 
-        let response = runtime
-            .block_on(https.send_message(request).first_answer())
+        let response = https
+            .send_message(request)
+            .first_answer()
+            .await
             .expect("send_message failed");
 
-        let record = &response.answers()[0];
-        let addr = record
-            .data()
-            .and_then(RData::as_a)
-            .expect("Expected A record");
-
-        assert_eq!(addr, &A::new(93, 184, 216, 34));
+        assert!(
+            response
+                .answers()
+                .iter()
+                .any(|record| record.data().as_a().is_some())
+        );
 
         //
         // assert that the connection works for a second query
@@ -587,62 +638,67 @@ mod tests {
             RecordType::AAAA,
         );
         request.add_query(query);
+        request.set_recursion_desired(true);
+        let mut edns = Edns::new();
+        edns.set_version(0);
+        edns.set_max_payload(1232);
+        *request.extensions_mut() = Some(edns);
+
         let request = DnsRequest::new(request, DnsRequestOptions::default());
 
-        for _ in 0..3 {
-            let response = runtime
-                .block_on(https.send_message(request.clone()).first_answer())
-                .expect("send_message failed");
-            if response.response_code() == ResponseCode::ServFail {
-                continue;
-            }
+        let response = https
+            .send_message(request.clone())
+            .first_answer()
+            .await
+            .expect("send_message failed");
 
-            let record = &response.answers()[0];
-            let addr = record
-                .data()
-                .and_then(RData::as_aaaa)
-                .expect("invalid response, expected A record");
-
-            assert_eq!(
-                addr,
-                &AAAA::new(0x2606, 0x2800, 0x0220, 0x0001, 0x0248, 0x1893, 0x25c8, 0x1946)
-            );
-        }
+        assert!(
+            response
+                .answers()
+                .iter()
+                .any(|record| record.data().as_aaaa().is_some())
+        );
     }
 
-    #[test]
-    fn test_https_google_with_pure_ip_address_server() {
-        //env_logger::try_init().ok();
+    #[tokio::test]
+    async fn test_https_google_with_pure_ip_address_server() {
+        subscribe();
 
         let google = SocketAddr::from(([8, 8, 8, 8], 443));
         let mut request = Message::new();
         let query = Query::query(Name::from_str("www.example.com.").unwrap(), RecordType::A);
         request.add_query(query);
+        request.set_recursion_desired(true);
+        let mut edns = Edns::new();
+        edns.set_version(0);
+        edns.set_max_payload(1232);
+        *request.extensions_mut() = Some(edns);
 
         let request = DnsRequest::new(request, DnsRequestOptions::default());
 
-        let mut client_config = client_config_tls12();
+        let mut client_config = client_config_h2();
         client_config.key_log = Arc::new(KeyLogFile::new());
 
-        let https_builder = HttpsClientStreamBuilder::with_client_config(Arc::new(client_config));
-        let connect = https_builder
-            .build::<AsyncIoTokioAsStd<TokioTcpStream>>(google, google.ip().to_string());
+        let provider = TokioRuntimeProvider::new();
+        let https_builder =
+            HttpsClientStreamBuilder::with_client_config(Arc::new(client_config), provider);
+        let connect =
+            https_builder.build(google, google.ip().to_string(), "/dns-query".to_string());
 
-        // tokio runtime stuff...
-        let runtime = Runtime::new().expect("could not start runtime");
-        let mut https = runtime.block_on(connect).expect("https connect failed");
+        let mut https = connect.await.expect("https connect failed");
 
-        let response = runtime
-            .block_on(https.send_message(request).first_answer())
+        let response = https
+            .send_message(request)
+            .first_answer()
+            .await
             .expect("send_message failed");
 
-        let record = &response.answers()[0];
-        let addr = record
-            .data()
-            .and_then(RData::as_a)
-            .expect("Expected A record");
-
-        assert_eq!(addr, &A::new(93, 184, 216, 34));
+        assert!(
+            response
+                .answers()
+                .iter()
+                .any(|record| record.data().as_a().is_some())
+        );
 
         //
         // assert that the connection works for a second query
@@ -652,63 +708,69 @@ mod tests {
             RecordType::AAAA,
         );
         request.add_query(query);
+        request.set_recursion_desired(true);
+        let mut edns = Edns::new();
+        edns.set_version(0);
+        edns.set_max_payload(1232);
+        *request.extensions_mut() = Some(edns);
+
         let request = DnsRequest::new(request, DnsRequestOptions::default());
 
-        for _ in 0..3 {
-            let response = runtime
-                .block_on(https.send_message(request.clone()).first_answer())
-                .expect("send_message failed");
-            if response.response_code() == ResponseCode::ServFail {
-                continue;
-            }
+        let response = https
+            .send_message(request.clone())
+            .first_answer()
+            .await
+            .expect("send_message failed");
 
-            let record = &response.answers()[0];
-            let addr = record
-                .data()
-                .and_then(RData::as_aaaa)
-                .expect("invalid response, expected A record");
-
-            assert_eq!(
-                addr,
-                &AAAA::new(0x2606, 0x2800, 0x0220, 0x0001, 0x0248, 0x1893, 0x25c8, 0x1946)
-            );
-        }
+        assert!(
+            response
+                .answers()
+                .iter()
+                .any(|record| record.data().as_aaaa().is_some())
+        );
     }
 
-    #[test]
-    #[ignore] // cloudflare has been unreliable as a public test service.
-    fn test_https_cloudflare() {
-        // self::env_logger::try_init().ok();
+    #[tokio::test]
+    #[ignore = "cloudflare has been unreliable as a public test service"]
+    async fn test_https_cloudflare() {
+        subscribe();
 
         let cloudflare = SocketAddr::from(([1, 1, 1, 1], 443));
         let mut request = Message::new();
         let query = Query::query(Name::from_str("www.example.com.").unwrap(), RecordType::A);
         request.add_query(query);
+        request.set_recursion_desired(true);
+        let mut edns = Edns::new();
+        edns.set_version(0);
+        edns.set_max_payload(1232);
+        *request.extensions_mut() = Some(edns);
 
         let request = DnsRequest::new(request, DnsRequestOptions::default());
 
-        let client_config = client_config_tls12();
-        let https_builder = HttpsClientStreamBuilder::with_client_config(Arc::new(client_config));
-        let connect = https_builder.build::<AsyncIoTokioAsStd<TokioTcpStream>>(
+        let client_config = client_config_h2();
+        let provider = TokioRuntimeProvider::new();
+        let https_builder =
+            HttpsClientStreamBuilder::with_client_config(Arc::new(client_config), provider);
+        let connect = https_builder.build(
             cloudflare,
             "cloudflare-dns.com".to_string(),
+            "/dns-query".to_string(),
         );
 
-        // tokio runtime stuff...
-        let runtime = Runtime::new().expect("could not start runtime");
-        let mut https = runtime.block_on(connect).expect("https connect failed");
+        let mut https = connect.await.expect("https connect failed");
 
-        let response = runtime
-            .block_on(https.send_message(request).first_answer())
+        let response = https
+            .send_message(request)
+            .first_answer()
+            .await
             .expect("send_message failed");
 
-        let record = &response.answers()[0];
-        let addr = record
-            .data()
-            .and_then(RData::as_a)
-            .expect("invalid response, expected A record");
-
-        assert_eq!(addr, &A::new(93, 184, 216, 34));
+        assert!(
+            response
+                .answers()
+                .iter()
+                .any(|record| record.data().as_a().is_some())
+        );
 
         //
         // assert that the connection works for a second query
@@ -718,65 +780,31 @@ mod tests {
             RecordType::AAAA,
         );
         request.add_query(query);
+        request.set_recursion_desired(true);
+        let mut edns = Edns::new();
+        edns.set_version(0);
+        edns.set_max_payload(1232);
+        *request.extensions_mut() = Some(edns);
+
         let request = DnsRequest::new(request, DnsRequestOptions::default());
 
-        let response = runtime
-            .block_on(https.send_message(request).first_answer())
+        let response = https
+            .send_message(request)
+            .first_answer()
+            .await
             .expect("send_message failed");
 
-        let record = &response.answers()[0];
-        let addr = record
-            .data()
-            .and_then(RData::as_aaaa)
-            .expect("invalid response, expected A record");
-
-        assert_eq!(
-            addr,
-            &AAAA::new(0x2606, 0x2800, 0x0220, 0x0001, 0x0248, 0x1893, 0x25c8, 0x1946)
+        assert!(
+            response
+                .answers()
+                .iter()
+                .any(|record| record.data().as_aaaa().is_some())
         );
     }
 
-    fn client_config_tls12() -> ClientConfig {
-        use rustls::RootCertStore;
-        #[cfg_attr(
-            not(any(feature = "native-certs", feature = "webpki-roots")),
-            allow(unused_mut)
-        )]
-        let mut root_store = RootCertStore::empty();
-        #[cfg(all(feature = "native-certs", not(feature = "webpki-roots")))]
-        {
-            let (added, ignored) = root_store
-                .add_parsable_certificates(&rustls_native_certs::load_native_certs().unwrap());
-
-            if ignored > 0 {
-                warn!(
-                    "failed to parse {} certificate(s) from the native root store",
-                    ignored
-                );
-            }
-
-            if added == 0 {
-                panic!("no valid certificates found in the native root store");
-            }
-        }
-        #[cfg(feature = "webpki-roots")]
-        root_store.add_trust_anchors(webpki_roots::TLS_SERVER_ROOTS.iter().map(|ta| {
-            rustls::OwnedTrustAnchor::from_subject_spki_name_constraints(
-                ta.subject,
-                ta.spki,
-                ta.name_constraints,
-            )
-        }));
-
-        let mut client_config = ClientConfig::builder()
-            .with_safe_default_cipher_suites()
-            .with_safe_default_kx_groups()
-            .with_safe_default_protocol_versions()
-            .unwrap()
-            .with_root_certificates(root_store)
-            .with_no_client_auth();
-
-        client_config.alpn_protocols = vec![ALPN_H2.to_vec()];
-        client_config
+    fn client_config_h2() -> ClientConfig {
+        let mut config = client_config();
+        config.alpn_protocols = vec![ALPN_H2.to_vec()];
+        config
     }
 }

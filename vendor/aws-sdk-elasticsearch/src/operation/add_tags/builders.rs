@@ -3,7 +3,7 @@ pub use crate::operation::add_tags::_add_tags_output::AddTagsOutputBuilder;
 
 pub use crate::operation::add_tags::_add_tags_input::AddTagsInputBuilder;
 
-impl AddTagsInputBuilder {
+impl crate::operation::add_tags::builders::AddTagsInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -42,7 +42,7 @@ impl crate::client::customize::internal::CustomizableSend<crate::operation::add_
     }
 }
 impl AddTagsFluentBuilder {
-    /// Creates a new `AddTags`.
+    /// Creates a new `AddTagsFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -90,44 +90,45 @@ impl AddTagsFluentBuilder {
     {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
-    /// <p> Specify the <code>ARN</code> for which you want to add the tags.</p>
+    /// <p>Specify the <code>ARN</code> for which you want to add the tags.</p>
     pub fn arn(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.arn(input.into());
         self
     }
-    /// <p> Specify the <code>ARN</code> for which you want to add the tags.</p>
+    /// <p>Specify the <code>ARN</code> for which you want to add the tags.</p>
     pub fn set_arn(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_arn(input);
         self
     }
-    /// <p> Specify the <code>ARN</code> for which you want to add the tags.</p>
+    /// <p>Specify the <code>ARN</code> for which you want to add the tags.</p>
     pub fn get_arn(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_arn()
     }
+    ///
     /// Appends an item to `TagList`.
     ///
     /// To override the contents of this collection use [`set_tag_list`](Self::set_tag_list).
     ///
-    /// <p> List of <code>Tag</code> that need to be added for the Elasticsearch domain. </p>
+    /// <p>List of <code>Tag</code> that need to be added for the Elasticsearch domain.</p>
     pub fn tag_list(mut self, input: crate::types::Tag) -> Self {
         self.inner = self.inner.tag_list(input);
         self
     }
-    /// <p> List of <code>Tag</code> that need to be added for the Elasticsearch domain. </p>
+    /// <p>List of <code>Tag</code> that need to be added for the Elasticsearch domain.</p>
     pub fn set_tag_list(mut self, input: ::std::option::Option<::std::vec::Vec<crate::types::Tag>>) -> Self {
         self.inner = self.inner.set_tag_list(input);
         self
     }
-    /// <p> List of <code>Tag</code> that need to be added for the Elasticsearch domain. </p>
+    /// <p>List of <code>Tag</code> that need to be added for the Elasticsearch domain.</p>
     pub fn get_tag_list(&self) -> &::std::option::Option<::std::vec::Vec<crate::types::Tag>> {
         self.inner.get_tag_list()
     }

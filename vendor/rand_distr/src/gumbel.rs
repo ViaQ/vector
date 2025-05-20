@@ -6,29 +6,43 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-//! The Gumbel distribution.
+//! The Gumbel distribution `Gumbel(μ, β)`.
 
 use crate::{Distribution, OpenClosed01};
 use core::fmt;
 use num_traits::Float;
 use rand::Rng;
 
-/// Samples floating-point numbers according to the Gumbel distribution
+/// The [Gumbel distribution](https://en.wikipedia.org/wiki/Gumbel_distribution) `Gumbel(μ, β)`.
 ///
-/// This distribution has density function:
-/// `f(x) = exp(-(z + exp(-z))) / σ`, where `z = (x - μ) / σ`,
-/// `μ` is the location parameter, and `σ` the scale parameter.
+/// The Gumbel distribution is a continuous probability distribution
+/// with location parameter `μ` (`mu`) and scale parameter `β` (`beta`).
+/// It is used to model the distribution of the maximum (or minimum)
+/// of a number of samples of various distributions.
+///
+/// # Density function
+///
+/// `f(x) = exp(-(z + exp(-z))) / β`, where `z = (x - μ) / β`.
+///
+/// # Plot
+///
+/// The following plot illustrates the Gumbel distribution with various values of `μ` and `β`.
+/// Note how the location parameter `μ` shifts the distribution along the x-axis,
+/// and the scale parameter `β` changes the density around `μ`.
+/// Note also the asymptotic behavior of the distribution towards the right.
+///
+/// ![Gumbel distribution](https://raw.githubusercontent.com/rust-random/charts/main/charts/gumbel.svg)
 ///
 /// # Example
 /// ```
 /// use rand::prelude::*;
 /// use rand_distr::Gumbel;
 ///
-/// let val: f64 = thread_rng().sample(Gumbel::new(0.0, 1.0).unwrap());
+/// let val: f64 = rand::rng().sample(Gumbel::new(0.0, 1.0).unwrap());
 /// println!("{}", val);
 /// ```
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "serde1", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Gumbel<F>
 where
     F: Float,
@@ -38,7 +52,7 @@ where
     scale: F,
 }
 
-/// Error type returned from `Gumbel::new`.
+/// Error type returned from [`Gumbel::new`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
     /// location is infinite or NaN
@@ -57,7 +71,6 @@ impl fmt::Display for Error {
 }
 
 #[cfg(feature = "std")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "std")))]
 impl std::error::Error for Error {}
 
 impl<F> Gumbel<F>
@@ -101,25 +114,25 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_infinite_scale() {
-        Gumbel::new(0.0, core::f64::INFINITY).unwrap();
+        Gumbel::new(0.0, f64::INFINITY).unwrap();
     }
 
     #[test]
     #[should_panic]
     fn test_nan_scale() {
-        Gumbel::new(0.0, core::f64::NAN).unwrap();
+        Gumbel::new(0.0, f64::NAN).unwrap();
     }
 
     #[test]
     #[should_panic]
     fn test_infinite_location() {
-        Gumbel::new(core::f64::INFINITY, 1.0).unwrap();
+        Gumbel::new(f64::INFINITY, 1.0).unwrap();
     }
 
     #[test]
     #[should_panic]
     fn test_nan_location() {
-        Gumbel::new(core::f64::NAN, 1.0).unwrap();
+        Gumbel::new(f64::NAN, 1.0).unwrap();
     }
 
     #[test]
@@ -151,5 +164,10 @@ mod tests {
             .iter()
             .zip(&probabilities)
             .all(|(p_hat, p)| (p_hat - p).abs() < 0.003))
+    }
+
+    #[test]
+    fn gumbel_distributions_can_be_compared() {
+        assert_eq!(Gumbel::new(1.0, 2.0), Gumbel::new(1.0, 2.0));
     }
 }

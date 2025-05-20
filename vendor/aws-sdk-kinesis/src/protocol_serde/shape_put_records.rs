@@ -17,6 +17,21 @@ pub fn de_put_records_http_error(
 
     let _error_message = generic.message().map(|msg| msg.to_owned());
     Err(match error_code {
+        "InternalFailureException" => crate::operation::put_records::PutRecordsError::InternalFailureException({
+            #[allow(unused_mut)]
+            let mut tmp = {
+                #[allow(unused_mut)]
+                let mut output = crate::types::error::builders::InternalFailureExceptionBuilder::default();
+                output = crate::protocol_serde::shape_internal_failure_exception::de_internal_failure_exception_json_err(_response_body, output)
+                    .map_err(crate::operation::put_records::PutRecordsError::unhandled)?;
+                let output = output.meta(generic);
+                output.build()
+            };
+            if tmp.message.is_none() {
+                tmp.message = _error_message;
+            }
+            tmp
+        }),
         "KMSAccessDeniedException" => crate::operation::put_records::PutRecordsError::KmsAccessDeniedException({
             #[allow(unused_mut)]
             let mut tmp = {
@@ -192,7 +207,7 @@ pub fn de_put_records_http_response(
 
 pub fn ser_put_records_input(
     input: &crate::operation::put_records::PutRecordsInput,
-) -> Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
     let mut out = String::new();
     let mut object = ::aws_smithy_json::serialize::JsonObjectWriter::new(&mut out);
     crate::protocol_serde::shape_put_records_input::ser_put_records_input_input(&mut object, input)?;
@@ -203,7 +218,8 @@ pub fn ser_put_records_input(
 pub(crate) fn de_put_records(
     value: &[u8],
     mut builder: crate::operation::put_records::builders::PutRecordsOutputBuilder,
-) -> Result<crate::operation::put_records::builders::PutRecordsOutputBuilder, ::aws_smithy_json::deserialize::error::DeserializeError> {
+) -> ::std::result::Result<crate::operation::put_records::builders::PutRecordsOutputBuilder, ::aws_smithy_json::deserialize::error::DeserializeError>
+{
     let mut tokens_owned = ::aws_smithy_json::deserialize::json_token_iter(crate::protocol_serde::or_empty_doc(value)).peekable();
     let tokens = &mut tokens_owned;
     ::aws_smithy_json::deserialize::token::expect_start_object(tokens.next())?;

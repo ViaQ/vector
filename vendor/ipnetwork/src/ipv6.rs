@@ -1,5 +1,6 @@
-use crate::common::{cidr_parts, parse_prefix, IpNetworkError};
-use std::{cmp, convert::TryFrom, fmt, net::Ipv6Addr, str::FromStr};
+use crate::error::IpNetworkError;
+use crate::parse::{cidr_parts, parse_prefix};
+use std::{convert::TryFrom, fmt, net::Ipv6Addr, str::FromStr};
 
 const IPV6_BITS: u8 = 128;
 const IPV6_SEGMENT_BITS: u8 = 16;
@@ -77,10 +78,49 @@ impl Ipv6Network {
     ///
     /// If the prefix is larger than 128 this will return an `IpNetworkError::InvalidPrefix`.
     pub const fn new(addr: Ipv6Addr, prefix: u8) -> Result<Ipv6Network, IpNetworkError> {
+        match Ipv6Network::new_checked(addr, prefix) {
+            Some(a) => Ok(a),
+            None => Err(IpNetworkError::InvalidPrefix),
+        }
+    }
+
+    /// Constructs a new `Ipv6Network` from any `Ipv6Addr`, and a prefix denoting the network size.
+    ///
+    /// If the prefix is larger than 128 this will return `None`. This is useful in const contexts,
+    /// where [`Option::unwrap`] may be called to trigger a compile-time error in case the prefix
+    /// is an unexpected value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::net::Ipv6Addr;
+    /// use ipnetwork::Ipv6Network;
+    ///
+    /// const PREFIX: u8 = 64;
+    /// const ADDR: Ipv6Addr = Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 0);
+    ///
+    /// // Okay!
+    /// const NETWORK: Ipv6Network = Ipv6Network::new_checked(ADDR, PREFIX).unwrap();
+    /// assert_eq!(NETWORK.prefix(), PREFIX);
+    /// ```
+    ///
+    /// ```should_panic
+    /// use std::net::Ipv6Addr;
+    /// use ipnetwork::Ipv6Network;
+    ///
+    /// // Prefix is greater than 128.
+    /// const PREFIX: u8 = 128 + 1;
+    /// const ADDR: Ipv6Addr = Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 0);
+    ///
+    /// // This fails!
+    /// const NETWORK: Option<Ipv6Network> = Ipv6Network::new_checked(ADDR, PREFIX);
+    /// assert_eq!(NETWORK.unwrap().prefix(), PREFIX);
+    /// ```
+    pub const fn new_checked(addr: Ipv6Addr, prefix: u8) -> Option<Ipv6Network> {
         if prefix > IPV6_BITS {
-            Err(IpNetworkError::InvalidPrefix)
+            None
         } else {
-            Ok(Ipv6Network { addr, prefix })
+            Some(Ipv6Network { addr, prefix })
         }
     }
 
@@ -99,9 +139,13 @@ impl Ipv6Network {
     /// Returns an iterator over `Ipv6Network`. Each call to `next` will return the next
     /// `Ipv6Addr` in the given network. `None` will be returned when there are no more
     /// addresses.
+    ///
+    /// # Warning
+    ///
+    /// This can return up to 2^128 addresses, which will take a _long_ time to iterate over.
     pub fn iter(&self) -> Ipv6NetworkIterator {
         let dec = u128::from(self.addr);
-        let max = u128::max_value();
+        let max = u128::MAX;
         let prefix = self.prefix;
 
         let mask = max.checked_shl(u32::from(IPV6_BITS - prefix)).unwrap_or(0);
@@ -114,42 +158,6 @@ impl Ipv6Network {
             next: Some(start),
             end,
         }
-    }
-
-    /// Returns the address of the network denoted by this `Ipv6Network`.
-    /// This means the lowest possible IPv6 address inside of the network.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::net::Ipv6Addr;
-    /// use ipnetwork::Ipv6Network;
-    ///
-    /// let net: Ipv6Network = "2001:db8::/96".parse().unwrap();
-    /// assert_eq!(net.network(), Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 0));
-    /// ```
-    pub fn network(&self) -> Ipv6Addr {
-        let mask = u128::from(self.mask());
-        let ip = u128::from(self.addr) & mask;
-        Ipv6Addr::from(ip)
-    }
-
-    /// Returns the broadcast address of this `Ipv6Network`.
-    /// This means the highest possible IPv4 address inside of the network.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use std::net::Ipv6Addr;
-    /// use ipnetwork::Ipv6Network;
-    ///
-    /// let net: Ipv6Network = "2001:db8::/96".parse().unwrap();
-    /// assert_eq!(net.broadcast(), Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0xffff, 0xffff));
-    /// ```
-    pub fn broadcast(&self) -> Ipv6Addr {
-        let mask = u128::from(self.mask());
-        let broadcast = u128::from(self.addr) | !mask;
-        Ipv6Addr::from(broadcast)
     }
 
     pub fn ip(&self) -> Ipv6Addr {
@@ -173,8 +181,9 @@ impl Ipv6Network {
     /// Checks if the given `Ipv6Network` is partly contained in other.
     pub fn overlaps(self, other: Ipv6Network) -> bool {
         other.contains(self.ip())
-            || (other.contains(self.broadcast())
-                || (self.contains(other.ip()) || (self.contains(other.broadcast()))))
+            || other.contains(self.broadcast())
+            || self.contains(other.ip())
+            || self.contains(other.broadcast())
     }
 
     /// Returns the mask for this `Ipv6Network`.
@@ -192,14 +201,49 @@ impl Ipv6Network {
     /// assert_eq!(net.mask(), Ipv6Addr::new(0xffff, 0xffff, 0, 0, 0, 0, 0, 0));
     /// ```
     pub fn mask(&self) -> Ipv6Addr {
-        // Ipv6Addr::from is only implemented for [u8; 16]
-        let mut segments = [0; 16];
-        for (i, segment) in segments.iter_mut().enumerate() {
-            let bits_remaining = self.prefix.saturating_sub(i as u8 * 8);
-            let set_bits = cmp::min(bits_remaining, 8);
-            *segment = !(0xff as u16 >> set_bits) as u8;
+        debug_assert!(self.prefix <= IPV6_BITS);
+
+        if self.prefix == 0 {
+            return Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0);
         }
-        Ipv6Addr::from(segments)
+        let mask = u128::MAX << (IPV6_BITS - self.prefix);
+        Ipv6Addr::from(mask)
+    }
+
+    /// Returns the address of the network denoted by this `Ipv6Network`.
+    /// This means the lowest possible IPv6 address inside of the network.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::net::Ipv6Addr;
+    /// use ipnetwork::Ipv6Network;
+    ///
+    /// let net: Ipv6Network = "2001:db8::/96".parse().unwrap();
+    /// assert_eq!(net.network(), Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0, 0));
+    /// ```
+    pub fn network(&self) -> Ipv6Addr {
+        let mask = u128::from(self.mask());
+        let network = u128::from(self.addr) & mask;
+        Ipv6Addr::from(network)
+    }
+
+    /// Returns the broadcast address of this `Ipv6Network`.
+    /// This means the highest possible IPv4 address inside of the network.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::net::Ipv6Addr;
+    /// use ipnetwork::Ipv6Network;
+    ///
+    /// let net: Ipv6Network = "2001:db8::/96".parse().unwrap();
+    /// assert_eq!(net.broadcast(), Ipv6Addr::new(0x2001, 0xdb8, 0, 0, 0, 0, 0xffff, 0xffff));
+    /// ```
+    pub fn broadcast(&self) -> Ipv6Addr {
+        let mask = u128::from(self.mask());
+        let broadcast = u128::from(self.addr) | !mask;
+        Ipv6Addr::from(broadcast)
     }
 
     /// Checks if a given `Ipv6Addr` is in this `Ipv6Network`
@@ -216,14 +260,10 @@ impl Ipv6Network {
     /// ```
     #[inline]
     pub fn contains(&self, ip: Ipv6Addr) -> bool {
-        let a = self.addr.segments();
-        let b = ip.segments();
-        let addrs = Iterator::zip(a.iter(), b.iter());
-        self.mask()
-            .segments()
-            .iter()
-            .zip(addrs)
-            .all(|(mask, (a, b))| a & mask == b & mask)
+        let ip = u128::from(ip);
+        let net = u128::from(self.network());
+        let mask = u128::from(self.mask());
+        (ip & mask) == net
     }
 
     /// Returns number of possible host addresses in this `Ipv6Network`.
@@ -241,8 +281,36 @@ impl Ipv6Network {
     /// assert_eq!(tinynet.size(), 1);
     /// ```
     pub fn size(&self) -> u128 {
-        let host_bits = u32::from(IPV6_BITS - self.prefix);
-        (2 as u128).pow(host_bits)
+        debug_assert!(self.prefix <= IPV6_BITS);
+
+        if self.prefix == 0 {
+            return u128::MAX;
+        }
+        1 << (IPV6_BITS - self.prefix)
+    }
+
+    /// Returns the `n`:th address within this network.
+    /// The addresses are indexed from 0 and `n` must be smaller than the size of the network.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::net::Ipv6Addr;
+    /// use ipnetwork::Ipv6Network;
+    ///
+    /// let net: Ipv6Network = "ff01::0/32".parse().unwrap();
+    /// assert_eq!(net.nth(0).unwrap(), "ff01::0".parse::<Ipv6Addr>().unwrap());
+    /// assert_eq!(net.nth(255).unwrap(), "ff01::ff".parse::<Ipv6Addr>().unwrap());
+    /// assert_eq!(net.nth(65538).unwrap(), "ff01::1:2".parse::<Ipv6Addr>().unwrap());
+    /// assert!(net.nth(net.size()).is_none());
+    /// ```
+    pub fn nth(self, n: u128) -> Option<Ipv6Addr> {
+        if n < self.size() {
+            let net = u128::from(self.network());
+            Some(Ipv6Addr::from(net + n))
+        } else {
+            None
+        }
     }
 }
 
@@ -263,12 +331,8 @@ impl FromStr for Ipv6Network {
     type Err = IpNetworkError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let (addr_str, prefix_str) = cidr_parts(s)?;
-        let addr = Ipv6Addr::from_str(addr_str)
-            .map_err(|_| IpNetworkError::InvalidAddr(addr_str.to_string()))?;
-        let prefix = match prefix_str {
-            Some(v) => parse_prefix(v, IPV6_BITS)?,
-            None => IPV6_BITS,
-        };
+        let addr = Ipv6Addr::from_str(addr_str)?;
+        let prefix = parse_prefix(prefix_str.unwrap_or(&IPV6_BITS.to_string()), IPV6_BITS)?;
         Ipv6Network::new(addr, prefix)
     }
 }
@@ -383,6 +447,18 @@ mod test {
     fn create_v6_invalid_prefix() {
         let cidr = Ipv6Network::new(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1), 129);
         assert!(cidr.is_err());
+    }
+
+    #[test]
+    fn create_checked_v6() {
+        let cidr = Ipv6Network::new_checked(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1), 24).unwrap();
+        assert_eq!(cidr.prefix(), 24);
+    }
+
+    #[test]
+    #[should_panic]
+    fn try_create_invalid_checked_v6() {
+        Ipv6Network::new_checked(Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 1), 129).unwrap();
     }
 
     #[test]
@@ -601,9 +677,7 @@ mod test {
             assert_eq!(
                 src.is_subnet_of(dest),
                 *val,
-                "testing with {} and {}",
-                src,
-                dest
+                "testing with {src} and {dest}"
             );
         }
     }
@@ -646,9 +720,7 @@ mod test {
             assert_eq!(
                 src.is_supernet_of(dest),
                 *val,
-                "testing with {} and {}",
-                src,
-                dest
+                "testing with {src} and {dest}"
             );
         }
     }
@@ -658,7 +730,7 @@ mod test {
         let other: Ipv6Network = "2001:DB8:ACAD::1/64".parse().unwrap();
         let other2: Ipv6Network = "2001:DB8:ACAD::20:2/64".parse().unwrap();
 
-        assert_eq!(other2.overlaps(other), true);
+        assert!(other2.overlaps(other));
     }
 
     #[test]
@@ -672,5 +744,37 @@ mod test {
             .unwrap();
         let high_addrs: Vec<Ipv6Addr> = high.iter().collect();
         assert_eq!(256, high_addrs.len());
+    }
+
+    #[test]
+    fn test_nth_ipv6() {
+        let net = Ipv6Network::from_str("ff01::/32").unwrap();
+
+        assert_eq!(
+            net.nth(0).unwrap(),
+            Ipv6Addr::from_str("ff01:0:0:0:0:0:0:0").unwrap()
+        );
+        assert_eq!(
+            net.nth(255).unwrap(),
+            Ipv6Addr::from_str("ff01::ff").unwrap()
+        );
+        assert_eq!(
+            net.nth(65538).unwrap(),
+            Ipv6Addr::from_str("ff01::1:2").unwrap()
+        );
+        assert_eq!(net.nth(net.size()), None);
+    }
+
+    #[test]
+    fn test_mask_with_prefix_0() {
+        let network: Ipv6Network = "0::/0".parse().unwrap();
+        let mask = network.mask();
+        assert_eq!(mask, Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0));
+    }
+
+    #[test]
+    fn test_size_with_prefix_0() {
+        let network: Ipv6Network = "0::/0".parse().unwrap();
+        assert_eq!(network.size(), u128::MAX);
     }
 }

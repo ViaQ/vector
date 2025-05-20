@@ -10,26 +10,30 @@ pub struct ExtendedS3DestinationUpdate {
     pub bucket_arn: ::std::option::Option<::std::string::String>,
     /// <p>The "YYYY/MM/DD/HH" time format prefix is automatically used for delivered Amazon S3 files. You can also specify a custom prefix, as described in <a href="https://docs.aws.amazon.com/firehose/latest/dev/s3-prefixes.html">Custom Prefixes for Amazon S3 Objects</a>.</p>
     pub prefix: ::std::option::Option<::std::string::String>,
-    /// <p>A prefix that Kinesis Data Firehose evaluates and adds to failed records before writing them to S3. This prefix appears immediately following the bucket name. For information about how to specify this prefix, see <a href="https://docs.aws.amazon.com/firehose/latest/dev/s3-prefixes.html">Custom Prefixes for Amazon S3 Objects</a>.</p>
+    /// <p>A prefix that Firehose evaluates and adds to failed records before writing them to S3. This prefix appears immediately following the bucket name. For information about how to specify this prefix, see <a href="https://docs.aws.amazon.com/firehose/latest/dev/s3-prefixes.html">Custom Prefixes for Amazon S3 Objects</a>.</p>
     pub error_output_prefix: ::std::option::Option<::std::string::String>,
     /// <p>The buffering option.</p>
     pub buffering_hints: ::std::option::Option<crate::types::BufferingHints>,
-    /// <p>The compression format. If no value is specified, the default is <code>UNCOMPRESSED</code>. </p>
+    /// <p>The compression format. If no value is specified, the default is <code>UNCOMPRESSED</code>.</p>
     pub compression_format: ::std::option::Option<crate::types::CompressionFormat>,
     /// <p>The encryption configuration. If no value is specified, the default is no encryption.</p>
     pub encryption_configuration: ::std::option::Option<crate::types::EncryptionConfiguration>,
-    /// <p>The Amazon CloudWatch logging options for your delivery stream.</p>
+    /// <p>The Amazon CloudWatch logging options for your Firehose stream.</p>
     pub cloud_watch_logging_options: ::std::option::Option<crate::types::CloudWatchLoggingOptions>,
     /// <p>The data processing configuration.</p>
     pub processing_configuration: ::std::option::Option<crate::types::ProcessingConfiguration>,
-    /// <p>You can update a delivery stream to enable Amazon S3 backup if it is disabled. If backup is enabled, you can't update the delivery stream to disable it. </p>
+    /// <p>You can update a Firehose stream to enable Amazon S3 backup if it is disabled. If backup is enabled, you can't update the Firehose stream to disable it.</p>
     pub s3_backup_mode: ::std::option::Option<crate::types::S3BackupMode>,
     /// <p>The Amazon S3 destination for backup.</p>
     pub s3_backup_update: ::std::option::Option<crate::types::S3DestinationUpdate>,
     /// <p>The serializer, deserializer, and schema for converting data from the JSON format to the Parquet or ORC format before writing it to Amazon S3.</p>
     pub data_format_conversion_configuration: ::std::option::Option<crate::types::DataFormatConversionConfiguration>,
-    /// <p>The configuration of the dynamic partitioning mechanism that creates smaller data sets from the streaming data by partitioning it based on partition keys. Currently, dynamic partitioning is only supported for Amazon S3 destinations. </p>
+    /// <p>The configuration of the dynamic partitioning mechanism that creates smaller data sets from the streaming data by partitioning it based on partition keys. Currently, dynamic partitioning is only supported for Amazon S3 destinations.</p>
     pub dynamic_partitioning_configuration: ::std::option::Option<crate::types::DynamicPartitioningConfiguration>,
+    /// <p>Specify a file extension. It will override the default file extension</p>
+    pub file_extension: ::std::option::Option<::std::string::String>,
+    /// <p>The time zone you prefer. UTC is the default.</p>
+    pub custom_time_zone: ::std::option::Option<::std::string::String>,
 }
 impl ExtendedS3DestinationUpdate {
     /// <p>The Amazon Resource Name (ARN) of the Amazon Web Services credentials. For more information, see <a href="https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html">Amazon Resource Names (ARNs) and Amazon Web Services Service Namespaces</a>.</p>
@@ -44,7 +48,7 @@ impl ExtendedS3DestinationUpdate {
     pub fn prefix(&self) -> ::std::option::Option<&str> {
         self.prefix.as_deref()
     }
-    /// <p>A prefix that Kinesis Data Firehose evaluates and adds to failed records before writing them to S3. This prefix appears immediately following the bucket name. For information about how to specify this prefix, see <a href="https://docs.aws.amazon.com/firehose/latest/dev/s3-prefixes.html">Custom Prefixes for Amazon S3 Objects</a>.</p>
+    /// <p>A prefix that Firehose evaluates and adds to failed records before writing them to S3. This prefix appears immediately following the bucket name. For information about how to specify this prefix, see <a href="https://docs.aws.amazon.com/firehose/latest/dev/s3-prefixes.html">Custom Prefixes for Amazon S3 Objects</a>.</p>
     pub fn error_output_prefix(&self) -> ::std::option::Option<&str> {
         self.error_output_prefix.as_deref()
     }
@@ -52,7 +56,7 @@ impl ExtendedS3DestinationUpdate {
     pub fn buffering_hints(&self) -> ::std::option::Option<&crate::types::BufferingHints> {
         self.buffering_hints.as_ref()
     }
-    /// <p>The compression format. If no value is specified, the default is <code>UNCOMPRESSED</code>. </p>
+    /// <p>The compression format. If no value is specified, the default is <code>UNCOMPRESSED</code>.</p>
     pub fn compression_format(&self) -> ::std::option::Option<&crate::types::CompressionFormat> {
         self.compression_format.as_ref()
     }
@@ -60,7 +64,7 @@ impl ExtendedS3DestinationUpdate {
     pub fn encryption_configuration(&self) -> ::std::option::Option<&crate::types::EncryptionConfiguration> {
         self.encryption_configuration.as_ref()
     }
-    /// <p>The Amazon CloudWatch logging options for your delivery stream.</p>
+    /// <p>The Amazon CloudWatch logging options for your Firehose stream.</p>
     pub fn cloud_watch_logging_options(&self) -> ::std::option::Option<&crate::types::CloudWatchLoggingOptions> {
         self.cloud_watch_logging_options.as_ref()
     }
@@ -68,7 +72,7 @@ impl ExtendedS3DestinationUpdate {
     pub fn processing_configuration(&self) -> ::std::option::Option<&crate::types::ProcessingConfiguration> {
         self.processing_configuration.as_ref()
     }
-    /// <p>You can update a delivery stream to enable Amazon S3 backup if it is disabled. If backup is enabled, you can't update the delivery stream to disable it. </p>
+    /// <p>You can update a Firehose stream to enable Amazon S3 backup if it is disabled. If backup is enabled, you can't update the Firehose stream to disable it.</p>
     pub fn s3_backup_mode(&self) -> ::std::option::Option<&crate::types::S3BackupMode> {
         self.s3_backup_mode.as_ref()
     }
@@ -80,9 +84,17 @@ impl ExtendedS3DestinationUpdate {
     pub fn data_format_conversion_configuration(&self) -> ::std::option::Option<&crate::types::DataFormatConversionConfiguration> {
         self.data_format_conversion_configuration.as_ref()
     }
-    /// <p>The configuration of the dynamic partitioning mechanism that creates smaller data sets from the streaming data by partitioning it based on partition keys. Currently, dynamic partitioning is only supported for Amazon S3 destinations. </p>
+    /// <p>The configuration of the dynamic partitioning mechanism that creates smaller data sets from the streaming data by partitioning it based on partition keys. Currently, dynamic partitioning is only supported for Amazon S3 destinations.</p>
     pub fn dynamic_partitioning_configuration(&self) -> ::std::option::Option<&crate::types::DynamicPartitioningConfiguration> {
         self.dynamic_partitioning_configuration.as_ref()
+    }
+    /// <p>Specify a file extension. It will override the default file extension</p>
+    pub fn file_extension(&self) -> ::std::option::Option<&str> {
+        self.file_extension.as_deref()
+    }
+    /// <p>The time zone you prefer. UTC is the default.</p>
+    pub fn custom_time_zone(&self) -> ::std::option::Option<&str> {
+        self.custom_time_zone.as_deref()
     }
 }
 impl ExtendedS3DestinationUpdate {
@@ -93,8 +105,8 @@ impl ExtendedS3DestinationUpdate {
 }
 
 /// A builder for [`ExtendedS3DestinationUpdate`](crate::types::ExtendedS3DestinationUpdate).
-#[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::default::Default, ::std::fmt::Debug)]
+#[non_exhaustive]
 pub struct ExtendedS3DestinationUpdateBuilder {
     pub(crate) role_arn: ::std::option::Option<::std::string::String>,
     pub(crate) bucket_arn: ::std::option::Option<::std::string::String>,
@@ -109,6 +121,8 @@ pub struct ExtendedS3DestinationUpdateBuilder {
     pub(crate) s3_backup_update: ::std::option::Option<crate::types::S3DestinationUpdate>,
     pub(crate) data_format_conversion_configuration: ::std::option::Option<crate::types::DataFormatConversionConfiguration>,
     pub(crate) dynamic_partitioning_configuration: ::std::option::Option<crate::types::DynamicPartitioningConfiguration>,
+    pub(crate) file_extension: ::std::option::Option<::std::string::String>,
+    pub(crate) custom_time_zone: ::std::option::Option<::std::string::String>,
 }
 impl ExtendedS3DestinationUpdateBuilder {
     /// <p>The Amazon Resource Name (ARN) of the Amazon Web Services credentials. For more information, see <a href="https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html">Amazon Resource Names (ARNs) and Amazon Web Services Service Namespaces</a>.</p>
@@ -153,17 +167,17 @@ impl ExtendedS3DestinationUpdateBuilder {
     pub fn get_prefix(&self) -> &::std::option::Option<::std::string::String> {
         &self.prefix
     }
-    /// <p>A prefix that Kinesis Data Firehose evaluates and adds to failed records before writing them to S3. This prefix appears immediately following the bucket name. For information about how to specify this prefix, see <a href="https://docs.aws.amazon.com/firehose/latest/dev/s3-prefixes.html">Custom Prefixes for Amazon S3 Objects</a>.</p>
+    /// <p>A prefix that Firehose evaluates and adds to failed records before writing them to S3. This prefix appears immediately following the bucket name. For information about how to specify this prefix, see <a href="https://docs.aws.amazon.com/firehose/latest/dev/s3-prefixes.html">Custom Prefixes for Amazon S3 Objects</a>.</p>
     pub fn error_output_prefix(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.error_output_prefix = ::std::option::Option::Some(input.into());
         self
     }
-    /// <p>A prefix that Kinesis Data Firehose evaluates and adds to failed records before writing them to S3. This prefix appears immediately following the bucket name. For information about how to specify this prefix, see <a href="https://docs.aws.amazon.com/firehose/latest/dev/s3-prefixes.html">Custom Prefixes for Amazon S3 Objects</a>.</p>
+    /// <p>A prefix that Firehose evaluates and adds to failed records before writing them to S3. This prefix appears immediately following the bucket name. For information about how to specify this prefix, see <a href="https://docs.aws.amazon.com/firehose/latest/dev/s3-prefixes.html">Custom Prefixes for Amazon S3 Objects</a>.</p>
     pub fn set_error_output_prefix(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.error_output_prefix = input;
         self
     }
-    /// <p>A prefix that Kinesis Data Firehose evaluates and adds to failed records before writing them to S3. This prefix appears immediately following the bucket name. For information about how to specify this prefix, see <a href="https://docs.aws.amazon.com/firehose/latest/dev/s3-prefixes.html">Custom Prefixes for Amazon S3 Objects</a>.</p>
+    /// <p>A prefix that Firehose evaluates and adds to failed records before writing them to S3. This prefix appears immediately following the bucket name. For information about how to specify this prefix, see <a href="https://docs.aws.amazon.com/firehose/latest/dev/s3-prefixes.html">Custom Prefixes for Amazon S3 Objects</a>.</p>
     pub fn get_error_output_prefix(&self) -> &::std::option::Option<::std::string::String> {
         &self.error_output_prefix
     }
@@ -181,17 +195,17 @@ impl ExtendedS3DestinationUpdateBuilder {
     pub fn get_buffering_hints(&self) -> &::std::option::Option<crate::types::BufferingHints> {
         &self.buffering_hints
     }
-    /// <p>The compression format. If no value is specified, the default is <code>UNCOMPRESSED</code>. </p>
+    /// <p>The compression format. If no value is specified, the default is <code>UNCOMPRESSED</code>.</p>
     pub fn compression_format(mut self, input: crate::types::CompressionFormat) -> Self {
         self.compression_format = ::std::option::Option::Some(input);
         self
     }
-    /// <p>The compression format. If no value is specified, the default is <code>UNCOMPRESSED</code>. </p>
+    /// <p>The compression format. If no value is specified, the default is <code>UNCOMPRESSED</code>.</p>
     pub fn set_compression_format(mut self, input: ::std::option::Option<crate::types::CompressionFormat>) -> Self {
         self.compression_format = input;
         self
     }
-    /// <p>The compression format. If no value is specified, the default is <code>UNCOMPRESSED</code>. </p>
+    /// <p>The compression format. If no value is specified, the default is <code>UNCOMPRESSED</code>.</p>
     pub fn get_compression_format(&self) -> &::std::option::Option<crate::types::CompressionFormat> {
         &self.compression_format
     }
@@ -209,17 +223,17 @@ impl ExtendedS3DestinationUpdateBuilder {
     pub fn get_encryption_configuration(&self) -> &::std::option::Option<crate::types::EncryptionConfiguration> {
         &self.encryption_configuration
     }
-    /// <p>The Amazon CloudWatch logging options for your delivery stream.</p>
+    /// <p>The Amazon CloudWatch logging options for your Firehose stream.</p>
     pub fn cloud_watch_logging_options(mut self, input: crate::types::CloudWatchLoggingOptions) -> Self {
         self.cloud_watch_logging_options = ::std::option::Option::Some(input);
         self
     }
-    /// <p>The Amazon CloudWatch logging options for your delivery stream.</p>
+    /// <p>The Amazon CloudWatch logging options for your Firehose stream.</p>
     pub fn set_cloud_watch_logging_options(mut self, input: ::std::option::Option<crate::types::CloudWatchLoggingOptions>) -> Self {
         self.cloud_watch_logging_options = input;
         self
     }
-    /// <p>The Amazon CloudWatch logging options for your delivery stream.</p>
+    /// <p>The Amazon CloudWatch logging options for your Firehose stream.</p>
     pub fn get_cloud_watch_logging_options(&self) -> &::std::option::Option<crate::types::CloudWatchLoggingOptions> {
         &self.cloud_watch_logging_options
     }
@@ -237,17 +251,17 @@ impl ExtendedS3DestinationUpdateBuilder {
     pub fn get_processing_configuration(&self) -> &::std::option::Option<crate::types::ProcessingConfiguration> {
         &self.processing_configuration
     }
-    /// <p>You can update a delivery stream to enable Amazon S3 backup if it is disabled. If backup is enabled, you can't update the delivery stream to disable it. </p>
+    /// <p>You can update a Firehose stream to enable Amazon S3 backup if it is disabled. If backup is enabled, you can't update the Firehose stream to disable it.</p>
     pub fn s3_backup_mode(mut self, input: crate::types::S3BackupMode) -> Self {
         self.s3_backup_mode = ::std::option::Option::Some(input);
         self
     }
-    /// <p>You can update a delivery stream to enable Amazon S3 backup if it is disabled. If backup is enabled, you can't update the delivery stream to disable it. </p>
+    /// <p>You can update a Firehose stream to enable Amazon S3 backup if it is disabled. If backup is enabled, you can't update the Firehose stream to disable it.</p>
     pub fn set_s3_backup_mode(mut self, input: ::std::option::Option<crate::types::S3BackupMode>) -> Self {
         self.s3_backup_mode = input;
         self
     }
-    /// <p>You can update a delivery stream to enable Amazon S3 backup if it is disabled. If backup is enabled, you can't update the delivery stream to disable it. </p>
+    /// <p>You can update a Firehose stream to enable Amazon S3 backup if it is disabled. If backup is enabled, you can't update the Firehose stream to disable it.</p>
     pub fn get_s3_backup_mode(&self) -> &::std::option::Option<crate::types::S3BackupMode> {
         &self.s3_backup_mode
     }
@@ -279,19 +293,47 @@ impl ExtendedS3DestinationUpdateBuilder {
     pub fn get_data_format_conversion_configuration(&self) -> &::std::option::Option<crate::types::DataFormatConversionConfiguration> {
         &self.data_format_conversion_configuration
     }
-    /// <p>The configuration of the dynamic partitioning mechanism that creates smaller data sets from the streaming data by partitioning it based on partition keys. Currently, dynamic partitioning is only supported for Amazon S3 destinations. </p>
+    /// <p>The configuration of the dynamic partitioning mechanism that creates smaller data sets from the streaming data by partitioning it based on partition keys. Currently, dynamic partitioning is only supported for Amazon S3 destinations.</p>
     pub fn dynamic_partitioning_configuration(mut self, input: crate::types::DynamicPartitioningConfiguration) -> Self {
         self.dynamic_partitioning_configuration = ::std::option::Option::Some(input);
         self
     }
-    /// <p>The configuration of the dynamic partitioning mechanism that creates smaller data sets from the streaming data by partitioning it based on partition keys. Currently, dynamic partitioning is only supported for Amazon S3 destinations. </p>
+    /// <p>The configuration of the dynamic partitioning mechanism that creates smaller data sets from the streaming data by partitioning it based on partition keys. Currently, dynamic partitioning is only supported for Amazon S3 destinations.</p>
     pub fn set_dynamic_partitioning_configuration(mut self, input: ::std::option::Option<crate::types::DynamicPartitioningConfiguration>) -> Self {
         self.dynamic_partitioning_configuration = input;
         self
     }
-    /// <p>The configuration of the dynamic partitioning mechanism that creates smaller data sets from the streaming data by partitioning it based on partition keys. Currently, dynamic partitioning is only supported for Amazon S3 destinations. </p>
+    /// <p>The configuration of the dynamic partitioning mechanism that creates smaller data sets from the streaming data by partitioning it based on partition keys. Currently, dynamic partitioning is only supported for Amazon S3 destinations.</p>
     pub fn get_dynamic_partitioning_configuration(&self) -> &::std::option::Option<crate::types::DynamicPartitioningConfiguration> {
         &self.dynamic_partitioning_configuration
+    }
+    /// <p>Specify a file extension. It will override the default file extension</p>
+    pub fn file_extension(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
+        self.file_extension = ::std::option::Option::Some(input.into());
+        self
+    }
+    /// <p>Specify a file extension. It will override the default file extension</p>
+    pub fn set_file_extension(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+        self.file_extension = input;
+        self
+    }
+    /// <p>Specify a file extension. It will override the default file extension</p>
+    pub fn get_file_extension(&self) -> &::std::option::Option<::std::string::String> {
+        &self.file_extension
+    }
+    /// <p>The time zone you prefer. UTC is the default.</p>
+    pub fn custom_time_zone(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
+        self.custom_time_zone = ::std::option::Option::Some(input.into());
+        self
+    }
+    /// <p>The time zone you prefer. UTC is the default.</p>
+    pub fn set_custom_time_zone(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
+        self.custom_time_zone = input;
+        self
+    }
+    /// <p>The time zone you prefer. UTC is the default.</p>
+    pub fn get_custom_time_zone(&self) -> &::std::option::Option<::std::string::String> {
+        &self.custom_time_zone
     }
     /// Consumes the builder and constructs a [`ExtendedS3DestinationUpdate`](crate::types::ExtendedS3DestinationUpdate).
     pub fn build(self) -> crate::types::ExtendedS3DestinationUpdate {
@@ -309,6 +351,8 @@ impl ExtendedS3DestinationUpdateBuilder {
             s3_backup_update: self.s3_backup_update,
             data_format_conversion_configuration: self.data_format_conversion_configuration,
             dynamic_partitioning_configuration: self.dynamic_partitioning_configuration,
+            file_extension: self.file_extension,
+            custom_time_zone: self.custom_time_zone,
         }
     }
 }

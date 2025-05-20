@@ -4,7 +4,7 @@ use async_graphql::{InputValueError, InputValueResult, Scalar, ScalarType, Value
 #[cfg(feature = "serialize")]
 mod serialize;
 
-use cidr_utils::cidr::IpCidr;
+use cidr::IpCidr;
 use std::collections::{hash_set::IntoIter, HashSet};
 use std::net::IpAddr;
 use std::str::FromStr;

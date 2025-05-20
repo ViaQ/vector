@@ -11,7 +11,7 @@ use std::io::{self, Write};
 /// Base struct for various kinds of code generator. The flavor of
 /// code generator is customized by supplying distinct types for `C`
 /// (e.g., `self::ascent::RecursiveAscent`).
-pub struct CodeGenerator<'codegen, 'grammar: 'codegen, W: Write + 'codegen, C> {
+pub struct CodeGenerator<'codegen, 'grammar, W: Write, C> {
     /// the complete grammar
     pub grammar: &'grammar Grammar,
 
@@ -161,8 +161,8 @@ impl<'codegen, 'grammar, W: Write, C> CodeGenerator<'codegen, 'grammar, W, C> {
         rust!(self.out, "#[rustfmt::skip]");
         rust!(
             self.out,
-            "#[allow(non_snake_case, non_camel_case_types, unused_mut, unused_variables, \
-             unused_imports, unused_parens, clippy::all)]"
+            "#[allow(explicit_outlives_requirements, non_snake_case, non_camel_case_types, unused_mut, unused_variables, \
+             unused_imports, unused_parens, clippy::needless_lifetimes, clippy::type_complexity, clippy::needless_return, clippy::too_many_arguments, clippy::match_single_binding)]"
         );
         rust!(self.out, "mod {}parse{} {{", self.prefix, self.start_symbol);
         rust!(self.out, "");
@@ -200,7 +200,7 @@ impl<'codegen, 'grammar, W: Write, C> CodeGenerator<'codegen, 'grammar, W, C> {
     pub fn start_parser_fn(&mut self) -> io::Result<()> {
         let parse_error_type = self.types.parse_error_type();
 
-        let (type_parameters, parameters, mut where_clauses);
+        let (type_parameters, parameters);
 
         let intern_token = self.grammar.intern_token.is_some();
         if intern_token {
@@ -209,7 +209,6 @@ impl<'codegen, 'grammar, W: Write, C> CodeGenerator<'codegen, 'grammar, W, C> {
             // user parameters
             type_parameters = vec![];
             parameters = vec![];
-            where_clauses = vec![];
         } else {
             // otherwise, we need an iterator of type `TOKENS`
             let mut user_type_parameters = String::new();
@@ -222,16 +221,13 @@ impl<'codegen, 'grammar, W: Write, C> CodeGenerator<'codegen, 'grammar, W, C> {
                     self.prefix, self.prefix, user_type_parameters,
                 ),
                 format!(
-                    "{}TOKENS: IntoIterator<Item={}TOKEN>",
-                    self.prefix, self.prefix
+                    "{}TOKENS: IntoIterator<Item={}TOKEN>{}",
+                    self.prefix,
+                    self.prefix,
+                    if self.repeatable { " + Clone" } else { "" }
                 ),
             ];
             parameters = vec![format!("{}tokens0: {}TOKENS", self.prefix, self.prefix)];
-            where_clauses = vec![];
-
-            if self.repeatable {
-                where_clauses.push(format!("{}TOKENS: Clone", self.prefix));
-            }
         }
 
         rust!(
@@ -251,6 +247,14 @@ impl<'codegen, 'grammar, W: Write, C> CodeGenerator<'codegen, 'grammar, W, C> {
         rust!(self.out, "}}");
         rust!(self.out, "");
 
+        // Start default impl
+        rust!(
+            self.out,
+            "impl Default for {}Parser {{ fn default() -> Self {{ Self::new() }} }}",
+            self.user_start_symbol
+        );
+
+        // Start parser impl
         rust!(self.out, "impl {}Parser {{", self.user_start_symbol);
         rust!(
             self.out,
@@ -290,7 +294,6 @@ impl<'codegen, 'grammar, W: Write, C> CodeGenerator<'codegen, 'grammar, W, C> {
                 self.types.nonterminal_type(&self.start_symbol),
                 parse_error_type
             ))
-            .with_where_clauses(where_clauses)
             .emit()?;
         rust!(self.out, "{{");
 

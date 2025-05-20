@@ -3,7 +3,7 @@ pub use crate::operation::start_message_move_task::_start_message_move_task_outp
 
 pub use crate::operation::start_message_move_task::_start_message_move_task_input::StartMessageMoveTaskInputBuilder;
 
-impl StartMessageMoveTaskInputBuilder {
+impl crate::operation::start_message_move_task::builders::StartMessageMoveTaskInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,12 +22,14 @@ impl StartMessageMoveTaskInputBuilder {
 }
 /// Fluent builder constructing a request to `StartMessageMoveTask`.
 ///
-/// <p>Starts an asynchronous task to move messages from a specified source queue to a specified destination queue.</p> <note>
+/// <p>Starts an asynchronous task to move messages from a specified source queue to a specified destination queue.</p><note>
 /// <ul>
-/// <li> <p>This action is currently limited to supporting message redrive from queues that are configured as <a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html">dead-letter queues (DLQs)</a> of other Amazon SQS queues only. Non-SQS queue sources of dead-letter queues, such as Lambda or Amazon SNS topics, are currently not supported.</p> </li>
-/// <li> <p>In dead-letter queues redrive context, the <code>StartMessageMoveTask</code> the source queue is the DLQ, while the destination queue can be the original source queue (from which the messages were driven to the dead-letter-queue), or a custom destination queue.</p> </li>
-/// <li> <p>Currently, only standard queues support redrive. FIFO queues don't support redrive.</p> </li>
-/// <li> <p>Only one active message movement task is supported per queue at any given time.</p> </li>
+/// <li>
+/// <p>This action is currently limited to supporting message redrive from queues that are configured as <a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-dead-letter-queues.html">dead-letter queues (DLQs)</a> of other Amazon SQS queues only. Non-SQS queue sources of dead-letter queues, such as Lambda or Amazon SNS topics, are currently not supported.</p></li>
+/// <li>
+/// <p>In dead-letter queues redrive context, the <code>StartMessageMoveTask</code> the source queue is the DLQ, while the destination queue can be the original source queue (from which the messages were driven to the dead-letter-queue), or a custom destination queue.</p></li>
+/// <li>
+/// <p>Only one active message movement task is supported per queue at any given time.</p></li>
 /// </ul>
 /// </note>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
@@ -55,7 +57,7 @@ impl
     }
 }
 impl StartMessageMoveTaskFluentBuilder {
-    /// Creates a new `StartMessageMoveTask`.
+    /// Creates a new `StartMessageMoveTaskFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -106,12 +108,12 @@ impl StartMessageMoveTaskFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

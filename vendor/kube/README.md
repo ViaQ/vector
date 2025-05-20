@@ -1,8 +1,8 @@
 # kube-rs
 
 [![Crates.io](https://img.shields.io/crates/v/kube.svg)](https://crates.io/crates/kube)
-[![Rust 1.63](https://img.shields.io/badge/MSRV-1.63-dea584.svg)](https://github.com/rust-lang/rust/releases/tag/1.63.0)
-[![Tested against Kubernetes v1_21 and above](https://img.shields.io/badge/MK8SV-v1_21-326ce5.svg)](https://kube.rs/kubernetes-version)
+[![Rust 1.75](https://img.shields.io/badge/MSRV-1.75-dea584.svg)](https://github.com/rust-lang/rust/releases/tag/1.75.0)
+[![Tested against Kubernetes v1_25 and above](https://img.shields.io/badge/MK8SV-v1_25-326ce5.svg)](https://kube.rs/kubernetes-version)
 [![Best Practices](https://bestpractices.coreinfrastructure.org/projects/5413/badge)](https://bestpractices.coreinfrastructure.org/projects/5413)
 [![Discord chat](https://img.shields.io/discord/500028886025895936.svg?logo=discord&style=plastic)](https://discord.gg/tokio)
 
@@ -12,26 +12,27 @@ These crates build upon Kubernetes [apimachinery](https://github.com/kubernetes/
 
 ## Installation
 
-Select a version of `kube` along with the generated [k8s-openapi](https://github.com/Arnavion/k8s-openapi) types corresponding for your cluster version:
+Select a version of `kube` along with the generated [k8s-openapi](https://github.com/Arnavion/k8s-openapi) structs at your chosen [Kubernetes version](https://kube.rs/kubernetes-version/):
 
 ```toml
 [dependencies]
-kube = { version = "0.82.2", features = ["runtime", "derive"] }
-k8s-openapi = { version = "0.18.0", features = ["v1_26"] }
+kube = { version = "0.93.1", features = ["runtime", "derive"] }
+k8s-openapi = { version = "0.22.0", features = ["latest"] }
 ```
 
-[Features are available](https://github.com/kube-rs/kube/blob/main/kube/Cargo.toml#L18).
+See [features](https://kube.rs/features/) for a quick overview of default-enabled / opt-in functionality.
 
 ## Upgrading
 
-Please check the [CHANGELOG](https://github.com/kube-rs/kube/blob/main/CHANGELOG.md) when upgrading.
-All crates herein are versioned and [released](https://github.com/kube-rs/kube/blob/main/release.toml) together to guarantee [compatibility before 1.0](https://github.com/kube-rs/kube/issues/508).
+See [kube.rs/upgrading](https://kube.rs/upgrading/).
+Noteworthy changes are highlighted in [releases](https://github.com/kube-rs/kube/releases), and archived in the [changelog](https://kube.rs/changelog/).
 
 ## Usage
 
 See the **[examples directory](https://github.com/kube-rs/kube/blob/main/examples)** for how to use any of these crates.
 
 - **[kube API Docs](https://docs.rs/kube/)**
+- **[kube.rs](https://kube.rs)**
 
 Official examples:
 
@@ -42,14 +43,14 @@ For real world projects see [ADOPTERS](https://kube.rs/adopters/).
 
 ## Api
 
-The [`Api`](https://docs.rs/kube/*/kube/struct.Api.html) is what interacts with kubernetes resources, and is generic over [`Resource`](https://docs.rs/kube/*/kube/trait.Resource.html):
+The [`Api`](https://docs.rs/kube/*/kube/struct.Api.html) is what interacts with Kubernetes resources, and is generic over [`Resource`](https://docs.rs/kube/*/kube/trait.Resource.html):
 
 ```rust
 use k8s_openapi::api::core::v1::Pod;
 let pods: Api<Pod> = Api::default_namespaced(client);
 
-let p = pods.get("blog").await?;
-println!("Got blog pod with containers: {:?}", p.spec.unwrap().containers);
+let pod = pods.get("blog").await?;
+println!("Got pod: {pod:?}");
 
 let patch = json!({"spec": {
     "activeDeadlineSeconds": 5
@@ -67,7 +68,7 @@ See the examples ending in `_api` examples for more detail.
 
 Working with custom resources uses automatic code-generation via [proc_macros in kube-derive](https://docs.rs/kube/latest/kube/derive.CustomResource.html).
 
-You need to `#[derive(CustomResource)]` and some `#[kube(attrs..)]` on a spec struct:
+You need to add `#[derive(CustomResource, JsonSchema)]` and some `#[kube(attrs..)]` on a __spec__ struct:
 
 ```rust
 #[derive(CustomResource, Debug, Serialize, Deserialize, Default, Clone, JsonSchema)]
@@ -97,7 +98,7 @@ The `runtime` module exports the `kube_runtime` crate and contains higher level 
 
 ### Watchers
 
-A low level streaming interface (similar to informers) that presents `Applied`, `Deleted` or `Restarted` events.
+A streaming interface (similar to informers) that presents [`watcher::Event`](https://docs.rs/kube/latest/kube/runtime/watcher/enum.Event.html)s and does automatic relists under the hood.
 
 ```rust
 let api = Api::<Pod>::default_namespaced(client);
@@ -112,7 +113,7 @@ while let Some(event) = stream.try_next().await? {
 }
 ```
 
-NB: the plain items in a `watcher` stream are different from `WatchEvent`. If you are following along to "see what changed", you should flatten it with one of the utilities from [`WatchStreamExt`](https://docs.rs/kube/latest/kube/runtime/trait.WatchStreamExt.html), such as `applied_objects`.
+Note the base items from a `watcher` stream are an abstraction above the native `WatchEvent` to allow for store buffering. If you are following along to "see what changed", you can use utilities from [`WatchStreamExt`](https://docs.rs/kube/latest/kube/runtime/trait.WatchStreamExt.html), such as `applied_objects` to get a more conventional stream.
 
 ## Reflectors
 
@@ -146,17 +147,19 @@ Controller::new(root_kind_api, Config::default())
 
 Here `reconcile` and `error_policy` refer to functions you define. The first will be called when the root or child elements change, and the second when the `reconciler` returns an `Err`.
 
-## Rustls
+See the [controller guide](https://kube.rs/controllers/intro/) for how to write these.
 
-By default `openssl` is used for TLS, but [rustls](https://github.com/ctz/rustls) is supported. To switch, turn off `default-features`, and enable the `rustls-tls` feature:
+## TLS
+
+By default [rustls](https://github.com/rustls/rustls) is used for TLS, but `openssl` is supported. To switch, turn off `default-features`, and enable the `openssl-tls` feature:
 
 ```toml
 [dependencies]
-kube = { version = "0.82.2", default-features = false, features = ["client", "rustls-tls"] }
-k8s-openapi = { version = "0.18.0", features = ["v1_26"] }
+kube = { version = "0.93.1", default-features = false, features = ["client", "openssl-tls"] }
+k8s-openapi = { version = "0.22.0", features = ["latest"] }
 ```
 
-This will pull in `rustls` and `hyper-rustls`. If `default-features` is left enabled, you will pull in two TLS stacks, and the default will remain as `openssl`.
+This will pull in `openssl` and `hyper-openssl`. If `default-features` is left enabled, you will pull in two TLS stacks, and the default will remain as `rustls`.
 
 ## musl-libc
 

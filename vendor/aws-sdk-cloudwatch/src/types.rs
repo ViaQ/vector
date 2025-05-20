@@ -11,6 +11,8 @@ pub use crate::types::_metric_stream_output_format::MetricStreamOutputFormat;
 
 pub use crate::types::_metric_stream_filter::MetricStreamFilter;
 
+pub use crate::types::_entity_metric_data::EntityMetricData;
+
 pub use crate::types::_metric_datum::MetricDatum;
 
 pub use crate::types::_standard_unit::StandardUnit;
@@ -18,6 +20,8 @@ pub use crate::types::_standard_unit::StandardUnit;
 pub use crate::types::_statistic_set::StatisticSet;
 
 pub use crate::types::_dimension::Dimension;
+
+pub use crate::types::_entity::Entity;
 
 pub use crate::types::_metric_data_query::MetricDataQuery;
 
@@ -38,6 +42,8 @@ pub use crate::types::_dashboard_validation_message::DashboardValidationMessage;
 pub use crate::types::_metric_math_anomaly_detector::MetricMathAnomalyDetector;
 
 pub use crate::types::_single_metric_anomaly_detector::SingleMetricAnomalyDetector;
+
+pub use crate::types::_metric_characteristics::MetricCharacteristics;
 
 pub use crate::types::_anomaly_detector_configuration::AnomalyDetectorConfiguration;
 
@@ -123,6 +129,10 @@ mod _dimension;
 
 mod _dimension_filter;
 
+mod _entity;
+
+mod _entity_metric_data;
+
 mod _evaluation_state;
 
 mod _history_item_type;
@@ -148,6 +158,8 @@ mod _message_data;
 mod _metric;
 
 mod _metric_alarm;
+
+mod _metric_characteristics;
 
 mod _metric_data_query;
 

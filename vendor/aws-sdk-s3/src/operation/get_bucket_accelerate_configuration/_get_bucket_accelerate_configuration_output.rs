@@ -5,7 +5,7 @@
 pub struct GetBucketAccelerateConfigurationOutput {
     /// <p>The accelerate configuration of the bucket.</p>
     pub status: ::std::option::Option<crate::types::BucketAccelerateStatus>,
-    /// <p>If present, indicates that the requester was successfully charged for the request.</p> <note>
+    /// <p>If present, indicates that the requester was successfully charged for the request.</p><note>
     /// <p>This functionality is not supported for directory buckets.</p>
     /// </note>
     pub request_charged: ::std::option::Option<crate::types::RequestCharged>,
@@ -17,7 +17,7 @@ impl GetBucketAccelerateConfigurationOutput {
     pub fn status(&self) -> ::std::option::Option<&crate::types::BucketAccelerateStatus> {
         self.status.as_ref()
     }
-    /// <p>If present, indicates that the requester was successfully charged for the request.</p> <note>
+    /// <p>If present, indicates that the requester was successfully charged for the request.</p><note>
     /// <p>This functionality is not supported for directory buckets.</p>
     /// </note>
     pub fn request_charged(&self) -> ::std::option::Option<&crate::types::RequestCharged> {
@@ -42,8 +42,8 @@ impl GetBucketAccelerateConfigurationOutput {
 }
 
 /// A builder for [`GetBucketAccelerateConfigurationOutput`](crate::operation::get_bucket_accelerate_configuration::GetBucketAccelerateConfigurationOutput).
-#[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::default::Default, ::std::fmt::Debug)]
+#[non_exhaustive]
 pub struct GetBucketAccelerateConfigurationOutputBuilder {
     pub(crate) status: ::std::option::Option<crate::types::BucketAccelerateStatus>,
     pub(crate) request_charged: ::std::option::Option<crate::types::RequestCharged>,
@@ -65,21 +65,21 @@ impl GetBucketAccelerateConfigurationOutputBuilder {
     pub fn get_status(&self) -> &::std::option::Option<crate::types::BucketAccelerateStatus> {
         &self.status
     }
-    /// <p>If present, indicates that the requester was successfully charged for the request.</p> <note>
+    /// <p>If present, indicates that the requester was successfully charged for the request.</p><note>
     /// <p>This functionality is not supported for directory buckets.</p>
     /// </note>
     pub fn request_charged(mut self, input: crate::types::RequestCharged) -> Self {
         self.request_charged = ::std::option::Option::Some(input);
         self
     }
-    /// <p>If present, indicates that the requester was successfully charged for the request.</p> <note>
+    /// <p>If present, indicates that the requester was successfully charged for the request.</p><note>
     /// <p>This functionality is not supported for directory buckets.</p>
     /// </note>
     pub fn set_request_charged(mut self, input: ::std::option::Option<crate::types::RequestCharged>) -> Self {
         self.request_charged = input;
         self
     }
-    /// <p>If present, indicates that the requester was successfully charged for the request.</p> <note>
+    /// <p>If present, indicates that the requester was successfully charged for the request.</p><note>
     /// <p>This functionality is not supported for directory buckets.</p>
     /// </note>
     pub fn get_request_charged(&self) -> &::std::option::Option<crate::types::RequestCharged> {

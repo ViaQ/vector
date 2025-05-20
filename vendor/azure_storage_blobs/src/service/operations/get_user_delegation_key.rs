@@ -5,9 +5,11 @@ use azure_core::{
     xml::{read_xml_str, to_xml},
     Method,
 };
-use azure_storage::headers::CommonStorageResponseHeaders;
+use azure_storage::{
+    headers::CommonStorageResponseHeaders, shared_access_signature::service_sas::UserDeligationKey,
+};
+use bytes::{Bytes, BytesMut};
 use time::OffsetDateTime;
-use uuid::Uuid;
 
 operation! {
     GetUserDelegationKey,
@@ -28,7 +30,7 @@ impl GetUserDelegationKeyBuilder {
                 start: self.start_time,
                 expiry: self.expiry_time,
             }
-            .as_string()?;
+            .encode()?;
 
             let mut request = BlobServiceClient::finalize_request(
                 url,
@@ -56,26 +58,11 @@ struct GetUserDelegationKeyRequest {
 }
 
 impl GetUserDelegationKeyRequest {
-    pub fn as_string(&self) -> azure_core::Result<String> {
-        Ok(format!(
-            "<?xml version=\"1.0\" encoding=\"utf-8\"?>{}",
-            to_xml(self)?
-        ))
+    pub fn encode(&self) -> azure_core::Result<Bytes> {
+        let mut body = BytesMut::from("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
+        body.extend(to_xml(self)?);
+        Ok(body.freeze())
     }
-}
-
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
-#[serde(rename_all = "PascalCase")]
-pub struct UserDeligationKey {
-    pub signed_oid: Uuid,
-    pub signed_tid: Uuid,
-    #[serde(with = "iso8601")]
-    pub signed_start: OffsetDateTime,
-    #[serde(with = "iso8601")]
-    pub signed_expiry: OffsetDateTime,
-    pub signed_service: String,
-    pub signed_version: String,
-    pub value: String,
 }
 
 #[derive(Debug)]
@@ -99,8 +86,10 @@ impl GetUserDelegationKeyResponse {
 #[cfg(test)]
 mod test {
     use super::*;
+    use azure_core::auth::Secret;
+    use uuid::Uuid;
 
-    const BASIC_REQUEST: &str = "<?xml version=\"1.0\" encoding=\"utf-8\"?><KeyInfo><Start>1970-01-01T00:00:00Z</Start><Expiry>1970-01-01T00:00:01Z</Expiry></KeyInfo>";
+    const BASIC_REQUEST: &[u8] = b"<?xml version=\"1.0\" encoding=\"utf-8\"?><KeyInfo><Start>1970-01-01T00:00:00Z</Start><Expiry>1970-01-01T00:00:01Z</Expiry></KeyInfo>";
     const BASIC_RESPONSE: &str = "
         <UserDeligationKey>
             <SignedOid>00000000-0000-0000-0000-000000000000</SignedOid>
@@ -119,7 +108,7 @@ mod test {
             start: OffsetDateTime::from_unix_timestamp(0).unwrap(),
             expiry: OffsetDateTime::from_unix_timestamp(1).unwrap(),
         }
-        .as_string()?;
+        .encode()?;
         assert_eq!(BASIC_REQUEST, request);
         Ok(())
     }
@@ -133,7 +122,7 @@ mod test {
             signed_expiry: OffsetDateTime::from_unix_timestamp(1).unwrap(),
             signed_service: "b".to_owned(),
             signed_version: "c".to_owned(),
-            value: "d".to_owned(),
+            value: Secret::new("d"),
         };
 
         let deserialized: UserDeligationKey = read_xml_str(BASIC_RESPONSE)?;

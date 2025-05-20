@@ -40,6 +40,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -126,6 +127,20 @@ impl ComparisonOperator {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for ComparisonOperator {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            ComparisonOperator::GreaterThanOrEqualToThreshold => write!(f, "GreaterThanOrEqualToThreshold"),
+            ComparisonOperator::GreaterThanThreshold => write!(f, "GreaterThanThreshold"),
+            ComparisonOperator::GreaterThanUpperThreshold => write!(f, "GreaterThanUpperThreshold"),
+            ComparisonOperator::LessThanLowerOrGreaterThanUpperThreshold => write!(f, "LessThanLowerOrGreaterThanUpperThreshold"),
+            ComparisonOperator::LessThanLowerThreshold => write!(f, "LessThanLowerThreshold"),
+            ComparisonOperator::LessThanOrEqualToThreshold => write!(f, "LessThanOrEqualToThreshold"),
+            ComparisonOperator::LessThanThreshold => write!(f, "LessThanThreshold"),
+            ComparisonOperator::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

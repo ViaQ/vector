@@ -1,3 +1,34 @@
+# Version 2.3.1
+
+- Use the correct version of `async-channel` in our manifest. (#93)
+
+# Version 2.3.0
+
+- Add `force_send` for sending items over the channel that displace other items. (#89)
+
+# Version 2.2.1
+
+- Fix the CI badge in the `crates.io` page. (#84)
+
+# Version 2.2.0
+
+- Bump `event-listener` to v5.0.0. (#79)
+- Bump MSRV to 1.60. (#80)
+
+# Version 2.1.1
+
+- Bump `event-listener` to v4.0.0. (#73)
+
+# Version 2.1.0
+
+- Bump `futures-lite` to its latest version. (#70)
+
+# Version 2.0.0
+
+- **Breaking:** Make `Send`, `Recv` and `Receiver` `!Unpin`. This enables more efficient event notification strategies. (#59)
+- **Breaking:** Add an `std` enabled-by-default feature that enables parts of the API that require `std`. (#59)
+- Add support for the `wasm32` target. (#67)
+
 # Version 1.9.0
 
 - Fix a bug where `WeakSender/WeakReceiver` could incorrectly return `Some` even if the channel is already closed (#60)

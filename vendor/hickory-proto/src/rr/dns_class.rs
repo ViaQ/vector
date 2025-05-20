@@ -8,18 +8,21 @@
 //! class of DNS operations, in general always IN for internet
 #![allow(clippy::use_self)]
 
-use std::cmp::Ordering;
-use std::fmt::{self, Display, Formatter};
-use std::str::FromStr;
+use alloc::string::ToString;
+use core::{
+    cmp::Ordering,
+    fmt::{self, Display, Formatter},
+    str::FromStr,
+};
 
-#[cfg(feature = "serde-config")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::error::*;
 use crate::serialize::binary::*;
 
 /// The DNS Record class
-#[cfg_attr(feature = "serde-config", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 #[allow(dead_code)]
 pub enum DNSClass {
@@ -100,7 +103,7 @@ impl BinEncodable for DNSClass {
     }
 }
 
-impl<'r> BinDecodable<'r> for DNSClass {
+impl BinDecodable<'_> for DNSClass {
     fn read(decoder: &mut BinDecoder<'_>) -> ProtoResult<Self> {
         let this = Self::from(
             decoder.read_u16()?.unverified(/*DNSClass is verified as safe in processing this*/),

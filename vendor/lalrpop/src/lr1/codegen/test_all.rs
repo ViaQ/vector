@@ -1,6 +1,8 @@
-//! A compiler from an LR(1) table to a [recursive ascent] parser.
+//! Test module for comparing code generation strategies
 //!
-//! [recursive ascent]: https://en.wikipedia.org/wiki/Recursive_ascent_parser
+//! The TestAll code generation strategy uses both parse tables and recursive ascent, and then
+//! compares the parsing return values to ensure they are both identical.  This is for use in the
+//! `lalrpop-test` test suite and not intended for external consumption.
 
 use crate::grammar::repr::{Grammar, NonterminalString, TypeParameter};
 use crate::lr1::core::*;
@@ -48,7 +50,7 @@ impl<'ascent, 'grammar, W: Write> CodeGenerator<'ascent, 'grammar, W, TestAll> {
         self.write_parse_mod(|this| {
             this.write_parser_fn()?;
 
-            rust!(this.out, "#[cfg_attr(rustfmt, rustfmt_skip)]");
+            rust!(this.out, "#[rustfmt::skip]");
             rust!(this.out, "mod {}ascent {{", this.prefix);
             super::ascent::compile(
                 this.grammar,
@@ -68,7 +70,7 @@ impl<'ascent, 'grammar, W: Write> CodeGenerator<'ascent, 'grammar, W, TestAll> {
             rust!(this.out, "{}", pub_use);
             rust!(this.out, "}}");
 
-            rust!(this.out, "#[cfg_attr(rustfmt, rustfmt_skip)]");
+            rust!(this.out, "#[rustfmt::skip]");
             rust!(this.out, "mod {}parse_table {{", this.prefix);
             super::parse_table::compile(
                 this.grammar,

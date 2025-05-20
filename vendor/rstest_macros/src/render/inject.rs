@@ -31,7 +31,7 @@ where
     magic_conversion: &'f dyn Fn(Cow<Expr>, &Type) -> Expr,
 }
 
-impl<'resolver, 'idents, 'f, R> ArgumentResolver<'resolver, 'idents, 'f, R>
+impl<'resolver, 'idents, R> ArgumentResolver<'resolver, 'idents, '_, R>
 where
     R: Resolver + 'resolver,
 {
@@ -110,7 +110,7 @@ fn handling_magic_conversion_code(fixture: Cow<Expr>, arg_type: &Type) -> Expr {
     parse_quote! {
         {
             use #rstest_path::magic_conversion::*;
-            (&&&Magic::<#arg_type>(std::marker::PhantomData)).magic_conversion(#fixture)
+            (&&&Magic::<#arg_type>(core::marker::PhantomData)).magic_conversion(#fixture)
         }
     }
 }
@@ -203,6 +203,91 @@ mod should {
             generic_types_names: &generics,
             magic_conversion: &_mock_conversion_code,
         };
+
+        let injected = ag.resolve(&arg).unwrap();
+
+        assert_eq!(injected, expected.ast());
+    }
+
+    #[rstest]
+    #[case::simple_type(
+        "fn test(arg: MyType) {}",
+        0,
+        "let arg = {
+            use rstest::magic_conversion::*;
+            (&&&Magic::<MyType>(core::marker::PhantomData)).magic_conversion(\"value to convert\")
+        };"
+    )]
+    #[case::discard_impl(
+        "fn test(arg: impl AsRef<str>) {}",
+        0,
+        r#"let arg = "value to convert";"#
+    )]
+    #[case::discard_generic_type(
+        "fn test<S: AsRef<str>>(arg: S) {}",
+        0,
+        r#"let arg = "value to convert";"#
+    )]
+    #[case::reference_type(
+        "fn test(arg: &MyType) {}",
+        0,
+        "let arg = {
+            use rstest::magic_conversion::*;
+            (&&&Magic::<&MyType>(core::marker::PhantomData)).magic_conversion(\"value to convert\")
+        };"
+    )]
+    #[case::mutable_reference_type(
+        "fn test(arg: &mut MyType) {}",
+        0,
+        "let arg = {
+            use rstest::magic_conversion::*;
+            (&&&Magic::<&mut MyType>(core::marker::PhantomData)).magic_conversion(\"value to convert\")
+        };"
+    )]
+    #[case::generic_type_with_lifetime(
+        "fn test<'a, T>(arg: &'a T) where T: Default {}",
+        0,
+        "let arg = {
+            use rstest::magic_conversion::*;
+            (&&&Magic::<&'a T>(core::marker::PhantomData)).magic_conversion(\"value to convert\")
+        };"
+    )]
+    #[case::type_with_generic_parameters(
+        "fn test(arg: Option<MyType>) {}",
+        0,
+        "let arg = {
+            use rstest::magic_conversion::*;
+            (&&&Magic::<Option<MyType>>(core::marker::PhantomData)).magic_conversion(\"value to convert\")
+        };"
+    )]
+    #[case::complex_type(
+        "fn test(arg: Result<Vec<MyType>, MyError>) {}",
+        0,
+        "let arg = {
+            use rstest::magic_conversion::*;
+            (&&&Magic::<Result<Vec<MyType>, MyError>>(core::marker::PhantomData)).magic_conversion(\"value to convert\")
+        };"
+    )]
+    fn generated_code_uses_phantom_data(
+        #[case] fn_str: &str,
+        #[case] n_arg: usize,
+        #[case] expected: &str,
+    ) {
+        let function = fn_str.ast();
+        let arg = fn_args(&function).nth(n_arg).unwrap();
+        let generics = function
+            .sig
+            .generics
+            .type_params()
+            .map(|tp| &tp.ident)
+            .cloned()
+            .collect::<Vec<_>>();
+
+        let mut resolver = std::collections::HashMap::new();
+        let expr = expr(r#""value to convert""#);
+        resolver.insert(arg.maybe_pat().unwrap().clone(), &expr);
+
+        let ag = ArgumentResolver::new(&resolver, &generics);
 
         let injected = ag.resolve(&arg).unwrap();
 

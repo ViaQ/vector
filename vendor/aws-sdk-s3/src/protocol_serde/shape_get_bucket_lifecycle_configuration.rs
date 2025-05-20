@@ -31,6 +31,16 @@ pub fn de_get_bucket_lifecycle_configuration_http_response(
         let mut output = crate::operation::get_bucket_lifecycle_configuration::builders::GetBucketLifecycleConfigurationOutputBuilder::default();
         output = crate::protocol_serde::shape_get_bucket_lifecycle_configuration::de_get_bucket_lifecycle_configuration(_response_body, output)
             .map_err(crate::operation::get_bucket_lifecycle_configuration::GetBucketLifecycleConfigurationError::unhandled)?;
+        output = output.set_transition_default_minimum_object_size(
+            crate::protocol_serde::shape_get_bucket_lifecycle_configuration_output::de_transition_default_minimum_object_size_header(
+                _response_headers,
+            )
+            .map_err(|_| {
+                crate::operation::get_bucket_lifecycle_configuration::GetBucketLifecycleConfigurationError::unhandled(
+                    "Failed to parse TransitionDefaultMinimumObjectSize from header `x-amz-transition-default-minimum-object-size",
+                )
+            })?,
+        );
         output._set_extended_request_id(crate::s3_request_id::RequestIdExt::extended_request_id(_response_headers).map(str::to_string));
         output._set_request_id(::aws_types::request_id::RequestId::request_id(_response_headers).map(str::to_string));
         output.build()
@@ -43,16 +53,14 @@ pub fn ser_get_bucket_lifecycle_configuration_headers(
 ) -> std::result::Result<::http::request::Builder, ::aws_smithy_types::error::operation::BuildError> {
     if let ::std::option::Option::Some(inner_1) = &input.expected_bucket_owner {
         let formatted_2 = inner_1.as_str();
-        if !formatted_2.is_empty() {
-            let header_value = formatted_2;
-            let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
-                ::aws_smithy_types::error::operation::BuildError::invalid_field(
-                    "expected_bucket_owner",
-                    format!("`{}` cannot be used as a header value: {}", &header_value, err),
-                )
-            })?;
-            builder = builder.header("x-amz-expected-bucket-owner", header_value);
-        }
+        let header_value = formatted_2;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "expected_bucket_owner",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("x-amz-expected-bucket-owner", header_value);
     }
     Ok(builder)
 }
@@ -61,7 +69,7 @@ pub fn ser_get_bucket_lifecycle_configuration_headers(
 pub fn de_get_bucket_lifecycle_configuration(
     inp: &[u8],
     mut builder: crate::operation::get_bucket_lifecycle_configuration::builders::GetBucketLifecycleConfigurationOutputBuilder,
-) -> Result<
+) -> std::result::Result<
     crate::operation::get_bucket_lifecycle_configuration::builders::GetBucketLifecycleConfigurationOutputBuilder,
     ::aws_smithy_xml::decode::XmlDecodeError,
 > {

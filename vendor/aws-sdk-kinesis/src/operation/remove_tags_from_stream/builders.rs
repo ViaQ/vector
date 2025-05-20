@@ -3,7 +3,7 @@ pub use crate::operation::remove_tags_from_stream::_remove_tags_from_stream_outp
 
 pub use crate::operation::remove_tags_from_stream::_remove_tags_from_stream_input::RemoveTagsFromStreamInputBuilder;
 
-impl RemoveTagsFromStreamInputBuilder {
+impl crate::operation::remove_tags_from_stream::builders::RemoveTagsFromStreamInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,11 +22,11 @@ impl RemoveTagsFromStreamInputBuilder {
 }
 /// Fluent builder constructing a request to `RemoveTagsFromStream`.
 ///
-/// <p>Removes tags from the specified Kinesis data stream. Removed tags are deleted and cannot be recovered after this operation successfully completes.</p> <note>
+/// <p>Removes tags from the specified Kinesis data stream. Removed tags are deleted and cannot be recovered after this operation successfully completes.</p><note>
 /// <p>When invoking this API, you must use either the <code>StreamARN</code> or the <code>StreamName</code> parameter, or both. It is recommended that you use the <code>StreamARN</code> input parameter when you invoke this API.</p>
 /// </note>
 /// <p>If you specify a tag that does not exist, it is ignored.</p>
-/// <p> <code>RemoveTagsFromStream</code> has a limit of five transactions per second per account.</p>
+/// <p><code>RemoveTagsFromStream</code> has a limit of five transactions per second per account.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct RemoveTagsFromStreamFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -52,7 +52,7 @@ impl
     }
 }
 impl RemoveTagsFromStreamFluentBuilder {
-    /// Creates a new `RemoveTagsFromStream`.
+    /// Creates a new `RemoveTagsFromStreamFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -103,12 +103,12 @@ impl RemoveTagsFromStreamFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -126,6 +126,7 @@ impl RemoveTagsFromStreamFluentBuilder {
     pub fn get_stream_name(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_stream_name()
     }
+    ///
     /// Appends an item to `TagKeys`.
     ///
     /// To override the contents of this collection use [`set_tag_keys`](Self::set_tag_keys).

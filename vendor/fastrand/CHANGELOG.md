@@ -1,3 +1,11 @@
+# Version 2.3.0
+
+- Accept `IntoIterator` in `choose_multiple` functions instead of just `Iterator`. (#92)
+
+# Version 2.2.0
+
+- Expose missing `fill` method for the global RNG. (#90)
+
 # Version 2.1.1
 
 - Remove support for 128-bit targets, as they are not supported by rustc yet. (#87)

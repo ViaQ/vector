@@ -1,6 +1,9 @@
 use quote::quote;
 use syn::parse::{Parse, ParseStream, Result};
-use syn::{Attribute, Error, ImplItem, ItemImpl, ItemTrait, LitStr, Token, TraitItem, Visibility};
+use syn::{
+    Attribute, Error, Generics, ImplItem, ItemImpl, ItemTrait, LitStr, Token, TraitItem, Type,
+    TypeParamBound, Visibility, WherePredicate,
+};
 
 mod kw {
     syn::custom_keyword!(tag);
@@ -51,11 +54,13 @@ impl Parse for Input {
                     let msg = "typetag trait with associated const is not supported yet";
                     return Err(Error::new_spanned(span, msg));
                 } else if let TraitItem::Type(assoc) = assoc {
-                    let type_token = assoc.type_token;
-                    let semi_token = assoc.semi_token;
-                    let span = quote!(#type_token #semi_token);
-                    let msg = "typetag trait with associated type is not supported yet";
-                    return Err(Error::new_spanned(span, msg));
+                    if !is_self_sized(&assoc.generics) {
+                        let type_token = assoc.type_token;
+                        let semi_token = assoc.semi_token;
+                        let span = quote!(#type_token #semi_token);
+                        let msg = "typetag trait with associated type is not supported yet";
+                        return Err(Error::new_spanned(span, msg));
+                    }
                 }
             }
             attrs.extend(item.attrs);
@@ -76,12 +81,6 @@ impl Parse for Input {
                     let semi_token = assoc.semi_token;
                     let span = quote!(#const_token #semi_token);
                     let msg = "typetag trait with associated const is not supported yet";
-                    return Err(Error::new_spanned(span, msg));
-                } else if let ImplItem::Type(assoc) = assoc {
-                    let type_token = assoc.type_token;
-                    let semi_token = assoc.semi_token;
-                    let span = quote!(#type_token #semi_token);
-                    let msg = "typetag trait with associated type is not supported yet";
                     return Err(Error::new_spanned(span, msg));
                 }
             }
@@ -183,4 +182,25 @@ impl Parse for ImplArgs {
         };
         Ok(ImplArgs { name })
     }
+}
+
+fn is_self_sized(generics: &Generics) -> bool {
+    if let Some(where_clause) = &generics.where_clause {
+        for predicate in &where_clause.predicates {
+            if let WherePredicate::Type(pred_type) = predicate {
+                if let Type::Path(type_path) = &pred_type.bounded_ty {
+                    if type_path.path.is_ident("Self") {
+                        for bound in &pred_type.bounds {
+                            if let TypeParamBound::Trait(trait_bound) = bound {
+                                if trait_bound.path.is_ident("Sized") {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    false
 }

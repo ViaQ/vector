@@ -1,6 +1,5 @@
-use std::{fmt, io};
-
-use thiserror::Error;
+use alloc::{fmt, string::String};
+use std::io;
 
 #[cfg(feature = "backtrace")]
 use crate::trace;
@@ -9,12 +8,13 @@ use crate::{
     rr::RecordType,
     serialize::txt::Token,
 };
+
 #[cfg(feature = "backtrace")]
-#[cfg_attr(docsrs, doc(cfg(feature = "backtrace")))]
 use backtrace::Backtrace as ExtBacktrace;
+use thiserror::Error;
 
 /// An alias for parse results returned by functions of this crate
-pub type ParseResult<T> = ::std::result::Result<T, ParseError>;
+pub type ParseResult<T> = ::core::result::Result<T, ParseError>;
 
 /// The error kind for parse errors that get returned in the crate
 #[derive(Debug, Error)]
@@ -46,6 +46,13 @@ pub enum ParseErrorKind {
 
     // foreign
     /// An address parse error
+    #[cfg(not(feature = "std"))]
+    #[error("network address parse error: {0}")]
+    AddrParse(#[from] core::net::AddrParseError),
+
+    // foreign
+    /// An address parse error
+    #[cfg(feature = "std")]
     #[error("network address parse error: {0}")]
     AddrParse(#[from] std::net::AddrParseError),
 
@@ -54,6 +61,7 @@ pub enum ParseErrorKind {
     DataEncoding(#[from] data_encoding::DecodeError),
 
     /// An error got returned from IO
+    #[cfg(feature = "std")]
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
 
@@ -63,7 +71,7 @@ pub enum ParseErrorKind {
 
     /// A number parsing error
     #[error("error parsing number: {0}")]
-    ParseInt(#[from] std::num::ParseIntError),
+    ParseInt(#[from] core::num::ParseIntError),
 
     /// An error got returned by the hickory-proto crate
     #[error("proto error: {0}")]
@@ -88,13 +96,14 @@ impl Clone for ParseErrorKind {
         match self {
             CharToInt(c) => CharToInt(*c),
             Message(msg) => Message(msg),
-            MissingToken(ref s) => MissingToken(s.clone()),
-            Msg(ref msg) => Msg(msg.clone()),
-            ParseTime(ref s) => ParseTime(s.clone()),
-            UnexpectedToken(ref token) => UnexpectedToken(token.clone()),
+            MissingToken(s) => MissingToken(s.clone()),
+            Msg(msg) => Msg(msg.clone()),
+            ParseTime(s) => ParseTime(s.clone()),
+            UnexpectedToken(token) => UnexpectedToken(token.clone()),
 
             AddrParse(e) => AddrParse(e.clone()),
             DataEncoding(e) => DataEncoding(*e),
+            #[cfg(feature = "std")]
             Io(e) => Io(std::io::Error::from(e.kind())),
             Lexer(e) => Lexer(e.clone()),
             ParseInt(e) => ParseInt(e.clone()),
@@ -125,7 +134,7 @@ impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         cfg_if::cfg_if! {
             if #[cfg(feature = "backtrace")] {
-                if let Some(ref backtrace) = self.backtrack {
+                if let Some(backtrace) = &self.backtrack {
                     fmt::Display::fmt(&self.kind, f)?;
                     fmt::Debug::fmt(backtrace, f)
                 } else {
@@ -160,6 +169,14 @@ impl From<String> for ParseError {
     }
 }
 
+#[cfg(not(feature = "std"))]
+impl From<core::net::AddrParseError> for ParseError {
+    fn from(e: core::net::AddrParseError) -> Self {
+        ParseErrorKind::from(e).into()
+    }
+}
+
+#[cfg(feature = "std")]
 impl From<std::net::AddrParseError> for ParseError {
     fn from(e: std::net::AddrParseError) -> Self {
         ParseErrorKind::from(e).into()
@@ -187,30 +204,30 @@ impl From<LexerError> for ParseError {
     }
 }
 
-impl From<std::num::ParseIntError> for ParseError {
-    fn from(e: std::num::ParseIntError) -> Self {
+impl From<core::num::ParseIntError> for ParseError {
+    fn from(e: core::num::ParseIntError) -> Self {
         ParseErrorKind::from(e).into()
     }
 }
 
 impl From<ProtoError> for ParseError {
     fn from(e: ProtoError) -> Self {
-        match *e.kind() {
+        match e.kind() {
             ProtoErrorKind::Timeout => ParseErrorKind::Timeout.into(),
             _ => ParseErrorKind::from(e).into(),
         }
     }
 }
 
-impl From<std::convert::Infallible> for ParseError {
-    fn from(_e: std::convert::Infallible) -> Self {
+impl From<core::convert::Infallible> for ParseError {
+    fn from(_e: core::convert::Infallible) -> Self {
         panic!("infallible")
     }
 }
 
 impl From<ParseError> for io::Error {
     fn from(e: ParseError) -> Self {
-        match *e.kind() {
+        match e.kind() {
             ParseErrorKind::Timeout => Self::new(io::ErrorKind::TimedOut, e),
             _ => Self::new(io::ErrorKind::Other, e),
         }
@@ -218,7 +235,7 @@ impl From<ParseError> for io::Error {
 }
 
 /// An alias for lexer results returned by functions of this crate
-pub(crate) type LexerResult<T> = ::std::result::Result<T, LexerError>;
+pub(crate) type LexerResult<T> = core::result::Result<T, LexerError>;
 
 /// The error kind for lexer errors that get returned in the crate
 #[derive(Eq, PartialEq, Debug, Error, Clone)]
@@ -290,7 +307,7 @@ impl fmt::Display for LexerError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         cfg_if::cfg_if! {
             if #[cfg(feature = "backtrace")] {
-                if let Some(ref backtrace) = self.backtrack {
+                if let Some(backtrace) = &self.backtrack {
                     fmt::Display::fmt(&self.kind, f)?;
                     fmt::Debug::fmt(backtrace, f)
                 } else {

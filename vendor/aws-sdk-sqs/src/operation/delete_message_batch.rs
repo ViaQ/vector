@@ -50,7 +50,18 @@ impl DeleteMessageBatch {
         >,
     > {
         let input = ::aws_smithy_runtime_api::client::interceptors::context::Input::erase(input);
-        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("sqs", "DeleteMessageBatch", input, runtime_plugins, stop_point).await
+        use ::tracing::Instrument;
+        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("SQS", "DeleteMessageBatch", input, runtime_plugins, stop_point)
+            // Create a parent span for the entire operation. Includes a random, internal-only,
+            // seven-digit ID for the operation orchestration so that it can be correlated in the logs.
+            .instrument(::tracing::debug_span!(
+                "SQS.DeleteMessageBatch",
+                "rpc.service" = "SQS",
+                "rpc.method" = "DeleteMessageBatch",
+                "sdk_invocation_id" = ::fastrand::u32(1_000_000..10_000_000),
+                "rpc.system" = "aws-api",
+            ))
+            .await
     }
 
     pub(crate) fn operation_runtime_plugins(
@@ -90,7 +101,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for DeleteM
             ::aws_smithy_runtime_api::client::auth::static_resolver::StaticAuthSchemeOptionResolverParams::new(),
         ));
 
-        cfg.store_put(::aws_smithy_http::operation::Metadata::new("DeleteMessageBatch", "sqs"));
+        cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::Metadata::new("DeleteMessageBatch", "SQS"));
         let mut signing_options = ::aws_runtime::auth::SigningOptions::default();
         signing_options.double_uri_encode = true;
         signing_options.content_sha256_header = false;
@@ -111,11 +122,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for DeleteM
     ) -> ::std::borrow::Cow<'_, ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder> {
         #[allow(unused_mut)]
         let mut rcb = ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("DeleteMessageBatch")
-            .with_interceptor(
-                ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::new(
-                    ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptorKind::ResponseBody,
-                ),
-            )
+            .with_interceptor(::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::default())
             .with_interceptor(DeleteMessageBatchEndpointParamsInterceptor)
             .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<
                 crate::operation::delete_message_batch::DeleteMessageBatchError,
@@ -193,6 +200,8 @@ impl ::aws_smithy_runtime_api::client::ser_de::SerializeRequest for DeleteMessag
                 ::http::header::HeaderName::from_static("x-amz-target"),
                 "AmazonSQS.DeleteMessageBatch",
             );
+            builder =
+                _header_serialization_settings.set_default_header(builder, ::http::header::HeaderName::from_static("x-amzn-query-mode"), "true");
             builder
         };
         let body =
@@ -242,6 +251,9 @@ impl ::aws_smithy_runtime_api::client::interceptors::Intercept for DeleteMessage
     }
 }
 
+// The get_* functions below are generated from JMESPath expressions in the
+// operationContextParams trait. They target the operation's input shape.
+
 /// Error type for the `DeleteMessageBatchError` operation.
 #[non_exhaustive]
 #[derive(::std::fmt::Debug)]
@@ -250,22 +262,23 @@ pub enum DeleteMessageBatchError {
     BatchEntryIdsNotDistinct(crate::types::error::BatchEntryIdsNotDistinct),
     /// <p>The batch request doesn't contain any entries.</p>
     EmptyBatchRequest(crate::types::error::EmptyBatchRequest),
-    /// <p>The <code>accountId</code> is invalid.</p>
+    /// <p>The specified ID is invalid.</p>
     InvalidAddress(crate::types::error::InvalidAddress),
     /// <p>The <code>Id</code> of a batch entry in a batch request doesn't abide by the specification.</p>
     InvalidBatchEntryId(crate::types::error::InvalidBatchEntryId),
-    /// <p>When the request to a queue is not HTTPS and SigV4.</p>
+    /// <p>The request was not made over HTTPS or did not use SigV4 for signing.</p>
     InvalidSecurity(crate::types::error::InvalidSecurity),
-    /// <p>The specified queue doesn't exist.</p>
+    /// <p>Ensure that the <code>QueueUrl</code> is correct and that the queue has not been deleted.</p>
     QueueDoesNotExist(crate::types::error::QueueDoesNotExist),
     /// <p>The request was denied due to request throttling.</p>
     /// <ul>
-    /// <li> <p>The rate of requests per second exceeds the Amazon Web Services KMS request quota for an account and Region. </p> </li>
-    /// <li> <p>A burst or sustained high rate of requests to change the state of the same KMS key. This condition is often known as a "hot key."</p> </li>
-    /// <li> <p>Requests for operations on KMS keys in a Amazon Web Services CloudHSM key store might be throttled at a lower-than-expected rate when the Amazon Web Services CloudHSM cluster associated with the Amazon Web Services CloudHSM key store is processing numerous commands, including those unrelated to the Amazon Web Services CloudHSM key store.</p> </li>
+    /// <li>
+    /// <p>Exceeds the permitted request rate for the queue or for the recipient of the request.</p></li>
+    /// <li>
+    /// <p>Ensure that the request rate is within the Amazon SQS limits for sending messages. For more information, see <a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-quotas.html#quotas-requests">Amazon SQS quotas</a> in the <i>Amazon SQS Developer Guide</i>.</p></li>
     /// </ul>
     RequestThrottled(crate::types::error::RequestThrottled),
-    /// <p>The batch request contains more entries than permissible.</p>
+    /// <p>The batch request contains more entries than permissible. For Amazon SQS, the maximum number of entries you can include in a single <a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessageBatch.html">SendMessageBatch</a>, <a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_DeleteMessageBatch.html">DeleteMessageBatch</a>, or <a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_ChangeMessageVisibilityBatch.html">ChangeMessageVisibilityBatch</a> request is 10.</p>
     TooManyEntriesInBatchRequest(crate::types::error::TooManyEntriesInBatchRequest),
     /// <p>Error code 400. Unsupported operation.</p>
     UnsupportedOperation(crate::types::error::UnsupportedOperation),

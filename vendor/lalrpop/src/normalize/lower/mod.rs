@@ -2,7 +2,6 @@
 //!
 
 use crate::collections::{map, Map};
-use crate::grammar::consts::CFG;
 use crate::grammar::parse_tree as pt;
 use crate::grammar::parse_tree::{
     read_algorithm, GrammarItem, InternToken, Lifetime, MatchMapping, Name, NonterminalString,
@@ -15,9 +14,11 @@ use crate::normalize::NormResult;
 use crate::session::Session;
 use string_cache::DefaultAtom as Atom;
 
+use super::cond_comp::cfg_active;
+
 pub fn lower(session: &Session, grammar: pt::Grammar, types: r::Types) -> NormResult<r::Grammar> {
     let state = LowerState::new(session, types, &grammar);
-    state.lower(grammar)
+    state.lower(session, grammar)
 }
 
 struct LowerState<'s> {
@@ -45,11 +46,10 @@ impl<'s> LowerState<'s> {
         }
     }
 
-    fn lower(mut self, grammar: pt::Grammar) -> NormResult<r::Grammar> {
+    fn lower(mut self, session: &Session, grammar: pt::Grammar) -> NormResult<r::Grammar> {
         let start_symbols = self.synthesize_start_symbols(&grammar);
 
         let mut uses = vec![];
-        let mut token_span = None;
         let internal_token_path = Path {
             absolute: false,
             ids: vec![Atom::from("Token")],
@@ -68,7 +68,6 @@ impl<'s> LowerState<'s> {
                 }
 
                 pt::GrammarItem::InternToken(data) => {
-                    token_span = Some(grammar.span);
                     let span = grammar.span;
                     let input_str = r::TypeRepr::Ref {
                         lifetime: Some(Lifetime::input()),
@@ -109,14 +108,18 @@ impl<'s> LowerState<'s> {
 
                 pt::GrammarItem::ExternToken(data) => {
                     if let Some(enum_token) = data.enum_token {
-                        token_span = Some(enum_token.type_span);
-                        self.conversions
-                            .extend(enum_token.conversions.iter().map(|conversion| {
-                                (
-                                    conversion.from.clone(),
-                                    conversion.to.map(&mut |t| t.type_repr()),
-                                )
-                            }));
+                        self.conversions.extend(
+                            enum_token
+                                .conversions
+                                .iter()
+                                .filter(|conversion| cfg_active(session, &conversion.attributes))
+                                .map(|conversion| {
+                                    (
+                                        conversion.from.clone(),
+                                        conversion.to.map(&mut |t| t.type_repr()),
+                                    )
+                                }),
+                        );
                     }
                 }
 
@@ -140,9 +143,8 @@ impl<'s> LowerState<'s> {
                     self.nonterminals.insert(
                         nt_name.clone(),
                         r::NonterminalData {
-                            name: nt_name.clone(),
                             visibility: nt.visibility.clone(),
-                            annotations: nt.annotations,
+                            attributes: nt.attributes,
                             span: nt.span,
                             productions,
                         },
@@ -174,9 +176,9 @@ impl<'s> LowerState<'s> {
             algorithm.codegen = r::LrCodeGeneration::TestAll;
         }
 
-        read_algorithm(&grammar.annotations, &mut algorithm);
+        read_algorithm(&grammar.attributes, &mut algorithm);
 
-        let mut all_terminals: Vec<_> = self
+        let all_terminals: Vec<_> = self
             .conversions
             .iter()
             .map(|c| c.0.clone())
@@ -186,7 +188,6 @@ impl<'s> LowerState<'s> {
                 None
             })
             .collect();
-        all_terminals.sort();
 
         let terminal_bits: Map<_, _> = all_terminals.iter().cloned().zip(0..).collect();
 
@@ -199,7 +200,6 @@ impl<'s> LowerState<'s> {
             nonterminals: self.nonterminals,
             conversions: self.conversions.into_iter().collect(),
             types: self.types,
-            token_span: token_span.unwrap(),
             type_parameters: grammar.type_parameters,
             parameters,
             where_clauses,
@@ -217,13 +217,11 @@ impl<'s> LowerState<'s> {
         &mut self,
         grammar: &pt::Grammar,
     ) -> Map<NonterminalString, NonterminalString> {
-        let session = self.session;
         grammar
             .items
             .iter()
             .filter_map(GrammarItem::as_nonterminal)
             .filter(|nt| nt.visibility.is_pub())
-            .filter(|nt| cfg_active(session, nt))
             .map(|nt| {
                 // create a synthetic symbol `__Foo` for each public symbol `Foo`
                 // with a rule like:
@@ -250,9 +248,8 @@ impl<'s> LowerState<'s> {
                 self.nonterminals.insert(
                     fake_name.clone(),
                     r::NonterminalData {
-                        name: fake_name.clone(),
                         visibility: nt.visibility.clone(),
-                        annotations: vec![],
+                        attributes: vec![],
                         span: nt.span,
                         productions: vec![production],
                     },
@@ -504,19 +501,4 @@ where
     debug_assert!(next_chosen.is_none());
 
     result
-}
-
-fn cfg_active(session: &Session, nt: &pt::NonterminalData) -> bool {
-    let cfg_atom = Atom::from(CFG);
-    nt.annotations
-        .iter()
-        .filter(|ann| ann.id == cfg_atom)
-        .all(|ann| {
-            ann.arg.as_ref().map_or(false, |(_, feature)| {
-                session
-                    .features
-                    .as_ref()
-                    .map_or(false, |features| features.contains(feature))
-            })
-        })
 }

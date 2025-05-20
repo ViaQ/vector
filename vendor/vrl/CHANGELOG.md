@@ -4,6 +4,145 @@
 
 <!-- changelog start -->
 
+## [0.23.0 (2025-04-03)]
+
+
+### Breaking Changes & Upgrade Guide
+
+- The `ip_cidr_contains` function now validates the cidr argument during the compilation phase if it is a constant string or array. Previously, invalid constant CIDR values would only trigger an error during execution.
+
+  Previous Behavior: Runtime Error
+
+  Previously, if an invalid CIDR was passed as a constant, an error was thrown at runtime:
+
+  ```
+  error[E000]: function call error for "ip_cidr_contains" at (0:45): unable to parse CIDR: couldn't parse address in network: invalid IP address syntax
+    ┌─ :1:1
+    │
+  1 │ ip_cidr_contains!("INVALID", "192.168.10.32")
+    │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unable to parse CIDR: couldn't parse address in network: invalid IP address syntax
+    │
+    = see language documentation at https://vrl.dev
+    = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+  ```
+
+  New Behavior: Compilation Error
+
+  ```
+  error[E610]: function compilation error: error[E403] invalid argument
+    ┌─ :1:1
+    │
+  1 │ ip_cidr_contains!("INVALID", "192.168.10.32")
+    │ ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    │ │
+    │ invalid argument "ip_cidr_contains"
+    │ error: "cidr" must be valid cidr
+    │ received: "INVALID"
+    │
+    = learn more about error code 403 at https://errors.vrl.dev/403
+    = see language documentation at https://vrl.dev
+    = try your code in the VRL REPL, learn more at https://vrl.dev/examples
+  ```
+
+  This change improves error detection by identifying invalid CIDR values earlier, reducing unexpected failures at runtime and provides better performance.
+
+  authors: JakubOnderka (https://github.com/vectordotdev/vrl/pull/1286)
+
+### New Features
+
+- Support for encoding and decoding lz4 block compression.
+
+  authors: jimmystewpot (https://github.com/vectordotdev/vrl/pull/1339)
+
+### Enhancements
+
+- The `encode_proto` function was enhanced to automatically convert integer, float, and boolean values when passed to string proto fields. (https://github.com/vectordotdev/vrl/pull/1304)
+- The `parse_user_agent` method now uses the [ua-parser](https://crates.io/crates/ua-parser) library
+  which is much faster than the previous library. The method's output remains unchanged.
+
+  authors: JakubOnderka (https://github.com/vectordotdev/vrl/pull/1317)
+- Added support for excluded_boundaries in the `snakecase()` function. This allows users to leverage the same function `snakecase()` that they're already leveraging but tune it to handle specific scenarios where default boundaries are not desired.
+
+  For example,
+
+  ```rust
+  snakecase("s3BucketDetails", excluded_boundaries: ["digit_lower", "lower_digit", "upper_digit"])
+  /// Output: s3_bucket_details
+  ```
+
+  authors: brittonhayes (https://github.com/vectordotdev/vrl/pull/1324)
+
+### Fixes
+
+- The `parse_nginx_log` function can now parse `delaying requests` error messages.
+
+  authors: JakubOnderka (https://github.com/vectordotdev/vrl/pull/1285)
+
+
+## [0.22.0 (2025-02-19)]
+
+
+### Breaking Changes & Upgrade Guide
+
+- Removed deprecated `ellipsis` argument from the `truncate` function. Use `suffix` instead. (https://github.com/vectordotdev/vrl/pull/1188)
+- Fix `slice` type_def. This is a breaking change because it might change the fallibility of the `slice` function and this VRL scripts will
+  need to be updated accordingly.
+
+  authors: pront (https://github.com/vectordotdev/vrl/pull/1246)
+
+### New Features
+
+- Added new `to_syslog_facility_code` function to convert syslog facility keyword to syslog facility code. (https://github.com/vectordotdev/vrl/pull/1221)
+- Downgrade "can't abort infallible function" error to a warning. (https://github.com/vectordotdev/vrl/pull/1247)
+- `ip_cidr_contains` method now also accepts an array of CIDRs.
+
+  authors: JakubOnderka (https://github.com/vectordotdev/vrl/pull/1248)
+- Faster converting bytes to Unicode string by using SIMD instructions provided by simdutf8 crate.
+  simdutf8 is up to 23 times faster than the std library on valid non-ASCII, up to four times on pure
+  ASCII is the same method provided by Rust's standard library. This will speed up almost all VRL methods
+  like `parse_json` or `parse_regex`.
+
+  authors: JakubOnderka (https://github.com/vectordotdev/vrl/pull/1249)
+- Added `shannon_entropy` function to generate [entropy](https://en.wikipedia.org/wiki/Entropy_(information_theory)) from a string.
+
+  authors: esensar (https://github.com/vectordotdev/vrl/pull/1267)
+
+### Fixes
+
+- Fix decimals parsing in parse_duration function
+
+  authors: sainad2222 (https://github.com/vectordotdev/vrl/pull/1223)
+- Fix `parse_nginx_log` function when a format is set to error and an error message contains comma.
+
+  authors: JakubOnderka (https://github.com/vectordotdev/vrl/pull/1280)
+
+
+## [0.21.0 (2025-01-13)]
+
+
+### Breaking Changes & Upgrade Guide
+
+- `to_unix_timestamp`, `to_float`, and `uuid_v7` can now return an error if the supplied timestamp is unrepresentable as a nanosecond timestamp. Previously the function calls would panic. (https://github.com/vectordotdev/vrl/pull/979)
+
+### New Features
+
+- Added new `crc` function to calculate CRC (Cyclic Redundancy Check) checksum
+- Add `parse_cbor` function (https://github.com/vectordotdev/vrl/pull/1152)
+- Added new `zip` function to iterate over an array of arrays and produce a new
+  arrays containing an item from each one. (https://github.com/vectordotdev/vrl/pull/1158)
+- Add new `decode_charset`, `encode_charset` functions to decode and encode strings between different charsets. (https://github.com/vectordotdev/vrl/pull/1162)
+- Added new `object_from_array` function to create an object from an array of
+  value pairs such as what `zip` can produce. (https://github.com/vectordotdev/vrl/pull/1164)
+- Added support for multi-unit duration strings (e.g., `1h2s`, `2m3s`) in the `parse_duration` function. (https://github.com/vectordotdev/vrl/pull/1197)
+- Added new `parse_bytes` function to parse given bytes string such as `1MiB` or `1TB` either in binary or decimal base. (https://github.com/vectordotdev/vrl/pull/1198)
+- Add `main` log format for `parse_nginx_log`. (https://github.com/vectordotdev/vrl/pull/1202)
+- Added support for optional `timezone` argument in the `parse_timestamp` function. (https://github.com/vectordotdev/vrl/pull/1207)
+
+### Fixes
+
+- Fix a panic in float subtraction that produces NaN values. (https://github.com/vectordotdev/vrl/pull/1186)
+
+
 ## [0.20.1 (2024-12-09)]
 
 

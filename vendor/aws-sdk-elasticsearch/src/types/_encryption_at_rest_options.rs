@@ -6,7 +6,7 @@
 pub struct EncryptionAtRestOptions {
     /// <p>Specifies the option to enable Encryption At Rest.</p>
     pub enabled: ::std::option::Option<bool>,
-    /// <p> Specifies the KMS Key ID for Encryption At Rest options.</p>
+    /// <p>Specifies the KMS Key ID for Encryption At Rest options.</p>
     pub kms_key_id: ::std::option::Option<::std::string::String>,
 }
 impl EncryptionAtRestOptions {
@@ -14,7 +14,7 @@ impl EncryptionAtRestOptions {
     pub fn enabled(&self) -> ::std::option::Option<bool> {
         self.enabled
     }
-    /// <p> Specifies the KMS Key ID for Encryption At Rest options.</p>
+    /// <p>Specifies the KMS Key ID for Encryption At Rest options.</p>
     pub fn kms_key_id(&self) -> ::std::option::Option<&str> {
         self.kms_key_id.as_deref()
     }
@@ -27,8 +27,8 @@ impl EncryptionAtRestOptions {
 }
 
 /// A builder for [`EncryptionAtRestOptions`](crate::types::EncryptionAtRestOptions).
-#[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::default::Default, ::std::fmt::Debug)]
+#[non_exhaustive]
 pub struct EncryptionAtRestOptionsBuilder {
     pub(crate) enabled: ::std::option::Option<bool>,
     pub(crate) kms_key_id: ::std::option::Option<::std::string::String>,
@@ -48,17 +48,17 @@ impl EncryptionAtRestOptionsBuilder {
     pub fn get_enabled(&self) -> &::std::option::Option<bool> {
         &self.enabled
     }
-    /// <p> Specifies the KMS Key ID for Encryption At Rest options.</p>
+    /// <p>Specifies the KMS Key ID for Encryption At Rest options.</p>
     pub fn kms_key_id(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.kms_key_id = ::std::option::Option::Some(input.into());
         self
     }
-    /// <p> Specifies the KMS Key ID for Encryption At Rest options.</p>
+    /// <p>Specifies the KMS Key ID for Encryption At Rest options.</p>
     pub fn set_kms_key_id(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.kms_key_id = input;
         self
     }
-    /// <p> Specifies the KMS Key ID for Encryption At Rest options.</p>
+    /// <p>Specifies the KMS Key ID for Encryption At Rest options.</p>
     pub fn get_kms_key_id(&self) -> &::std::option::Option<::std::string::String> {
         &self.kms_key_id
     }

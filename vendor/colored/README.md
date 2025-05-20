@@ -11,6 +11,8 @@ Coloring terminal so simple, you already know how to do it!
     "this is also red on blue".on_blue().red();
     "you can use truecolor values too!".truecolor(0, 255, 136);
     "background truecolor also works :)".on_truecolor(135, 28, 167);
+    "truecolor from tuple".custom_color((0, 255, 136));
+    "background truecolor from tuple".on_custom_color((0, 255, 136));
     "bright colors are welcome as well".on_bright_blue().bright_red();
     "you can also make bold comments".bold();
     println!("{} {} {}", "or use".cyan(), "any".italic().yellow(), "string type".cyan());
@@ -38,7 +40,7 @@ and add this to your `lib.rs` or `main.rs`:
 ```rust
     extern crate colored; // not needed in Rust 2018+
 
-    use colored::*;
+    use colored::Colorize;
 
     // test the example with `cargo run --example most_simple`
     fn main() {
@@ -140,7 +142,7 @@ providing a reference implementation, which greatly helped making this crate
 output correct strings.
 
 ## Minimum Supported Rust Version (MSRV)
-The current MSRV is `1.70`, which is checked and enforced automatically via CI. This version may change in the future in minor version bumps, so if you require a specific Rust version you should use a restricted version requirement such as `~X.Y`.
+The current MSRV is `1.80`, which is checked and enforced automatically via CI. This version may change in the future in minor version bumps, so if you require a specific Rust version you should use a restricted version requirement such as `~X.Y`.
 
 ## License
 

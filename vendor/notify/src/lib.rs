@@ -4,7 +4,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! notify = "6.1.1"
+//! notify = "8.0.0"
 //! ```
 //!
 //! If you want debounced events (or don't need them in-order), see [notify-debouncer-mini](https://docs.rs/notify-debouncer-mini/latest/notify_debouncer_mini/)
@@ -24,7 +24,7 @@
 //! Events are serializable via [serde](https://serde.rs) if the `serde` feature is enabled:
 //!
 //! ```toml
-//! notify = { version = "6.1.1", features = ["serde"] }
+//! notify = { version = "8.0.0", features = ["serde"] }
 //! ```
 //!
 //! # Known Problems
@@ -170,6 +170,7 @@ use std::path::Path;
 
 pub(crate) type Receiver<T> = std::sync::mpsc::Receiver<T>;
 pub(crate) type Sender<T> = std::sync::mpsc::Sender<T>;
+#[cfg(any(target_os = "linux", target_os = "android", target_os = "windows"))]
 pub(crate) type BoundSender<T> = std::sync::mpsc::SyncSender<T>;
 
 #[inline]
@@ -177,6 +178,7 @@ pub(crate) fn unbounded<T>() -> (Sender<T>, Receiver<T>) {
     std::sync::mpsc::channel()
 }
 
+#[cfg(any(target_os = "linux", target_os = "android", target_os = "windows"))]
 #[inline]
 pub(crate) fn bounded<T>(cap: usize) -> (BoundSender<T>, Receiver<T>) {
     std::sync::mpsc::sync_channel(cap)

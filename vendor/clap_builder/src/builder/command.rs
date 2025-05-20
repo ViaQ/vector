@@ -2176,13 +2176,13 @@ impl Command {
     ///   * `{author-with-newline}` - Author followed by `\n`.
     ///   * `{author-section}`      - Author preceded and followed by `\n`.
     ///   * `{about}`               - General description (from [`Command::about`] or
-    ///                               [`Command::long_about`]).
+    ///     [`Command::long_about`]).
     ///   * `{about-with-newline}`  - About followed by `\n`.
     ///   * `{about-section}`       - About preceded and followed by '\n'.
     ///   * `{usage-heading}`       - Automatically generated usage heading.
     ///   * `{usage}`               - Automatically generated or given usage string.
     ///   * `{all-args}`            - Help for all arguments (options, flags, positional
-    ///                               arguments, and subcommands) including titles.
+    ///     arguments, and subcommands) including titles.
     ///   * `{options}`             - Help for options.
     ///   * `{positionals}`         - Help for positional arguments.
     ///   * `{subcommands}`         - Help for subcommands.
@@ -4848,7 +4848,7 @@ impl Command {
 /// A workaround:
 /// <https://github.com/rust-lang/rust/issues/34511#issuecomment-373423999>
 pub(crate) trait Captures<'a> {}
-impl<'a, T> Captures<'a> for T {}
+impl<T> Captures<'_> for T {}
 
 // Internal Query Methods
 impl Command {

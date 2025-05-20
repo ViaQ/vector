@@ -10,14 +10,14 @@ pub(crate) fn de_retention_payload(
         .transpose()
 }
 
-pub fn de_retention(inp: &[u8]) -> Result<crate::types::ObjectLockRetention, ::aws_smithy_xml::decode::XmlDecodeError> {
+pub fn de_retention(inp: &[u8]) -> std::result::Result<crate::types::ObjectLockRetention, ::aws_smithy_xml::decode::XmlDecodeError> {
     let mut doc = ::aws_smithy_xml::decode::Document::try_from(inp)?;
     #[allow(unused_mut)]
     let mut decoder = doc.root_element()?;
     let start_el = decoder.start_el();
-    if !(start_el.matches("ObjectLockRetention")) {
+    if !(start_el.matches("Retention")) {
         return Err(::aws_smithy_xml::decode::XmlDecodeError::custom(format!(
-            "invalid root, expected ObjectLockRetention got {:?}",
+            "invalid root, expected Retention got {:?}",
             start_el
         )));
     }

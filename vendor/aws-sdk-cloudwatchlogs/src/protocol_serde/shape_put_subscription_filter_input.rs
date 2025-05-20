@@ -2,7 +2,7 @@
 pub fn ser_put_subscription_filter_input_input(
     object: &mut ::aws_smithy_json::serialize::JsonObjectWriter,
     input: &crate::operation::put_subscription_filter::PutSubscriptionFilterInput,
-) -> Result<(), ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<(), ::aws_smithy_types::error::operation::SerializationError> {
     if let Some(var_1) = &input.log_group_name {
         object.key("logGroupName").string(var_1.as_str());
     }
@@ -20,6 +20,9 @@ pub fn ser_put_subscription_filter_input_input(
     }
     if let Some(var_6) = &input.distribution {
         object.key("distribution").string(var_6.as_str());
+    }
+    if let Some(var_7) = &input.apply_on_transformed_logs {
+        object.key("applyOnTransformedLogs").boolean(*var_7);
     }
     Ok(())
 }

@@ -3,7 +3,7 @@ pub use crate::operation::get_bucket_ownership_controls::_get_bucket_ownership_c
 
 pub use crate::operation::get_bucket_ownership_controls::_get_bucket_ownership_controls_input::GetBucketOwnershipControlsInputBuilder;
 
-impl GetBucketOwnershipControlsInputBuilder {
+impl crate::operation::get_bucket_ownership_controls::builders::GetBucketOwnershipControlsInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -23,14 +23,16 @@ impl GetBucketOwnershipControlsInputBuilder {
 /// Fluent builder constructing a request to `GetBucketOwnershipControls`.
 ///
 /// <note>
-/// <p>This operation is not supported by directory buckets.</p>
+/// <p>This operation is not supported for directory buckets.</p>
 /// </note>
-/// <p>Retrieves <code>OwnershipControls</code> for an Amazon S3 bucket. To use this operation, you must have the <code>s3:GetBucketOwnershipControls</code> permission. For more information about Amazon S3 permissions, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-with-s3-actions.html">Specifying permissions in a policy</a>. </p>
-/// <p>For information about Amazon S3 Object Ownership, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/about-object-ownership.html">Using Object Ownership</a>. </p>
+/// <p>Retrieves <code>OwnershipControls</code> for an Amazon S3 bucket. To use this operation, you must have the <code>s3:GetBucketOwnershipControls</code> permission. For more information about Amazon S3 permissions, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/using-with-s3-actions.html">Specifying permissions in a policy</a>.</p>
+/// <p>For information about Amazon S3 Object Ownership, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/about-object-ownership.html">Using Object Ownership</a>.</p>
 /// <p>The following operations are related to <code>GetBucketOwnershipControls</code>:</p>
 /// <ul>
-/// <li> <p> <code>PutBucketOwnershipControls</code> </p> </li>
-/// <li> <p> <code>DeleteBucketOwnershipControls</code> </p> </li>
+/// <li>
+/// <p><code>PutBucketOwnershipControls</code></p></li>
+/// <li>
+/// <p><code>DeleteBucketOwnershipControls</code></p></li>
 /// </ul>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct GetBucketOwnershipControlsFluentBuilder {
@@ -57,7 +59,7 @@ impl
     }
 }
 impl GetBucketOwnershipControlsFluentBuilder {
-    /// Creates a new `GetBucketOwnershipControls`.
+    /// Creates a new `GetBucketOwnershipControlsFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -108,26 +110,26 @@ impl GetBucketOwnershipControlsFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
-    /// <p>The name of the Amazon S3 bucket whose <code>OwnershipControls</code> you want to retrieve. </p>
+    /// <p>The name of the Amazon S3 bucket whose <code>OwnershipControls</code> you want to retrieve.</p>
     pub fn bucket(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.bucket(input.into());
         self
     }
-    /// <p>The name of the Amazon S3 bucket whose <code>OwnershipControls</code> you want to retrieve. </p>
+    /// <p>The name of the Amazon S3 bucket whose <code>OwnershipControls</code> you want to retrieve.</p>
     pub fn set_bucket(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_bucket(input);
         self
     }
-    /// <p>The name of the Amazon S3 bucket whose <code>OwnershipControls</code> you want to retrieve. </p>
+    /// <p>The name of the Amazon S3 bucket whose <code>OwnershipControls</code> you want to retrieve.</p>
     pub fn get_bucket(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_bucket()
     }

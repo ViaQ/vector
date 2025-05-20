@@ -3,7 +3,7 @@ pub use crate::operation::add_permission::_add_permission_output::AddPermissionO
 
 pub use crate::operation::add_permission::_add_permission_input::AddPermissionInputBuilder;
 
-impl AddPermissionInputBuilder {
+impl crate::operation::add_permission::builders::AddPermissionInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -23,12 +23,16 @@ impl AddPermissionInputBuilder {
 /// Fluent builder constructing a request to `AddPermission`.
 ///
 /// <p>Adds a permission to a queue for a specific <a href="https://docs.aws.amazon.com/general/latest/gr/glos-chap.html#P">principal</a>. This allows sharing access to the queue.</p>
-/// <p>When you create a queue, you have full control access rights for the queue. Only you, the owner of the queue, can grant or deny permissions to the queue. For more information about these permissions, see <a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-writing-an-sqs-policy.html#write-messages-to-shared-queue">Allow Developers to Write Messages to a Shared Queue</a> in the <i>Amazon SQS Developer Guide</i>.</p> <note>
+/// <p>When you create a queue, you have full control access rights for the queue. Only you, the owner of the queue, can grant or deny permissions to the queue. For more information about these permissions, see <a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-writing-an-sqs-policy.html#write-messages-to-shared-queue">Allow Developers to Write Messages to a Shared Queue</a> in the <i>Amazon SQS Developer Guide</i>.</p><note>
 /// <ul>
-/// <li> <p> <code>AddPermission</code> generates a policy for you. You can use <code> <code>SetQueueAttributes</code> </code> to upload your policy. For more information, see <a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-creating-custom-policies.html">Using Custom Policies with the Amazon SQS Access Policy Language</a> in the <i>Amazon SQS Developer Guide</i>.</p> </li>
-/// <li> <p>An Amazon SQS policy can have a maximum of seven actions per statement.</p> </li>
-/// <li> <p>To remove the ability to change queue permissions, you must deny permission to the <code>AddPermission</code>, <code>RemovePermission</code>, and <code>SetQueueAttributes</code> actions in your IAM policy.</p> </li>
-/// <li> <p>Amazon SQS <code>AddPermission</code> does not support adding a non-account principal.</p> </li>
+/// <li>
+/// <p><code>AddPermission</code> generates a policy for you. You can use <code> <code>SetQueueAttributes</code> </code> to upload your policy. For more information, see <a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-creating-custom-policies.html">Using Custom Policies with the Amazon SQS Access Policy Language</a> in the <i>Amazon SQS Developer Guide</i>.</p></li>
+/// <li>
+/// <p>An Amazon SQS policy can have a maximum of seven actions per statement.</p></li>
+/// <li>
+/// <p>To remove the ability to change queue permissions, you must deny permission to the <code>AddPermission</code>, <code>RemovePermission</code>, and <code>SetQueueAttributes</code> actions in your IAM policy.</p></li>
+/// <li>
+/// <p>Amazon SQS <code>AddPermission</code> does not support adding a non-account principal.</p></li>
 /// </ul>
 /// </note> <note>
 /// <p>Cross-account permissions don't apply to this action. For more information, see <a href="https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-customer-managed-policy-examples.html#grant-cross-account-permissions-to-role-and-user-name">Grant cross-account permissions to a role and a username</a> in the <i>Amazon SQS Developer Guide</i>.</p>
@@ -58,7 +62,7 @@ impl
     }
 }
 impl AddPermissionFluentBuilder {
-    /// Creates a new `AddPermission`.
+    /// Creates a new `AddPermissionFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -109,12 +113,12 @@ impl AddPermissionFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -149,6 +153,7 @@ impl AddPermissionFluentBuilder {
     pub fn get_label(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_label()
     }
+    ///
     /// Appends an item to `AWSAccountIds`.
     ///
     /// To override the contents of this collection use [`set_aws_account_ids`](Self::set_aws_account_ids).
@@ -167,6 +172,7 @@ impl AddPermissionFluentBuilder {
     pub fn get_aws_account_ids(&self) -> &::std::option::Option<::std::vec::Vec<::std::string::String>> {
         self.inner.get_aws_account_ids()
     }
+    ///
     /// Appends an item to `Actions`.
     ///
     /// To override the contents of this collection use [`set_actions`](Self::set_actions).

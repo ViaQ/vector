@@ -3,7 +3,7 @@ pub use crate::operation::update_elasticsearch_domain_config::_update_elasticsea
 
 pub use crate::operation::update_elasticsearch_domain_config::_update_elasticsearch_domain_config_input::UpdateElasticsearchDomainConfigInputBuilder;
 
-impl UpdateElasticsearchDomainConfigInputBuilder {
+impl crate::operation::update_elasticsearch_domain_config::builders::UpdateElasticsearchDomainConfigInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,7 +22,7 @@ impl UpdateElasticsearchDomainConfigInputBuilder {
 }
 /// Fluent builder constructing a request to `UpdateElasticsearchDomainConfig`.
 ///
-/// <p>Modifies the cluster configuration of the specified Elasticsearch domain, setting as setting the instance type and the number of instances. </p>
+/// <p>Modifies the cluster configuration of the specified Elasticsearch domain, setting as setting the instance type and the number of instances.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct UpdateElasticsearchDomainConfigFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -48,7 +48,7 @@ impl
     }
 }
 impl UpdateElasticsearchDomainConfigFluentBuilder {
-    /// Creates a new `UpdateElasticsearchDomainConfig`.
+    /// Creates a new `UpdateElasticsearchDomainConfigFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -99,26 +99,26 @@ impl UpdateElasticsearchDomainConfigFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
-    /// <p>The name of the Elasticsearch domain that you are updating. </p>
+    /// <p>The name of the Elasticsearch domain that you are updating.</p>
     pub fn domain_name(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.domain_name(input.into());
         self
     }
-    /// <p>The name of the Elasticsearch domain that you are updating. </p>
+    /// <p>The name of the Elasticsearch domain that you are updating.</p>
     pub fn set_domain_name(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_domain_name(input);
         self
     }
-    /// <p>The name of the Elasticsearch domain that you are updating. </p>
+    /// <p>The name of the Elasticsearch domain that you are updating.</p>
     pub fn get_domain_name(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_domain_name()
     }
@@ -136,31 +136,31 @@ impl UpdateElasticsearchDomainConfigFluentBuilder {
     pub fn get_elasticsearch_cluster_config(&self) -> &::std::option::Option<crate::types::ElasticsearchClusterConfig> {
         self.inner.get_elasticsearch_cluster_config()
     }
-    /// <p>Specify the type and size of the EBS volume that you want to use. </p>
+    /// <p>Specify the type and size of the EBS volume that you want to use.</p>
     pub fn ebs_options(mut self, input: crate::types::EbsOptions) -> Self {
         self.inner = self.inner.ebs_options(input);
         self
     }
-    /// <p>Specify the type and size of the EBS volume that you want to use. </p>
+    /// <p>Specify the type and size of the EBS volume that you want to use.</p>
     pub fn set_ebs_options(mut self, input: ::std::option::Option<crate::types::EbsOptions>) -> Self {
         self.inner = self.inner.set_ebs_options(input);
         self
     }
-    /// <p>Specify the type and size of the EBS volume that you want to use. </p>
+    /// <p>Specify the type and size of the EBS volume that you want to use.</p>
     pub fn get_ebs_options(&self) -> &::std::option::Option<crate::types::EbsOptions> {
         self.inner.get_ebs_options()
     }
-    /// <p>Option to set the time, in UTC format, for the daily automated snapshot. Default value is <code>0</code> hours. </p>
+    /// <p>Option to set the time, in UTC format, for the daily automated snapshot. Default value is <code>0</code> hours.</p>
     pub fn snapshot_options(mut self, input: crate::types::SnapshotOptions) -> Self {
         self.inner = self.inner.snapshot_options(input);
         self
     }
-    /// <p>Option to set the time, in UTC format, for the daily automated snapshot. Default value is <code>0</code> hours. </p>
+    /// <p>Option to set the time, in UTC format, for the daily automated snapshot. Default value is <code>0</code> hours.</p>
     pub fn set_snapshot_options(mut self, input: ::std::option::Option<crate::types::SnapshotOptions>) -> Self {
         self.inner = self.inner.set_snapshot_options(input);
         self
     }
-    /// <p>Option to set the time, in UTC format, for the daily automated snapshot. Default value is <code>0</code> hours. </p>
+    /// <p>Option to set the time, in UTC format, for the daily automated snapshot. Default value is <code>0</code> hours.</p>
     pub fn get_snapshot_options(&self) -> &::std::option::Option<crate::types::SnapshotOptions> {
         self.inner.get_snapshot_options()
     }
@@ -192,6 +192,7 @@ impl UpdateElasticsearchDomainConfigFluentBuilder {
     pub fn get_cognito_options(&self) -> &::std::option::Option<crate::types::CognitoOptions> {
         self.inner.get_cognito_options()
     }
+    ///
     /// Adds a key-value pair to `AdvancedOptions`.
     ///
     /// To override the contents of this collection use [`set_advanced_options`](Self::set_advanced_options).
@@ -231,6 +232,7 @@ impl UpdateElasticsearchDomainConfigFluentBuilder {
     pub fn get_access_policies(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_access_policies()
     }
+    ///
     /// Adds a key-value pair to `LogPublishingOptions`.
     ///
     /// To override the contents of this collection use [`set_log_publishing_options`](Self::set_log_publishing_options).
@@ -324,17 +326,17 @@ impl UpdateElasticsearchDomainConfigFluentBuilder {
     pub fn get_auto_tune_options(&self) -> &::std::option::Option<crate::types::AutoTuneOptions> {
         self.inner.get_auto_tune_options()
     }
-    /// <p> This flag, when set to True, specifies whether the <code>UpdateElasticsearchDomain</code> request should return the results of validation checks without actually applying the change. This flag, when set to True, specifies the deployment mechanism through which the update shall be applied on the domain. This will not actually perform the Update. </p>
+    /// <p>This flag, when set to True, specifies whether the <code>UpdateElasticsearchDomain</code> request should return the results of validation checks without actually applying the change. This flag, when set to True, specifies the deployment mechanism through which the update shall be applied on the domain. This will not actually perform the Update.</p>
     pub fn dry_run(mut self, input: bool) -> Self {
         self.inner = self.inner.dry_run(input);
         self
     }
-    /// <p> This flag, when set to True, specifies whether the <code>UpdateElasticsearchDomain</code> request should return the results of validation checks without actually applying the change. This flag, when set to True, specifies the deployment mechanism through which the update shall be applied on the domain. This will not actually perform the Update. </p>
+    /// <p>This flag, when set to True, specifies whether the <code>UpdateElasticsearchDomain</code> request should return the results of validation checks without actually applying the change. This flag, when set to True, specifies the deployment mechanism through which the update shall be applied on the domain. This will not actually perform the Update.</p>
     pub fn set_dry_run(mut self, input: ::std::option::Option<bool>) -> Self {
         self.inner = self.inner.set_dry_run(input);
         self
     }
-    /// <p> This flag, when set to True, specifies whether the <code>UpdateElasticsearchDomain</code> request should return the results of validation checks without actually applying the change. This flag, when set to True, specifies the deployment mechanism through which the update shall be applied on the domain. This will not actually perform the Update. </p>
+    /// <p>This flag, when set to True, specifies whether the <code>UpdateElasticsearchDomain</code> request should return the results of validation checks without actually applying the change. This flag, when set to True, specifies the deployment mechanism through which the update shall be applied on the domain. This will not actually perform the Update.</p>
     pub fn get_dry_run(&self) -> &::std::option::Option<bool> {
         self.inner.get_dry_run()
     }

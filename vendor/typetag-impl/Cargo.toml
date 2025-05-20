@@ -12,9 +12,10 @@
 [package]
 edition = "2021"
 name = "typetag-impl"
-version = "0.2.18"
+version = "0.2.20"
 authors = ["David Tolnay <dtolnay@gmail.com>"]
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -26,7 +27,13 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/dtolnay/typetag"
 
 [package.metadata.docs.rs]
-rustdoc-args = ["--generate-link-to-definition"]
+rustdoc-args = [
+    "--generate-link-to-definition",
+    "--extern-html-root-url=core=https://doc.rust-lang.org",
+    "--extern-html-root-url=alloc=https://doc.rust-lang.org",
+    "--extern-html-root-url=std=https://doc.rust-lang.org",
+    "--extern-html-root-url=proc_macro=https://doc.rust-lang.org",
+]
 targets = ["x86_64-unknown-linux-gnu"]
 
 [lib]

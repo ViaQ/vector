@@ -50,7 +50,18 @@ impl PutRecord {
         >,
     > {
         let input = ::aws_smithy_runtime_api::client::interceptors::context::Input::erase(input);
-        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("kinesis", "PutRecord", input, runtime_plugins, stop_point).await
+        use ::tracing::Instrument;
+        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("Kinesis", "PutRecord", input, runtime_plugins, stop_point)
+            // Create a parent span for the entire operation. Includes a random, internal-only,
+            // seven-digit ID for the operation orchestration so that it can be correlated in the logs.
+            .instrument(::tracing::debug_span!(
+                "Kinesis.PutRecord",
+                "rpc.service" = "Kinesis",
+                "rpc.method" = "PutRecord",
+                "sdk_invocation_id" = ::fastrand::u32(1_000_000..10_000_000),
+                "rpc.system" = "aws-api",
+            ))
+            .await
     }
 
     pub(crate) fn operation_runtime_plugins(
@@ -90,7 +101,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for PutReco
             ::aws_smithy_runtime_api::client::auth::static_resolver::StaticAuthSchemeOptionResolverParams::new(),
         ));
 
-        cfg.store_put(::aws_smithy_http::operation::Metadata::new("PutRecord", "kinesis"));
+        cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::Metadata::new("PutRecord", "Kinesis"));
         let mut signing_options = ::aws_runtime::auth::SigningOptions::default();
         signing_options.double_uri_encode = true;
         signing_options.content_sha256_header = false;
@@ -111,11 +122,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for PutReco
     ) -> ::std::borrow::Cow<'_, ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder> {
         #[allow(unused_mut)]
         let mut rcb = ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("PutRecord")
-            .with_interceptor(
-                ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::new(
-                    ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptorKind::ResponseBody,
-                ),
-            )
+            .with_interceptor(::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::default())
             .with_interceptor(PutRecordEndpointParamsInterceptor)
             .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<
                 crate::operation::put_record::PutRecordError,
@@ -241,10 +248,15 @@ impl ::aws_smithy_runtime_api::client::interceptors::Intercept for PutRecordEndp
     }
 }
 
+// The get_* functions below are generated from JMESPath expressions in the
+// operationContextParams trait. They target the operation's input shape.
+
 /// Error type for the `PutRecordError` operation.
 #[non_exhaustive]
 #[derive(::std::fmt::Debug)]
 pub enum PutRecordError {
+    /// <p>The processing of the request failed because of an unknown error, exception, or failure.</p>
+    InternalFailureException(crate::types::error::InternalFailureException),
     /// <p>The ciphertext references a key that doesn't exist or that you don't have access to.</p>
     KmsAccessDeniedException(crate::types::error::KmsAccessDeniedException),
     /// <p>The request was rejected because the specified customer master key (CMK) isn't enabled.</p>
@@ -298,6 +310,7 @@ impl PutRecordError {
     ///
     pub fn meta(&self) -> &::aws_smithy_types::error::ErrorMetadata {
         match self {
+            Self::InternalFailureException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::KmsAccessDeniedException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::KmsDisabledException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::AccessDeniedException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
@@ -310,6 +323,10 @@ impl PutRecordError {
             Self::ResourceNotFoundException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::Unhandled(e) => &e.meta,
         }
+    }
+    /// Returns `true` if the error kind is `PutRecordError::InternalFailureException`.
+    pub fn is_internal_failure_exception(&self) -> bool {
+        matches!(self, Self::InternalFailureException(_))
     }
     /// Returns `true` if the error kind is `PutRecordError::KmsAccessDeniedException`.
     pub fn is_kms_access_denied_exception(&self) -> bool {
@@ -355,6 +372,7 @@ impl PutRecordError {
 impl ::std::error::Error for PutRecordError {
     fn source(&self) -> ::std::option::Option<&(dyn ::std::error::Error + 'static)> {
         match self {
+            Self::InternalFailureException(_inner) => ::std::option::Option::Some(_inner),
             Self::KmsAccessDeniedException(_inner) => ::std::option::Option::Some(_inner),
             Self::KmsDisabledException(_inner) => ::std::option::Option::Some(_inner),
             Self::AccessDeniedException(_inner) => ::std::option::Option::Some(_inner),
@@ -372,6 +390,7 @@ impl ::std::error::Error for PutRecordError {
 impl ::std::fmt::Display for PutRecordError {
     fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
         match self {
+            Self::InternalFailureException(_inner) => _inner.fmt(f),
             Self::KmsAccessDeniedException(_inner) => _inner.fmt(f),
             Self::KmsDisabledException(_inner) => _inner.fmt(f),
             Self::AccessDeniedException(_inner) => _inner.fmt(f),
@@ -403,6 +422,7 @@ impl ::aws_smithy_types::retry::ProvideErrorKind for PutRecordError {
 impl ::aws_smithy_types::error::metadata::ProvideErrorMetadata for PutRecordError {
     fn meta(&self) -> &::aws_smithy_types::error::ErrorMetadata {
         match self {
+            Self::InternalFailureException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
             Self::KmsAccessDeniedException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
             Self::KmsDisabledException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
             Self::AccessDeniedException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),

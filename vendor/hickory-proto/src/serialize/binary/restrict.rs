@@ -47,11 +47,7 @@ impl<T> Restrict<T> {
     ///  `Err(T)` is returned.
     #[inline]
     pub fn verify_unwrap<F: Fn(&T) -> bool>(self, f: F) -> Result<T, T> {
-        if f(&self.0) {
-            Ok(self.0)
-        } else {
-            Err(self.0)
-        }
+        if f(&self.0) { Ok(self.0) } else { Err(self.0) }
     }
 
     /// Unwraps the value without verifying the data, akin to Result::unwrap and Option::unwrap, but will not panic
@@ -78,7 +74,7 @@ impl<T> Restrict<T> {
 /// Verified data that can be operated on
 pub struct Verified<'a, T>(VerifiedInner<'a, T>);
 
-impl<'a, T> Verified<'a, T> {
+impl<T> Verified<'_, T> {
     /// Perform some operation on the data, and return a result.
     #[inline]
     pub fn then<R, F: Fn(&T) -> R>(&self, f: F) -> Result<R, &T> {
@@ -173,22 +169,22 @@ where
     type Value = <R as RestrictedMath>::Value;
 
     fn checked_add(&self, arg: Self::Arg) -> Result<Restrict<Self::Value>, Self::Arg> {
-        match *self {
-            Ok(ref r) => r.checked_add(arg),
+        match self {
+            Ok(r) => r.checked_add(arg),
             Err(_) => Err(arg),
         }
     }
 
     fn checked_sub(&self, arg: Self::Arg) -> Result<Restrict<Self::Value>, Self::Arg> {
-        match *self {
-            Ok(ref r) => r.checked_sub(arg),
+        match self {
+            Ok(r) => r.checked_sub(arg),
             Err(_) => Err(arg),
         }
     }
 
     fn checked_mul(&self, arg: Self::Arg) -> Result<Restrict<Self::Value>, Self::Arg> {
-        match *self {
-            Ok(ref r) => r.checked_mul(arg),
+        match self {
+            Ok(r) => r.checked_mul(arg),
             Err(_) => Err(arg),
         }
     }

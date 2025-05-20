@@ -44,6 +44,8 @@ mod test {
         assert_eq!(substring("hello", 0, 5, false, &mut DiagnosticCollector::new()), Some("hello"));
         assert_eq!(substring("hello", 0, 6, false, &mut DiagnosticCollector::new()), None);
     }
+
+    #[test]
     fn substring_backwards() {
         assert_eq!(substring("hello", 0, 2, true, &mut DiagnosticCollector::new()), Some("lo"));
         assert_eq!(substring("hello", 0, 0, true, &mut DiagnosticCollector::new()), None);
@@ -69,7 +71,7 @@ mod test {
         }
 
         #[test]
-        fn substring_correct_length(s in r#"[\x00-\xFF]*"#, start in 0..10usize, stop in 0..10usize, reverse in proptest::bool::ANY) {
+        fn substring_correct_length(s in r"[\x00-\xFF]*", start in 0..10usize, stop in 0..10usize, reverse in proptest::bool::ANY) {
             prop_assume!(start < s.len());
             prop_assume!(stop < s.len());
             prop_assume!(start < stop);

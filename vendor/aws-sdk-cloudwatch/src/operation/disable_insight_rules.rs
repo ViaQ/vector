@@ -50,7 +50,17 @@ impl DisableInsightRules {
         >,
     > {
         let input = ::aws_smithy_runtime_api::client::interceptors::context::Input::erase(input);
-        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("cloudwatch", "DisableInsightRules", input, runtime_plugins, stop_point)
+        use ::tracing::Instrument;
+        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("CloudWatch", "DisableInsightRules", input, runtime_plugins, stop_point)
+            // Create a parent span for the entire operation. Includes a random, internal-only,
+            // seven-digit ID for the operation orchestration so that it can be correlated in the logs.
+            .instrument(::tracing::debug_span!(
+                "CloudWatch.DisableInsightRules",
+                "rpc.service" = "CloudWatch",
+                "rpc.method" = "DisableInsightRules",
+                "sdk_invocation_id" = ::fastrand::u32(1_000_000..10_000_000),
+                "rpc.system" = "aws-api",
+            ))
             .await
     }
 
@@ -91,7 +101,10 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for Disable
             ::aws_smithy_runtime_api::client::auth::static_resolver::StaticAuthSchemeOptionResolverParams::new(),
         ));
 
-        cfg.store_put(::aws_smithy_http::operation::Metadata::new("DisableInsightRules", "cloudwatch"));
+        cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::Metadata::new(
+            "DisableInsightRules",
+            "CloudWatch",
+        ));
         let mut signing_options = ::aws_runtime::auth::SigningOptions::default();
         signing_options.double_uri_encode = true;
         signing_options.content_sha256_header = false;
@@ -112,11 +125,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for Disable
     ) -> ::std::borrow::Cow<'_, ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder> {
         #[allow(unused_mut)]
         let mut rcb = ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("DisableInsightRules")
-            .with_interceptor(
-                ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::new(
-                    ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptorKind::ResponseBody,
-                ),
-            )
+            .with_interceptor(::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::default())
             .with_interceptor(DisableInsightRulesEndpointParamsInterceptor)
             .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<
                 crate::operation::disable_insight_rules::DisableInsightRulesError,
@@ -238,6 +247,9 @@ impl ::aws_smithy_runtime_api::client::interceptors::Intercept for DisableInsigh
         ::std::result::Result::Ok(())
     }
 }
+
+// The get_* functions below are generated from JMESPath expressions in the
+// operationContextParams trait. They target the operation's input shape.
 
 /// Error type for the `DisableInsightRulesError` operation.
 #[non_exhaustive]

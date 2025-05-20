@@ -1,30 +1,31 @@
 //! Helpers for manipulating built-in streams
 
 mod backoff_reset_timer;
+pub(crate) mod delayed_init;
 mod event_flatten;
+mod event_modify;
 #[cfg(feature = "unstable-runtime-predicates")] mod predicate;
+mod reflect;
 mod stream_backoff;
-#[cfg(feature = "unstable-runtime-subscribe")] pub mod stream_subscribe;
 mod watch_ext;
 
 pub use backoff_reset_timer::ResetTimerBackoff;
 pub use event_flatten::EventFlatten;
+pub use event_modify::EventModify;
 #[cfg(feature = "unstable-runtime-predicates")]
-pub use predicate::{predicates, PredicateFilter};
+pub use predicate::{predicates, Predicate, PredicateFilter};
+pub use reflect::Reflect;
 pub use stream_backoff::StreamBackoff;
-#[cfg(feature = "unstable-runtime-subscribe")]
-pub use stream_subscribe::StreamSubscribe;
 pub use watch_ext::WatchStreamExt;
 
 use futures::{
-    pin_mut,
     stream::{self, Peekable},
     Future, FutureExt, Stream, StreamExt, TryStream, TryStreamExt,
 };
 use pin_project::pin_project;
 use std::{
     fmt::Debug,
-    pin::Pin,
+    pin::{pin, Pin},
     sync::{Arc, Mutex},
     task::Poll,
 };
@@ -72,8 +73,7 @@ where
         // TODO: remove #[allow] once fix reaches nightly.
         let inner = this.inner.lock().unwrap();
         let mut inner = Pin::new(inner);
-        let inner_peek = inner.as_mut().peek();
-        pin_mut!(inner_peek);
+        let inner_peek = pin!(inner.as_mut().peek());
         match inner_peek.poll(cx) {
             Poll::Ready(Some(x_ref)) => {
                 if (this.should_consume_item)(x_ref) {
@@ -100,7 +100,7 @@ where
 /// Splits a `TryStream` into separate `Ok` and `Error` streams.
 ///
 /// Note: This will deadlock if one branch outlives the other
-#[allow(clippy::type_complexity)]
+#[allow(clippy::type_complexity, clippy::arc_with_non_send_sync)]
 fn trystream_split_result<S>(
     stream: S,
 ) -> (
@@ -236,7 +236,7 @@ mod tests {
                 Result::<_, Infallible>::Ok(())
             })),
             |s| {
-                s.map(|_| {
+                s.map(|()| {
                     let _ = &y;
                     Ok(())
                 })

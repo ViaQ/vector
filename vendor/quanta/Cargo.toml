@@ -11,10 +11,16 @@
 
 [package]
 edition = "2021"
-rust-version = "1.60"
+rust-version = "1.70"
 name = "quanta"
-version = "0.12.3"
+version = "0.12.5"
 authors = ["Toby Lawrence <toby@nuclearfurnace.com>"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "high-speed timing library"
 homepage = "https://github.com/metrics-rs/quanta"
 documentation = "https://docs.rs/quanta"
@@ -31,14 +37,18 @@ repository = "https://github.com/metrics-rs/quanta"
 all-features = true
 
 [lib]
+name = "quanta"
+path = "src/lib.rs"
 bench = false
 
 [[bench]]
-name = "timing"
+name = "contention"
+path = "benches/contention.rs"
 harness = false
 
 [[bench]]
-name = "contention"
+name = "timing"
+path = "benches/timing.rs"
 harness = false
 
 [dependencies.crossbeam-utils]
@@ -63,28 +73,28 @@ default = ["flaky_tests"]
 flaky_tests = []
 prost = ["prost-types"]
 
-[target."cfg(all(target_arch = \"wasm32\", target_os = \"unknown\"))".dependencies.web-sys]
+[target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies.web-sys]
 version = "0.3"
 features = [
     "Window",
     "Performance",
 ]
 
-[target."cfg(all(target_arch = \"wasm32\", target_os = \"unknown\"))".dev-dependencies.wasm-bindgen-test]
+[target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dev-dependencies.wasm-bindgen-test]
 version = "0.3"
 
-[target."cfg(all(target_arch = \"wasm32\", target_os = \"wasi\"))".dependencies.wasi]
+[target.'cfg(all(target_arch = "wasm32", target_os = "wasi"))'.dependencies.wasi]
 version = "0.11"
 
-[target."cfg(not(any(target_os = \"windows\", target_arch = \"wasm32\")))".dependencies.libc]
+[target.'cfg(not(any(target_os = "windows", target_arch = "wasm32")))'.dependencies.libc]
 version = "0.2"
 
-[target."cfg(target_arch = \"x86\")".dependencies.raw-cpuid]
+[target.'cfg(target_arch = "x86")'.dependencies.raw-cpuid]
 version = "11.0"
 
-[target."cfg(target_arch = \"x86_64\")".dependencies.raw-cpuid]
+[target.'cfg(target_arch = "x86_64")'.dependencies.raw-cpuid]
 version = "11.0"
 
-[target."cfg(target_os = \"windows\")".dependencies.winapi]
+[target.'cfg(target_os = "windows")'.dependencies.winapi]
 version = "0.3"
 features = ["profileapi"]

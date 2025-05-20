@@ -12,11 +12,17 @@
 [package]
 edition = "2021"
 name = "ipnetwork"
-version = "0.20.0"
+version = "0.21.1"
 authors = [
     "Abhishek Chanda <abhishek.becs@gmail.com>",
     "Linus Färnstrand <faern@faern.net>",
 ]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "A library to work with IP CIDRs in Rust"
 readme = "README.md"
 keywords = [
@@ -31,32 +37,40 @@ categories = [
 ]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/achanda/ipnetwork"
-resolver = "2"
+
+[lib]
+name = "ipnetwork"
+path = "src/lib.rs"
+
+[[test]]
+name = "test_json"
+path = "tests/test_json.rs"
 
 [[bench]]
 name = "parse_bench"
+path = "benches/parse_bench.rs"
 harness = false
 
 [dependencies.schemars]
-version = "0.8.10"
+version = "0.8.17"
 optional = true
 
 [dependencies.serde]
-version = "1"
+version = "1.0.200"
 optional = true
 
 [dev-dependencies.criterion]
-version = "0.3.4"
+version = "0.5.1"
 features = ["html_reports"]
 
 [dev-dependencies.does-it-json]
-version = "0.0.3"
+version = "0.0.4"
 
 [dev-dependencies.serde_json]
-version = "1.0"
+version = "1.0.116"
 
 [features]
-default = ["serde"]
+default = []
 
 [badges.maintenance]
 status = "passively-maintained"

@@ -35,6 +35,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -93,6 +94,15 @@ impl AmazonopensearchserviceS3BackupMode {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for AmazonopensearchserviceS3BackupMode {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            AmazonopensearchserviceS3BackupMode::AllDocuments => write!(f, "AllDocuments"),
+            AmazonopensearchserviceS3BackupMode::FailedDocumentsOnly => write!(f, "FailedDocumentsOnly"),
+            AmazonopensearchserviceS3BackupMode::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

@@ -5,10 +5,10 @@ use simdutf8::basic::from_utf8_mut as basic_from_utf8_mut;
 use simdutf8::compat::from_utf8 as compat_from_utf8;
 use simdutf8::compat::from_utf8_mut as compat_from_utf8_mut;
 
-#[cfg(not(features = "std"))]
+#[cfg(not(feature = "std"))]
 extern crate std;
 
-#[cfg(not(features = "std"))]
+#[cfg(not(feature = "std"))]
 use std::{borrow::ToOwned, format};
 
 pub trait BStrExt {
@@ -107,7 +107,6 @@ fn test_chunked_streaming_with_chunk_size<T: simdutf8::basic::imp::ChunkedUtf8Va
 }
 
 #[cfg(feature = "public_imp")]
-#[allow(clippy::missing_const_for_fn)]
 #[allow(unused_variables)]
 fn test_valid_public_imp(input: &[u8]) {
     if cfg!(any(target_arch = "x86", target_arch = "x86_64")) {
@@ -175,7 +174,6 @@ fn test_invalid(input: &[u8], valid_up_to: usize, error_len: Option<usize>) {
 }
 
 #[cfg(feature = "public_imp")]
-#[allow(clippy::missing_const_for_fn)]
 #[allow(unused_variables)]
 fn test_invalid_public_imp(input: &[u8], valid_up_to: usize, error_len: Option<usize>) {
     if cfg!(any(target_arch = "x86", target_arch = "x86_64")) {

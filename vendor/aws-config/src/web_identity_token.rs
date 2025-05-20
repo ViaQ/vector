@@ -19,7 +19,7 @@
 //! WebIdentityTokenCredentialProvider will load the following environment variables:
 //! - `AWS_WEB_IDENTITY_TOKEN_FILE`: **required**, location to find the token file containing a JWT token
 //! - `AWS_ROLE_ARN`: **required**, role ARN to assume
-//! - `AWS_IAM_ROLE_SESSION_NAME`: **optional**: Session name to use when assuming the role
+//! - `AWS_ROLE_SESSION_NAME`: **optional**: Session name to use when assuming the role
 //!
 //! ## AWS Profile Configuration
 //! _Note: Configuration of the web identity token provider via a shared profile is only supported
@@ -64,10 +64,11 @@
 use crate::provider_config::ProviderConfig;
 use crate::sts;
 use aws_credential_types::provider::{self, error::CredentialsError, future, ProvideCredentials};
-use aws_sdk_sts::Client as StsClient;
+use aws_sdk_sts::{types::PolicyDescriptorType, Client as StsClient};
 use aws_smithy_async::time::SharedTimeSource;
 use aws_smithy_types::error::display::DisplayErrorContext;
 use aws_types::os_shim_internal::{Env, Fs};
+
 use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 
@@ -75,7 +76,7 @@ const ENV_VAR_TOKEN_FILE: &str = "AWS_WEB_IDENTITY_TOKEN_FILE";
 const ENV_VAR_ROLE_ARN: &str = "AWS_ROLE_ARN";
 const ENV_VAR_SESSION_NAME: &str = "AWS_ROLE_SESSION_NAME";
 
-/// Credential provider to load credentials from Web Identity  Tokens
+/// Credential provider to load credentials from Web Identity Tokens
 ///
 /// See Module documentation for more details
 #[derive(Debug)]
@@ -84,6 +85,8 @@ pub struct WebIdentityTokenCredentialsProvider {
     time_source: SharedTimeSource,
     fs: Fs,
     sts_client: StsClient,
+    policy: Option<String>,
+    policy_arns: Option<Vec<PolicyDescriptorType>>,
 }
 
 impl WebIdentityTokenCredentialsProvider {
@@ -150,6 +153,8 @@ impl WebIdentityTokenCredentialsProvider {
         load_credentials(
             &self.fs,
             &self.sts_client,
+            self.policy.clone(),
+            self.policy_arns.clone(),
             &conf.web_identity_token_file,
             &conf.role_arn,
             &conf.session_name,
@@ -158,11 +163,13 @@ impl WebIdentityTokenCredentialsProvider {
     }
 }
 
-/// Builder for [`WebIdentityTokenCredentialsProvider`](WebIdentityTokenCredentialsProvider)
+/// Builder for [`WebIdentityTokenCredentialsProvider`].
 #[derive(Debug, Default)]
 pub struct Builder {
     source: Option<Source>,
     config: Option<ProviderConfig>,
+    policy: Option<String>,
+    policy_arns: Option<Vec<PolicyDescriptorType>>,
 }
 
 impl Builder {
@@ -183,13 +190,38 @@ impl Builder {
         self
     }
 
-    /// Configure this builder to use  [`StaticConfiguration`](StaticConfiguration)
+    /// Configure this builder to use  [`StaticConfiguration`].
     ///
     /// WebIdentityToken providers load credentials from the file system. The file system path used
     /// may either determine be loaded from environment variables (default), or via a statically
     /// configured path.
     pub fn static_configuration(mut self, config: StaticConfiguration) -> Self {
         self.source = Some(Source::Static(config));
+        self
+    }
+
+    /// Set an IAM policy in JSON format that you want to use as an inline session policy.
+    ///
+    /// This parameter is optional
+    /// For more information, see
+    /// [policy](aws_sdk_sts::operation::assume_role::builders::AssumeRoleInputBuilder::policy_arns)
+    pub fn policy(mut self, policy: impl Into<String>) -> Self {
+        self.policy = Some(policy.into());
+        self
+    }
+
+    /// Set the Amazon Resource Names (ARNs) of the IAM managed policies that you want to use as managed session policies.
+    ///
+    /// This parameter is optional.
+    /// For more information, see
+    /// [policy_arns](aws_sdk_sts::operation::assume_role::builders::AssumeRoleInputBuilder::policy_arns)
+    pub fn policy_arns(mut self, policy_arns: Vec<String>) -> Self {
+        self.policy_arns = Some(
+            policy_arns
+                .into_iter()
+                .map(|arn| PolicyDescriptorType::builder().arn(arn).build())
+                .collect::<Vec<_>>(),
+        );
         self
     }
 
@@ -206,6 +238,8 @@ impl Builder {
             fs: conf.fs(),
             sts_client: StsClient::new(&conf.client_config()),
             time_source: conf.time_source(),
+            policy: self.policy,
+            policy_arns: self.policy_arns,
         }
     }
 }
@@ -213,6 +247,8 @@ impl Builder {
 async fn load_credentials(
     fs: &Fs,
     sts_client: &StsClient,
+    policy: Option<String>,
+    policy_arns: Option<Vec<PolicyDescriptorType>>,
     token_file: impl AsRef<Path>,
     role_arn: &str,
     session_name: &str,
@@ -228,6 +264,8 @@ async fn load_credentials(
     let resp = sts_client.assume_role_with_web_identity()
         .role_arn(role_arn)
         .role_session_name(session_name)
+        .set_policy(policy)
+        .set_policy_arns(policy_arns)
         .web_identity_token(token)
         .send()
         .await
@@ -235,7 +273,7 @@ async fn load_credentials(
             tracing::warn!(error = %DisplayErrorContext(&sdk_error), "STS returned an error assuming web identity role");
             CredentialsError::provider_error(sdk_error)
         })?;
-    sts::util::into_credentials(resp.credentials, "WebIdentityToken")
+    sts::util::into_credentials(resp.credentials, resp.assumed_role_user, "WebIdentityToken")
 }
 
 #[cfg(test)]

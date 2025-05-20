@@ -50,7 +50,17 @@ impl DescribeStreamSummary {
         >,
     > {
         let input = ::aws_smithy_runtime_api::client::interceptors::context::Input::erase(input);
-        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("kinesis", "DescribeStreamSummary", input, runtime_plugins, stop_point)
+        use ::tracing::Instrument;
+        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("Kinesis", "DescribeStreamSummary", input, runtime_plugins, stop_point)
+            // Create a parent span for the entire operation. Includes a random, internal-only,
+            // seven-digit ID for the operation orchestration so that it can be correlated in the logs.
+            .instrument(::tracing::debug_span!(
+                "Kinesis.DescribeStreamSummary",
+                "rpc.service" = "Kinesis",
+                "rpc.method" = "DescribeStreamSummary",
+                "sdk_invocation_id" = ::fastrand::u32(1_000_000..10_000_000),
+                "rpc.system" = "aws-api",
+            ))
             .await
     }
 
@@ -91,7 +101,10 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for Describ
             ::aws_smithy_runtime_api::client::auth::static_resolver::StaticAuthSchemeOptionResolverParams::new(),
         ));
 
-        cfg.store_put(::aws_smithy_http::operation::Metadata::new("DescribeStreamSummary", "kinesis"));
+        cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::Metadata::new(
+            "DescribeStreamSummary",
+            "Kinesis",
+        ));
         let mut signing_options = ::aws_runtime::auth::SigningOptions::default();
         signing_options.double_uri_encode = true;
         signing_options.content_sha256_header = false;
@@ -112,11 +125,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for Describ
     ) -> ::std::borrow::Cow<'_, ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder> {
         #[allow(unused_mut)]
         let mut rcb = ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("DescribeStreamSummary")
-            .with_interceptor(
-                ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::new(
-                    ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptorKind::ResponseBody,
-                ),
-            )
+            .with_interceptor(::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::default())
             .with_interceptor(DescribeStreamSummaryEndpointParamsInterceptor)
             .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<
                 crate::operation::describe_stream_summary::DescribeStreamSummaryError,
@@ -246,6 +255,9 @@ impl ::aws_smithy_runtime_api::client::interceptors::Intercept for DescribeStrea
     }
 }
 
+// The get_* functions below are generated from JMESPath expressions in the
+// operationContextParams trait. They target the operation's input shape.
+
 /// Error type for the `DescribeStreamSummaryError` operation.
 #[non_exhaustive]
 #[derive(::std::fmt::Debug)]
@@ -254,7 +266,7 @@ pub enum DescribeStreamSummaryError {
     AccessDeniedException(crate::types::error::AccessDeniedException),
     /// <p>A specified parameter exceeds its restrictions, is not supported, or can't be used. For more information, see the returned message.</p>
     InvalidArgumentException(crate::types::error::InvalidArgumentException),
-    /// <p>The requested resource exceeds the maximum number allowed, or the number of concurrent stream requests exceeds the maximum number allowed. </p>
+    /// <p>The requested resource exceeds the maximum number allowed, or the number of concurrent stream requests exceeds the maximum number allowed.</p>
     LimitExceededException(crate::types::error::LimitExceededException),
     /// <p>The requested resource could not be found. The stream might not be specified correctly.</p>
     ResourceNotFoundException(crate::types::error::ResourceNotFoundException),

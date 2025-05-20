@@ -2,6 +2,14 @@
 
 All notable changes to `similar-asserts` are documented here.
 
+## 1.7.0
+
+- Added support for `SIMILAR_ASSERTS_CONTEXT_SIZE`. #13
+
+## 1.6.1
+
+- Maintenance release with some clippy fixes.
+
 ## 1.6.0
 
 - Loosen static lifetime bounds for labels. #9

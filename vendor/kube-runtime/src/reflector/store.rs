@@ -1,10 +1,13 @@
-use super::ObjectRef;
-use crate::watcher;
+use super::{dispatcher::Dispatcher, Lookup, ObjectRef, ReflectHandle};
+use crate::{
+    utils::delayed_init::{self, DelayedInit},
+    watcher,
+};
 use ahash::AHashMap;
 use derivative::Derivative;
-use kube_client::Resource;
 use parking_lot::RwLock;
 use std::{fmt::Debug, hash::Hash, sync::Arc};
+use thiserror::Error;
 
 type Cache<K> = Arc<RwLock<AHashMap<ObjectRef<K>, Arc<K>>>>;
 
@@ -12,17 +15,20 @@ type Cache<K> = Arc<RwLock<AHashMap<ObjectRef<K>, Arc<K>>>>;
 ///
 /// This is exclusive since it's not safe to share a single `Store` between multiple reflectors.
 /// In particular, `Restarted` events will clobber the state of other connected reflectors.
-#[derive(Debug, Derivative)]
-#[derivative(Default(bound = "K::DynamicType: Default"))]
-pub struct Writer<K: 'static + Resource>
+#[derive(Debug)]
+pub struct Writer<K: 'static + Lookup + Clone>
 where
-    K::DynamicType: Eq + Hash,
+    K::DynamicType: Eq + Hash + Clone,
 {
     store: Cache<K>,
+    buffer: AHashMap<ObjectRef<K>, Arc<K>>,
     dyntype: K::DynamicType,
+    ready_tx: Option<delayed_init::Initializer<()>>,
+    ready_rx: Arc<DelayedInit<()>>,
+    dispatcher: Option<Dispatcher<K>>,
 }
 
-impl<K: 'static + Resource + Clone> Writer<K>
+impl<K: 'static + Lookup + Clone> Writer<K>
 where
     K::DynamicType: Eq + Hash + Clone,
 {
@@ -31,9 +37,36 @@ where
     /// If the dynamic type is default-able (for example when writer is used with
     /// `k8s_openapi` types) you can use `Default` instead.
     pub fn new(dyntype: K::DynamicType) -> Self {
+        let (ready_tx, ready_rx) = DelayedInit::new();
         Writer {
             store: Default::default(),
+            buffer: Default::default(),
             dyntype,
+            ready_tx: Some(ready_tx),
+            ready_rx: Arc::new(ready_rx),
+            dispatcher: None,
+        }
+    }
+
+    /// Creates a new Writer with the specified dynamic type and buffer size.
+    ///
+    /// When the Writer is created through `new_shared`, it will be able to
+    /// be subscribed. Stored objects will be propagated to all subscribers. The
+    /// buffer size is used for the underlying channel. An object is cleared
+    /// from the buffer only when all subscribers have seen it.
+    ///
+    /// If the dynamic type is default-able (for example when writer is used with
+    /// `k8s_openapi` types) you can use `Default` instead.
+    #[cfg(feature = "unstable-runtime-subscribe")]
+    pub fn new_shared(buf_size: usize, dyntype: K::DynamicType) -> Self {
+        let (ready_tx, ready_rx) = DelayedInit::new();
+        Writer {
+            store: Default::default(),
+            buffer: Default::default(),
+            dyntype,
+            ready_tx: Some(ready_tx),
+            ready_rx: Arc::new(ready_rx),
+            dispatcher: Some(Dispatcher::new(buf_size)),
         }
     }
 
@@ -45,34 +78,98 @@ where
     pub fn as_reader(&self) -> Store<K> {
         Store {
             store: self.store.clone(),
+            ready_rx: self.ready_rx.clone(),
         }
+    }
+
+    /// Return a handle to a subscriber
+    ///
+    /// Multiple subscribe handles may be obtained, by either calling
+    /// `subscribe` multiple times, or by calling `clone()`
+    ///
+    /// This function returns a `Some` when the [`Writer`] is constructed through
+    /// [`Writer::new_shared`] or [`store_shared`], and a `None` otherwise.
+    #[cfg(feature = "unstable-runtime-subscribe")]
+    pub fn subscribe(&self) -> Option<ReflectHandle<K>> {
+        self.dispatcher
+            .as_ref()
+            .map(|dispatcher| dispatcher.subscribe(self.as_reader()))
     }
 
     /// Applies a single watcher event to the store
     pub fn apply_watcher_event(&mut self, event: &watcher::Event<K>) {
         match event {
-            watcher::Event::Applied(obj) => {
-                let key = ObjectRef::from_obj_with(obj, self.dyntype.clone());
+            watcher::Event::Apply(obj) => {
+                let key = obj.to_object_ref(self.dyntype.clone());
                 let obj = Arc::new(obj.clone());
                 self.store.write().insert(key, obj);
             }
-            watcher::Event::Deleted(obj) => {
-                let key = ObjectRef::from_obj_with(obj, self.dyntype.clone());
+            watcher::Event::Delete(obj) => {
+                let key = obj.to_object_ref(self.dyntype.clone());
                 self.store.write().remove(&key);
             }
-            watcher::Event::Restarted(new_objs) => {
-                let new_objs = new_objs
-                    .iter()
-                    .map(|obj| {
-                        (
-                            ObjectRef::from_obj_with(obj, self.dyntype.clone()),
-                            Arc::new(obj.clone()),
-                        )
-                    })
-                    .collect::<AHashMap<_, _>>();
-                *self.store.write() = new_objs;
+            watcher::Event::Init => {
+                self.buffer = AHashMap::new();
+            }
+            watcher::Event::InitApply(obj) => {
+                let key = obj.to_object_ref(self.dyntype.clone());
+                let obj = Arc::new(obj.clone());
+                self.buffer.insert(key, obj);
+            }
+            watcher::Event::InitDone => {
+                let mut store = self.store.write();
+
+                // Swap the buffer into the store
+                std::mem::swap(&mut *store, &mut self.buffer);
+
+                // Clear the buffer
+                // This is preferred over self.buffer.clear(), as clear() will keep the allocated memory for reuse.
+                // This way, the old buffer is dropped.
+                self.buffer = AHashMap::new();
+
+                // Mark as ready after the Restart, "releasing" any calls to Store::wait_until_ready()
+                if let Some(ready_tx) = self.ready_tx.take() {
+                    ready_tx.init(())
+                }
             }
         }
+    }
+
+    /// Broadcast an event to any downstream listeners subscribed on the store
+    pub(crate) async fn dispatch_event(&mut self, event: &watcher::Event<K>) {
+        if let Some(ref mut dispatcher) = self.dispatcher {
+            match event {
+                watcher::Event::Apply(obj) => {
+                    let obj_ref = obj.to_object_ref(self.dyntype.clone());
+                    // TODO (matei): should this take a timeout to log when backpressure has
+                    // been applied for too long, e.g. 10s
+                    dispatcher.broadcast(obj_ref).await;
+                }
+
+                watcher::Event::InitDone => {
+                    let obj_refs: Vec<_> = {
+                        let store = self.store.read();
+                        store.keys().cloned().collect()
+                    };
+
+                    for obj_ref in obj_refs {
+                        dispatcher.broadcast(obj_ref).await;
+                    }
+                }
+
+                _ => {}
+            }
+        }
+    }
+}
+
+impl<K> Default for Writer<K>
+where
+    K: Lookup + Clone + 'static,
+    K::DynamicType: Default + Eq + Hash + Clone,
+{
+    fn default() -> Self {
+        Self::new(K::DynamicType::default())
     }
 }
 
@@ -84,17 +181,33 @@ where
 /// use `Writer::as_reader()` instead.
 #[derive(Derivative)]
 #[derivative(Debug(bound = "K: Debug, K::DynamicType: Debug"), Clone)]
-pub struct Store<K: 'static + Resource>
+pub struct Store<K: 'static + Lookup>
 where
     K::DynamicType: Hash + Eq,
 {
     store: Cache<K>,
+    ready_rx: Arc<DelayedInit<()>>,
 }
 
-impl<K: 'static + Clone + Resource> Store<K>
+#[derive(Debug, Error)]
+#[error("writer was dropped before store became ready")]
+pub struct WriterDropped(delayed_init::InitDropped);
+
+impl<K: 'static + Clone + Lookup> Store<K>
 where
     K::DynamicType: Eq + Hash + Clone,
 {
+    /// Wait for the store to be populated by Kubernetes.
+    ///
+    /// Note that polling this will _not_ await the source of the stream that populates the [`Writer`].
+    /// The [`reflector`](crate::reflector()) stream must be awaited separately.
+    ///
+    /// # Errors
+    /// Returns an error if the [`Writer`] was dropped before any value was written.
+    pub async fn wait_until_ready(&self) -> Result<(), WriterDropped> {
+        self.ready_rx.get().await.map_err(WriterDropped)
+    }
+
     /// Retrieve a `clone()` of the entry referred to by `key`, if it is in the cache.
     ///
     /// `key.namespace` is ignored for cluster-scoped resources.
@@ -162,10 +275,31 @@ where
 #[must_use]
 pub fn store<K>() -> (Store<K>, Writer<K>)
 where
-    K: Resource + Clone + 'static,
+    K: Lookup + Clone + 'static,
     K::DynamicType: Eq + Hash + Clone + Default,
 {
     let w = Writer::<K>::default();
+    let r = w.as_reader();
+    (r, w)
+}
+
+/// Create a (Reader, Writer) for a `Store<K>` for a typed resource `K`
+///
+/// The resulting `Writer` can be subscribed on in order to fan out events from
+/// a watcher. The `Writer` should be passed to a [`reflector`](crate::reflector()),
+/// and the [`Store`] is a read-only handle.
+///
+/// A buffer size is used for the underlying message channel. When the buffer is
+/// full, backpressure will be applied by waiting for capacity.
+#[must_use]
+#[allow(clippy::module_name_repetitions)]
+#[cfg(feature = "unstable-runtime-subscribe")]
+pub fn store_shared<K>(buf_size: usize) -> (Store<K>, Writer<K>)
+where
+    K: Lookup + Clone + 'static,
+    K::DynamicType: Eq + Hash + Clone + Default,
+{
+    let w = Writer::<K>::new_shared(buf_size, Default::default());
     let r = w.as_reader();
     (r, w)
 }
@@ -188,7 +322,7 @@ mod tests {
             ..ConfigMap::default()
         };
         let mut store_w = Writer::default();
-        store_w.apply_watcher_event(&watcher::Event::Applied(cm.clone()));
+        store_w.apply_watcher_event(&watcher::Event::Apply(cm.clone()));
         let store = store_w.as_reader();
         assert_eq!(store.get(&ObjectRef::from_obj(&cm)).as_deref(), Some(&cm));
     }
@@ -206,7 +340,7 @@ mod tests {
         let mut cluster_cm = cm.clone();
         cluster_cm.metadata.namespace = None;
         let mut store_w = Writer::default();
-        store_w.apply_watcher_event(&watcher::Event::Applied(cm));
+        store_w.apply_watcher_event(&watcher::Event::Apply(cm));
         let store = store_w.as_reader();
         assert_eq!(store.get(&ObjectRef::from_obj(&cluster_cm)), None);
     }
@@ -222,7 +356,7 @@ mod tests {
             ..ConfigMap::default()
         };
         let (store, mut writer) = store();
-        writer.apply_watcher_event(&watcher::Event::Applied(cm.clone()));
+        writer.apply_watcher_event(&watcher::Event::Apply(cm.clone()));
         assert_eq!(store.get(&ObjectRef::from_obj(&cm)).as_deref(), Some(&cm));
     }
 
@@ -236,10 +370,11 @@ mod tests {
             },
             ..ConfigMap::default()
         };
+        #[allow(clippy::redundant_clone)] // false positive
         let mut nsed_cm = cm.clone();
         nsed_cm.metadata.namespace = Some("ns".to_string());
         let mut store_w = Writer::default();
-        store_w.apply_watcher_event(&watcher::Event::Applied(cm.clone()));
+        store_w.apply_watcher_event(&watcher::Event::Apply(cm.clone()));
         let store = store_w.as_reader();
         assert_eq!(store.get(&ObjectRef::from_obj(&nsed_cm)).as_deref(), Some(&cm));
     }
@@ -258,14 +393,14 @@ mod tests {
 
         let (reader, mut writer) = store::<ConfigMap>();
         assert!(reader.is_empty());
-        writer.apply_watcher_event(&watcher::Event::Applied(cm));
+        writer.apply_watcher_event(&watcher::Event::Apply(cm));
 
         assert_eq!(reader.len(), 1);
         assert!(reader.find(|k| k.metadata.generation == Some(1234)).is_none());
 
         target_cm.metadata.name = Some("obj1".to_string());
         target_cm.metadata.generation = Some(1234);
-        writer.apply_watcher_event(&watcher::Event::Applied(target_cm.clone()));
+        writer.apply_watcher_event(&watcher::Event::Apply(target_cm.clone()));
         assert!(!reader.is_empty());
         assert_eq!(reader.len(), 2);
         let found = reader.find(|k| k.metadata.generation == Some(1234));

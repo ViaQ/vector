@@ -1,4 +1,4 @@
-#![allow(clippy::bool_assert_comparison)]
+#![allow(clippy::bool_assert_comparison, unused_imports)]
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread::sleep;
@@ -8,6 +8,10 @@ use async_channel::{bounded, RecvError, SendError, TryRecvError, TrySendError};
 use easy_parallel::Parallel;
 use futures_lite::{future, prelude::*};
 
+#[cfg(target_family = "wasm")]
+use wasm_bindgen_test::wasm_bindgen_test as test;
+
+#[cfg(not(target_family = "wasm"))]
 fn ms(ms: u64) -> Duration {
     Duration::from_millis(ms)
 }
@@ -25,6 +29,7 @@ fn smoke() {
     assert_eq!(r.try_recv(), Err(TryRecvError::Empty));
 }
 
+#[cfg(all(feature = "std", not(target_family = "wasm")))]
 #[test]
 fn smoke_blocking() {
     let (s, r) = bounded(1);
@@ -89,6 +94,7 @@ fn len_empty_full() {
     assert_eq!(r.is_full(), false);
 }
 
+#[cfg(not(target_family = "wasm"))]
 #[test]
 fn try_recv() {
     let (s, r) = bounded(100);
@@ -108,6 +114,7 @@ fn try_recv() {
         .run();
 }
 
+#[cfg(not(target_family = "wasm"))]
 #[test]
 fn recv() {
     let (s, r) = bounded(100);
@@ -130,6 +137,7 @@ fn recv() {
         .run();
 }
 
+#[cfg(not(target_family = "wasm"))]
 #[test]
 fn try_send() {
     let (s, r) = bounded(1);
@@ -152,6 +160,7 @@ fn try_send() {
         .run();
 }
 
+#[cfg(not(target_family = "wasm"))]
 #[test]
 fn send() {
     let (s, r) = bounded(1);
@@ -175,6 +184,31 @@ fn send() {
         .run();
 }
 
+#[cfg(not(target_family = "wasm"))]
+#[test]
+fn force_send() {
+    let (s, r) = bounded(1);
+
+    Parallel::new()
+        .add(|| {
+            s.force_send(7).unwrap();
+            sleep(ms(1000));
+            s.force_send(8).unwrap();
+            sleep(ms(1000));
+            s.force_send(9).unwrap();
+            sleep(ms(1000));
+            s.force_send(10).unwrap();
+        })
+        .add(|| {
+            sleep(ms(1500));
+            assert_eq!(future::block_on(r.recv()), Ok(8));
+            assert_eq!(future::block_on(r.recv()), Ok(9));
+            assert_eq!(future::block_on(r.recv()), Ok(10));
+        })
+        .run();
+}
+
+#[cfg(not(target_family = "wasm"))]
 #[test]
 fn send_after_close() {
     let (s, r) = bounded(100);
@@ -190,6 +224,7 @@ fn send_after_close() {
     assert_eq!(future::block_on(s.send(6)), Err(SendError(6)));
 }
 
+#[cfg(not(target_family = "wasm"))]
 #[test]
 fn recv_after_close() {
     let (s, r) = bounded(100);
@@ -206,6 +241,7 @@ fn recv_after_close() {
     assert_eq!(future::block_on(r.recv()), Err(RecvError));
 }
 
+#[cfg(not(target_family = "wasm"))]
 #[test]
 fn len() {
     const COUNT: usize = 25_000;
@@ -292,6 +328,7 @@ fn sender_count() {
     assert_eq!(r.receiver_count(), 1);
 }
 
+#[cfg(not(target_family = "wasm"))]
 #[test]
 fn close_wakes_sender() {
     let (s, r) = bounded(1);
@@ -308,6 +345,7 @@ fn close_wakes_sender() {
         .run();
 }
 
+#[cfg(not(target_family = "wasm"))]
 #[test]
 fn close_wakes_receiver() {
     let (s, r) = bounded::<()>(1);
@@ -323,6 +361,7 @@ fn close_wakes_receiver() {
         .run();
 }
 
+#[cfg(not(target_family = "wasm"))]
 #[test]
 fn forget_blocked_sender() {
     let (s1, r) = bounded(2);
@@ -332,9 +371,10 @@ fn forget_blocked_sender() {
         .add(move || {
             assert!(future::block_on(s1.send(3)).is_ok());
             assert!(future::block_on(s1.send(7)).is_ok());
-            let mut s1_fut = s1.send(13);
+            let s1_fut = s1.send(13);
+            futures_lite::pin!(s1_fut);
             // Poll but keep the future alive.
-            assert_eq!(future::block_on(future::poll_once(&mut s1_fut)), None);
+            assert_eq!(future::block_on(future::poll_once(s1_fut)), None);
             sleep(ms(500));
         })
         .add(move || {
@@ -351,6 +391,7 @@ fn forget_blocked_sender() {
         .run();
 }
 
+#[cfg(not(target_family = "wasm"))]
 #[test]
 fn forget_blocked_receiver() {
     let (s, r1) = bounded(2);
@@ -358,8 +399,9 @@ fn forget_blocked_receiver() {
 
     Parallel::new()
         .add(move || {
-            let mut r1_fut = r1.recv();
+            let r1_fut = r1.recv();
             // Poll but keep the future alive.
+            futures_lite::pin!(r1_fut);
             assert_eq!(future::block_on(future::poll_once(&mut r1_fut)), None);
             sleep(ms(500));
         })
@@ -377,6 +419,7 @@ fn forget_blocked_receiver() {
         .run();
 }
 
+#[cfg(not(target_family = "wasm"))]
 #[test]
 fn spsc() {
     const COUNT: usize = 100_000;
@@ -398,6 +441,7 @@ fn spsc() {
         .run();
 }
 
+#[cfg(not(target_family = "wasm"))]
 #[test]
 fn mpmc() {
     const COUNT: usize = 25_000;
@@ -425,6 +469,7 @@ fn mpmc() {
     }
 }
 
+#[cfg(not(target_family = "wasm"))]
 #[test]
 fn mpmc_stream() {
     const COUNT: usize = 25_000;
@@ -436,8 +481,9 @@ fn mpmc_stream() {
 
     Parallel::new()
         .each(0..THREADS, {
-            let mut r = r;
+            let r = r;
             move |_| {
+                futures_lite::pin!(r);
                 for _ in 0..COUNT {
                     let n = future::block_on(r.next()).unwrap();
                     v[n].fetch_add(1, Ordering::SeqCst);
@@ -456,6 +502,7 @@ fn mpmc_stream() {
     }
 }
 
+#[cfg(all(feature = "std", not(target_family = "wasm")))]
 #[test]
 fn weak() {
     let (s, r) = bounded::<usize>(3);

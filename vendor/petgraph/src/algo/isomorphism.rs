@@ -731,7 +731,7 @@ mod matching {
         }
     }
 
-    impl<'a, 'b, 'c, G0, G1, NM, EM> Iterator for GraphMatcher<'a, 'b, 'c, G0, G1, NM, EM>
+    impl<G0, G1, NM, EM> Iterator for GraphMatcher<'_, '_, '_, G0, G1, NM, EM>
     where
         G0: NodeCompactIndexable
             + EdgeCount
@@ -766,7 +766,7 @@ mod matching {
 
             // We hardcode n! values into an array that accounts for architectures
             // with smaller usizes to get our upper bound.
-            let upper_bounds: Vec<Option<usize>> = vec![
+            let upper_bounds: Vec<Option<usize>> = [
                 1u64,
                 1,
                 2,

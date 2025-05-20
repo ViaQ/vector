@@ -3,7 +3,7 @@ pub use crate::operation::delete_message_batch::_delete_message_batch_output::De
 
 pub use crate::operation::delete_message_batch::_delete_message_batch_input::DeleteMessageBatchInputBuilder;
 
-impl DeleteMessageBatchInputBuilder {
+impl crate::operation::delete_message_batch::builders::DeleteMessageBatchInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,7 +22,7 @@ impl DeleteMessageBatchInputBuilder {
 }
 /// Fluent builder constructing a request to `DeleteMessageBatch`.
 ///
-/// <p>Deletes up to ten messages from the specified queue. This is a batch version of <code> <code>DeleteMessage</code>.</code> The result of the action on each message is reported individually in the response.</p> <important>
+/// <p>Deletes up to ten messages from the specified queue. This is a batch version of <code> <code>DeleteMessage</code>.</code> The result of the action on each message is reported individually in the response.</p><important>
 /// <p>Because the batch request can result in a combination of successful and unsuccessful actions, you should check for batch errors even when the call returns an HTTP status code of <code>200</code>.</p>
 /// </important>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
@@ -50,7 +50,7 @@ impl
     }
 }
 impl DeleteMessageBatchFluentBuilder {
-    /// Creates a new `DeleteMessageBatch`.
+    /// Creates a new `DeleteMessageBatchFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -101,12 +101,12 @@ impl DeleteMessageBatchFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -127,6 +127,7 @@ impl DeleteMessageBatchFluentBuilder {
     pub fn get_queue_url(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_queue_url()
     }
+    ///
     /// Appends an item to `Entries`.
     ///
     /// To override the contents of this collection use [`set_entries`](Self::set_entries).

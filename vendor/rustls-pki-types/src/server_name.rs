@@ -55,7 +55,7 @@ pub enum ServerName<'a> {
     IpAddress(IpAddr),
 }
 
-impl<'a> ServerName<'a> {
+impl ServerName<'_> {
     /// Produce an owned `ServerName` from this (potentially borrowed) `ServerName`.
     #[cfg(feature = "alloc")]
     pub fn to_owned(&self) -> ServerName<'static> {
@@ -78,7 +78,7 @@ impl<'a> ServerName<'a> {
     }
 }
 
-impl<'a> fmt::Debug for ServerName<'a> {
+impl fmt::Debug for ServerName<'_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::DnsName(d) => f.debug_tuple("DnsName").field(&d.as_ref()).finish(),
@@ -127,13 +127,52 @@ impl<'a> TryFrom<&'a str> for ServerName<'a> {
     }
 }
 
+impl From<IpAddr> for ServerName<'_> {
+    fn from(addr: IpAddr) -> Self {
+        Self::IpAddress(addr)
+    }
+}
+
+#[cfg(feature = "std")]
+impl From<std::net::IpAddr> for ServerName<'_> {
+    fn from(addr: std::net::IpAddr) -> Self {
+        Self::IpAddress(addr.into())
+    }
+}
+
+impl From<Ipv4Addr> for ServerName<'_> {
+    fn from(v4: Ipv4Addr) -> Self {
+        Self::IpAddress(IpAddr::V4(v4))
+    }
+}
+
+impl From<Ipv6Addr> for ServerName<'_> {
+    fn from(v6: Ipv6Addr) -> Self {
+        Self::IpAddress(IpAddr::V6(v6))
+    }
+}
+
+#[cfg(feature = "std")]
+impl From<std::net::Ipv4Addr> for ServerName<'_> {
+    fn from(v4: std::net::Ipv4Addr) -> Self {
+        Self::IpAddress(IpAddr::V4(v4.into()))
+    }
+}
+
+#[cfg(feature = "std")]
+impl From<std::net::Ipv6Addr> for ServerName<'_> {
+    fn from(v6: std::net::Ipv6Addr) -> Self {
+        Self::IpAddress(IpAddr::V6(v6.into()))
+    }
+}
+
 /// A type which encapsulates a string (borrowed or owned) that is a syntactically valid DNS name.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct DnsName<'a>(DnsNameInner<'a>);
 
 impl<'a> DnsName<'a> {
     /// Produce a borrowed `DnsName` from this owned `DnsName`.
-    pub fn borrow(&'a self) -> DnsName<'_> {
+    pub fn borrow(&'a self) -> Self {
         Self(match self {
             Self(DnsNameInner::Borrowed(s)) => DnsNameInner::Borrowed(s),
             #[cfg(feature = "alloc")]
@@ -165,6 +204,14 @@ impl<'a> DnsName<'a> {
             Err(_) => Err(s),
         }
     }
+
+    /// Produces a borrowed [`DnsName`] from a borrowed [`str`].
+    pub const fn try_from_str(s: &str) -> Result<DnsName<'_>, InvalidDnsNameError> {
+        match validate(s.as_bytes()) {
+            Ok(_) => Ok(DnsName(DnsNameInner::Borrowed(s))),
+            Err(err) => Err(err),
+        }
+    }
 }
 
 #[cfg(feature = "alloc")]
@@ -179,22 +226,21 @@ impl TryFrom<String> for DnsName<'static> {
 impl<'a> TryFrom<&'a str> for DnsName<'a> {
     type Error = InvalidDnsNameError;
 
-    fn try_from(value: &'a str) -> Result<DnsName<'a>, Self::Error> {
-        validate(value.as_bytes())?;
-        Ok(Self(DnsNameInner::Borrowed(value)))
+    fn try_from(value: &'a str) -> Result<Self, Self::Error> {
+        DnsName::try_from_str(value)
     }
 }
 
 impl<'a> TryFrom<&'a [u8]> for DnsName<'a> {
     type Error = InvalidDnsNameError;
 
-    fn try_from(value: &'a [u8]) -> Result<DnsName<'a>, Self::Error> {
+    fn try_from(value: &'a [u8]) -> Result<Self, Self::Error> {
         validate(value)?;
         Ok(Self(DnsNameInner::Borrowed(str::from_utf8(value).unwrap())))
     }
 }
 
-impl<'a> AsRef<str> for DnsName<'a> {
+impl AsRef<str> for DnsName<'_> {
     fn as_ref(&self) -> &str {
         match self {
             Self(DnsNameInner::Borrowed(s)) => s,
@@ -211,8 +257,8 @@ enum DnsNameInner<'a> {
     Owned(String),
 }
 
-impl<'a> PartialEq<DnsNameInner<'a>> for DnsNameInner<'a> {
-    fn eq(&self, other: &DnsNameInner<'a>) -> bool {
+impl PartialEq<Self> for DnsNameInner<'_> {
+    fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::Borrowed(s), Self::Borrowed(o)) => s.eq_ignore_ascii_case(o),
             #[cfg(feature = "alloc")]
@@ -225,7 +271,7 @@ impl<'a> PartialEq<DnsNameInner<'a>> for DnsNameInner<'a> {
     }
 }
 
-impl<'a> Hash for DnsNameInner<'a> {
+impl Hash for DnsNameInner<'_> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         let s = match self {
             Self::Borrowed(s) => s,
@@ -237,7 +283,7 @@ impl<'a> Hash for DnsNameInner<'a> {
     }
 }
 
-impl<'a> fmt::Debug for DnsNameInner<'a> {
+impl fmt::Debug for DnsNameInner<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Borrowed(s) => f.write_fmt(format_args!("{:?}", s)),
@@ -261,7 +307,7 @@ impl fmt::Display for InvalidDnsNameError {
 #[cfg(feature = "std")]
 impl StdError for InvalidDnsNameError {}
 
-fn validate(input: &[u8]) -> Result<(), InvalidDnsNameError> {
+const fn validate(input: &[u8]) -> Result<(), InvalidDnsNameError> {
     enum State {
         Start,
         Next,
@@ -284,17 +330,19 @@ fn validate(input: &[u8]) -> Result<(), InvalidDnsNameError> {
         return Err(InvalidDnsNameError);
     }
 
-    for ch in input {
+    let mut idx = 0;
+    while idx < input.len() {
+        let ch = input[idx];
         state = match (state, ch) {
             (Start | Next | NextAfterNumericOnly | Hyphen { .. }, b'.') => {
-                return Err(InvalidDnsNameError)
+                return Err(InvalidDnsNameError);
             }
             (Subsequent { .. }, b'.') => Next,
             (NumericOnly { .. }, b'.') => NextAfterNumericOnly,
             (Subsequent { len } | NumericOnly { len } | Hyphen { len }, _)
                 if len >= MAX_LABEL_LENGTH =>
             {
-                return Err(InvalidDnsNameError)
+                return Err(InvalidDnsNameError);
             }
             (Start | Next | NextAfterNumericOnly, b'0'..=b'9') => NumericOnly { len: 1 },
             (NumericOnly { len }, b'0'..=b'9') => NumericOnly { len: len + 1 },
@@ -310,6 +358,7 @@ fn validate(input: &[u8]) -> Result<(), InvalidDnsNameError> {
             ) => Subsequent { len: len + 1 },
             _ => return Err(InvalidDnsNameError),
         };
+        idx += 1;
     }
 
     if matches!(
@@ -366,6 +415,20 @@ impl From<IpAddr> for std::net::IpAddr {
             IpAddr::V4(v4) => Self::from(std::net::Ipv4Addr::from(v4)),
             IpAddr::V6(v6) => Self::from(std::net::Ipv6Addr::from(v6)),
         }
+    }
+}
+
+#[cfg(feature = "std")]
+impl From<std::net::Ipv4Addr> for IpAddr {
+    fn from(v4: std::net::Ipv4Addr) -> Self {
+        Self::V4(v4.into())
+    }
+}
+
+#[cfg(feature = "std")]
+impl From<std::net::Ipv6Addr> for IpAddr {
+    fn from(v6: std::net::Ipv6Addr) -> Self {
+        Self::V6(v6.into())
     }
 }
 
@@ -442,7 +505,7 @@ impl From<[u16; 8]> for Ipv6Addr {
         Self(
             // All elements in `addr16` are big endian.
             // SAFETY: `[u16; 8]` is always safe to transmute to `[u8; 16]`.
-            unsafe { mem::transmute::<_, [u8; 16]>(addr16) },
+            unsafe { mem::transmute::<[u16; 8], [u8; 16]>(addr16) },
         )
     }
 }
@@ -479,7 +542,7 @@ mod parser {
     }
 
     impl<'a> Parser<'a> {
-        pub(super) fn new(input: &'a [u8]) -> Parser<'a> {
+        pub(super) fn new(input: &'a [u8]) -> Self {
             Parser { state: input }
         }
 
@@ -774,8 +837,14 @@ mod tests {
         ("a123b.com", true),
         ("numeric-only-middle-label.4.com", true),
         ("1000-sans.badssl.com", true),
-        ("twohundredandfiftythreecharacters.twohundredandfiftythreecharacters.twohundredandfiftythreecharacters.twohundredandfiftythreecharacters.twohundredandfiftythreecharacters.twohundredandfiftythreecharacters.twohundredandfiftythreecharacters.twohundredandfi", true),
-        ("twohundredandfiftyfourcharacters.twohundredandfiftyfourcharacters.twohundredandfiftyfourcharacters.twohundredandfiftyfourcharacters.twohundredandfiftyfourcharacters.twohundredandfiftyfourcharacters.twohundredandfiftyfourcharacters.twohundredandfiftyfourc", false),
+        (
+            "twohundredandfiftythreecharacters.twohundredandfiftythreecharacters.twohundredandfiftythreecharacters.twohundredandfiftythreecharacters.twohundredandfiftythreecharacters.twohundredandfiftythreecharacters.twohundredandfiftythreecharacters.twohundredandfi",
+            true,
+        ),
+        (
+            "twohundredandfiftyfourcharacters.twohundredandfiftyfourcharacters.twohundredandfiftyfourcharacters.twohundredandfiftyfourcharacters.twohundredandfiftyfourcharacters.twohundredandfiftyfourcharacters.twohundredandfiftyfourcharacters.twohundredandfiftyfourc",
+            false,
+        ),
     ];
 
     #[cfg(feature = "alloc")]

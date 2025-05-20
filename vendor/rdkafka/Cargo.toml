@@ -11,11 +11,16 @@
 
 [package]
 edition = "2018"
-rust-version = "1.61"
+rust-version = "1.70"
 name = "rdkafka"
-version = "0.35.0"
+version = "0.37.0"
 authors = ["Federico Giraud <giraud.federico@gmail.com>"]
+build = false
 exclude = ["Cargo.lock"]
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Rust wrapper for librdkafka"
 readme = "README.md"
 keywords = [
@@ -38,6 +43,82 @@ rustdoc-args = [
     "docsrs",
 ]
 
+[lib]
+name = "rdkafka"
+path = "src/lib.rs"
+
+[[example]]
+name = "asynchronous_processing"
+path = "examples/asynchronous_processing.rs"
+
+[[example]]
+name = "at_least_once"
+path = "examples/at_least_once.rs"
+
+[[example]]
+name = "example_utils"
+path = "examples/example_utils.rs"
+
+[[example]]
+name = "metadata"
+path = "examples/metadata.rs"
+
+[[example]]
+name = "mocking"
+path = "examples/mocking.rs"
+
+[[example]]
+name = "roundtrip"
+path = "examples/roundtrip.rs"
+
+[[example]]
+name = "runtime_async_std"
+path = "examples/runtime_async_std.rs"
+
+[[example]]
+name = "runtime_smol"
+path = "examples/runtime_smol.rs"
+
+[[example]]
+name = "simple_consumer"
+path = "examples/simple_consumer.rs"
+
+[[example]]
+name = "simple_producer"
+path = "examples/simple_producer.rs"
+
+[[test]]
+name = "test_admin"
+path = "tests/test_admin.rs"
+
+[[test]]
+name = "test_high_consumers"
+path = "tests/test_high_consumers.rs"
+
+[[test]]
+name = "test_high_producers"
+path = "tests/test_high_producers.rs"
+
+[[test]]
+name = "test_low_consumers"
+path = "tests/test_low_consumers.rs"
+
+[[test]]
+name = "test_low_producers"
+path = "tests/test_low_producers.rs"
+
+[[test]]
+name = "test_metadata"
+path = "tests/test_metadata.rs"
+
+[[test]]
+name = "test_transactions"
+path = "tests/test_transactions.rs"
+
+[[test]]
+name = "utils"
+path = "tests/utils.rs"
+
 [dependencies.futures-channel]
 version = "0.3.0"
 
@@ -56,7 +137,7 @@ version = "0.2.0"
 version = "0.4.8"
 
 [dependencies.rdkafka-sys]
-version = "4.7.0"
+version = "4.8.0"
 default-features = false
 
 [dependencies.serde]
@@ -88,8 +169,10 @@ optional = true
 version = "1.9.0"
 features = ["attributes"]
 
-[dev-dependencies.backoff]
-version = "0.1.5"
+[dev-dependencies.backon]
+version = "1.2"
+features = ["std-blocking-sleep"]
+default-features = false
 
 [dev-dependencies.chrono]
 version = "0.4.0"

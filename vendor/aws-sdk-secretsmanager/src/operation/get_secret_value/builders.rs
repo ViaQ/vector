@@ -3,7 +3,7 @@ pub use crate::operation::get_secret_value::_get_secret_value_output::GetSecretV
 
 pub use crate::operation::get_secret_value::_get_secret_value_input::GetSecretValueInputBuilder;
 
-impl GetSecretValueInputBuilder {
+impl crate::operation::get_secret_value::builders::GetSecretValueInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -23,10 +23,11 @@ impl GetSecretValueInputBuilder {
 /// Fluent builder constructing a request to `GetSecretValue`.
 ///
 /// <p>Retrieves the contents of the encrypted fields <code>SecretString</code> or <code>SecretBinary</code> from the specified version of a secret, whichever contains content.</p>
+/// <p>To retrieve the values for a group of secrets, call <code>BatchGetSecretValue</code>.</p>
 /// <p>We recommend that you cache your secret values by using client-side caching. Caching secrets improves speed and reduces your costs. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieving-secrets.html">Cache secrets for your applications</a>.</p>
 /// <p>To retrieve the previous version of a secret, use <code>VersionStage</code> and specify AWSPREVIOUS. To revert to the previous version of a secret, call <a href="https://docs.aws.amazon.com/cli/latest/reference/secretsmanager/update-secret-version-stage.html">UpdateSecretVersionStage</a>.</p>
 /// <p>Secrets Manager generates a CloudTrail log entry when you call this action. Do not include sensitive information in request parameters because it might be logged. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html">Logging Secrets Manager events with CloudTrail</a>.</p>
-/// <p> <b>Required permissions: </b> <code>secretsmanager:GetSecretValue</code>. If the secret is encrypted using a customer-managed key instead of the Amazon Web Services managed key <code>aws/secretsmanager</code>, then you also need <code>kms:Decrypt</code> permissions for that key. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions"> IAM policy actions for Secrets Manager</a> and <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access.html">Authentication and access control in Secrets Manager</a>. </p>
+/// <p><b>Required permissions: </b> <code>secretsmanager:GetSecretValue</code>. If the secret is encrypted using a customer-managed key instead of the Amazon Web Services managed key <code>aws/secretsmanager</code>, then you also need <code>kms:Decrypt</code> permissions for that key. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions"> IAM policy actions for Secrets Manager</a> and <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access.html">Authentication and access control in Secrets Manager</a>.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct GetSecretValueFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -52,7 +53,7 @@ impl
     }
 }
 impl GetSecretValueFluentBuilder {
-    /// Creates a new `GetSecretValue`.
+    /// Creates a new `GetSecretValueFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -103,28 +104,28 @@ impl GetSecretValueFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
-    /// <p>The ARN or name of the secret to retrieve.</p>
+    /// <p>The ARN or name of the secret to retrieve. To retrieve a secret from another account, you must use an ARN.</p>
     /// <p>For an ARN, we recommend that you specify a complete ARN rather than a partial ARN. See <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/troubleshoot.html#ARN_secretnamehyphen">Finding a secret from a partial ARN</a>.</p>
     pub fn secret_id(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.secret_id(input.into());
         self
     }
-    /// <p>The ARN or name of the secret to retrieve.</p>
+    /// <p>The ARN or name of the secret to retrieve. To retrieve a secret from another account, you must use an ARN.</p>
     /// <p>For an ARN, we recommend that you specify a complete ARN rather than a partial ARN. See <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/troubleshoot.html#ARN_secretnamehyphen">Finding a secret from a partial ARN</a>.</p>
     pub fn set_secret_id(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_secret_id(input);
         self
     }
-    /// <p>The ARN or name of the secret to retrieve.</p>
+    /// <p>The ARN or name of the secret to retrieve. To retrieve a secret from another account, you must use an ARN.</p>
     /// <p>For an ARN, we recommend that you specify a complete ARN rather than a partial ARN. See <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/troubleshoot.html#ARN_secretnamehyphen">Finding a secret from a partial ARN</a>.</p>
     pub fn get_secret_id(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_secret_id()
@@ -146,19 +147,19 @@ impl GetSecretValueFluentBuilder {
     pub fn get_version_id(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_version_id()
     }
-    /// <p>The staging label of the version of the secret to retrieve. </p>
+    /// <p>The staging label of the version of the secret to retrieve.</p>
     /// <p>Secrets Manager uses staging labels to keep track of different versions during the rotation process. If you include both this parameter and <code>VersionId</code>, the two parameters must refer to the same secret version. If you don't specify either a <code>VersionStage</code> or <code>VersionId</code>, Secrets Manager returns the <code>AWSCURRENT</code> version.</p>
     pub fn version_stage(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.version_stage(input.into());
         self
     }
-    /// <p>The staging label of the version of the secret to retrieve. </p>
+    /// <p>The staging label of the version of the secret to retrieve.</p>
     /// <p>Secrets Manager uses staging labels to keep track of different versions during the rotation process. If you include both this parameter and <code>VersionId</code>, the two parameters must refer to the same secret version. If you don't specify either a <code>VersionStage</code> or <code>VersionId</code>, Secrets Manager returns the <code>AWSCURRENT</code> version.</p>
     pub fn set_version_stage(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_version_stage(input);
         self
     }
-    /// <p>The staging label of the version of the secret to retrieve. </p>
+    /// <p>The staging label of the version of the secret to retrieve.</p>
     /// <p>Secrets Manager uses staging labels to keep track of different versions during the rotation process. If you include both this parameter and <code>VersionId</code>, the two parameters must refer to the same secret version. If you don't specify either a <code>VersionStage</code> or <code>VersionId</code>, Secrets Manager returns the <code>AWSCURRENT</code> version.</p>
     pub fn get_version_stage(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_version_stage()

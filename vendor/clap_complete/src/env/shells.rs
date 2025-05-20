@@ -37,16 +37,21 @@ _clap_complete_NAME() {
     else
         local _CLAP_COMPLETE_SPACE=true
     fi
+    local words=("${COMP_WORDS[@]}")
+    if [[ "${BASH_VERSINFO[0]}" -ge 4 ]]; then
+        words[COMP_CWORD]="$2"
+    fi
     COMPREPLY=( $( \
         _CLAP_IFS="$IFS" \
         _CLAP_COMPLETE_INDEX="$_CLAP_COMPLETE_INDEX" \
         _CLAP_COMPLETE_COMP_TYPE="$_CLAP_COMPLETE_COMP_TYPE" \
+        _CLAP_COMPLETE_SPACE="$_CLAP_COMPLETE_SPACE" \
         VAR="bash" \
-        "COMPLETER" -- "${COMP_WORDS[@]}" \
+        "COMPLETER" -- "${words[@]}" \
     ) )
     if [[ $? != 0 ]]; then
         unset COMPREPLY
-    elif [[ $SUPPRESS_SPACE == 1 ]] && [[ "${COMPREPLY-}" =~ [=/:]$ ]]; then
+    elif [[ $_CLAP_COMPLETE_SPACE == false ]] && [[ "${COMPREPLY-}" =~ [=/:]$ ]]; then
         compopt -o nospace
     fi
 }
@@ -157,14 +162,10 @@ impl EnvCompleter for Elvish {
 
         let script = r#"
 set edit:completion:arg-completer[BIN] = { |@words|
-    set E:_CLAP_IFS = "\n"
-
     var index = (count $words)
     set index = (- $index 1)
-    set E:_CLAP_COMPLETE_INDEX = (to-string $index)
-    set E:VAR = "elvish"
 
-    put (COMPLETER -- $@words) | to-lines
+    put (env _CLAP_IFS="\n" _CLAP_COMPLETE_INDEX=(to-string $index) VAR="elvish" COMPLETER -- $@words) | to-lines
 }
 "#
         .replace("COMPLETER", &completer)
@@ -274,13 +275,25 @@ impl EnvCompleter for Powershell {
         let completer =
             shlex::try_quote(completer).unwrap_or(std::borrow::Cow::Borrowed(completer));
 
+        // `completer` may or may not be surrounded by double quotes, enclosing
+        // the expression in a here-string ensures the whole thing is
+        // interpreted as the first argument to the call operator
         writeln!(
             buf,
             r#"
 Register-ArgumentCompleter -Native -CommandName {bin} -ScriptBlock {{
     param($wordToComplete, $commandAst, $cursorPosition)
 
-    $results = Invoke-Expression "{var}=powershell &{completer} -- $($commandAst.ToString())";
+    $prev = $env:{var};
+    $env:{var} = "powershell";
+    $results = Invoke-Expression @"
+& {completer} -- $commandAst
+"@;
+    if ($null -eq $prev) {{
+        Remove-Item Env:\{var};
+    }} else {{
+        $env:{var} = $prev;
+    }}
     $results | ForEach-Object {{
         $split = $_.Split("`t");
         $cmd = $split[0];

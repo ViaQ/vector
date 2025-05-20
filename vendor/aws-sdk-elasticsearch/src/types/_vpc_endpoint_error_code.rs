@@ -35,6 +35,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 /// <p>Specifies the error code of the failure encountered while describing the VPC endpoint:
 /// <ul>
 /// <li>ENDPOINT_NOT_FOUND: Indicates that the requested VPC endpoint does not exist.</li>
@@ -98,6 +99,15 @@ impl VpcEndpointErrorCode {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for VpcEndpointErrorCode {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            VpcEndpointErrorCode::EndpointNotFound => write!(f, "ENDPOINT_NOT_FOUND"),
+            VpcEndpointErrorCode::ServerError => write!(f, "SERVER_ERROR"),
+            VpcEndpointErrorCode::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

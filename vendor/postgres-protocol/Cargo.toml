@@ -12,13 +12,23 @@
 [package]
 edition = "2018"
 name = "postgres-protocol"
-version = "0.6.7"
+version = "0.6.8"
 authors = ["Steven Fackler <sfackler@gmail.com>"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Low level Postgres protocol APIs"
 readme = "README.md"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/sfackler/rust-postgres"
 resolver = "2"
+
+[lib]
+name = "postgres_protocol"
+path = "src/lib.rs"
 
 [dependencies.base64]
 version = "0.22"
@@ -33,7 +43,7 @@ version = "1.0"
 version = "0.2"
 
 [dependencies.getrandom]
-version = "0.2"
+version = "0.3"
 optional = true
 
 [dependencies.hmac]
@@ -46,7 +56,7 @@ version = "0.10"
 version = "2.0"
 
 [dependencies.rand]
-version = "0.8"
+version = "0.9"
 
 [dependencies.sha2]
 version = "0.10"
@@ -56,4 +66,4 @@ version = "0.1"
 
 [features]
 default = []
-js = ["getrandom/js"]
+js = ["getrandom/wasm_js"]

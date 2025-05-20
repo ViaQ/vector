@@ -11,9 +11,9 @@
 
 [package]
 edition = "2018"
-rust-version = "1.60"
+rust-version = "1.66"
 name = "tower-http"
-version = "0.4.4"
+version = "0.5.2"
 authors = ["Tower Maintainers <team@tower-rs.com>"]
 description = "Tower middleware and utilities for HTTP clients and servers"
 homepage = "https://github.com/tower-rs/tower-http"
@@ -32,6 +32,7 @@ categories = [
 ]
 license = "MIT"
 repository = "https://github.com/tower-rs/tower-http"
+resolver = "2"
 
 [package.metadata.cargo-public-api-crates]
 allowed = [
@@ -74,20 +75,26 @@ version = "1"
 
 [dependencies.futures-core]
 version = "0.3"
+optional = true
+default_features = false
 
 [dependencies.futures-util]
 version = "0.3.14"
-features = []
+optional = true
 default_features = false
 
 [dependencies.http]
-version = "0.2.7"
+version = "1.0"
 
 [dependencies.http-body]
-version = "0.4.5"
+version = "1.0.0"
+
+[dependencies.http-body-util]
+version = "0.1.0"
 
 [dependencies.http-range-header]
-version = "0.3.0"
+version = "0.4.0"
+optional = true
 
 [dependencies.httpdate]
 version = "1.0"
@@ -145,6 +152,9 @@ version = "1.0"
 features = ["v4"]
 optional = true
 
+[dev-dependencies.async-trait]
+version = "0.1"
+
 [dev-dependencies.brotli]
 version = "3"
 
@@ -154,18 +164,25 @@ version = "1"
 [dev-dependencies.flate2]
 version = "1.0"
 
-[dev-dependencies.futures]
-version = "0.3"
+[dev-dependencies.futures-util]
+version = "0.3.14"
 
-[dev-dependencies.hyper]
-version = "0.14"
-features = ["full"]
+[dev-dependencies.hyper-util]
+version = "0.1"
+features = [
+    "client-legacy",
+    "http1",
+    "tokio",
+]
 
 [dev-dependencies.once_cell]
 version = "1"
 
 [dev-dependencies.serde_json]
 version = "1.0"
+
+[dev-dependencies.sync_wrapper]
+version = "0.1.1"
 
 [dev-dependencies.tokio]
 version = "1"
@@ -203,11 +220,13 @@ catch-panic = [
 ]
 compression-br = [
     "async-compression/brotli",
+    "futures-core",
     "tokio-util",
     "tokio",
 ]
 compression-deflate = [
     "async-compression/zlib",
+    "futures-core",
     "tokio-util",
     "tokio",
 ]
@@ -219,22 +238,26 @@ compression-full = [
 ]
 compression-gzip = [
     "async-compression/gzip",
+    "futures-core",
     "tokio-util",
     "tokio",
 ]
 compression-zstd = [
     "async-compression/zstd",
+    "futures-core",
     "tokio-util",
     "tokio",
 ]
 cors = []
 decompression-br = [
     "async-compression/brotli",
+    "futures-core",
     "tokio-util",
     "tokio",
 ]
 decompression-deflate = [
     "async-compression/zlib",
+    "futures-core",
     "tokio-util",
     "tokio",
 ]
@@ -246,23 +269,28 @@ decompression-full = [
 ]
 decompression-gzip = [
     "async-compression/gzip",
+    "futures-core",
     "tokio-util",
     "tokio",
 ]
 decompression-zstd = [
     "async-compression/zstd",
+    "futures-core",
     "tokio-util",
     "tokio",
 ]
 default = []
 follow-redirect = [
+    "futures-util",
     "iri-string",
     "tower/util",
 ]
 fs = [
+    "futures-util",
     "tokio/fs",
     "tokio-util/io",
     "tokio/io-util",
+    "dep:http-range-header",
     "mime_guess",
     "mime",
     "percent-encoding",

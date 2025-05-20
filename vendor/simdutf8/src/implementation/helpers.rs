@@ -17,6 +17,7 @@ pub(crate) fn validate_utf8_at_offset(input: &[u8], offset: usize) -> Result<(),
 
 #[cold]
 #[allow(dead_code)]
+#[allow(clippy::unwrap_used)]
 pub(crate) fn get_compat_error(input: &[u8], failing_block_pos: usize) -> Utf8ErrorCompat {
     let offset = if failing_block_pos == 0 {
         // Error must be in this block since it is the first.
@@ -29,7 +30,6 @@ pub(crate) fn get_compat_error(input: &[u8], failing_block_pos: usize) -> Utf8Er
         // UTF-8 codepoint, is thus complete and valid UTF-8. We start the check with the
         // current block in that case.
         (1..=3)
-            .into_iter()
             .find(|i| input[failing_block_pos - i] >> 6 != 0b10)
             .map_or(failing_block_pos, |i| failing_block_pos - i)
     };
@@ -38,7 +38,6 @@ pub(crate) fn get_compat_error(input: &[u8], failing_block_pos: usize) -> Utf8Er
 }
 
 #[allow(dead_code)]
-#[allow(clippy::missing_const_for_fn)] // clippy is wrong, it cannot really be const
 pub(crate) unsafe fn memcpy_unaligned_nonoverlapping_inline_opt_lt_64(
     mut src: *const u8,
     mut dest: *mut u8,
@@ -112,6 +111,7 @@ impl TempSimdChunkA32 {
 }
 
 #[derive(Clone, Copy)]
+#[allow(dead_code)]
 pub(crate) struct SimdU8Value<T>(pub(crate) T)
 where
     T: Copy;

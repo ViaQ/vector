@@ -3,7 +3,6 @@ pub use self::any::AnyIpCidr;
 mod any;
 mod combined;
 mod direct;
-mod from_str;
 mod serde;
 
 #[cfg(feature = "bitstring")]
@@ -12,7 +11,7 @@ mod bitstring_tests;
 #[cfg(test)]
 mod tests;
 
-use std::net::{
+use core::net::{
 	Ipv4Addr,
 	Ipv6Addr,
 };

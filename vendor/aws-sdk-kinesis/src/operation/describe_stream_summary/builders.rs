@@ -3,7 +3,7 @@ pub use crate::operation::describe_stream_summary::_describe_stream_summary_outp
 
 pub use crate::operation::describe_stream_summary::_describe_stream_summary_input::DescribeStreamSummaryInputBuilder;
 
-impl DescribeStreamSummaryInputBuilder {
+impl crate::operation::describe_stream_summary::builders::DescribeStreamSummaryInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,11 +22,11 @@ impl DescribeStreamSummaryInputBuilder {
 }
 /// Fluent builder constructing a request to `DescribeStreamSummary`.
 ///
-/// <p>Provides a summarized description of the specified Kinesis data stream without the shard list.</p> <note>
+/// <p>Provides a summarized description of the specified Kinesis data stream without the shard list.</p><note>
 /// <p>When invoking this API, you must use either the <code>StreamARN</code> or the <code>StreamName</code> parameter, or both. It is recommended that you use the <code>StreamARN</code> input parameter when you invoke this API.</p>
 /// </note>
-/// <p>The information returned includes the stream name, Amazon Resource Name (ARN), status, record retention period, approximate creation time, monitoring, encryption details, and open shard count. </p>
-/// <p> <code>DescribeStreamSummary</code> has a limit of 20 transactions per second per account.</p>
+/// <p>The information returned includes the stream name, Amazon Resource Name (ARN), status, record retention period, approximate creation time, monitoring, encryption details, and open shard count.</p>
+/// <p><code>DescribeStreamSummary</code> has a limit of 20 transactions per second per account.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct DescribeStreamSummaryFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -52,7 +52,7 @@ impl
     }
 }
 impl DescribeStreamSummaryFluentBuilder {
-    /// Creates a new `DescribeStreamSummary`.
+    /// Creates a new `DescribeStreamSummaryFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -103,12 +103,12 @@ impl DescribeStreamSummaryFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

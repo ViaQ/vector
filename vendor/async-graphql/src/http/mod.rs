@@ -31,7 +31,9 @@ pub use multipart_subscribe::{create_multipart_mixed_stream, is_accept_multipart
 pub use playground_source::{playground_source, GraphQLPlaygroundConfig};
 use serde::Deserialize;
 pub use websocket::{
-    ClientMessage, Protocols as WebSocketProtocols, WebSocket, WsMessage, ALL_WEBSOCKET_PROTOCOLS,
+    default_on_connection_init, default_on_ping, ClientMessage, DefaultOnConnInitType,
+    DefaultOnPingType, Protocols as WebSocketProtocols, WebSocket, WsMessage,
+    ALL_WEBSOCKET_PROTOCOLS,
 };
 
 use crate::{BatchRequest, ParseRequestError, Request};
@@ -177,6 +179,8 @@ pub async fn receive_batch_cbor(body: impl AsyncRead) -> Result<BatchRequest, Pa
 mod tests {
     use std::collections::HashMap;
 
+    use async_graphql_value::Extensions;
+
     use super::*;
     use crate::{value, Variables};
 
@@ -191,7 +195,7 @@ mod tests {
                 "sha256Hash": "cde5de0a350a19c59f8ddcd9646e5f260b2a7d5649ff6be8e63e9462934542c3",
                 "version": 1,
             }));
-            extensions
+            Extensions(extensions)
         });
 
         let request = parse_query_string("query={a}&variables=%7B%22a%22%3A10%7D").unwrap();

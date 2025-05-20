@@ -17,6 +17,36 @@ pub fn de_put_metric_filter_http_error(
 
     let _error_message = generic.message().map(|msg| msg.to_owned());
     Err(match error_code {
+        "InvalidOperationException" => crate::operation::put_metric_filter::PutMetricFilterError::InvalidOperationException({
+            #[allow(unused_mut)]
+            let mut tmp = {
+                #[allow(unused_mut)]
+                let mut output = crate::types::error::builders::InvalidOperationExceptionBuilder::default();
+                output = crate::protocol_serde::shape_invalid_operation_exception::de_invalid_operation_exception_json_err(_response_body, output)
+                    .map_err(crate::operation::put_metric_filter::PutMetricFilterError::unhandled)?;
+                let output = output.meta(generic);
+                output.build()
+            };
+            if tmp.message.is_none() {
+                tmp.message = _error_message;
+            }
+            tmp
+        }),
+        "ResourceNotFoundException" => crate::operation::put_metric_filter::PutMetricFilterError::ResourceNotFoundException({
+            #[allow(unused_mut)]
+            let mut tmp = {
+                #[allow(unused_mut)]
+                let mut output = crate::types::error::builders::ResourceNotFoundExceptionBuilder::default();
+                output = crate::protocol_serde::shape_resource_not_found_exception::de_resource_not_found_exception_json_err(_response_body, output)
+                    .map_err(crate::operation::put_metric_filter::PutMetricFilterError::unhandled)?;
+                let output = output.meta(generic);
+                output.build()
+            };
+            if tmp.message.is_none() {
+                tmp.message = _error_message;
+            }
+            tmp
+        }),
         "InvalidParameterException" => crate::operation::put_metric_filter::PutMetricFilterError::InvalidParameterException({
             #[allow(unused_mut)]
             let mut tmp = {
@@ -62,21 +92,6 @@ pub fn de_put_metric_filter_http_error(
             }
             tmp
         }),
-        "ResourceNotFoundException" => crate::operation::put_metric_filter::PutMetricFilterError::ResourceNotFoundException({
-            #[allow(unused_mut)]
-            let mut tmp = {
-                #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::ResourceNotFoundExceptionBuilder::default();
-                output = crate::protocol_serde::shape_resource_not_found_exception::de_resource_not_found_exception_json_err(_response_body, output)
-                    .map_err(crate::operation::put_metric_filter::PutMetricFilterError::unhandled)?;
-                let output = output.meta(generic);
-                output.build()
-            };
-            if tmp.message.is_none() {
-                tmp.message = _error_message;
-            }
-            tmp
-        }),
         "ServiceUnavailableException" => crate::operation::put_metric_filter::PutMetricFilterError::ServiceUnavailableException({
             #[allow(unused_mut)]
             let mut tmp = {
@@ -113,7 +128,7 @@ pub fn de_put_metric_filter_http_response(
 
 pub fn ser_put_metric_filter_input(
     input: &crate::operation::put_metric_filter::PutMetricFilterInput,
-) -> Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
     let mut out = String::new();
     let mut object = ::aws_smithy_json::serialize::JsonObjectWriter::new(&mut out);
     crate::protocol_serde::shape_put_metric_filter_input::ser_put_metric_filter_input_input(&mut object, input)?;

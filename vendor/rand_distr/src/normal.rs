@@ -7,19 +7,36 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-//! The normal and derived distributions.
+//! The Normal and derived distributions.
 
 use crate::utils::ziggurat;
-use num_traits::Float;
 use crate::{ziggurat_tables, Distribution, Open01};
-use rand::Rng;
 use core::fmt;
+use num_traits::Float;
+use rand::Rng;
 
-/// Samples floating-point numbers according to the normal distribution
-/// `N(0, 1)` (a.k.a. a standard normal, or Gaussian). This is equivalent to
-/// `Normal::new(0.0, 1.0)` but faster.
+/// The standard Normal distribution `N(0, 1)`.
 ///
-/// See `Normal` for the general normal distribution.
+/// This is equivalent to `Normal::new(0.0, 1.0)`, but faster.
+///
+/// See [`Normal`](crate::Normal) for the general Normal distribution.
+///
+/// # Plot
+///
+/// The following diagram shows the standard Normal distribution.
+///
+/// ![Standard Normal distribution](https://raw.githubusercontent.com/rust-random/charts/main/charts/standard_normal.svg)
+///
+/// # Example
+/// ```
+/// use rand::prelude::*;
+/// use rand_distr::StandardNormal;
+///
+/// let val: f64 = rand::rng().sample(StandardNormal);
+/// println!("{}", val);
+/// ```
+///
+/// # Notes
 ///
 /// Implemented via the ZIGNOR variant[^1] of the Ziggurat method.
 ///
@@ -27,17 +44,8 @@ use core::fmt;
 ///       Generate Normal Random Samples*](
 ///       https://www.doornik.com/research/ziggurat.pdf).
 ///       Nuffield College, Oxford
-///
-/// # Example
-/// ```
-/// use rand::prelude::*;
-/// use rand_distr::StandardNormal;
-///
-/// let val: f64 = thread_rng().sample(StandardNormal);
-/// println!("{}", val);
-/// ```
 #[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "serde1", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct StandardNormal;
 
 impl Distribution<f32> for StandardNormal {
@@ -92,13 +100,28 @@ impl Distribution<f64> for StandardNormal {
     }
 }
 
-/// The normal distribution `N(mean, std_dev**2)`.
+/// The [Normal distribution](https://en.wikipedia.org/wiki/Normal_distribution) `N(μ, σ²)`.
 ///
-/// This uses the ZIGNOR variant of the Ziggurat method, see [`StandardNormal`]
-/// for more details.
+/// The Normal distribution, also known as the Gaussian distribution or
+/// bell curve, is a continuous probability distribution with mean
+/// `μ` (`mu`) and standard deviation `σ` (`sigma`).
+/// It is used to model continuous data that tend to cluster around a mean.
+/// The Normal distribution is symmetric and characterized by its bell-shaped curve.
 ///
-/// Note that [`StandardNormal`] is an optimised implementation for mean 0, and
-/// standard deviation 1.
+/// See [`StandardNormal`](crate::StandardNormal) for an
+/// optimised implementation for `μ = 0` and `σ = 1`.
+///
+/// # Density function
+///
+/// `f(x) = (1 / sqrt(2π σ²)) * exp(-((x - μ)² / (2σ²)))`
+///
+/// # Plot
+///
+/// The following diagram shows the Normal distribution with various values of `μ`
+/// and `σ`.
+/// The blue curve is the [`StandardNormal`](crate::StandardNormal) distribution, `N(0, 1)`.
+///
+/// ![Normal distribution](https://raw.githubusercontent.com/rust-random/charts/main/charts/normal.svg)
 ///
 /// # Example
 ///
@@ -107,21 +130,30 @@ impl Distribution<f64> for StandardNormal {
 ///
 /// // mean 2, standard deviation 3
 /// let normal = Normal::new(2.0, 3.0).unwrap();
-/// let v = normal.sample(&mut rand::thread_rng());
+/// let v = normal.sample(&mut rand::rng());
 /// println!("{} is from a N(2, 9) distribution", v)
 /// ```
 ///
-/// [`StandardNormal`]: crate::StandardNormal
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "serde1", derive(serde::Serialize, serde::Deserialize))]
+/// # Notes
+///
+/// Implemented via the ZIGNOR variant[^1] of the Ziggurat method.
+///
+/// [^1]: Jurgen A. Doornik (2005). [*An Improved Ziggurat Method to
+///       Generate Normal Random Samples*](
+///       https://www.doornik.com/research/ziggurat.pdf).
+///       Nuffield College, Oxford
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Normal<F>
-where F: Float, StandardNormal: Distribution<F>
+where
+    F: Float,
+    StandardNormal: Distribution<F>,
 {
     mean: F,
     std_dev: F,
 }
 
-/// Error type returned from `Normal::new` and `LogNormal::new`.
+/// Error type returned from [`Normal::new`] and [`LogNormal::new`](crate::LogNormal::new).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
     /// The mean value is too small (log-normal samples must be positive)
@@ -140,11 +172,12 @@ impl fmt::Display for Error {
 }
 
 #[cfg(feature = "std")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "std")))]
 impl std::error::Error for Error {}
 
 impl<F> Normal<F>
-where F: Float, StandardNormal: Distribution<F>
+where
+    F: Float,
+    StandardNormal: Distribution<F>,
 {
     /// Construct, from mean and standard deviation
     ///
@@ -182,7 +215,7 @@ where F: Float, StandardNormal: Distribution<F>
     /// ```
     /// # use rand::prelude::*;
     /// # use rand_distr::{Normal, StandardNormal};
-    /// let mut rng = thread_rng();
+    /// let mut rng = rand::rng();
     /// let z = StandardNormal.sample(&mut rng);
     /// let x1 = Normal::new(0.0, 1.0).unwrap().from_zscore(z);
     /// let x2 = Normal::new(2.0, -3.0).unwrap().from_zscore(z);
@@ -204,18 +237,27 @@ where F: Float, StandardNormal: Distribution<F>
 }
 
 impl<F> Distribution<F> for Normal<F>
-where F: Float, StandardNormal: Distribution<F>
+where
+    F: Float,
+    StandardNormal: Distribution<F>,
 {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> F {
         self.from_zscore(rng.sample(StandardNormal))
     }
 }
 
-
-/// The log-normal distribution `ln N(mean, std_dev**2)`.
+/// The [log-normal distribution](https://en.wikipedia.org/wiki/Log-normal_distribution) `ln N(μ, σ²)`.
 ///
-/// If `X` is log-normal distributed, then `ln(X)` is `N(mean, std_dev**2)`
-/// distributed.
+/// This is the distribution of the random variable `X = exp(Y)` where `Y` is
+/// normally distributed with mean `μ` and variance `σ²`. In other words, if
+/// `X` is log-normal distributed, then `ln(X)` is `N(μ, σ²)` distributed.
+///
+/// # Plot
+///
+/// The following diagram shows the log-normal distribution with various values
+/// of `μ` and `σ`.
+///
+/// ![Log-normal distribution](https://raw.githubusercontent.com/rust-random/charts/main/charts/log_normal.svg)
 ///
 /// # Example
 ///
@@ -224,19 +266,23 @@ where F: Float, StandardNormal: Distribution<F>
 ///
 /// // mean 2, standard deviation 3
 /// let log_normal = LogNormal::new(2.0, 3.0).unwrap();
-/// let v = log_normal.sample(&mut rand::thread_rng());
+/// let v = log_normal.sample(&mut rand::rng());
 /// println!("{} is from an ln N(2, 9) distribution", v)
 /// ```
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "serde1", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct LogNormal<F>
-where F: Float, StandardNormal: Distribution<F>
+where
+    F: Float,
+    StandardNormal: Distribution<F>,
 {
     norm: Normal<F>,
 }
 
 impl<F> LogNormal<F>
-where F: Float, StandardNormal: Distribution<F>
+where
+    F: Float,
+    StandardNormal: Distribution<F>,
 {
     /// Construct, from (log-space) mean and standard deviation
     ///
@@ -295,7 +341,7 @@ where F: Float, StandardNormal: Distribution<F>
     /// ```
     /// # use rand::prelude::*;
     /// # use rand_distr::{LogNormal, StandardNormal};
-    /// let mut rng = thread_rng();
+    /// let mut rng = rand::rng();
     /// let z = StandardNormal.sample(&mut rng);
     /// let x1 = LogNormal::from_mean_cv(3.0, 1.0).unwrap().from_zscore(z);
     /// let x2 = LogNormal::from_mean_cv(2.0, 4.0).unwrap().from_zscore(z);
@@ -307,7 +353,9 @@ where F: Float, StandardNormal: Distribution<F>
 }
 
 impl<F> Distribution<F> for LogNormal<F>
-where F: Float, StandardNormal: Distribution<F>
+where
+    F: Float,
+    StandardNormal: Distribution<F>,
 {
     #[inline]
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> F {
@@ -348,7 +396,10 @@ mod tests {
     #[test]
     fn test_log_normal_cv() {
         let lnorm = LogNormal::from_mean_cv(0.0, 0.0).unwrap();
-        assert_eq!((lnorm.norm.mean, lnorm.norm.std_dev), (-core::f64::INFINITY, 0.0));
+        assert_eq!(
+            (lnorm.norm.mean, lnorm.norm.std_dev),
+            (f64::NEG_INFINITY, 0.0)
+        );
 
         let lnorm = LogNormal::from_mean_cv(1.0, 0.0).unwrap();
         assert_eq!((lnorm.norm.mean, lnorm.norm.std_dev), (0.0, 0.0));
@@ -367,5 +418,15 @@ mod tests {
         assert!(LogNormal::from_mean_cv(-1.0, 1.0).is_err());
         assert!(LogNormal::from_mean_cv(0.0, 1.0).is_err());
         assert!(LogNormal::from_mean_cv(1.0, -1.0).is_err());
+    }
+
+    #[test]
+    fn normal_distributions_can_be_compared() {
+        assert_eq!(Normal::new(1.0, 2.0), Normal::new(1.0, 2.0));
+    }
+
+    #[test]
+    fn log_normal_distributions_can_be_compared() {
+        assert_eq!(LogNormal::new(1.0, 2.0), LogNormal::new(1.0, 2.0));
     }
 }

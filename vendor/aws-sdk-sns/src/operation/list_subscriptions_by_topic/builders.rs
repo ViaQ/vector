@@ -3,7 +3,7 @@ pub use crate::operation::list_subscriptions_by_topic::_list_subscriptions_by_to
 
 pub use crate::operation::list_subscriptions_by_topic::_list_subscriptions_by_topic_input::ListSubscriptionsByTopicInputBuilder;
 
-impl ListSubscriptionsByTopicInputBuilder {
+impl crate::operation::list_subscriptions_by_topic::builders::ListSubscriptionsByTopicInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -49,7 +49,7 @@ impl
     }
 }
 impl ListSubscriptionsByTopicFluentBuilder {
-    /// Creates a new `ListSubscriptionsByTopic`.
+    /// Creates a new `ListSubscriptionsByTopicFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -100,12 +100,12 @@ impl ListSubscriptionsByTopicFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

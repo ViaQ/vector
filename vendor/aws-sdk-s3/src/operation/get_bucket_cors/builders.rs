@@ -3,7 +3,7 @@ pub use crate::operation::get_bucket_cors::_get_bucket_cors_output::GetBucketCor
 
 pub use crate::operation::get_bucket_cors::_get_bucket_cors_input::GetBucketCorsInputBuilder;
 
-impl GetBucketCorsInputBuilder {
+impl crate::operation::get_bucket_cors::builders::GetBucketCorsInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -23,17 +23,19 @@ impl GetBucketCorsInputBuilder {
 /// Fluent builder constructing a request to `GetBucketCors`.
 ///
 /// <note>
-/// <p>This operation is not supported by directory buckets.</p>
+/// <p>This operation is not supported for directory buckets.</p>
 /// </note>
 /// <p>Returns the Cross-Origin Resource Sharing (CORS) configuration information set for the bucket.</p>
-/// <p> To use this operation, you must have permission to perform the <code>s3:GetBucketCORS</code> action. By default, the bucket owner has this permission and can grant it to others.</p>
+/// <p>To use this operation, you must have permission to perform the <code>s3:GetBucketCORS</code> action. By default, the bucket owner has this permission and can grant it to others.</p>
 /// <p>When you use this API operation with an access point, provide the alias of the access point in place of the bucket name.</p>
 /// <p>When you use this API operation with an Object Lambda access point, provide the alias of the Object Lambda access point in place of the bucket name. If the Object Lambda access point alias in a request is not valid, the error code <code>InvalidAccessPointAliasError</code> is returned. For more information about <code>InvalidAccessPointAliasError</code>, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/API/ErrorResponses.html#ErrorCodeList">List of Error Codes</a>.</p>
-/// <p> For more information about CORS, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/dev/cors.html"> Enabling Cross-Origin Resource Sharing</a>.</p>
+/// <p>For more information about CORS, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/dev/cors.html"> Enabling Cross-Origin Resource Sharing</a>.</p>
 /// <p>The following operations are related to <code>GetBucketCors</code>:</p>
 /// <ul>
-/// <li> <p> <a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketCors.html">PutBucketCors</a> </p> </li>
-/// <li> <p> <a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_DeleteBucketCors.html">DeleteBucketCors</a> </p> </li>
+/// <li>
+/// <p><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketCors.html">PutBucketCors</a></p></li>
+/// <li>
+/// <p><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_DeleteBucketCors.html">DeleteBucketCors</a></p></li>
 /// </ul>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct GetBucketCorsFluentBuilder {
@@ -60,7 +62,7 @@ impl
     }
 }
 impl GetBucketCorsFluentBuilder {
-    /// Creates a new `GetBucketCors`.
+    /// Creates a new `GetBucketCorsFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -111,12 +113,12 @@ impl GetBucketCorsFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

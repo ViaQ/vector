@@ -14,18 +14,25 @@ use crate::{
 	InetIterator,
 };
 use core::{
-	fmt::Debug,
+	fmt::{
+		Debug,
+		Display,
+	},
 	hash::Hash,
+	net::AddrParseError,
+	str::FromStr,
 };
 
 /// Maps IP address type to other types based on this address type
 ///
 /// Implemented for [`IPv4Addr`], [`IPv6Addr`] and [`IpAddr`].
 ///
-/// [`Ipv4Addr`]: std::net::Ipv4Addr
-/// [`Ipv6Addr`]: std::net::Ipv6Addr
-/// [`IpAddr`]: std::net::IpAddr
-pub trait Address: Copy + Debug + Ord + Hash + PrivUnspecAddress {
+/// [`Ipv4Addr`]: core::net::Ipv4Addr
+/// [`Ipv6Addr`]: core::net::Ipv6Addr
+/// [`IpAddr`]: core::net::IpAddr
+pub trait Address:
+	Copy + Debug + Display + FromStr<Err = AddrParseError> + Ord + Hash + PrivUnspecAddress
+{
 	/// Corresponding [`Inet`] type (representing an address + a network
 	/// containing it)
 	type Inet: Inet<Address = Self>;
@@ -53,13 +60,15 @@ pub trait Address: Copy + Debug + Ord + Hash + PrivUnspecAddress {
 /// are the network part, the remaining bits are the host part.
 /// Requiring an address to be the first in a network is equivalent to
 /// requiring the host part being zero.
-pub trait Cidr: Copy + Debug + Ord + Hash + PrivCidr {
+pub trait Cidr:
+	Copy + Debug + Display + FromStr<Err = NetworkParseError> + Ord + Hash + PrivCidr
+{
 	/// Type for the underlying address ([`IpAddr`], [`Ipv4Addr`] or
 	/// [`Ipv6Addr`]).
 	///
-	/// [`Ipv4Addr`]: std::net::Ipv4Addr
-	/// [`Ipv6Addr`]: std::net::Ipv6Addr
-	/// [`IpAddr`]: std::net::IpAddr
+	/// [`Ipv4Addr`]: core::net::Ipv4Addr
+	/// [`Ipv6Addr`]: core::net::Ipv6Addr
+	/// [`IpAddr`]: core::net::IpAddr
 	type Address: Address<Cidr = Self>;
 
 	/// Create new network from address and prefix length.  If the
@@ -116,13 +125,15 @@ pub trait Cidr: Copy + Debug + Ord + Hash + PrivCidr {
 /// The representation of a [`Inet`] type is similar to that of the
 /// corresponding [`Cidr`] type, but uses the host address instead of the
 /// first address of the network.
-pub trait Inet: Copy + Debug + Ord + Hash + PrivInet {
+pub trait Inet:
+	Copy + Debug + Display + FromStr<Err = NetworkParseError> + Ord + Hash + PrivInet
+{
 	/// Type for the underlying address ([`IpAddr`], [`Ipv4Addr`] or
 	/// [`Ipv6Addr`]).
 	///
-	/// [`Ipv4Addr`]: std::net::Ipv4Addr
-	/// [`Ipv6Addr`]: std::net::Ipv6Addr
-	/// [`IpAddr`]: std::net::IpAddr
+	/// [`Ipv4Addr`]: core::net::Ipv4Addr
+	/// [`Ipv6Addr`]: core::net::Ipv6Addr
+	/// [`IpAddr`]: core::net::IpAddr
 	type Address: Address<Inet = Self>;
 
 	/// Create new host within a network from address and prefix length.
@@ -140,6 +151,23 @@ pub trait Inet: Copy + Debug + Ord + Hash + PrivInet {
 
 	/// Returns next address in network or `None` if it was the last address in the network
 	fn next(self) -> Option<Self>;
+
+	/// decrements host part (without changing the network part);
+	/// returns true on wrap around
+	fn decrement(&mut self) -> bool;
+
+	/// Returns previous address in network or `None` if it was the first address in the network
+	fn previous(self) -> Option<Self>;
+
+	/// Find the nth host after the current one in the current network
+	///
+	/// Returned boolean indicates whether an overflow occured.
+	fn overflowing_add(self, step: u128) -> (Self, bool);
+
+	/// Find the nth host before the current one in the current network
+	///
+	/// Returned boolean indicates whether an overflow occured.
+	fn overflowing_sub(self, step: u128) -> (Self, bool);
 
 	/// network (i.e. drops the host information)
 	fn network(&self) -> <Self::Address as Address>::Cidr;
@@ -179,9 +207,9 @@ pub trait InetPair: Copy + Debug + Eq + Hash + PrivInetPair {
 	/// Type for the underlying address ([`IpAddr`], [`Ipv4Addr`] or
 	/// [`Ipv6Addr`]).
 	///
-	/// [`Ipv4Addr`]: std::net::Ipv4Addr
-	/// [`Ipv6Addr`]: std::net::Ipv6Addr
-	/// [`IpAddr`]: std::net::IpAddr
+	/// [`Ipv4Addr`]: core::net::Ipv4Addr
+	/// [`Ipv6Addr`]: core::net::Ipv6Addr
+	/// [`IpAddr`]: core::net::IpAddr
 	type Address: Address<InetPair = Self>;
 
 	/// Create new pair from two addresses in the same network

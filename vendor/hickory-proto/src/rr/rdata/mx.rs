@@ -7,14 +7,14 @@
 
 //! mail exchange, email, record
 
-use std::fmt;
+use core::fmt;
 
-#[cfg(feature = "serde-config")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::{
     error::ProtoResult,
-    rr::{domain::Name, RData, RecordData, RecordType},
+    rr::{RData, RecordData, RecordType, domain::Name},
     serialize::binary::*,
 };
 
@@ -35,7 +35,7 @@ use crate::{
 /// [RFC-974].
 ///
 /// ```
-#[cfg_attr(feature = "serde-config", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct MX {
     preference: u16,
@@ -128,7 +128,7 @@ impl RecordData for MX {
 }
 
 /// [RFC 1033](https://tools.ietf.org/html/rfc1033), DOMAIN OPERATIONS GUIDE, November 1987
-
+///
 /// ```text
 ///   MX (Mail Exchanger)  (See RFC-974 for more details.)
 ///
@@ -164,7 +164,12 @@ impl RecordData for MX {
 ///   anything in FOO.COM, but that it won't match a plain FOO.COM.
 impl fmt::Display for MX {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
-        write!(f, "{pref} {ex}", pref = self.preference, ex = self.exchange)
+        write!(
+            f,
+            "{pref} {ex}",
+            pref = &self.preference,
+            ex = self.exchange
+        )
     }
 }
 
@@ -172,19 +177,24 @@ impl fmt::Display for MX {
 mod tests {
     #![allow(clippy::dbg_macro, clippy::print_stdout)]
 
+    use alloc::vec::Vec;
+    #[cfg(feature = "std")]
+    use std::println;
+
     use super::*;
 
     #[test]
     fn test() {
-        use std::str::FromStr;
+        use core::str::FromStr;
 
-        let rdata = MX::new(16, Name::from_str("mail.example.com").unwrap());
+        let rdata = MX::new(16, Name::from_str("mail.example.com.").unwrap());
 
         let mut bytes = Vec::new();
         let mut encoder: BinEncoder<'_> = BinEncoder::new(&mut bytes);
         assert!(rdata.emit(&mut encoder).is_ok());
         let bytes = encoder.into_bytes();
 
+        #[cfg(feature = "std")]
         println!("bytes: {bytes:?}");
 
         let mut decoder: BinDecoder<'_> = BinDecoder::new(bytes);

@@ -7,16 +7,21 @@
 
 //! Extended DNS options
 
-use std::fmt;
+use core::fmt;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
+#[cfg(feature = "__dnssec")]
+use crate::dnssec::{Algorithm, SupportedAlgorithms};
 use crate::{
     error::*,
     rr::{
-        rdata::{
-            opt::{EdnsCode, EdnsOption},
-            OPT,
-        },
         DNSClass, Name, RData, Record, RecordType,
+        rdata::{
+            OPT,
+            opt::{EdnsCode, EdnsOption},
+        },
     },
     serialize::binary::{BinEncodable, BinEncoder},
 };
@@ -24,14 +29,14 @@ use crate::{
 /// Edns implements the higher level concepts for working with extended dns as it is used to create or be
 /// created from OPT record data.
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 pub struct Edns {
     // high 8 bits that make up the 12 bit total field when included with the 4bit rcode from the
     //  header (from TTL)
     rcode_high: u8,
     // Indicates the implementation level of the setter. (from TTL)
     version: u8,
-    // Is DNSSEC supported (from TTL)
-    dnssec_ok: bool,
+    flags: EdnsFlags,
     // max payload size, minimum of 512, (from RR CLASS)
     max_payload: u16,
 
@@ -43,7 +48,7 @@ impl Default for Edns {
         Self {
             rcode_high: 0,
             version: 0,
-            dnssec_ok: false,
+            flags: EdnsFlags::default(),
             max_payload: 512,
             options: OPT::default(),
         }
@@ -66,9 +71,14 @@ impl Edns {
         self.version
     }
 
-    /// Specifies that DNSSEC is supported for this Client or Server
-    pub fn dnssec_ok(&self) -> bool {
-        self.dnssec_ok
+    /// Returns the [`EdnsFlags`] portion of EDNS
+    pub fn flags(&self) -> &EdnsFlags {
+        &self.flags
+    }
+
+    /// Returns a mutable reference to the [`EdnsFlags`]
+    pub fn flags_mut(&mut self) -> &mut EdnsFlags {
+        &mut self.flags
     }
 
     /// Maximum supported size of the DNS payload
@@ -103,9 +113,39 @@ impl Edns {
         self
     }
 
+    /// Creates a new extended DNS object prepared for DNSSEC messages.
+    #[cfg(feature = "__dnssec")]
+    pub fn enable_dnssec(&mut self) {
+        self.set_dnssec_ok(true);
+        self.set_default_algorithms();
+    }
+
+    /// Set the default algorithms which are supported by this handle
+    #[cfg(feature = "__dnssec")]
+    pub fn set_default_algorithms(&mut self) -> &mut Self {
+        let mut algorithms = SupportedAlgorithms::new();
+
+        for algorithm in [
+            Algorithm::RSASHA256,
+            Algorithm::RSASHA512,
+            Algorithm::ECDSAP256SHA256,
+            Algorithm::ECDSAP384SHA384,
+            Algorithm::ED25519,
+        ] {
+            if algorithm.is_supported() {
+                algorithms.set(algorithm);
+            }
+        }
+
+        let dau = EdnsOption::DAU(algorithms);
+
+        self.options_mut().insert(dau);
+        self
+    }
+
     /// Set to true if DNSSEC is supported
     pub fn set_dnssec_ok(&mut self, dnssec_ok: bool) -> &mut Self {
-        self.dnssec_ok = dnssec_ok;
+        self.flags.dnssec_ok = dnssec_ok;
         self
     }
 
@@ -128,17 +168,17 @@ impl<'a> From<&'a Record> for Edns {
     fn from(value: &'a Record) -> Self {
         assert!(value.record_type() == RecordType::OPT);
 
-        let rcode_high: u8 = ((value.ttl() & 0xFF00_0000u32) >> 24) as u8;
-        let version: u8 = ((value.ttl() & 0x00FF_0000u32) >> 16) as u8;
-        let dnssec_ok: bool = value.ttl() & 0x0000_8000 == 0x0000_8000;
-        let max_payload: u16 = u16::from(value.dns_class());
+        let rcode_high = ((value.ttl() & 0xFF00_0000u32) >> 24) as u8;
+        let version = ((value.ttl() & 0x00FF_0000u32) >> 16) as u8;
+        let flags = EdnsFlags::from((value.ttl() & 0x0000_FFFFu32) as u16);
+        let max_payload = u16::from(value.dns_class());
 
-        let options: OPT = match value.data() {
-            Some(RData::NULL(..)) | None => {
+        let options = match value.data() {
+            RData::Update0(..) | RData::NULL(..) => {
                 // NULL, there was no data in the OPT
                 OPT::default()
             }
-            Some(RData::OPT(ref option_data)) => {
+            RData::OPT(option_data) => {
                 option_data.clone() // TODO: Edns should just refer to this, have the same lifetime as the Record
             }
             _ => {
@@ -150,7 +190,7 @@ impl<'a> From<&'a Record> for Edns {
         Self {
             rcode_high,
             version,
-            dnssec_ok,
+            flags,
             max_payload,
             options,
         }
@@ -161,26 +201,18 @@ impl<'a> From<&'a Edns> for Record {
     /// This returns a Resource Record that is formatted for Edns(0).
     /// Note: the rcode_high value is only part of the rcode, the rest is part of the base
     fn from(value: &'a Edns) -> Self {
-        let mut record = Self::new();
-
-        record.set_name(Name::root());
-        record.set_rr_type(RecordType::OPT);
-        record.set_dns_class(DNSClass::for_opt(value.max_payload()));
-
         // rebuild the TTL field
         let mut ttl: u32 = u32::from(value.rcode_high()) << 24;
         ttl |= u32::from(value.version()) << 16;
-
-        if value.dnssec_ok() {
-            ttl |= 0x0000_8000;
-        }
-        record.set_ttl(ttl);
+        ttl |= u32::from(u16::from(value.flags));
 
         // now for each option, write out the option array
         //  also, since this is a hash, there is no guarantee that ordering will be preserved from
         //  the original binary format.
         // maybe switch to: https://crates.io/crates/linked-hash-map/
-        record.set_data(Some(RData::OPT(value.options().clone())));
+        let mut record = Self::from_rdata(Name::root(), ttl, RData::OPT(value.options().clone()));
+
+        record.set_dns_class(DNSClass::for_opt(value.max_payload()));
 
         record
     }
@@ -193,12 +225,9 @@ impl BinEncodable for Edns {
         DNSClass::for_opt(self.max_payload()).emit(encoder)?; // self.dns_class.emit(encoder)?;
 
         // rebuild the TTL field
-        let mut ttl: u32 = u32::from(self.rcode_high()) << 24;
+        let mut ttl = u32::from(self.rcode_high()) << 24;
         ttl |= u32::from(self.version()) << 16;
-
-        if self.dnssec_ok() {
-            ttl |= 0x0000_8000;
-        }
+        ttl |= u32::from(u16::from(self.flags));
 
         encoder.emit_u32(ttl)?;
 
@@ -206,7 +235,7 @@ impl BinEncodable for Edns {
         let place = encoder.place::<u16>()?;
         self.options.emit(encoder)?;
         let len = encoder.len_since_place(&place);
-        assert!(len <= u16::max_value() as usize);
+        assert!(len <= u16::MAX as usize);
 
         place.replace(encoder, len as u16)?;
         Ok(())
@@ -216,46 +245,84 @@ impl BinEncodable for Edns {
 impl fmt::Display for Edns {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         let version = self.version;
-        let dnssec_ok = self.dnssec_ok;
+        let dnssec_ok = self.flags.dnssec_ok;
+        let z_flags = self.flags.z;
         let max_payload = self.max_payload;
 
         write!(
             f,
-            "version: {version} dnssec_ok: {dnssec_ok} max_payload: {max_payload} opts: {opts_len}",
-            version = version,
-            dnssec_ok = dnssec_ok,
-            max_payload = max_payload,
+            "version: {version} dnssec_ok: {dnssec_ok} z_flags: {z_flags} max_payload: {max_payload} opts: {opts_len}",
             opts_len = self.options().as_ref().len()
         )
     }
 }
 
-#[cfg(feature = "dnssec")]
-#[test]
-fn test_encode_decode() {
-    use crate::rr::dnssec::SupportedAlgorithms;
+/// EDNS flags
+///
+/// <https://www.rfc-editor.org/rfc/rfc6891#section-6.1.4>
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
+pub struct EdnsFlags {
+    /// DNSSEC OK bit as defined by RFC 3225
+    pub dnssec_ok: bool,
+    /// Remaining bits in the flags field
+    ///
+    /// Note that the most significant bit in this value is represented by the `dnssec_ok` field.
+    /// As such, it will be zero when decoding and will not be encoded.
+    ///
+    /// Unless you have a specific need to set this value, we recommend leaving this as zero.
+    pub z: u16,
+}
 
-    let mut edns: Edns = Edns::new();
+impl From<u16> for EdnsFlags {
+    fn from(flags: u16) -> Self {
+        Self {
+            dnssec_ok: flags & 0x8000 == 0x8000,
+            z: flags & 0x7FFF,
+        }
+    }
+}
 
-    edns.set_dnssec_ok(true);
-    edns.set_max_payload(0x8008);
-    edns.set_version(0x40);
-    edns.set_rcode_high(0x01);
-    edns.options_mut()
-        .insert(EdnsOption::DAU(SupportedAlgorithms::all()));
+impl From<EdnsFlags> for u16 {
+    fn from(flags: EdnsFlags) -> Self {
+        match flags.dnssec_ok {
+            true => 0x8000 | flags.z,
+            false => 0x7FFF & flags.z,
+        }
+    }
+}
 
-    let record: Record = (&edns).into();
-    let edns_decode: Edns = (&record).into();
+#[cfg(all(test, feature = "__dnssec"))]
+mod tests {
+    use super::*;
 
-    assert_eq!(edns.dnssec_ok(), edns_decode.dnssec_ok());
-    assert_eq!(edns.max_payload(), edns_decode.max_payload());
-    assert_eq!(edns.version(), edns_decode.version());
-    assert_eq!(edns.rcode_high(), edns_decode.rcode_high());
-    assert_eq!(edns.options(), edns_decode.options());
+    #[test]
+    fn test_encode_decode() {
+        let mut edns = Edns::new();
 
-    // re-insert and remove using mut
-    edns.options_mut()
-        .insert(EdnsOption::DAU(SupportedAlgorithms::all()));
-    edns.options_mut().remove(EdnsCode::DAU);
-    assert!(edns.option(EdnsCode::DAU).is_none());
+        let flags = edns.flags_mut();
+        flags.dnssec_ok = true;
+        flags.z = 1;
+        edns.set_max_payload(0x8008);
+        edns.set_version(0x40);
+        edns.set_rcode_high(0x01);
+        edns.options_mut()
+            .insert(EdnsOption::DAU(SupportedAlgorithms::all()));
+
+        let record = Record::from(&edns);
+        let edns_decode = Edns::from(&record);
+
+        assert_eq!(edns.flags().dnssec_ok, edns_decode.flags().dnssec_ok);
+        assert_eq!(edns.flags().z, edns_decode.flags().z);
+        assert_eq!(edns.max_payload(), edns_decode.max_payload());
+        assert_eq!(edns.version(), edns_decode.version());
+        assert_eq!(edns.rcode_high(), edns_decode.rcode_high());
+        assert_eq!(edns.options(), edns_decode.options());
+
+        // re-insert and remove using mut
+        edns.options_mut()
+            .insert(EdnsOption::DAU(SupportedAlgorithms::all()));
+        edns.options_mut().remove(EdnsCode::DAU);
+        assert!(edns.option(EdnsCode::DAU).is_none());
+    }
 }

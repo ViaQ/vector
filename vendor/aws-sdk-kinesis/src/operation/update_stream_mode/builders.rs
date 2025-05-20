@@ -3,7 +3,7 @@ pub use crate::operation::update_stream_mode::_update_stream_mode_output::Update
 
 pub use crate::operation::update_stream_mode::_update_stream_mode_input::UpdateStreamModeInputBuilder;
 
-impl UpdateStreamModeInputBuilder {
+impl crate::operation::update_stream_mode::builders::UpdateStreamModeInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,7 +22,7 @@ impl UpdateStreamModeInputBuilder {
 }
 /// Fluent builder constructing a request to `UpdateStreamMode`.
 ///
-/// <p> Updates the capacity mode of the data stream. Currently, in Kinesis Data Streams, you can choose between an <b>on-demand</b> capacity mode and a <b>provisioned</b> capacity mode for your data stream. </p>
+/// <p>Updates the capacity mode of the data stream. Currently, in Kinesis Data Streams, you can choose between an <b>on-demand</b> capacity mode and a <b>provisioned</b> capacity mode for your data stream.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct UpdateStreamModeFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -48,7 +48,7 @@ impl
     }
 }
 impl UpdateStreamModeFluentBuilder {
-    /// Creates a new `UpdateStreamMode`.
+    /// Creates a new `UpdateStreamModeFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -99,40 +99,40 @@ impl UpdateStreamModeFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
-    /// <p> Specifies the ARN of the data stream whose capacity mode you want to update. </p>
+    /// <p>Specifies the ARN of the data stream whose capacity mode you want to update.</p>
     pub fn stream_arn(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.stream_arn(input.into());
         self
     }
-    /// <p> Specifies the ARN of the data stream whose capacity mode you want to update. </p>
+    /// <p>Specifies the ARN of the data stream whose capacity mode you want to update.</p>
     pub fn set_stream_arn(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_stream_arn(input);
         self
     }
-    /// <p> Specifies the ARN of the data stream whose capacity mode you want to update. </p>
+    /// <p>Specifies the ARN of the data stream whose capacity mode you want to update.</p>
     pub fn get_stream_arn(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_stream_arn()
     }
-    /// <p> Specifies the capacity mode to which you want to set your data stream. Currently, in Kinesis Data Streams, you can choose between an <b>on-demand</b> capacity mode and a <b>provisioned</b> capacity mode for your data streams. </p>
+    /// <p>Specifies the capacity mode to which you want to set your data stream. Currently, in Kinesis Data Streams, you can choose between an <b>on-demand</b> capacity mode and a <b>provisioned</b> capacity mode for your data streams.</p>
     pub fn stream_mode_details(mut self, input: crate::types::StreamModeDetails) -> Self {
         self.inner = self.inner.stream_mode_details(input);
         self
     }
-    /// <p> Specifies the capacity mode to which you want to set your data stream. Currently, in Kinesis Data Streams, you can choose between an <b>on-demand</b> capacity mode and a <b>provisioned</b> capacity mode for your data streams. </p>
+    /// <p>Specifies the capacity mode to which you want to set your data stream. Currently, in Kinesis Data Streams, you can choose between an <b>on-demand</b> capacity mode and a <b>provisioned</b> capacity mode for your data streams.</p>
     pub fn set_stream_mode_details(mut self, input: ::std::option::Option<crate::types::StreamModeDetails>) -> Self {
         self.inner = self.inner.set_stream_mode_details(input);
         self
     }
-    /// <p> Specifies the capacity mode to which you want to set your data stream. Currently, in Kinesis Data Streams, you can choose between an <b>on-demand</b> capacity mode and a <b>provisioned</b> capacity mode for your data streams. </p>
+    /// <p>Specifies the capacity mode to which you want to set your data stream. Currently, in Kinesis Data Streams, you can choose between an <b>on-demand</b> capacity mode and a <b>provisioned</b> capacity mode for your data streams.</p>
     pub fn get_stream_mode_details(&self) -> &::std::option::Option<crate::types::StreamModeDetails> {
         self.inner.get_stream_mode_details()
     }

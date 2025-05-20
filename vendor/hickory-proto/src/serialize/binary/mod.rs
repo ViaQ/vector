@@ -11,13 +11,15 @@ mod decoder;
 mod encoder;
 mod restrict;
 
+use alloc::vec::Vec;
+
 pub use self::decoder::{BinDecoder, DecodeError};
 pub use self::encoder::BinEncoder;
 pub use self::encoder::EncodeMode;
 pub use self::restrict::{Restrict, RestrictedMath, Verified};
 
 #[cfg(test)]
-pub mod bin_tests;
+pub(crate) mod bin_tests;
 
 use crate::error::*;
 
@@ -56,7 +58,7 @@ impl BinEncodable for u16 {
     }
 }
 
-impl<'r> BinDecodable<'r> for u16 {
+impl BinDecodable<'_> for u16 {
     fn read(decoder: &mut BinDecoder<'_>) -> ProtoResult<Self> {
         decoder
             .read_u16()
@@ -86,7 +88,7 @@ impl BinEncodable for u32 {
     }
 }
 
-impl<'r> BinDecodable<'r> for u32 {
+impl BinDecodable<'_> for u32 {
     fn read(decoder: &mut BinDecoder<'_>) -> ProtoResult<Self> {
         decoder
             .read_u32()

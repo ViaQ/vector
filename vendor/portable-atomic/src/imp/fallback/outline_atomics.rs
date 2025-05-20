@@ -1,28 +1,30 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-// Helper for outline-atomics.
-//
-// On architectures where DW atomics are not supported on older CPUs, we use
-// fallback implementation when DW atomic instructions are not supported and
-// outline-atomics is enabled.
-//
-// This module provides helpers to implement them.
+/*
+Helper for outline-atomics.
+
+On architectures where DW atomics are not supported on older CPUs, we use
+fallback implementation when DW atomic instructions are not supported and
+outline-atomics is enabled.
+
+This module provides helpers to implement them.
+*/
 
 use core::sync::atomic::Ordering;
 
-#[cfg(any(target_arch = "x86_64", target_arch = "powerpc64"))]
+#[cfg(any(target_arch = "x86_64", target_arch = "powerpc64", target_arch = "riscv64"))]
 pub(crate) type Udw = u128;
-#[cfg(any(target_arch = "x86_64", target_arch = "powerpc64"))]
-pub(crate) type AtomicUdw = super::super::fallback::AtomicU128;
-#[cfg(any(target_arch = "x86_64", target_arch = "powerpc64"))]
-pub(crate) type AtomicIdw = super::super::fallback::AtomicI128;
+#[cfg(any(target_arch = "x86_64", target_arch = "powerpc64", target_arch = "riscv64"))]
+pub(crate) type AtomicUdw = super::super::super::fallback::AtomicU128;
+#[cfg(any(target_arch = "x86_64", target_arch = "powerpc64", target_arch = "riscv64"))]
+pub(crate) type AtomicIdw = super::super::super::fallback::AtomicI128;
 
-#[cfg(target_arch = "arm")]
+#[cfg(any(target_arch = "arm", target_arch = "riscv32"))]
 pub(crate) type Udw = u64;
-#[cfg(target_arch = "arm")]
-pub(crate) type AtomicUdw = super::super::fallback::AtomicU64;
-#[cfg(target_arch = "arm")]
-pub(crate) type AtomicIdw = super::super::fallback::AtomicI64;
+#[cfg(any(target_arch = "arm", target_arch = "riscv32"))]
+pub(crate) type AtomicUdw = super::super::super::fallback::AtomicU64;
+#[cfg(any(target_arch = "arm", target_arch = "riscv32"))]
+pub(crate) type AtomicIdw = super::super::super::fallback::AtomicI64;
 
 // Asserts that the function is called in the correct context.
 macro_rules! debug_assert_outline_atomics {
@@ -34,6 +36,10 @@ macro_rules! debug_assert_outline_atomics {
         #[cfg(target_arch = "powerpc64")]
         {
             debug_assert!(!super::detect::detect().has_quadword_atomics());
+        }
+        #[cfg(any(target_arch = "riscv32", target_arch = "riscv64"))]
+        {
+            debug_assert!(!super::detect::detect().has_zacas());
         }
         #[cfg(target_arch = "arm")]
         {
@@ -60,6 +66,7 @@ fn_alias! {
     atomic_load_seqcst = atomic_load(Ordering::SeqCst);
 }
 
+#[cfg(not(any(target_arch = "arm", target_arch = "riscv32", target_arch = "riscv64")))]
 #[cold]
 pub(crate) unsafe fn atomic_store(dst: *mut Udw, val: Udw, order: Ordering) {
     debug_assert_outline_atomics!();
@@ -69,11 +76,11 @@ pub(crate) unsafe fn atomic_store(dst: *mut Udw, val: Udw, order: Ordering) {
         (*(dst as *const AtomicUdw)).store(val, order);
     }
 }
+#[cfg(not(any(target_arch = "arm", target_arch = "riscv32", target_arch = "riscv64")))]
 fn_alias! {
     #[cold]
     pub(crate) unsafe fn(dst: *mut Udw, val: Udw);
     // fallback's atomic store has at least release semantics.
-    #[cfg(not(target_arch = "arm"))]
     atomic_store_non_seqcst = atomic_store(Ordering::Release);
     atomic_store_seqcst = atomic_store(Ordering::SeqCst);
 }
@@ -115,7 +122,12 @@ macro_rules! atomic_rmw_3 {
         #[cold]
         pub(crate) unsafe fn $name(dst: *mut Udw, val: Udw, order: Ordering) -> Udw {
             debug_assert_outline_atomics!();
-            #[allow(clippy::cast_ptr_alignment)]
+            #[allow(
+                clippy::as_underscore,
+                clippy::cast_possible_wrap,
+                clippy::cast_ptr_alignment,
+                clippy::cast_sign_loss
+            )]
             // SAFETY: the caller must uphold the safety contract.
             unsafe {
                 (*(dst as *const $atomic_type)).$method_name(val as _, order) as Udw

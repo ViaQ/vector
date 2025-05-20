@@ -27,9 +27,9 @@ pub(crate) struct Handle {
 /// # }
 /// ```
 ///
-/// Occasionally, SDKs may have additional service-specific that can be set on the [`Config`] that
+/// Occasionally, SDKs may have additional service-specific values that can be set on the [`Config`] that
 /// is absent from [`SdkConfig`], or slightly different settings for a specific client may be desired.
-/// The [`Config`] struct implements `From<&SdkConfig>`, so setting these specific settings can be
+/// The [`Builder`](crate::config::Builder) struct implements `From<&SdkConfig>`, so setting these specific settings can be
 /// done as follows:
 ///
 /// ```rust,no_run
@@ -110,7 +110,7 @@ impl Client {
         &self.handle.conf
     }
 
-    fn validate_config(handle: &Handle) -> Result<(), ::aws_smithy_runtime_api::box_error::BoxError> {
+    fn validate_config(handle: &Handle) -> ::std::result::Result<(), ::aws_smithy_runtime_api::box_error::BoxError> {
         let mut cfg = ::aws_smithy_types::config_bag::ConfigBag::base();
         handle
             .runtime_plugins
@@ -143,6 +143,8 @@ mod cancel_export_task;
 mod create_delivery;
 
 mod create_export_task;
+
+mod create_log_anomaly_detector;
 
 mod create_log_group;
 
@@ -189,6 +191,12 @@ mod delete_delivery_source;
 
 mod delete_destination;
 
+mod delete_index_policy;
+
+mod delete_integration;
+
+mod delete_log_anomaly_detector;
+
 mod delete_log_group;
 
 mod delete_log_stream;
@@ -203,7 +211,11 @@ mod delete_retention_policy;
 
 mod delete_subscription_filter;
 
+mod delete_transformer;
+
 mod describe_account_policies;
+
+mod describe_configuration_templates;
 
 mod describe_deliveries;
 
@@ -214,6 +226,10 @@ mod describe_delivery_sources;
 mod describe_destinations;
 
 mod describe_export_tasks;
+
+mod describe_field_indexes;
+
+mod describe_index_policies;
 
 mod describe_log_groups;
 
@@ -243,6 +259,10 @@ mod get_delivery_destination_policy;
 
 mod get_delivery_source;
 
+mod get_integration;
+
+mod get_log_anomaly_detector;
+
 mod get_log_events;
 
 mod get_log_group_fields;
@@ -250,6 +270,18 @@ mod get_log_group_fields;
 mod get_log_record;
 
 mod get_query_results;
+
+mod get_transformer;
+
+mod list_anomalies;
+
+mod list_integrations;
+
+mod list_log_anomaly_detectors;
+
+mod list_log_groups;
+
+mod list_log_groups_for_query;
 
 mod list_tags_for_resource;
 
@@ -269,6 +301,10 @@ mod put_destination;
 
 mod put_destination_policy;
 
+mod put_index_policy;
+
+mod put_integration;
+
 mod put_log_events;
 
 mod put_metric_filter;
@@ -281,6 +317,10 @@ mod put_retention_policy;
 
 mod put_subscription_filter;
 
+mod put_transformer;
+
+mod start_live_tail;
+
 mod start_query;
 
 mod stop_query;
@@ -291,6 +331,14 @@ mod tag_resource;
 
 mod test_metric_filter;
 
+mod test_transformer;
+
 mod untag_log_group;
 
 mod untag_resource;
+
+mod update_anomaly;
+
+mod update_delivery_configuration;
+
+mod update_log_anomaly_detector;

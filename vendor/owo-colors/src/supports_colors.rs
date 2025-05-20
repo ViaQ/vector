@@ -13,8 +13,6 @@ where
     ApplyFn: Fn(&'a InVal) -> Out;
 
 /// A possible stream source.
-///
-/// This can be used
 #[derive(Clone, Copy, Debug)]
 pub enum Stream {
     /// Standard output.
@@ -91,8 +89,6 @@ impl_fmt_for! {
 #[cfg(test)]
 mod test {
     use crate::OwoColorize;
-
-    use super::*;
 
     #[test]
     fn test_supports_color_versions() {

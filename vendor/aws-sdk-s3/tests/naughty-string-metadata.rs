@@ -8,8 +8,8 @@
 use aws_credential_types::provider::SharedCredentialsProvider;
 use aws_sdk_s3::Config;
 use aws_sdk_s3::{config::Credentials, config::Region, primitives::ByteStream, Client};
-use aws_smithy_runtime::client::http::test_util::capture_request;
-use http::HeaderValue;
+use aws_smithy_http_client::test_util::capture_request;
+use http_1x::HeaderValue;
 
 const NAUGHTY_STRINGS: &str = include_str!("blns/blns.txt");
 
@@ -79,20 +79,10 @@ async fn test_s3_signer_with_naughty_string_metadata() {
 
     let _ = builder.send().await.unwrap();
 
+    // As long as a request can be extracted and the `Authorization` header exits, we're good.
+    // We cannot compare a signature in the `Authorization` header between expected and actual
+    // because the signature is subject to change as we update the `x-amz-user-agent` header, e.g.
+    // due to the introduction of a new metric.
     let expected_req = rcvr.expect_request();
-    let auth_header = expected_req
-        .headers()
-        .get("Authorization")
-        .unwrap()
-        .to_owned();
-
-    // This is a snapshot test taken from a known working test result
-    let snapshot_signature =
-        "Signature=733dba2f1ca3c9a39f4eef3a6750a71eff00297cd765408ad3cef5dcdc44d642";
-    assert!(
-        auth_header .contains(snapshot_signature),
-        "authorization header signature did not match expected signature: got {}, expected it to contain {}",
-        auth_header,
-        snapshot_signature
-    );
+    let _ = expected_req.headers().get("Authorization").unwrap();
 }

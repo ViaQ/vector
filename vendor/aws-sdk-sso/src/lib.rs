@@ -1,4 +1,5 @@
 #![allow(deprecated)]
+#![allow(unknown_lints)]
 #![allow(clippy::module_inception)]
 #![allow(clippy::upper_case_acronyms)]
 #![allow(clippy::large_enum_variant)]
@@ -10,8 +11,13 @@
 #![allow(clippy::needless_return)]
 #![allow(clippy::derive_partial_eq_without_eq)]
 #![allow(clippy::result_large_err)]
+#![allow(clippy::unnecessary_map_on_constructor)]
 #![allow(rustdoc::bare_urls)]
+#![allow(rustdoc::redundant_explicit_links)]
+#![allow(rustdoc::invalid_html_tags)]
+#![forbid(unsafe_code)]
 #![warn(missing_docs)]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 //! AWS IAM Identity Center (successor to AWS Single Sign-On) Portal is a web service that makes it easy for you to assign user access to IAM Identity Center resources such as the AWS access portal. Users can get AWS account applications and roles assigned to them and get federated into the application.
 //!
 //! This reference guide describes the IAM Identity Center Portal operations that you can call programatically and includes detailed information on data types and errors.
@@ -27,8 +33,8 @@
 //!
 //! ```toml
 //! [dependencies]
-//! aws-config = { version = "1.0.1", features = ["behavior-version-latest"] }
-//! aws-sdk-sso = "1.3.0"
+//! aws-config = { version = "1.1.7", features = ["behavior-version-latest"] }
+//! aws-sdk-sso = "1.68.0"
 //! tokio = { version = "1", features = ["full"] }
 //! ```
 //!
@@ -140,11 +146,13 @@ mod auth_plugin;
 
 pub(crate) mod protocol_serde;
 
+mod sdk_feature_tracker;
+
 mod serialization_settings;
 
-mod lens;
-
 mod endpoint_lib;
+
+mod lens;
 
 mod json_errors;
 

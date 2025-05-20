@@ -4,9 +4,11 @@ use quote::quote;
 use syn::{Error, Type};
 
 use crate::{
-    args,
-    args::{RenameRuleExt, RenameTarget, TypeDirectiveLocation},
-    utils::{gen_directive_calls, get_crate_name, get_rustdoc, visible_fn, GeneratorResult},
+    args::{self, RenameRuleExt, RenameTarget, TypeDirectiveLocation},
+    utils::{
+        gen_deprecation, gen_directive_calls, get_crate_name, get_rustdoc, visible_fn,
+        GeneratorResult,
+    },
 };
 
 pub fn generate(object_args: &args::OneofObject) -> GeneratorResult<TokenStream> {
@@ -61,7 +63,7 @@ pub fn generate(object_args: &args::OneofObject) -> GeneratorResult<TokenStream>
             .iter()
             .map(|tag| quote!(::std::string::ToString::to_string(#tag)))
             .collect::<Vec<_>>();
-        let desc = get_rustdoc(&object_args.attrs)?
+        let desc = get_rustdoc(&variant.attrs)?
             .map(|s| quote! { ::std::option::Option::Some(::std::string::ToString::to_string(#s)) })
             .unwrap_or_else(|| quote! {::std::option::Option::None});
         let ty = match variant.fields.style {
@@ -104,12 +106,14 @@ pub fn generate(object_args: &args::OneofObject) -> GeneratorResult<TokenStream>
 
             let secret = variant.secret;
             let visible = visible_fn(&variant.visible);
+            let deprecation = gen_deprecation(&variant.deprecation, &crate_name);
 
             schema_fields.push(quote! {
                 fields.insert(::std::borrow::ToOwned::to_owned(#field_name), #crate_name::registry::MetaInputValue {
                     name: ::std::string::ToString::to_string(#field_name),
                     description: #desc,
                     ty: <::std::option::Option<#ty> as #crate_name::InputType>::create_type_info(registry),
+                    deprecation: #deprecation,
                     default_value: ::std::option::Option::None,
                     visible: #visible,
                     inaccessible: #inaccessible,

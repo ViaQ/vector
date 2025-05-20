@@ -6,33 +6,54 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-//! The Weibull distribution.
+//! The Weibull distribution `Weibull(λ, k)`
 
-use num_traits::Float;
 use crate::{Distribution, OpenClosed01};
-use rand::Rng;
 use core::fmt;
+use num_traits::Float;
+use rand::Rng;
 
-/// Samples floating-point numbers according to the Weibull distribution
+/// The [Weibull distribution](https://en.wikipedia.org/wiki/Weibull_distribution) `Weibull(λ, k)`.
+///
+/// This is a family of continuous probability distributions with
+/// scale parameter `λ` (`lambda`) and shape parameter `k`. It is used
+/// to model reliability data, life data, and accelerated life testing data.
+///
+/// # Density function
+///
+/// `f(x; λ, k) = (k / λ) * (x / λ)^(k - 1) * exp(-(x / λ)^k)` for `x >= 0`.
+///
+/// # Plot
+///
+/// The following plot shows the Weibull distribution with various values of `λ` and `k`.
+///
+/// ![Weibull distribution](https://raw.githubusercontent.com/rust-random/charts/main/charts/weibull.svg)
 ///
 /// # Example
 /// ```
 /// use rand::prelude::*;
 /// use rand_distr::Weibull;
 ///
-/// let val: f64 = thread_rng().sample(Weibull::new(1., 10.).unwrap());
+/// let val: f64 = rand::rng().sample(Weibull::new(1., 10.).unwrap());
 /// println!("{}", val);
 /// ```
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "serde1", derive(serde::Serialize, serde::Deserialize))]
+///
+/// # Numerics
+///
+/// For small `k` like `< 0.005`, even with `f64` a significant number of samples will be so small that they underflow to `0.0`
+/// or so big they overflow to `inf`. This is a limitation of the floating point representation and not specific to this implementation.
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Weibull<F>
-where F: Float, OpenClosed01: Distribution<F>
+where
+    F: Float,
+    OpenClosed01: Distribution<F>,
 {
     inv_shape: F,
     scale: F,
 }
 
-/// Error type returned from `Weibull::new`.
+/// Error type returned from [`Weibull::new`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
     /// `scale <= 0` or `nan`.
@@ -51,11 +72,12 @@ impl fmt::Display for Error {
 }
 
 #[cfg(feature = "std")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "std")))]
 impl std::error::Error for Error {}
 
 impl<F> Weibull<F>
-where F: Float, OpenClosed01: Distribution<F>
+where
+    F: Float,
+    OpenClosed01: Distribution<F>,
 {
     /// Construct a new `Weibull` distribution with given `scale` and `shape`.
     pub fn new(scale: F, shape: F) -> Result<Weibull<F>, Error> {
@@ -73,7 +95,9 @@ where F: Float, OpenClosed01: Distribution<F>
 }
 
 impl<F> Distribution<F> for Weibull<F>
-where F: Float, OpenClosed01: Distribution<F>
+where
+    F: Float,
+    OpenClosed01: Distribution<F>,
 {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> F {
         let x: F = rng.sample(OpenClosed01);
@@ -105,8 +129,10 @@ mod tests {
 
     #[test]
     fn value_stability() {
-        fn test_samples<F: Float + core::fmt::Debug, D: Distribution<F>>(
-            distr: D, zero: F, expected: &[F],
+        fn test_samples<F: Float + fmt::Debug, D: Distribution<F>>(
+            distr: D,
+            zero: F,
+            expected: &[F],
         ) {
             let mut rng = crate::test::rng(213);
             let mut buf = [zero; 4];
@@ -116,17 +142,25 @@ mod tests {
             assert_eq!(buf, expected);
         }
 
-        test_samples(Weibull::new(1.0, 1.0).unwrap(), 0f32, &[
-            0.041495778,
-            0.7531094,
-            1.4189332,
-            0.38386202,
-        ]);
-        test_samples(Weibull::new(2.0, 0.5).unwrap(), 0f64, &[
-            1.1343478702739669,
-            0.29470010050655226,
-            0.7556151370284702,
-            7.877212340241561,
-        ]);
+        test_samples(
+            Weibull::new(1.0, 1.0).unwrap(),
+            0f32,
+            &[0.041495778, 0.7531094, 1.4189332, 0.38386202],
+        );
+        test_samples(
+            Weibull::new(2.0, 0.5).unwrap(),
+            0f64,
+            &[
+                1.1343478702739669,
+                0.29470010050655226,
+                0.7556151370284702,
+                7.877212340241561,
+            ],
+        );
+    }
+
+    #[test]
+    fn weibull_distributions_can_be_compared() {
+        assert_eq!(Weibull::new(1.0, 2.0), Weibull::new(1.0, 2.0));
     }
 }

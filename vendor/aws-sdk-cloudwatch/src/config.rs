@@ -25,10 +25,16 @@ pub struct Config {
     cloneable: ::aws_smithy_types::config_bag::CloneableLayer,
     pub(crate) runtime_components: crate::config::RuntimeComponentsBuilder,
     pub(crate) runtime_plugins: ::std::vec::Vec<crate::config::SharedRuntimePlugin>,
-    behavior_version: ::std::option::Option<crate::config::BehaviorVersion>,
+    pub(crate) behavior_version: ::std::option::Option<crate::config::BehaviorVersion>,
 }
 impl Config {
+    ///
     /// Constructs a config builder.
+    /// <div class="warning">
+    /// Note that a config created from this builder will not have the same safe defaults as one created by
+    /// the <a href="https://crates.io/crates/aws-config" target="_blank">aws-config</a> crate.
+    /// </div>
+    ///
     pub fn builder() -> Builder {
         Builder::default()
     }
@@ -38,7 +44,7 @@ impl Config {
             config: self.cloneable.clone(),
             runtime_components: self.runtime_components.clone(),
             runtime_plugins: self.runtime_plugins.clone(),
-            behavior_version: self.behavior_version.clone(),
+            behavior_version: self.behavior_version,
         }
     }
     /// Return a reference to the stalled stream protection configuration contained in this config, if any.
@@ -98,6 +104,19 @@ impl Config {
     pub fn app_name(&self) -> ::std::option::Option<&::aws_types::app_name::AppName> {
         self.config.load::<::aws_types::app_name::AppName>()
     }
+    /// Returns the `disable request compression` setting, if it was provided.
+    pub fn disable_request_compression(&self) -> ::std::option::Option<bool> {
+        self.config
+            .load::<crate::client_request_compression::DisableRequestCompression>()
+            .map(|it| it.0)
+    }
+
+    /// Returns the `request minimum compression size in bytes`, if it was provided.
+    pub fn request_min_compression_size_bytes(&self) -> ::std::option::Option<u32> {
+        self.config
+            .load::<crate::client_request_compression::RequestMinCompressionSizeBytes>()
+            .map(|it| it.0)
+    }
     /// Returns the invocation ID generator if one was given in config.
     ///
     /// The invocation ID generator generates ID values for the `amz-sdk-invocation-id` header. By default, this will be a random UUID. Overriding it may be useful in tests that examine the HTTP request and need to be deterministic.
@@ -119,9 +138,12 @@ impl Config {
     pub fn region(&self) -> ::std::option::Option<&crate::config::Region> {
         self.config.load::<crate::config::Region>()
     }
-    /// Returns the credentials provider for this service
+    /// This function was intended to be removed, and has been broken since release-2023-11-15 as it always returns a `None`. Do not use.
+    #[deprecated(
+        note = "This function was intended to be removed, and has been broken since release-2023-11-15 as it always returns a `None`. Do not use."
+    )]
     pub fn credentials_provider(&self) -> Option<crate::config::SharedCredentialsProvider> {
-        self.config.load::<crate::config::SharedCredentialsProvider>().cloned()
+        ::std::option::Option::None
     }
 }
 /// Builder for creating a `Config`.
@@ -143,9 +165,43 @@ impl ::std::default::Default for Builder {
     }
 }
 impl Builder {
+    ///
     /// Constructs a config builder.
+    /// <div class="warning">
+    /// Note that a config created from this builder will not have the same safe defaults as one created by
+    /// the <a href="https://crates.io/crates/aws-config" target="_blank">aws-config</a> crate.
+    /// </div>
+    ///
     pub fn new() -> Self {
         Self::default()
+    }
+    /// Constructs a config builder from the given `config_bag`, setting only fields stored in the config bag,
+    /// but not those in runtime components.
+    #[allow(unused)]
+    pub(crate) fn from_config_bag(config_bag: &::aws_smithy_types::config_bag::ConfigBag) -> Self {
+        let mut builder = Self::new();
+        builder.set_stalled_stream_protection(config_bag.load::<crate::config::StalledStreamProtectionConfig>().cloned());
+        builder.set_retry_config(config_bag.load::<::aws_smithy_types::retry::RetryConfig>().cloned());
+        builder.set_timeout_config(config_bag.load::<::aws_smithy_types::timeout::TimeoutConfig>().cloned());
+        builder.set_retry_partition(config_bag.load::<::aws_smithy_runtime::client::retries::RetryPartition>().cloned());
+        builder.set_app_name(config_bag.load::<::aws_types::app_name::AppName>().cloned());
+        builder.set_disable_request_compression(
+            config_bag
+                .load::<crate::client_request_compression::DisableRequestCompression>()
+                .cloned()
+                .map(|it| it.0),
+        );
+        builder.set_request_min_compression_size_bytes(
+            config_bag
+                .load::<crate::client_request_compression::RequestMinCompressionSizeBytes>()
+                .cloned()
+                .map(|it| it.0),
+        );
+        builder.set_endpoint_url(config_bag.load::<::aws_types::endpoint_config::EndpointUrl>().map(|ty| ty.0.clone()));
+        builder.set_use_dual_stack(config_bag.load::<::aws_types::endpoint_config::UseDualStack>().map(|ty| ty.0));
+        builder.set_use_fips(config_bag.load::<::aws_types::endpoint_config::UseFips>().map(|ty| ty.0));
+        builder.set_region(config_bag.load::<crate::config::Region>().cloned());
+        builder
     }
     /// Set the [`StalledStreamProtectionConfig`](crate::config::StalledStreamProtectionConfig)
     /// to configure protection for stalled streams.
@@ -380,7 +436,11 @@ impl Builder {
         self
     }
 
-    /// Set the timeout_config for the builder
+    /// Set the timeout_config for the builder.
+    ///
+    /// Setting this to `None` has no effect if another source of configuration has set timeouts. If you
+    /// are attempting to disable timeouts, use [`TimeoutConfig::disabled`](::aws_smithy_types::timeout::TimeoutConfig::disabled)
+    ///
     ///
     /// # Examples
     ///
@@ -401,7 +461,13 @@ impl Builder {
     /// let config = builder.build();
     /// ```
     pub fn set_timeout_config(&mut self, timeout_config: ::std::option::Option<::aws_smithy_types::timeout::TimeoutConfig>) -> &mut Self {
-        timeout_config.map(|t| self.config.store_put(t));
+        // passing None has no impact.
+        let Some(mut timeout_config) = timeout_config else { return self };
+
+        if let Some(base) = self.config.load::<::aws_smithy_types::timeout::TimeoutConfig>() {
+            timeout_config.take_defaults_from(base);
+        }
+        self.config.store_put(timeout_config);
         self
     }
     /// Set the partition for retry-related state. When clients share a retry partition, they will
@@ -840,6 +906,33 @@ impl Builder {
         self.config.store_or_unset(app_name);
         self
     }
+    /// Sets the `disable request compression` used when making requests.
+    pub fn disable_request_compression(mut self, disable_request_compression: impl ::std::convert::Into<::std::option::Option<bool>>) -> Self {
+        self.set_disable_request_compression(disable_request_compression.into());
+        self
+    }
+
+    /// Sets the `request minimum compression size in bytes` used when making requests.
+    pub fn request_min_compression_size_bytes(
+        mut self,
+        request_min_compression_size_bytes: impl ::std::convert::Into<::std::option::Option<u32>>,
+    ) -> Self {
+        self.set_request_min_compression_size_bytes(request_min_compression_size_bytes.into());
+        self
+    }
+    /// Sets the `disable request compression` used when making requests.
+    pub fn set_disable_request_compression(&mut self, disable_request_compression: ::std::option::Option<bool>) -> &mut Self {
+        self.config
+            .store_or_unset::<crate::client_request_compression::DisableRequestCompression>(disable_request_compression.map(Into::into));
+        self
+    }
+
+    /// Sets the `request minimum compression size in bytes` used when making requests.
+    pub fn set_request_min_compression_size_bytes(&mut self, request_min_compression_size_bytes: ::std::option::Option<u32>) -> &mut Self {
+        self.config
+            .store_or_unset::<crate::client_request_compression::RequestMinCompressionSizeBytes>(request_min_compression_size_bytes.map(Into::into));
+        self
+    }
     /// Overrides the default invocation ID generator.
     ///
     /// The invocation ID generator generates ID values for the `amz-sdk-invocation-id` header. By default, this will be a random UUID. Overriding it may be useful in tests that examine the HTTP request and need to be deterministic.
@@ -928,7 +1021,7 @@ impl Builder {
     pub fn set_credentials_provider(&mut self, credentials_provider: ::std::option::Option<crate::config::SharedCredentialsProvider>) -> &mut Self {
         if let Some(credentials_provider) = credentials_provider {
             self.runtime_components
-                .push_identity_resolver(::aws_runtime::auth::sigv4::SCHEME_ID, credentials_provider);
+                .set_identity_resolver(::aws_runtime::auth::sigv4::SCHEME_ID, credentials_provider);
         }
         self
     }
@@ -1028,10 +1121,11 @@ impl Builder {
         self.set_time_source(::std::option::Option::Some(::aws_smithy_async::time::SharedTimeSource::new(
             ::aws_smithy_async::time::StaticTimeSource::new(::std::time::UNIX_EPOCH + ::std::time::Duration::from_secs(1234567890)),
         )));
-        self.config.store_put(::aws_http::user_agent::AwsUserAgent::for_tests());
+        self.config.store_put(::aws_runtime::user_agent::AwsUserAgent::for_tests());
         self.set_credentials_provider(Some(crate::config::SharedCredentialsProvider::new(
             ::aws_credential_types::Credentials::for_tests(),
         )));
+        self.behavior_version = ::std::option::Option::Some(crate::config::BehaviorVersion::latest());
         self
     }
     #[cfg(any(feature = "test-util", test))]
@@ -1074,7 +1168,11 @@ pub(crate) struct ServiceRuntimePlugin {
 
 impl ServiceRuntimePlugin {
     pub fn new(_service_config: crate::config::Config) -> Self {
-        let config = { None };
+        let config = {
+            let mut cfg = ::aws_smithy_types::config_bag::Layer::new("GraniteServiceVersion20100801");
+            cfg.store_put(::aws_smithy_runtime::client::orchestrator::AuthSchemeAndEndpointOrchestrationV2);
+            ::std::option::Option::Some(cfg.freeze())
+        };
         let mut runtime_components = ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("ServiceRuntimePlugin");
         runtime_components.set_endpoint_resolver(Some({
             use crate::config::endpoint::ResolveEndpoint;
@@ -1082,6 +1180,7 @@ impl ServiceRuntimePlugin {
         }));
         runtime_components.push_interceptor(::aws_smithy_runtime::client::http::connection_poisoning::ConnectionPoisoningInterceptor::new());
         runtime_components.push_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::HttpStatusCodeClassifier::default());
+        runtime_components.push_interceptor(crate::sdk_feature_tracker::retry_mode::RetryModeFeatureTrackerInterceptor::new());
         runtime_components.push_interceptor(::aws_runtime::service_clock_skew::ServiceClockSkewInterceptor::new());
         runtime_components.push_interceptor(::aws_runtime::request_info::RequestInfoInterceptor::new());
         runtime_components.push_interceptor(::aws_runtime::user_agent::UserAgentInterceptor::new());
@@ -1178,7 +1277,19 @@ impl From<&::aws_types::sdk_config::SdkConfig> for Builder {
         builder = builder.region(input.region().cloned());
         builder.set_use_fips(input.use_fips());
         builder.set_use_dual_stack(input.use_dual_stack());
-        builder.set_endpoint_url(input.endpoint_url().map(|s| s.to_string()));
+        if input.get_origin("endpoint_url").is_client_config() {
+            builder.set_endpoint_url(input.endpoint_url().map(|s| s.to_string()));
+        } else {
+            builder.set_endpoint_url(
+                input
+                    .service_config()
+                    .and_then(|conf| {
+                        conf.load_config(service_config_key("AWS_ENDPOINT_URL", "endpoint_url"))
+                            .map(|it| it.parse().unwrap())
+                    })
+                    .or_else(|| input.endpoint_url().map(|s| s.to_string())),
+            );
+        }
         // resiliency
         builder.set_retry_config(input.retry_config().cloned());
         builder.set_timeout_config(input.timeout_config().cloned());
@@ -1195,6 +1306,8 @@ impl From<&::aws_types::sdk_config::SdkConfig> for Builder {
         if let Some(cache) = input.identity_cache() {
             builder.set_identity_cache(cache);
         }
+        builder = builder.disable_request_compression(input.disable_request_compression());
+        builder = builder.request_min_compression_size_bytes(input.request_min_compression_size_bytes());
         builder.set_app_name(input.app_name().cloned());
 
         builder
@@ -1209,36 +1322,59 @@ impl From<&::aws_types::sdk_config::SdkConfig> for Config {
 
 pub use ::aws_types::app_name::AppName;
 
+#[allow(dead_code)]
+fn service_config_key<'a>(env: &'a str, profile: &'a str) -> aws_types::service_config::ServiceConfigKey<'a> {
+    ::aws_types::service_config::ServiceConfigKey::builder()
+        .service_id("CloudWatch")
+        .env(env)
+        .profile(profile)
+        .build()
+        .expect("all field sets explicitly, can't fail")
+}
+
 pub use ::aws_smithy_async::rt::sleep::Sleep;
 
 pub(crate) fn base_client_runtime_plugins(mut config: crate::Config) -> ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugins {
     let mut configured_plugins = ::std::vec::Vec::new();
     ::std::mem::swap(&mut config.runtime_plugins, &mut configured_plugins);
-    #[allow(unused_mut)]
-    let mut behavior_version = config.behavior_version.clone();
     #[cfg(feature = "behavior-version-latest")]
     {
-        if behavior_version.is_none() {
-            behavior_version = Some(::aws_smithy_runtime_api::client::behavior_version::BehaviorVersion::latest());
+        if config.behavior_version.is_none() {
+            config.behavior_version = Some(::aws_smithy_runtime_api::client::behavior_version::BehaviorVersion::latest());
         }
     }
 
+    let default_retry_partition = "cloudwatch";
+    let default_retry_partition = match config.region() {
+        Some(region) => ::std::borrow::Cow::from(format!("{default_retry_partition}-{}", region)),
+        None => ::std::borrow::Cow::from(default_retry_partition),
+    };
+
+    let scope = "aws-sdk-cloudwatch";
+
     let mut plugins = ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugins::new()
-                    // defaults
-                    .with_client_plugins(::aws_smithy_runtime::client::defaults::default_plugins(
-                        ::aws_smithy_runtime::client::defaults::DefaultPluginParams::new()
-                            .with_retry_partition_name("cloudwatch")
-                            .with_behavior_version(behavior_version.expect("Invalid client configuration: A behavior major version must be set when sending a request or constructing a client. You must set it during client construction or by enabling the `behavior-version-latest` cargo feature."))
-                    ))
-                    // user config
-                    .with_client_plugin(
-                        ::aws_smithy_runtime_api::client::runtime_plugin::StaticRuntimePlugin::new()
-                            .with_config(config.config.clone())
-                            .with_runtime_components(config.runtime_components.clone())
-                    )
-                    // codegen config
-                    .with_client_plugin(crate::config::ServiceRuntimePlugin::new(config))
-                    .with_client_plugin(::aws_smithy_runtime::client::auth::no_auth::NoAuthRuntimePlugin::new());
+                        // defaults
+                        .with_client_plugins(::aws_smithy_runtime::client::defaults::default_plugins(
+                            ::aws_smithy_runtime::client::defaults::DefaultPluginParams::new()
+                                .with_retry_partition_name(default_retry_partition)
+                                .with_behavior_version(config.behavior_version.expect("Invalid client configuration: A behavior major version must be set when sending a request or constructing a client. You must set it during client construction or by enabling the `behavior-version-latest` cargo feature."))
+                        ))
+                        // user config
+                        .with_client_plugin(
+                            ::aws_smithy_runtime_api::client::runtime_plugin::StaticRuntimePlugin::new()
+                                .with_config(config.config.clone())
+                                .with_runtime_components(config.runtime_components.clone())
+                        )
+                        // codegen config
+                        .with_client_plugin(crate::config::ServiceRuntimePlugin::new(config.clone()))
+                        .with_client_plugin(::aws_smithy_runtime::client::auth::no_auth::NoAuthRuntimePlugin::new())
+                        .with_client_plugin(
+                            ::aws_smithy_runtime::client::metrics::MetricsRuntimePlugin::builder()
+                                .with_scope(scope)
+                                .with_time_source(config.runtime_components.time_source().unwrap_or_default())
+                                .build()
+                                .expect("All required fields have been set")
+                        );
 
     for plugin in configured_plugins {
         plugins = plugins.with_client_plugin(plugin);
@@ -1286,6 +1422,9 @@ pub use ::aws_smithy_types::config_bag::Layer;
 
 /// Types needed to configure endpoint resolution.
 pub mod endpoint;
+
+/// HTTP request and response types.
+pub mod http;
 
 /// Types needed to implement [`Intercept`](crate::config::Intercept).
 pub mod interceptors;

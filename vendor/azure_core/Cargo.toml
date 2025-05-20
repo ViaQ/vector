@@ -11,12 +11,12 @@
 
 [package]
 edition = "2021"
-rust-version = "1.70.0"
+rust-version = "1.74.0"
 name = "azure_core"
-version = "0.17.0"
+version = "0.21.0"
 authors = ["Microsoft Corp."]
 description = "Rust wrappers around Microsoft Azure REST APIs - Core crate"
-homepage = "https://github.com/azure/azure-sdk-for-rust"
+homepage = "https://github.com/azure/azure-sdk-for-rust/tree/legacy"
 documentation = "https://docs.rs/azure_core"
 readme = "README.md"
 keywords = [
@@ -30,11 +30,23 @@ categories = ["api-bindings"]
 license = "MIT"
 repository = "https://github.com/azure/azure-sdk-for-rust"
 
+[package.metadata.docs.rs]
+features = [
+    "xml",
+    "tokio-fs",
+    "enable_reqwest",
+    "enable_reqwest_gzip",
+    "enable_reqwest_rustls",
+    "hmac_rust",
+    "hmac_openssl",
+    "xml",
+]
+
 [dependencies.async-trait]
 version = "0.1"
 
 [dependencies.base64]
-version = "0.21"
+version = "0.22"
 
 [dependencies.bytes]
 version = "1.0"
@@ -45,12 +57,20 @@ version = "1.0"
 [dependencies.futures]
 version = "0.3"
 
+[dependencies.hmac]
+version = "0.12"
+optional = true
+
 [dependencies.http-types]
 version = "2.12"
 default-features = false
 
-[dependencies.log]
-version = "0.4"
+[dependencies.once_cell]
+version = "1.18"
+
+[dependencies.openssl]
+version = "0.10"
+optional = true
 
 [dependencies.paste]
 version = "1.0"
@@ -70,7 +90,7 @@ optional = true
 version = "0.8"
 
 [dependencies.reqwest]
-version = "0.11.14"
+version = "0.12.0"
 features = ["stream"]
 optional = true
 default-features = false
@@ -81,6 +101,10 @@ features = ["derive"]
 
 [dependencies.serde_json]
 version = "1.0"
+
+[dependencies.sha2]
+version = "0.10"
+optional = true
 
 [dependencies.time]
 version = "0.3.10"
@@ -93,21 +117,29 @@ features = [
 version = "1.0"
 optional = true
 
+[dependencies.tracing]
+version = "0.1.40"
+
 [dependencies.url]
 version = "2.2"
 
 [dependencies.uuid]
 version = "1.0"
 
-[dev-dependencies.env_logger]
-version = "0.10"
-
 [dev-dependencies.thiserror]
 version = "1.0"
 
 [dev-dependencies.tokio]
 version = "1.0"
-features = ["default"]
+features = [
+    "default",
+    "macros",
+    "rt",
+    "time",
+]
+
+[dev-dependencies.tracing-subscriber]
+version = "0.3"
 
 [build-dependencies.rustc_version]
 version = "0.4"
@@ -118,11 +150,18 @@ default = []
 enable_reqwest = ["reqwest/default-tls"]
 enable_reqwest_gzip = ["reqwest/gzip"]
 enable_reqwest_rustls = ["reqwest/rustls-tls"]
+hmac_openssl = ["dep:openssl"]
+hmac_rust = [
+    "dep:sha2",
+    "dep:hmac",
+]
 test_e2e = []
 tokio-fs = [
     "tokio/fs",
+    "tokio/sync",
     "tokio/io-util",
 ]
+tokio-sleep = ["tokio"]
 xml = ["quick-xml"]
 
 [target."cfg(target_arch = \"wasm32\")".dependencies.getrandom]

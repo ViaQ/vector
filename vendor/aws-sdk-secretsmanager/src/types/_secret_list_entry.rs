@@ -6,7 +6,7 @@
 pub struct SecretListEntry {
     /// <p>The Amazon Resource Name (ARN) of the secret.</p>
     pub arn: ::std::option::Option<::std::string::String>,
-    /// <p>The friendly name of the secret. You can use forward slashes in the name to represent a path hierarchy. For example, <code>/prod/databases/dbserver1</code> could represent the secret for a server named <code>dbserver1</code> in the folder <code>databases</code> in the folder <code>prod</code>. </p>
+    /// <p>The friendly name of the secret.</p>
     pub name: ::std::option::Option<::std::string::String>,
     /// <p>The user-provided description of the secret.</p>
     pub description: ::std::option::Option<::std::string::String>,
@@ -26,11 +26,11 @@ pub struct SecretListEntry {
     pub last_accessed_date: ::std::option::Option<::aws_smithy_types::DateTime>,
     /// <p>The date and time the deletion of the secret occurred. Not present on active secrets. The secret can be recovered until the number of days in the recovery window has passed, as specified in the <code>RecoveryWindowInDays</code> parameter of the <a href="https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html"> <code>DeleteSecret</code> </a> operation.</p>
     pub deleted_date: ::std::option::Option<::aws_smithy_types::DateTime>,
-    /// <p>The next rotation is scheduled to occur on or before this date. If the secret isn't configured for rotation, Secrets Manager returns null.</p>
+    /// <p>The next rotation is scheduled to occur on or before this date. If the secret isn't configured for rotation or rotation has been disabled, Secrets Manager returns null.</p>
     pub next_rotation_date: ::std::option::Option<::aws_smithy_types::DateTime>,
     /// <p>The list of user-defined tags associated with the secret. To add tags to a secret, use <a href="https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_TagResource.html"> <code>TagResource</code> </a>. To remove tags, use <a href="https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_UntagResource.html"> <code>UntagResource</code> </a>.</p>
     pub tags: ::std::option::Option<::std::vec::Vec<crate::types::Tag>>,
-    /// <p>A list of all of the currently assigned <code>SecretVersionStage</code> staging labels and the <code>SecretVersionId</code> attached to each one. Staging labels are used to keep track of the different versions during the rotation process.</p> <note>
+    /// <p>A list of all of the currently assigned <code>SecretVersionStage</code> staging labels and the <code>SecretVersionId</code> attached to each one. Staging labels are used to keep track of the different versions during the rotation process.</p><note>
     /// <p>A version that does not have any <code>SecretVersionStage</code> is considered deprecated and subject to deletion. Such versions are not included in this list.</p>
     /// </note>
     pub secret_versions_to_stages: ::std::option::Option<::std::collections::HashMap<::std::string::String, ::std::vec::Vec<::std::string::String>>>,
@@ -46,7 +46,7 @@ impl SecretListEntry {
     pub fn arn(&self) -> ::std::option::Option<&str> {
         self.arn.as_deref()
     }
-    /// <p>The friendly name of the secret. You can use forward slashes in the name to represent a path hierarchy. For example, <code>/prod/databases/dbserver1</code> could represent the secret for a server named <code>dbserver1</code> in the folder <code>databases</code> in the folder <code>prod</code>. </p>
+    /// <p>The friendly name of the secret.</p>
     pub fn name(&self) -> ::std::option::Option<&str> {
         self.name.as_deref()
     }
@@ -86,7 +86,7 @@ impl SecretListEntry {
     pub fn deleted_date(&self) -> ::std::option::Option<&::aws_smithy_types::DateTime> {
         self.deleted_date.as_ref()
     }
-    /// <p>The next rotation is scheduled to occur on or before this date. If the secret isn't configured for rotation, Secrets Manager returns null.</p>
+    /// <p>The next rotation is scheduled to occur on or before this date. If the secret isn't configured for rotation or rotation has been disabled, Secrets Manager returns null.</p>
     pub fn next_rotation_date(&self) -> ::std::option::Option<&::aws_smithy_types::DateTime> {
         self.next_rotation_date.as_ref()
     }
@@ -96,7 +96,7 @@ impl SecretListEntry {
     pub fn tags(&self) -> &[crate::types::Tag] {
         self.tags.as_deref().unwrap_or_default()
     }
-    /// <p>A list of all of the currently assigned <code>SecretVersionStage</code> staging labels and the <code>SecretVersionId</code> attached to each one. Staging labels are used to keep track of the different versions during the rotation process.</p> <note>
+    /// <p>A list of all of the currently assigned <code>SecretVersionStage</code> staging labels and the <code>SecretVersionId</code> attached to each one. Staging labels are used to keep track of the different versions during the rotation process.</p><note>
     /// <p>A version that does not have any <code>SecretVersionStage</code> is considered deprecated and subject to deletion. Such versions are not included in this list.</p>
     /// </note>
     pub fn secret_versions_to_stages(
@@ -125,8 +125,8 @@ impl SecretListEntry {
 }
 
 /// A builder for [`SecretListEntry`](crate::types::SecretListEntry).
-#[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::default::Default, ::std::fmt::Debug)]
+#[non_exhaustive]
 pub struct SecretListEntryBuilder {
     pub(crate) arn: ::std::option::Option<::std::string::String>,
     pub(crate) name: ::std::option::Option<::std::string::String>,
@@ -162,17 +162,17 @@ impl SecretListEntryBuilder {
     pub fn get_arn(&self) -> &::std::option::Option<::std::string::String> {
         &self.arn
     }
-    /// <p>The friendly name of the secret. You can use forward slashes in the name to represent a path hierarchy. For example, <code>/prod/databases/dbserver1</code> could represent the secret for a server named <code>dbserver1</code> in the folder <code>databases</code> in the folder <code>prod</code>. </p>
+    /// <p>The friendly name of the secret.</p>
     pub fn name(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.name = ::std::option::Option::Some(input.into());
         self
     }
-    /// <p>The friendly name of the secret. You can use forward slashes in the name to represent a path hierarchy. For example, <code>/prod/databases/dbserver1</code> could represent the secret for a server named <code>dbserver1</code> in the folder <code>databases</code> in the folder <code>prod</code>. </p>
+    /// <p>The friendly name of the secret.</p>
     pub fn set_name(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.name = input;
         self
     }
-    /// <p>The friendly name of the secret. You can use forward slashes in the name to represent a path hierarchy. For example, <code>/prod/databases/dbserver1</code> could represent the secret for a server named <code>dbserver1</code> in the folder <code>databases</code> in the folder <code>prod</code>. </p>
+    /// <p>The friendly name of the secret.</p>
     pub fn get_name(&self) -> &::std::option::Option<::std::string::String> {
         &self.name
     }
@@ -302,17 +302,17 @@ impl SecretListEntryBuilder {
     pub fn get_deleted_date(&self) -> &::std::option::Option<::aws_smithy_types::DateTime> {
         &self.deleted_date
     }
-    /// <p>The next rotation is scheduled to occur on or before this date. If the secret isn't configured for rotation, Secrets Manager returns null.</p>
+    /// <p>The next rotation is scheduled to occur on or before this date. If the secret isn't configured for rotation or rotation has been disabled, Secrets Manager returns null.</p>
     pub fn next_rotation_date(mut self, input: ::aws_smithy_types::DateTime) -> Self {
         self.next_rotation_date = ::std::option::Option::Some(input);
         self
     }
-    /// <p>The next rotation is scheduled to occur on or before this date. If the secret isn't configured for rotation, Secrets Manager returns null.</p>
+    /// <p>The next rotation is scheduled to occur on or before this date. If the secret isn't configured for rotation or rotation has been disabled, Secrets Manager returns null.</p>
     pub fn set_next_rotation_date(mut self, input: ::std::option::Option<::aws_smithy_types::DateTime>) -> Self {
         self.next_rotation_date = input;
         self
     }
-    /// <p>The next rotation is scheduled to occur on or before this date. If the secret isn't configured for rotation, Secrets Manager returns null.</p>
+    /// <p>The next rotation is scheduled to occur on or before this date. If the secret isn't configured for rotation or rotation has been disabled, Secrets Manager returns null.</p>
     pub fn get_next_rotation_date(&self) -> &::std::option::Option<::aws_smithy_types::DateTime> {
         &self.next_rotation_date
     }
@@ -340,7 +340,7 @@ impl SecretListEntryBuilder {
     ///
     /// To override the contents of this collection use [`set_secret_versions_to_stages`](Self::set_secret_versions_to_stages).
     ///
-    /// <p>A list of all of the currently assigned <code>SecretVersionStage</code> staging labels and the <code>SecretVersionId</code> attached to each one. Staging labels are used to keep track of the different versions during the rotation process.</p> <note>
+    /// <p>A list of all of the currently assigned <code>SecretVersionStage</code> staging labels and the <code>SecretVersionId</code> attached to each one. Staging labels are used to keep track of the different versions during the rotation process.</p><note>
     /// <p>A version that does not have any <code>SecretVersionStage</code> is considered deprecated and subject to deletion. Such versions are not included in this list.</p>
     /// </note>
     pub fn secret_versions_to_stages(
@@ -353,7 +353,7 @@ impl SecretListEntryBuilder {
         self.secret_versions_to_stages = ::std::option::Option::Some(hash_map);
         self
     }
-    /// <p>A list of all of the currently assigned <code>SecretVersionStage</code> staging labels and the <code>SecretVersionId</code> attached to each one. Staging labels are used to keep track of the different versions during the rotation process.</p> <note>
+    /// <p>A list of all of the currently assigned <code>SecretVersionStage</code> staging labels and the <code>SecretVersionId</code> attached to each one. Staging labels are used to keep track of the different versions during the rotation process.</p><note>
     /// <p>A version that does not have any <code>SecretVersionStage</code> is considered deprecated and subject to deletion. Such versions are not included in this list.</p>
     /// </note>
     pub fn set_secret_versions_to_stages(
@@ -363,7 +363,7 @@ impl SecretListEntryBuilder {
         self.secret_versions_to_stages = input;
         self
     }
-    /// <p>A list of all of the currently assigned <code>SecretVersionStage</code> staging labels and the <code>SecretVersionId</code> attached to each one. Staging labels are used to keep track of the different versions during the rotation process.</p> <note>
+    /// <p>A list of all of the currently assigned <code>SecretVersionStage</code> staging labels and the <code>SecretVersionId</code> attached to each one. Staging labels are used to keep track of the different versions during the rotation process.</p><note>
     /// <p>A version that does not have any <code>SecretVersionStage</code> is considered deprecated and subject to deletion. Such versions are not included in this list.</p>
     /// </note>
     pub fn get_secret_versions_to_stages(

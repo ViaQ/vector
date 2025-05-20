@@ -2,7 +2,7 @@
 pub fn ser_extended_s3_destination_update(
     object: &mut ::aws_smithy_json::serialize::JsonObjectWriter,
     input: &crate::types::ExtendedS3DestinationUpdate,
-) -> Result<(), ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<(), ::aws_smithy_types::error::operation::SerializationError> {
     if let Some(var_1) = &input.role_arn {
         object.key("RoleARN").string(var_1.as_str());
     }
@@ -62,6 +62,12 @@ pub fn ser_extended_s3_destination_update(
         let mut object_20 = object.key("DynamicPartitioningConfiguration").start_object();
         crate::protocol_serde::shape_dynamic_partitioning_configuration::ser_dynamic_partitioning_configuration(&mut object_20, var_19)?;
         object_20.finish();
+    }
+    if let Some(var_21) = &input.file_extension {
+        object.key("FileExtension").string(var_21.as_str());
+    }
+    if let Some(var_22) = &input.custom_time_zone {
+        object.key("CustomTimeZone").string(var_22.as_str());
     }
     Ok(())
 }

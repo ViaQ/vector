@@ -1,6 +1,5 @@
 # listenfd
 
-[![Build Status](https://github.com/mitsuhiko/listenfd/workflows/Tests/badge.svg?branch=master)](https://github.com/mitsuhiko/listenfd/actions?query=workflow%3ATests)
 [![Crates.io](https://img.shields.io/crates/d/listenfd.svg)](https://crates.io/crates/listenfd)
 [![License](https://img.shields.io/github/license/mitsuhiko/listenfd)](https://github.com/mitsuhiko/listenfd/blob/master/LICENSE)
 [![rustc 1.42.0](https://img.shields.io/badge/rust-1.42%2B-orange.svg)](https://img.shields.io/badge/rust-1.42%2B-orange.svg)
@@ -10,7 +9,7 @@ listenfd is a crate that provides support for working with externally managed
 and passed file descriptors. This lets you work with systems that support
 socket activation or similar.
 
-Currently this supports systemd on Unix and
+Currently this supports systemd (including systemd-socket-activate) on Unix and
 [systemfd](https://github.com/mitsuhiko/systemfd) on Unix and Windows.
 systemfd is very convenient in combination with cargo-watch for development
 purposes whereas systemd is useful for production deployments on linux.

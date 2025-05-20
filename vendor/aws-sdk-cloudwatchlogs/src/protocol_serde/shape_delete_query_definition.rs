@@ -20,12 +20,12 @@ pub fn de_delete_query_definition_http_error(
 
     let _error_message = generic.message().map(|msg| msg.to_owned());
     Err(match error_code {
-        "InvalidParameterException" => crate::operation::delete_query_definition::DeleteQueryDefinitionError::InvalidParameterException({
+        "ResourceNotFoundException" => crate::operation::delete_query_definition::DeleteQueryDefinitionError::ResourceNotFoundException({
             #[allow(unused_mut)]
             let mut tmp = {
                 #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::InvalidParameterExceptionBuilder::default();
-                output = crate::protocol_serde::shape_invalid_parameter_exception::de_invalid_parameter_exception_json_err(_response_body, output)
+                let mut output = crate::types::error::builders::ResourceNotFoundExceptionBuilder::default();
+                output = crate::protocol_serde::shape_resource_not_found_exception::de_resource_not_found_exception_json_err(_response_body, output)
                     .map_err(crate::operation::delete_query_definition::DeleteQueryDefinitionError::unhandled)?;
                 let output = output.meta(generic);
                 output.build()
@@ -35,12 +35,12 @@ pub fn de_delete_query_definition_http_error(
             }
             tmp
         }),
-        "ResourceNotFoundException" => crate::operation::delete_query_definition::DeleteQueryDefinitionError::ResourceNotFoundException({
+        "InvalidParameterException" => crate::operation::delete_query_definition::DeleteQueryDefinitionError::InvalidParameterException({
             #[allow(unused_mut)]
             let mut tmp = {
                 #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::ResourceNotFoundExceptionBuilder::default();
-                output = crate::protocol_serde::shape_resource_not_found_exception::de_resource_not_found_exception_json_err(_response_body, output)
+                let mut output = crate::types::error::builders::InvalidParameterExceptionBuilder::default();
+                output = crate::protocol_serde::shape_invalid_parameter_exception::de_invalid_parameter_exception_json_err(_response_body, output)
                     .map_err(crate::operation::delete_query_definition::DeleteQueryDefinitionError::unhandled)?;
                 let output = output.meta(generic);
                 output.build()
@@ -91,7 +91,7 @@ pub fn de_delete_query_definition_http_response(
 
 pub fn ser_delete_query_definition_input(
     input: &crate::operation::delete_query_definition::DeleteQueryDefinitionInput,
-) -> Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
     let mut out = String::new();
     let mut object = ::aws_smithy_json::serialize::JsonObjectWriter::new(&mut out);
     crate::protocol_serde::shape_delete_query_definition_input::ser_delete_query_definition_input_input(&mut object, input)?;
@@ -102,7 +102,7 @@ pub fn ser_delete_query_definition_input(
 pub(crate) fn de_delete_query_definition(
     value: &[u8],
     mut builder: crate::operation::delete_query_definition::builders::DeleteQueryDefinitionOutputBuilder,
-) -> Result<
+) -> ::std::result::Result<
     crate::operation::delete_query_definition::builders::DeleteQueryDefinitionOutputBuilder,
     ::aws_smithy_json::deserialize::error::DeserializeError,
 > {

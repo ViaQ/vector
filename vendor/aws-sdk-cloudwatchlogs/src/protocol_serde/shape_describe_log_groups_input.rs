@@ -2,7 +2,7 @@
 pub fn ser_describe_log_groups_input_input(
     object: &mut ::aws_smithy_json::serialize::JsonObjectWriter,
     input: &crate::operation::describe_log_groups::DescribeLogGroupsInput,
-) -> Result<(), ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<(), ::aws_smithy_types::error::operation::SerializationError> {
     if let Some(var_1) = &input.account_identifiers {
         let mut array_2 = object.key("accountIdentifiers").start_array();
         for item_3 in var_1 {
@@ -29,6 +29,18 @@ pub fn ser_describe_log_groups_input_input(
     }
     if let Some(var_8) = &input.include_linked_accounts {
         object.key("includeLinkedAccounts").boolean(*var_8);
+    }
+    if let Some(var_9) = &input.log_group_class {
+        object.key("logGroupClass").string(var_9.as_str());
+    }
+    if let Some(var_10) = &input.log_group_identifiers {
+        let mut array_11 = object.key("logGroupIdentifiers").start_array();
+        for item_12 in var_10 {
+            {
+                array_11.value().string(item_12.as_str());
+            }
+        }
+        array_11.finish();
     }
     Ok(())
 }

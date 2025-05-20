@@ -10,7 +10,7 @@ use crate::lr1::state_graph::StateGraph;
 
 use super::table::{ConflictIndex, LaneTable};
 
-pub struct LaneTracer<'trace, 'grammar: 'trace, L: Lookahead + 'trace> {
+pub struct LaneTracer<'trace, 'grammar, L: Lookahead> {
     states: &'trace [State<'grammar, L>],
     first_sets: &'trace FirstSets,
     state_graph: &'trace StateGraph,
@@ -60,6 +60,7 @@ impl<'trace, 'grammar, L: Lookahead> LaneTracer<'trace, 'grammar, L> {
 
             Action::Reduce(prod) => {
                 let item = Item::lr0(prod, prod.symbols.len());
+                self.table.add_lookahead(state, conflict, &TokenSet::new());
                 self.continue_trace(state, conflict, item, &mut visited_set);
             }
         }
@@ -72,6 +73,7 @@ impl<'trace, 'grammar, L: Lookahead> LaneTracer<'trace, 'grammar, L> {
         item: Lr0Item<'grammar>,
         visited: &mut Set<(StateIndex, Lr0Item<'grammar>)>,
     ) {
+        debug!("continue_trace:  state={:?}, index={:?}", state, item.index);
         if !visited.insert((state, item)) {
             return;
         }

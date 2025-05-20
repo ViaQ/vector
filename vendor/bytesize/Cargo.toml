@@ -10,12 +10,22 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
+edition = "2021"
+rust-version = "1.70"
 name = "bytesize"
-version = "1.3.0"
-authors = ["Hyunsik Choi <hyunsik.choi@gmail.com>"]
-description = "an utility for human-readable bytes representations"
-homepage = "https://github.com/hyunsik/bytesize/"
-documentation = "https://docs.rs/bytesize/"
+version = "2.0.1"
+authors = [
+    "Hyunsik Choi <hyunsik.choi@gmail.com>",
+    "MrCroxx <mrcroxx@outlook.com>",
+    "Rob Ede <robjtede@icloud.com>",
+]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
+description = "Semantic wrapper for byte count representations"
 readme = "README.md"
 keywords = [
     "byte",
@@ -24,23 +34,69 @@ keywords = [
     "human-readable",
     "format",
 ]
+categories = [
+    "development-tools",
+    "filesystem",
+    "no-std",
+]
 license = "Apache-2.0"
-repository = "https://github.com/hyunsik/bytesize/"
+repository = "https://github.com/bytesize-rs/bytesize"
 
-[dependencies.serde]
-version = "1.0.185"
+[features]
+arbitrary = ["dep:arbitrary"]
+default = ["std"]
+serde = ["dep:serde"]
+std = []
+
+[lib]
+name = "bytesize"
+path = "src/lib.rs"
+
+[[example]]
+name = "ls"
+path = "examples/ls.rs"
+
+[[bench]]
+name = "display"
+path = "benches/display.rs"
+harness = false
+
+[dependencies.arbitrary]
+version = "1"
 optional = true
 
+[dependencies.serde]
+version = "1"
+optional = true
+
+[dev-dependencies.divan]
+version = "0.1"
+
+[dev-dependencies.quickcheck]
+version = "1"
+
 [dev-dependencies.serde]
-version = "1.0.185"
+version = "1"
 features = ["derive"]
 
 [dev-dependencies.serde_json]
-version = "1.0.105"
+version = "1"
 
 [dev-dependencies.toml]
-version = "0.7.6"
+version = "0.8"
 
-[features]
-default = []
-serde = ["dep:serde"]
+[lints.rust.future-incompatible]
+level = "deny"
+priority = 0
+
+[lints.rust.missing-docs]
+level = "warn"
+priority = 0
+
+[lints.rust.nonstandard-style]
+level = "deny"
+priority = 0
+
+[lints.rust.rust-2018-idioms]
+level = "deny"
+priority = 0

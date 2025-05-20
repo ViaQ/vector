@@ -40,6 +40,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 /// <p>Specifies the current status of the VPC endpoint:
 /// <ul>
 /// <li>CREATING: Indicates that the VPC endpoint is currently being created.</li>
@@ -136,6 +137,20 @@ impl VpcEndpointStatus {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for VpcEndpointStatus {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            VpcEndpointStatus::Active => write!(f, "ACTIVE"),
+            VpcEndpointStatus::CreateFailed => write!(f, "CREATE_FAILED"),
+            VpcEndpointStatus::Creating => write!(f, "CREATING"),
+            VpcEndpointStatus::DeleteFailed => write!(f, "DELETE_FAILED"),
+            VpcEndpointStatus::Deleting => write!(f, "DELETING"),
+            VpcEndpointStatus::UpdateFailed => write!(f, "UPDATE_FAILED"),
+            VpcEndpointStatus::Updating => write!(f, "UPDATING"),
+            VpcEndpointStatus::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

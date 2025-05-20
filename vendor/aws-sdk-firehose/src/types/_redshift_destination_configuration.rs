@@ -11,22 +11,24 @@ pub struct RedshiftDestinationConfiguration {
     /// <p>The <code>COPY</code> command.</p>
     pub copy_command: ::std::option::Option<crate::types::CopyCommand>,
     /// <p>The name of the user.</p>
-    pub username: ::std::string::String,
+    pub username: ::std::option::Option<::std::string::String>,
     /// <p>The user password.</p>
-    pub password: ::std::string::String,
-    /// <p>The retry behavior in case Kinesis Data Firehose is unable to deliver documents to Amazon Redshift. Default value is 3600 (60 minutes).</p>
+    pub password: ::std::option::Option<::std::string::String>,
+    /// <p>The retry behavior in case Firehose is unable to deliver documents to Amazon Redshift. Default value is 3600 (60 minutes).</p>
     pub retry_options: ::std::option::Option<crate::types::RedshiftRetryOptions>,
     /// <p>The configuration for the intermediate Amazon S3 location from which Amazon Redshift obtains data. Restrictions are described in the topic for <code>CreateDeliveryStream</code>.</p>
     /// <p>The compression formats <code>SNAPPY</code> or <code>ZIP</code> cannot be specified in <code>RedshiftDestinationConfiguration.S3Configuration</code> because the Amazon Redshift <code>COPY</code> operation that reads from the S3 bucket doesn't support these compression formats.</p>
     pub s3_configuration: ::std::option::Option<crate::types::S3DestinationConfiguration>,
     /// <p>The data processing configuration.</p>
     pub processing_configuration: ::std::option::Option<crate::types::ProcessingConfiguration>,
-    /// <p>The Amazon S3 backup mode. After you create a delivery stream, you can update it to enable Amazon S3 backup if it is disabled. If backup is enabled, you can't update the delivery stream to disable it. </p>
+    /// <p>The Amazon S3 backup mode. After you create a Firehose stream, you can update it to enable Amazon S3 backup if it is disabled. If backup is enabled, you can't update the Firehose stream to disable it.</p>
     pub s3_backup_mode: ::std::option::Option<crate::types::RedshiftS3BackupMode>,
     /// <p>The configuration for backup in Amazon S3.</p>
     pub s3_backup_configuration: ::std::option::Option<crate::types::S3DestinationConfiguration>,
-    /// <p>The CloudWatch logging options for your delivery stream.</p>
+    /// <p>The CloudWatch logging options for your Firehose stream.</p>
     pub cloud_watch_logging_options: ::std::option::Option<crate::types::CloudWatchLoggingOptions>,
+    /// <p>The configuration that defines how you access secrets for Amazon Redshift.</p>
+    pub secrets_manager_configuration: ::std::option::Option<crate::types::SecretsManagerConfiguration>,
 }
 impl RedshiftDestinationConfiguration {
     /// <p>The Amazon Resource Name (ARN) of the Amazon Web Services credentials. For more information, see <a href="https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html">Amazon Resource Names (ARNs) and Amazon Web Services Service Namespaces</a>.</p>
@@ -44,16 +46,14 @@ impl RedshiftDestinationConfiguration {
         self.copy_command.as_ref()
     }
     /// <p>The name of the user.</p>
-    pub fn username(&self) -> &str {
-        use std::ops::Deref;
-        self.username.deref()
+    pub fn username(&self) -> ::std::option::Option<&str> {
+        self.username.as_deref()
     }
     /// <p>The user password.</p>
-    pub fn password(&self) -> &str {
-        use std::ops::Deref;
-        self.password.deref()
+    pub fn password(&self) -> ::std::option::Option<&str> {
+        self.password.as_deref()
     }
-    /// <p>The retry behavior in case Kinesis Data Firehose is unable to deliver documents to Amazon Redshift. Default value is 3600 (60 minutes).</p>
+    /// <p>The retry behavior in case Firehose is unable to deliver documents to Amazon Redshift. Default value is 3600 (60 minutes).</p>
     pub fn retry_options(&self) -> ::std::option::Option<&crate::types::RedshiftRetryOptions> {
         self.retry_options.as_ref()
     }
@@ -66,7 +66,7 @@ impl RedshiftDestinationConfiguration {
     pub fn processing_configuration(&self) -> ::std::option::Option<&crate::types::ProcessingConfiguration> {
         self.processing_configuration.as_ref()
     }
-    /// <p>The Amazon S3 backup mode. After you create a delivery stream, you can update it to enable Amazon S3 backup if it is disabled. If backup is enabled, you can't update the delivery stream to disable it. </p>
+    /// <p>The Amazon S3 backup mode. After you create a Firehose stream, you can update it to enable Amazon S3 backup if it is disabled. If backup is enabled, you can't update the Firehose stream to disable it.</p>
     pub fn s3_backup_mode(&self) -> ::std::option::Option<&crate::types::RedshiftS3BackupMode> {
         self.s3_backup_mode.as_ref()
     }
@@ -74,9 +74,13 @@ impl RedshiftDestinationConfiguration {
     pub fn s3_backup_configuration(&self) -> ::std::option::Option<&crate::types::S3DestinationConfiguration> {
         self.s3_backup_configuration.as_ref()
     }
-    /// <p>The CloudWatch logging options for your delivery stream.</p>
+    /// <p>The CloudWatch logging options for your Firehose stream.</p>
     pub fn cloud_watch_logging_options(&self) -> ::std::option::Option<&crate::types::CloudWatchLoggingOptions> {
         self.cloud_watch_logging_options.as_ref()
+    }
+    /// <p>The configuration that defines how you access secrets for Amazon Redshift.</p>
+    pub fn secrets_manager_configuration(&self) -> ::std::option::Option<&crate::types::SecretsManagerConfiguration> {
+        self.secrets_manager_configuration.as_ref()
     }
 }
 impl ::std::fmt::Debug for RedshiftDestinationConfiguration {
@@ -93,6 +97,7 @@ impl ::std::fmt::Debug for RedshiftDestinationConfiguration {
         formatter.field("s3_backup_mode", &self.s3_backup_mode);
         formatter.field("s3_backup_configuration", &self.s3_backup_configuration);
         formatter.field("cloud_watch_logging_options", &self.cloud_watch_logging_options);
+        formatter.field("secrets_manager_configuration", &self.secrets_manager_configuration);
         formatter.finish()
     }
 }
@@ -104,8 +109,8 @@ impl RedshiftDestinationConfiguration {
 }
 
 /// A builder for [`RedshiftDestinationConfiguration`](crate::types::RedshiftDestinationConfiguration).
-#[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::default::Default)]
+#[non_exhaustive]
 pub struct RedshiftDestinationConfigurationBuilder {
     pub(crate) role_arn: ::std::option::Option<::std::string::String>,
     pub(crate) cluster_jdbcurl: ::std::option::Option<::std::string::String>,
@@ -118,6 +123,7 @@ pub struct RedshiftDestinationConfigurationBuilder {
     pub(crate) s3_backup_mode: ::std::option::Option<crate::types::RedshiftS3BackupMode>,
     pub(crate) s3_backup_configuration: ::std::option::Option<crate::types::S3DestinationConfiguration>,
     pub(crate) cloud_watch_logging_options: ::std::option::Option<crate::types::CloudWatchLoggingOptions>,
+    pub(crate) secrets_manager_configuration: ::std::option::Option<crate::types::SecretsManagerConfiguration>,
 }
 impl RedshiftDestinationConfigurationBuilder {
     /// <p>The Amazon Resource Name (ARN) of the Amazon Web Services credentials. For more information, see <a href="https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html">Amazon Resource Names (ARNs) and Amazon Web Services Service Namespaces</a>.</p>
@@ -166,7 +172,6 @@ impl RedshiftDestinationConfigurationBuilder {
         &self.copy_command
     }
     /// <p>The name of the user.</p>
-    /// This field is required.
     pub fn username(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.username = ::std::option::Option::Some(input.into());
         self
@@ -181,7 +186,6 @@ impl RedshiftDestinationConfigurationBuilder {
         &self.username
     }
     /// <p>The user password.</p>
-    /// This field is required.
     pub fn password(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.password = ::std::option::Option::Some(input.into());
         self
@@ -195,17 +199,17 @@ impl RedshiftDestinationConfigurationBuilder {
     pub fn get_password(&self) -> &::std::option::Option<::std::string::String> {
         &self.password
     }
-    /// <p>The retry behavior in case Kinesis Data Firehose is unable to deliver documents to Amazon Redshift. Default value is 3600 (60 minutes).</p>
+    /// <p>The retry behavior in case Firehose is unable to deliver documents to Amazon Redshift. Default value is 3600 (60 minutes).</p>
     pub fn retry_options(mut self, input: crate::types::RedshiftRetryOptions) -> Self {
         self.retry_options = ::std::option::Option::Some(input);
         self
     }
-    /// <p>The retry behavior in case Kinesis Data Firehose is unable to deliver documents to Amazon Redshift. Default value is 3600 (60 minutes).</p>
+    /// <p>The retry behavior in case Firehose is unable to deliver documents to Amazon Redshift. Default value is 3600 (60 minutes).</p>
     pub fn set_retry_options(mut self, input: ::std::option::Option<crate::types::RedshiftRetryOptions>) -> Self {
         self.retry_options = input;
         self
     }
-    /// <p>The retry behavior in case Kinesis Data Firehose is unable to deliver documents to Amazon Redshift. Default value is 3600 (60 minutes).</p>
+    /// <p>The retry behavior in case Firehose is unable to deliver documents to Amazon Redshift. Default value is 3600 (60 minutes).</p>
     pub fn get_retry_options(&self) -> &::std::option::Option<crate::types::RedshiftRetryOptions> {
         &self.retry_options
     }
@@ -241,17 +245,17 @@ impl RedshiftDestinationConfigurationBuilder {
     pub fn get_processing_configuration(&self) -> &::std::option::Option<crate::types::ProcessingConfiguration> {
         &self.processing_configuration
     }
-    /// <p>The Amazon S3 backup mode. After you create a delivery stream, you can update it to enable Amazon S3 backup if it is disabled. If backup is enabled, you can't update the delivery stream to disable it. </p>
+    /// <p>The Amazon S3 backup mode. After you create a Firehose stream, you can update it to enable Amazon S3 backup if it is disabled. If backup is enabled, you can't update the Firehose stream to disable it.</p>
     pub fn s3_backup_mode(mut self, input: crate::types::RedshiftS3BackupMode) -> Self {
         self.s3_backup_mode = ::std::option::Option::Some(input);
         self
     }
-    /// <p>The Amazon S3 backup mode. After you create a delivery stream, you can update it to enable Amazon S3 backup if it is disabled. If backup is enabled, you can't update the delivery stream to disable it. </p>
+    /// <p>The Amazon S3 backup mode. After you create a Firehose stream, you can update it to enable Amazon S3 backup if it is disabled. If backup is enabled, you can't update the Firehose stream to disable it.</p>
     pub fn set_s3_backup_mode(mut self, input: ::std::option::Option<crate::types::RedshiftS3BackupMode>) -> Self {
         self.s3_backup_mode = input;
         self
     }
-    /// <p>The Amazon S3 backup mode. After you create a delivery stream, you can update it to enable Amazon S3 backup if it is disabled. If backup is enabled, you can't update the delivery stream to disable it. </p>
+    /// <p>The Amazon S3 backup mode. After you create a Firehose stream, you can update it to enable Amazon S3 backup if it is disabled. If backup is enabled, you can't update the Firehose stream to disable it.</p>
     pub fn get_s3_backup_mode(&self) -> &::std::option::Option<crate::types::RedshiftS3BackupMode> {
         &self.s3_backup_mode
     }
@@ -269,26 +273,38 @@ impl RedshiftDestinationConfigurationBuilder {
     pub fn get_s3_backup_configuration(&self) -> &::std::option::Option<crate::types::S3DestinationConfiguration> {
         &self.s3_backup_configuration
     }
-    /// <p>The CloudWatch logging options for your delivery stream.</p>
+    /// <p>The CloudWatch logging options for your Firehose stream.</p>
     pub fn cloud_watch_logging_options(mut self, input: crate::types::CloudWatchLoggingOptions) -> Self {
         self.cloud_watch_logging_options = ::std::option::Option::Some(input);
         self
     }
-    /// <p>The CloudWatch logging options for your delivery stream.</p>
+    /// <p>The CloudWatch logging options for your Firehose stream.</p>
     pub fn set_cloud_watch_logging_options(mut self, input: ::std::option::Option<crate::types::CloudWatchLoggingOptions>) -> Self {
         self.cloud_watch_logging_options = input;
         self
     }
-    /// <p>The CloudWatch logging options for your delivery stream.</p>
+    /// <p>The CloudWatch logging options for your Firehose stream.</p>
     pub fn get_cloud_watch_logging_options(&self) -> &::std::option::Option<crate::types::CloudWatchLoggingOptions> {
         &self.cloud_watch_logging_options
+    }
+    /// <p>The configuration that defines how you access secrets for Amazon Redshift.</p>
+    pub fn secrets_manager_configuration(mut self, input: crate::types::SecretsManagerConfiguration) -> Self {
+        self.secrets_manager_configuration = ::std::option::Option::Some(input);
+        self
+    }
+    /// <p>The configuration that defines how you access secrets for Amazon Redshift.</p>
+    pub fn set_secrets_manager_configuration(mut self, input: ::std::option::Option<crate::types::SecretsManagerConfiguration>) -> Self {
+        self.secrets_manager_configuration = input;
+        self
+    }
+    /// <p>The configuration that defines how you access secrets for Amazon Redshift.</p>
+    pub fn get_secrets_manager_configuration(&self) -> &::std::option::Option<crate::types::SecretsManagerConfiguration> {
+        &self.secrets_manager_configuration
     }
     /// Consumes the builder and constructs a [`RedshiftDestinationConfiguration`](crate::types::RedshiftDestinationConfiguration).
     /// This method will fail if any of the following fields are not set:
     /// - [`role_arn`](crate::types::builders::RedshiftDestinationConfigurationBuilder::role_arn)
     /// - [`cluster_jdbcurl`](crate::types::builders::RedshiftDestinationConfigurationBuilder::cluster_jdbcurl)
-    /// - [`username`](crate::types::builders::RedshiftDestinationConfigurationBuilder::username)
-    /// - [`password`](crate::types::builders::RedshiftDestinationConfigurationBuilder::password)
     pub fn build(self) -> ::std::result::Result<crate::types::RedshiftDestinationConfiguration, ::aws_smithy_types::error::operation::BuildError> {
         ::std::result::Result::Ok(crate::types::RedshiftDestinationConfiguration {
             role_arn: self.role_arn.ok_or_else(|| {
@@ -304,24 +320,15 @@ impl RedshiftDestinationConfigurationBuilder {
                 )
             })?,
             copy_command: self.copy_command,
-            username: self.username.ok_or_else(|| {
-                ::aws_smithy_types::error::operation::BuildError::missing_field(
-                    "username",
-                    "username was not specified but it is required when building RedshiftDestinationConfiguration",
-                )
-            })?,
-            password: self.password.ok_or_else(|| {
-                ::aws_smithy_types::error::operation::BuildError::missing_field(
-                    "password",
-                    "password was not specified but it is required when building RedshiftDestinationConfiguration",
-                )
-            })?,
+            username: self.username,
+            password: self.password,
             retry_options: self.retry_options,
             s3_configuration: self.s3_configuration,
             processing_configuration: self.processing_configuration,
             s3_backup_mode: self.s3_backup_mode,
             s3_backup_configuration: self.s3_backup_configuration,
             cloud_watch_logging_options: self.cloud_watch_logging_options,
+            secrets_manager_configuration: self.secrets_manager_configuration,
         })
     }
 }
@@ -339,6 +346,7 @@ impl ::std::fmt::Debug for RedshiftDestinationConfigurationBuilder {
         formatter.field("s3_backup_mode", &self.s3_backup_mode);
         formatter.field("s3_backup_configuration", &self.s3_backup_configuration);
         formatter.field("cloud_watch_logging_options", &self.cloud_watch_logging_options);
+        formatter.field("secrets_manager_configuration", &self.secrets_manager_configuration);
         formatter.finish()
     }
 }

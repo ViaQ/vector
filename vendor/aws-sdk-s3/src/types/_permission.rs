@@ -38,6 +38,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -108,6 +109,18 @@ impl Permission {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for Permission {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            Permission::FullControl => write!(f, "FULL_CONTROL"),
+            Permission::Read => write!(f, "READ"),
+            Permission::ReadAcp => write!(f, "READ_ACP"),
+            Permission::Write => write!(f, "WRITE"),
+            Permission::WriteAcp => write!(f, "WRITE_ACP"),
+            Permission::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

@@ -3,7 +3,7 @@ pub use crate::operation::put_resource_policy::_put_resource_policy_output::PutR
 
 pub use crate::operation::put_resource_policy::_put_resource_policy_input::PutResourcePolicyInputBuilder;
 
-impl PutResourcePolicyInputBuilder {
+impl crate::operation::put_resource_policy::builders::PutResourcePolicyInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,10 +22,10 @@ impl PutResourcePolicyInputBuilder {
 }
 /// Fluent builder constructing a request to `PutResourcePolicy`.
 ///
-/// <p>Attaches a resource-based permission policy to a secret. A resource-based policy is optional. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access.html">Authentication and access control for Secrets Manager</a> </p>
+/// <p>Attaches a resource-based permission policy to a secret. A resource-based policy is optional. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access.html">Authentication and access control for Secrets Manager</a></p>
 /// <p>For information about attaching a policy in the console, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access_resource-based-policies.html">Attach a permissions policy to a secret</a>.</p>
 /// <p>Secrets Manager generates a CloudTrail log entry when you call this action. Do not include sensitive information in request parameters because it might be logged. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html">Logging Secrets Manager events with CloudTrail</a>.</p>
-/// <p> <b>Required permissions: </b> <code>secretsmanager:PutResourcePolicy</code>. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions"> IAM policy actions for Secrets Manager</a> and <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access.html">Authentication and access control in Secrets Manager</a>. </p>
+/// <p><b>Required permissions: </b> <code>secretsmanager:PutResourcePolicy</code>. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions"> IAM policy actions for Secrets Manager</a> and <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access.html">Authentication and access control in Secrets Manager</a>.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct PutResourcePolicyFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -51,7 +51,7 @@ impl
     }
 }
 impl PutResourcePolicyFluentBuilder {
-    /// Creates a new `PutResourcePolicy`.
+    /// Creates a new `PutResourcePolicyFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -102,12 +102,12 @@ impl PutResourcePolicyFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -142,17 +142,44 @@ impl PutResourcePolicyFluentBuilder {
     pub fn get_resource_policy(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_resource_policy()
     }
-    /// <p>Specifies whether to block resource-based policies that allow broad access to the secret, for example those that use a wildcard for the principal. By default, public policies aren't blocked.</p>
+    /// <p>Specifies whether to block resource-based policies that allow broad access to the secret, for example those that use a wildcard for the principal. By default, public policies aren't blocked.</p><important>
+    /// <p>Resource policy validation and the BlockPublicPolicy parameter help protect your resources by preventing public access from being granted through the resource policies that are directly attached to your secrets. In addition to using these features, carefully inspect the following policies to confirm that they do not grant public access:</p>
+    /// <ul>
+    /// <li>
+    /// <p>Identity-based policies attached to associated Amazon Web Services principals (for example, IAM roles)</p></li>
+    /// <li>
+    /// <p>Resource-based policies attached to associated Amazon Web Services resources (for example, Key Management Service (KMS) keys)</p></li>
+    /// </ul>
+    /// <p>To review permissions to your secrets, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/determine-acccess_examine-iam-policies.html">Determine who has permissions to your secrets</a>.</p>
+    /// </important>
     pub fn block_public_policy(mut self, input: bool) -> Self {
         self.inner = self.inner.block_public_policy(input);
         self
     }
-    /// <p>Specifies whether to block resource-based policies that allow broad access to the secret, for example those that use a wildcard for the principal. By default, public policies aren't blocked.</p>
+    /// <p>Specifies whether to block resource-based policies that allow broad access to the secret, for example those that use a wildcard for the principal. By default, public policies aren't blocked.</p><important>
+    /// <p>Resource policy validation and the BlockPublicPolicy parameter help protect your resources by preventing public access from being granted through the resource policies that are directly attached to your secrets. In addition to using these features, carefully inspect the following policies to confirm that they do not grant public access:</p>
+    /// <ul>
+    /// <li>
+    /// <p>Identity-based policies attached to associated Amazon Web Services principals (for example, IAM roles)</p></li>
+    /// <li>
+    /// <p>Resource-based policies attached to associated Amazon Web Services resources (for example, Key Management Service (KMS) keys)</p></li>
+    /// </ul>
+    /// <p>To review permissions to your secrets, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/determine-acccess_examine-iam-policies.html">Determine who has permissions to your secrets</a>.</p>
+    /// </important>
     pub fn set_block_public_policy(mut self, input: ::std::option::Option<bool>) -> Self {
         self.inner = self.inner.set_block_public_policy(input);
         self
     }
-    /// <p>Specifies whether to block resource-based policies that allow broad access to the secret, for example those that use a wildcard for the principal. By default, public policies aren't blocked.</p>
+    /// <p>Specifies whether to block resource-based policies that allow broad access to the secret, for example those that use a wildcard for the principal. By default, public policies aren't blocked.</p><important>
+    /// <p>Resource policy validation and the BlockPublicPolicy parameter help protect your resources by preventing public access from being granted through the resource policies that are directly attached to your secrets. In addition to using these features, carefully inspect the following policies to confirm that they do not grant public access:</p>
+    /// <ul>
+    /// <li>
+    /// <p>Identity-based policies attached to associated Amazon Web Services principals (for example, IAM roles)</p></li>
+    /// <li>
+    /// <p>Resource-based policies attached to associated Amazon Web Services resources (for example, Key Management Service (KMS) keys)</p></li>
+    /// </ul>
+    /// <p>To review permissions to your secrets, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/determine-acccess_examine-iam-policies.html">Determine who has permissions to your secrets</a>.</p>
+    /// </important>
     pub fn get_block_public_policy(&self) -> &::std::option::Option<bool> {
         self.inner.get_block_public_policy()
     }

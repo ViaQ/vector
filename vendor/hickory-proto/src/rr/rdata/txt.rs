@@ -6,10 +6,11 @@
 // copied, modified, or distributed except according to those terms.
 
 //! text records for storing arbitrary data
-use std::fmt;
-use std::slice::Iter;
+use alloc::{boxed::Box, string::String, vec::Vec};
+use core::fmt;
+use core::slice::Iter;
 
-#[cfg(feature = "serde-config")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -31,7 +32,7 @@ use crate::{
 /// TXT RRs are used to hold descriptive text.  The semantics of the text
 /// depends on the domain where it is found.
 /// ```
-#[cfg_attr(feature = "serde-config", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct TXT {
     txt_data: Box<[Box<[u8]>]>,
@@ -100,7 +101,7 @@ impl BinEncodable for TXT {
     }
 }
 
-impl<'r> RecordDataDecodable<'r> for TXT {
+impl RecordDataDecodable<'_> for TXT {
     fn read_data(decoder: &mut BinDecoder<'_>, rdata_length: Restrict<u16>) -> ProtoResult<Self> {
         let data_len = decoder.len();
         let mut strings = Vec::with_capacity(1);
@@ -178,6 +179,10 @@ impl fmt::Display for TXT {
 mod tests {
     #![allow(clippy::dbg_macro, clippy::print_stdout)]
 
+    use alloc::string::ToString;
+    #[cfg(feature = "std")]
+    use std::println;
+
     use super::*;
 
     #[test]
@@ -189,6 +194,7 @@ mod tests {
         assert!(rdata.emit(&mut encoder).is_ok());
         let bytes = encoder.into_bytes();
 
+        #[cfg(feature = "std")]
         println!("bytes: {bytes:?}");
 
         let mut decoder: BinDecoder<'_> = BinDecoder::new(bytes);
@@ -207,6 +213,7 @@ mod tests {
         assert!(rdata.emit(&mut encoder).is_ok());
         let bytes = encoder.into_bytes();
 
+        #[cfg(feature = "std")]
         println!("bytes: {bytes:?}");
 
         let mut decoder: BinDecoder<'_> = BinDecoder::new(bytes);

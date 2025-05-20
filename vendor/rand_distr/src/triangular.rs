@@ -7,12 +7,12 @@
 // except according to those terms.
 //! The triangular distribution.
 
-use num_traits::Float;
-use crate::{Distribution, Standard};
-use rand::Rng;
+use crate::{Distribution, StandardUniform};
 use core::fmt;
+use num_traits::Float;
+use rand::Rng;
 
-/// The triangular distribution.
+/// The [triangular distribution](https://en.wikipedia.org/wiki/Triangular_distribution) `Triangular(min, max, mode)`.
 ///
 /// A continuous probability distribution parameterised by a range, and a mode
 /// (most likely value) within that range.
@@ -20,21 +20,30 @@ use core::fmt;
 /// The probability density function is triangular. For a similar distribution
 /// with a smooth PDF, see the [`Pert`] distribution.
 ///
+/// # Plot
+///
+/// The following plot shows the triangular distribution with various values of
+/// `min`, `max`, and `mode`.
+///
+/// ![Triangular distribution](https://raw.githubusercontent.com/rust-random/charts/main/charts/triangular.svg)
+///
 /// # Example
 ///
 /// ```rust
 /// use rand_distr::{Triangular, Distribution};
 ///
 /// let d = Triangular::new(0., 5., 2.5).unwrap();
-/// let v = d.sample(&mut rand::thread_rng());
+/// let v = d.sample(&mut rand::rng());
 /// println!("{} is from a triangular distribution", v);
 /// ```
 ///
 /// [`Pert`]: crate::Pert
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "serde1", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Triangular<F>
-where F: Float, Standard: Distribution<F>
+where
+    F: Float,
+    StandardUniform: Distribution<F>,
 {
     min: F,
     max: F,
@@ -62,11 +71,12 @@ impl fmt::Display for TriangularError {
 }
 
 #[cfg(feature = "std")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "std")))]
 impl std::error::Error for TriangularError {}
 
 impl<F> Triangular<F>
-where F: Float, Standard: Distribution<F>
+where
+    F: Float,
+    StandardUniform: Distribution<F>,
 {
     /// Set up the Triangular distribution with defined `min`, `max` and `mode`.
     #[inline]
@@ -82,11 +92,13 @@ where F: Float, Standard: Distribution<F>
 }
 
 impl<F> Distribution<F> for Triangular<F>
-where F: Float, Standard: Distribution<F>
+where
+    F: Float,
+    StandardUniform: Distribution<F>,
 {
     #[inline]
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> F {
-        let f: F = rng.sample(Standard);
+        let f: F = rng.sample(StandardUniform);
         let diff_mode_min = self.mode - self.min;
         let range = self.max - self.min;
         let f_range = f * range;
@@ -106,7 +118,7 @@ mod test {
     #[test]
     fn test_triangular() {
         let mut half_rng = mock::StepRng::new(0x8000_0000_0000_0000, 0);
-        assert_eq!(half_rng.gen::<f64>(), 0.5);
+        assert_eq!(half_rng.random::<f64>(), 0.5);
         for &(min, max, mode, median) in &[
             (-1., 1., 0., 0.),
             (1., 2., 1., 2. - 0.5f64.sqrt()),
@@ -122,12 +134,16 @@ mod test {
             assert_eq!(distr.sample(&mut half_rng), median);
         }
 
-        for &(min, max, mode) in &[
-            (-1., 1., 2.),
-            (-1., 1., -2.),
-            (2., 1., 1.),
-        ] {
+        for &(min, max, mode) in &[(-1., 1., 2.), (-1., 1., -2.), (2., 1., 1.)] {
             assert!(Triangular::new(min, max, mode).is_err());
         }
+    }
+
+    #[test]
+    fn triangular_distributions_can_be_compared() {
+        assert_eq!(
+            Triangular::new(1.0, 3.0, 2.0),
+            Triangular::new(1.0, 3.0, 2.0)
+        );
     }
 }

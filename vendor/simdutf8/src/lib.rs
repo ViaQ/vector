@@ -1,4 +1,3 @@
-#![deny(warnings)]
 #![warn(unused_extern_crates)]
 #![deny(
     clippy::all,
@@ -11,9 +10,14 @@
 #![allow(clippy::redundant_else)] // can make code more readable
 #![allow(clippy::explicit_iter_loop)] // can make code more readable
 #![allow(clippy::semicolon_if_nothing_returned)] // see https://github.com/rust-lang/rust-clippy/issues/7768
+#![allow(clippy::missing_const_for_fn)] // not necessary most of the times
 #![deny(missing_docs)]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
+#![cfg_attr(
+    all(target_arch = "aarch64", feature = "aarch64_neon_prefetch"),
+    feature(stdarch_aarch64_prefetch)
+)]
 
 //! Blazingly fast API-compatible UTF-8 validation for Rust using SIMD extensions, based on the implementation from
 //! [simdjson](https://github.com/simdjson/simdjson). Originally ported to Rust by the developers of [simd-json.rs](https://simd-json.rs), but now heavily improved.
@@ -22,12 +26,7 @@
 //! Add the dependency to your Cargo.toml file:
 //! ```toml
 //! [dependencies]
-//! simdutf8 = "0.1.4"
-//! ```
-//! For ARM64 SIMD support on Rust 1.59:
-//! ```toml
-//! [dependencies]
-//! simdutf8 = { version = "0.1.4", features = ["aarch64_neon"] }
+//! simdutf8 = "0.1.5"
 //! ```
 //!
 //! Use [`basic::from_utf8()`] as a drop-in replacement for `std::str::from_utf8()`.
@@ -79,11 +78,7 @@
 //! for the SSE 4.2 implementation.
 //!
 //! ### ARM64
-//! To get the SIMD implementation with Rust 1.59 on ARM64 the crate feature `aarch64_neon` needs to be enabled. For Rust Nightly
-//! this is no longer required (but does not hurt either). Once [Rust PR #90621](https://github.com/rust-lang/rust/pull/90621)
-//! lands in a stable version, this is no longer required.
-//!
-//! CAVE: If this features is not turned on with Rust 1.59 the non-SIMD std library implementation is used.
+//! The SIMD implementation is used automatically since Rust 1.61.
 //!
 //! ### WASM32
 //! For wasm32 support, the implementation is selected at compile time based on the presence of the `simd128` target feature.

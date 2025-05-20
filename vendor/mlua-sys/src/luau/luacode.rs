@@ -1,5 +1,6 @@
 //! Contains definitions from `luacode.h`.
 
+use std::marker::{PhantomData, PhantomPinned};
 use std::os::raw::{c_char, c_int, c_void};
 use std::{ptr, slice};
 
@@ -15,6 +16,10 @@ pub struct lua_CompileOptions {
     pub vectorType: *const c_char,
     pub mutableGlobals: *const *const c_char,
     pub userdataTypes: *const *const c_char,
+    pub librariesWithKnownMembers: *const *const c_char,
+    pub libraryMemberTypeCallback: Option<lua_LibraryMemberTypeCallback>,
+    pub libraryMemberConstantCallback: Option<lua_LibraryMemberConstantCallback>,
+    pub disabledBuiltins: *const *const c_char,
 }
 
 impl Default for lua_CompileOptions {
@@ -29,8 +34,54 @@ impl Default for lua_CompileOptions {
             vectorType: ptr::null(),
             mutableGlobals: ptr::null(),
             userdataTypes: ptr::null(),
+            librariesWithKnownMembers: ptr::null(),
+            libraryMemberTypeCallback: None,
+            libraryMemberConstantCallback: None,
+            disabledBuiltins: ptr::null(),
         }
     }
+}
+
+#[repr(C)]
+pub struct lua_CompileConstant {
+    _data: [u8; 0],
+    _marker: PhantomData<(*mut u8, PhantomPinned)>,
+}
+
+/// Type table tags
+#[doc(hidden)]
+#[repr(i32)]
+#[non_exhaustive]
+pub enum luau_BytecodeType {
+    Nil = 0,
+    Boolean,
+    Number,
+    String,
+    Table,
+    Function,
+    Thread,
+    UserData,
+    Vector,
+    Buffer,
+
+    Any = 15,
+}
+
+pub type lua_LibraryMemberTypeCallback =
+    unsafe extern "C-unwind" fn(library: *const c_char, member: *const c_char) -> c_int;
+
+pub type lua_LibraryMemberConstantCallback = unsafe extern "C-unwind" fn(
+    library: *const c_char,
+    member: *const c_char,
+    constant: *mut lua_CompileConstant,
+);
+
+extern "C" {
+    pub fn luau_set_compile_constant_nil(cons: *mut lua_CompileConstant);
+    pub fn luau_set_compile_constant_boolean(cons: *mut lua_CompileConstant, b: c_int);
+    pub fn luau_set_compile_constant_number(cons: *mut lua_CompileConstant, n: f64);
+    pub fn luau_set_compile_constant_vector(cons: *mut lua_CompileConstant, x: f32, y: f32, z: f32, w: f32);
+    pub fn luau_set_compile_constant_string(cons: *mut lua_CompileConstant, s: *const c_char, l: usize);
 }
 
 extern "C-unwind" {

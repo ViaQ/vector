@@ -3,7 +3,7 @@ pub use crate::operation::delete_alarms::_delete_alarms_output::DeleteAlarmsOutp
 
 pub use crate::operation::delete_alarms::_delete_alarms_input::DeleteAlarmsInputBuilder;
 
-impl DeleteAlarmsInputBuilder {
+impl crate::operation::delete_alarms::builders::DeleteAlarmsInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -23,10 +23,10 @@ impl DeleteAlarmsInputBuilder {
 /// Fluent builder constructing a request to `DeleteAlarms`.
 ///
 /// <p>Deletes the specified alarms. You can delete up to 100 alarms in one operation. However, this total can include no more than one composite alarm. For example, you could delete 99 metric alarms and one composite alarms with one operation, but you can't delete two composite alarms with one operation.</p>
-/// <p> If you specify an incorrect alarm name or make any other error in the operation, no alarms are deleted. To confirm that alarms were deleted successfully, you can use the <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_DescribeAlarms.html">DescribeAlarms</a> operation after using <code>DeleteAlarms</code>.</p> <note>
+/// <p>If you specify an incorrect alarm name or make any other error in the operation, no alarms are deleted. To confirm that alarms were deleted successfully, you can use the <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/APIReference/API_DescribeAlarms.html">DescribeAlarms</a> operation after using <code>DeleteAlarms</code>.</p><note>
 /// <p>It is possible to create a loop or cycle of composite alarms, where composite alarm A depends on composite alarm B, and composite alarm B also depends on composite alarm A. In this scenario, you can't delete any composite alarm that is part of the cycle because there is always still a composite alarm that depends on that alarm that you want to delete.</p>
-/// <p>To get out of such a situation, you must break the cycle by changing the rule of one of the composite alarms in the cycle to remove a dependency that creates the cycle. The simplest change to make to break a cycle is to change the <code>AlarmRule</code> of one of the alarms to <code>false</code>. </p>
-/// <p>Additionally, the evaluation of composite alarms stops if CloudWatch detects a cycle in the evaluation path. </p>
+/// <p>To get out of such a situation, you must break the cycle by changing the rule of one of the composite alarms in the cycle to remove a dependency that creates the cycle. The simplest change to make to break a cycle is to change the <code>AlarmRule</code> of one of the alarms to <code>false</code>.</p>
+/// <p>Additionally, the evaluation of composite alarms stops if CloudWatch detects a cycle in the evaluation path.</p>
 /// </note>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct DeleteAlarmsFluentBuilder {
@@ -53,7 +53,7 @@ impl
     }
 }
 impl DeleteAlarmsFluentBuilder {
-    /// Creates a new `DeleteAlarms`.
+    /// Creates a new `DeleteAlarmsFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -104,15 +104,16 @@ impl DeleteAlarmsFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
+    ///
     /// Appends an item to `AlarmNames`.
     ///
     /// To override the contents of this collection use [`set_alarm_names`](Self::set_alarm_names).

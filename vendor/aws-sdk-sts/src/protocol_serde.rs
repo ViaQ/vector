@@ -19,7 +19,7 @@ pub fn parse_http_error_metadata(
     _response_status: u16,
     _response_headers: &::aws_smithy_runtime_api::http::Headers,
     response_body: &[u8],
-) -> Result<::aws_smithy_types::error::metadata::Builder, ::aws_smithy_xml::decode::XmlDecodeError> {
+) -> ::std::result::Result<::aws_smithy_types::error::metadata::Builder, ::aws_smithy_xml::decode::XmlDecodeError> {
     crate::rest_xml_wrapped_errors::parse_error_metadata(response_body)
 }
 
@@ -34,6 +34,10 @@ pub(crate) mod shape_assume_role_with_saml_input;
 pub(crate) mod shape_assume_role_with_web_identity;
 
 pub(crate) mod shape_assume_role_with_web_identity_input;
+
+pub(crate) mod shape_assume_root;
+
+pub(crate) mod shape_assume_root_input;
 
 pub(crate) mod shape_decode_authorization_message;
 

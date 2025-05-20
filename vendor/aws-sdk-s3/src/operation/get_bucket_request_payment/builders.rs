@@ -3,7 +3,7 @@ pub use crate::operation::get_bucket_request_payment::_get_bucket_request_paymen
 
 pub use crate::operation::get_bucket_request_payment::_get_bucket_request_payment_input::GetBucketRequestPaymentInputBuilder;
 
-impl GetBucketRequestPaymentInputBuilder {
+impl crate::operation::get_bucket_request_payment::builders::GetBucketRequestPaymentInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -23,12 +23,13 @@ impl GetBucketRequestPaymentInputBuilder {
 /// Fluent builder constructing a request to `GetBucketRequestPayment`.
 ///
 /// <note>
-/// <p>This operation is not supported by directory buckets.</p>
+/// <p>This operation is not supported for directory buckets.</p>
 /// </note>
 /// <p>Returns the request payment configuration of a bucket. To use this version of the operation, you must be the bucket owner. For more information, see <a href="https://docs.aws.amazon.com/AmazonS3/latest/dev/RequesterPaysBuckets.html">Requester Pays Buckets</a>.</p>
 /// <p>The following operations are related to <code>GetBucketRequestPayment</code>:</p>
 /// <ul>
-/// <li> <p> <a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListObjects.html">ListObjects</a> </p> </li>
+/// <li>
+/// <p><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_ListObjects.html">ListObjects</a></p></li>
 /// </ul>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct GetBucketRequestPaymentFluentBuilder {
@@ -55,7 +56,7 @@ impl
     }
 }
 impl GetBucketRequestPaymentFluentBuilder {
-    /// Creates a new `GetBucketRequestPayment`.
+    /// Creates a new `GetBucketRequestPaymentFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -106,12 +107,12 @@ impl GetBucketRequestPaymentFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

@@ -27,6 +27,8 @@
 ///     DeliveryStreamFailureType::SubnetAccessDenied => { /* ... */ },
 ///     DeliveryStreamFailureType::SubnetNotFound => { /* ... */ },
 ///     DeliveryStreamFailureType::UnknownError => { /* ... */ },
+///     DeliveryStreamFailureType::VpcEndpointServiceNameNotFound => { /* ... */ },
+///     DeliveryStreamFailureType::VpcInterfaceEndpointServiceAccessDenied => { /* ... */ },
 ///     other @ _ if other.as_str() == "NewFeature" => { /* handles a case for `NewFeature` */ },
 ///     _ => { /* ... */ },
 /// }
@@ -48,6 +50,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -84,6 +87,10 @@ pub enum DeliveryStreamFailureType {
     SubnetNotFound,
     #[allow(missing_docs)] // documentation missing in model
     UnknownError,
+    #[allow(missing_docs)] // documentation missing in model
+    VpcEndpointServiceNameNotFound,
+    #[allow(missing_docs)] // documentation missing in model
+    VpcInterfaceEndpointServiceAccessDenied,
     /// `Unknown` contains new variants that have been added since this code was generated.
     #[deprecated(note = "Don't directly match on `Unknown`. See the docs on this enum for the correct way to handle unknown variants.")]
     Unknown(crate::primitives::sealed_enum_unknown::UnknownVariantValue),
@@ -106,6 +113,8 @@ impl ::std::convert::From<&str> for DeliveryStreamFailureType {
             "SUBNET_ACCESS_DENIED" => DeliveryStreamFailureType::SubnetAccessDenied,
             "SUBNET_NOT_FOUND" => DeliveryStreamFailureType::SubnetNotFound,
             "UNKNOWN_ERROR" => DeliveryStreamFailureType::UnknownError,
+            "VPC_ENDPOINT_SERVICE_NAME_NOT_FOUND" => DeliveryStreamFailureType::VpcEndpointServiceNameNotFound,
+            "VPC_INTERFACE_ENDPOINT_SERVICE_ACCESS_DENIED" => DeliveryStreamFailureType::VpcInterfaceEndpointServiceAccessDenied,
             other => DeliveryStreamFailureType::Unknown(crate::primitives::sealed_enum_unknown::UnknownVariantValue(other.to_owned())),
         }
     }
@@ -136,6 +145,8 @@ impl DeliveryStreamFailureType {
             DeliveryStreamFailureType::SubnetAccessDenied => "SUBNET_ACCESS_DENIED",
             DeliveryStreamFailureType::SubnetNotFound => "SUBNET_NOT_FOUND",
             DeliveryStreamFailureType::UnknownError => "UNKNOWN_ERROR",
+            DeliveryStreamFailureType::VpcEndpointServiceNameNotFound => "VPC_ENDPOINT_SERVICE_NAME_NOT_FOUND",
+            DeliveryStreamFailureType::VpcInterfaceEndpointServiceAccessDenied => "VPC_INTERFACE_ENDPOINT_SERVICE_ACCESS_DENIED",
             DeliveryStreamFailureType::Unknown(value) => value.as_str(),
         }
     }
@@ -157,6 +168,8 @@ impl DeliveryStreamFailureType {
             "SUBNET_ACCESS_DENIED",
             "SUBNET_NOT_FOUND",
             "UNKNOWN_ERROR",
+            "VPC_ENDPOINT_SERVICE_NAME_NOT_FOUND",
+            "VPC_INTERFACE_ENDPOINT_SERVICE_ACCESS_DENIED",
         ]
     }
 }
@@ -174,6 +187,30 @@ impl DeliveryStreamFailureType {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for DeliveryStreamFailureType {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            DeliveryStreamFailureType::CreateEniFailed => write!(f, "CREATE_ENI_FAILED"),
+            DeliveryStreamFailureType::CreateKmsGrantFailed => write!(f, "CREATE_KMS_GRANT_FAILED"),
+            DeliveryStreamFailureType::DeleteEniFailed => write!(f, "DELETE_ENI_FAILED"),
+            DeliveryStreamFailureType::DisabledKmsKey => write!(f, "DISABLED_KMS_KEY"),
+            DeliveryStreamFailureType::EniAccessDenied => write!(f, "ENI_ACCESS_DENIED"),
+            DeliveryStreamFailureType::InvalidKmsKey => write!(f, "INVALID_KMS_KEY"),
+            DeliveryStreamFailureType::KmsAccessDenied => write!(f, "KMS_ACCESS_DENIED"),
+            DeliveryStreamFailureType::KmsKeyNotFound => write!(f, "KMS_KEY_NOT_FOUND"),
+            DeliveryStreamFailureType::KmsOptInRequired => write!(f, "KMS_OPT_IN_REQUIRED"),
+            DeliveryStreamFailureType::RetireKmsGrantFailed => write!(f, "RETIRE_KMS_GRANT_FAILED"),
+            DeliveryStreamFailureType::SecurityGroupAccessDenied => write!(f, "SECURITY_GROUP_ACCESS_DENIED"),
+            DeliveryStreamFailureType::SecurityGroupNotFound => write!(f, "SECURITY_GROUP_NOT_FOUND"),
+            DeliveryStreamFailureType::SubnetAccessDenied => write!(f, "SUBNET_ACCESS_DENIED"),
+            DeliveryStreamFailureType::SubnetNotFound => write!(f, "SUBNET_NOT_FOUND"),
+            DeliveryStreamFailureType::UnknownError => write!(f, "UNKNOWN_ERROR"),
+            DeliveryStreamFailureType::VpcEndpointServiceNameNotFound => write!(f, "VPC_ENDPOINT_SERVICE_NAME_NOT_FOUND"),
+            DeliveryStreamFailureType::VpcInterfaceEndpointServiceAccessDenied => write!(f, "VPC_INTERFACE_ENDPOINT_SERVICE_ACCESS_DENIED"),
+            DeliveryStreamFailureType::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

@@ -6,9 +6,10 @@
 // copied, modified, or distributed except according to those terms.
 
 //! null record type, generally not used except as an internal tool for representing null data
-use std::fmt;
+use alloc::vec::Vec;
+use core::fmt;
 
-#[cfg(feature = "serde-config")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -34,7 +35,7 @@ use crate::{
 /// allowed in Zone Files.  NULLs are used as placeholders in some
 /// experimental extensions of the DNS.
 /// ```
-#[cfg_attr(feature = "serde-config", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Default, Debug, PartialEq, Eq, Hash, Clone)]
 pub struct NULL {
     anything: Vec<u8>,
@@ -118,6 +119,9 @@ impl fmt::Display for NULL {
 mod tests {
     #![allow(clippy::dbg_macro, clippy::print_stdout)]
 
+    #[cfg(feature = "std")]
+    use std::println;
+
     use super::*;
 
     #[test]
@@ -129,6 +133,7 @@ mod tests {
         assert!(rdata.emit(&mut encoder).is_ok());
         let bytes = encoder.into_bytes();
 
+        #[cfg(feature = "std")]
         println!("bytes: {bytes:?}");
 
         let mut decoder: BinDecoder<'_> = BinDecoder::new(bytes);

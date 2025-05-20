@@ -36,6 +36,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -100,6 +101,16 @@ impl ReservedElasticsearchInstancePaymentOption {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for ReservedElasticsearchInstancePaymentOption {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            ReservedElasticsearchInstancePaymentOption::AllUpfront => write!(f, "ALL_UPFRONT"),
+            ReservedElasticsearchInstancePaymentOption::NoUpfront => write!(f, "NO_UPFRONT"),
+            ReservedElasticsearchInstancePaymentOption::PartialUpfront => write!(f, "PARTIAL_UPFRONT"),
+            ReservedElasticsearchInstancePaymentOption::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

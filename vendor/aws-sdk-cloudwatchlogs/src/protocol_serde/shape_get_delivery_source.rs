@@ -18,12 +18,12 @@ pub fn de_get_delivery_source_http_error(
 
     let _error_message = generic.message().map(|msg| msg.to_owned());
     Err(match error_code {
-        "ResourceNotFoundException" => crate::operation::get_delivery_source::GetDeliverySourceError::ResourceNotFoundException({
+        "ThrottlingException" => crate::operation::get_delivery_source::GetDeliverySourceError::ThrottlingException({
             #[allow(unused_mut)]
             let mut tmp = {
                 #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::ResourceNotFoundExceptionBuilder::default();
-                output = crate::protocol_serde::shape_resource_not_found_exception::de_resource_not_found_exception_json_err(_response_body, output)
+                let mut output = crate::types::error::builders::ThrottlingExceptionBuilder::default();
+                output = crate::protocol_serde::shape_throttling_exception::de_throttling_exception_json_err(_response_body, output)
                     .map_err(crate::operation::get_delivery_source::GetDeliverySourceError::unhandled)?;
                 let output = output.meta(generic);
                 output.build()
@@ -33,16 +33,28 @@ pub fn de_get_delivery_source_http_error(
             }
             tmp
         }),
-        "ServiceQuotaExceededException" => crate::operation::get_delivery_source::GetDeliverySourceError::ServiceQuotaExceededException({
+        "ValidationException" => crate::operation::get_delivery_source::GetDeliverySourceError::ValidationException({
             #[allow(unused_mut)]
             let mut tmp = {
                 #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::ServiceQuotaExceededExceptionBuilder::default();
-                output = crate::protocol_serde::shape_service_quota_exceeded_exception::de_service_quota_exceeded_exception_json_err(
-                    _response_body,
-                    output,
-                )
-                .map_err(crate::operation::get_delivery_source::GetDeliverySourceError::unhandled)?;
+                let mut output = crate::types::error::builders::ValidationExceptionBuilder::default();
+                output = crate::protocol_serde::shape_validation_exception::de_validation_exception_json_err(_response_body, output)
+                    .map_err(crate::operation::get_delivery_source::GetDeliverySourceError::unhandled)?;
+                let output = output.meta(generic);
+                output.build()
+            };
+            if tmp.message.is_none() {
+                tmp.message = _error_message;
+            }
+            tmp
+        }),
+        "ResourceNotFoundException" => crate::operation::get_delivery_source::GetDeliverySourceError::ResourceNotFoundException({
+            #[allow(unused_mut)]
+            let mut tmp = {
+                #[allow(unused_mut)]
+                let mut output = crate::types::error::builders::ResourceNotFoundExceptionBuilder::default();
+                output = crate::protocol_serde::shape_resource_not_found_exception::de_resource_not_found_exception_json_err(_response_body, output)
+                    .map_err(crate::operation::get_delivery_source::GetDeliverySourceError::unhandled)?;
                 let output = output.meta(generic);
                 output.build()
             };
@@ -67,28 +79,16 @@ pub fn de_get_delivery_source_http_error(
             }
             tmp
         }),
-        "ThrottlingException" => crate::operation::get_delivery_source::GetDeliverySourceError::ThrottlingException({
+        "ServiceQuotaExceededException" => crate::operation::get_delivery_source::GetDeliverySourceError::ServiceQuotaExceededException({
             #[allow(unused_mut)]
             let mut tmp = {
                 #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::ThrottlingExceptionBuilder::default();
-                output = crate::protocol_serde::shape_throttling_exception::de_throttling_exception_json_err(_response_body, output)
-                    .map_err(crate::operation::get_delivery_source::GetDeliverySourceError::unhandled)?;
-                let output = output.meta(generic);
-                output.build()
-            };
-            if tmp.message.is_none() {
-                tmp.message = _error_message;
-            }
-            tmp
-        }),
-        "ValidationException" => crate::operation::get_delivery_source::GetDeliverySourceError::ValidationException({
-            #[allow(unused_mut)]
-            let mut tmp = {
-                #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::ValidationExceptionBuilder::default();
-                output = crate::protocol_serde::shape_validation_exception::de_validation_exception_json_err(_response_body, output)
-                    .map_err(crate::operation::get_delivery_source::GetDeliverySourceError::unhandled)?;
+                let mut output = crate::types::error::builders::ServiceQuotaExceededExceptionBuilder::default();
+                output = crate::protocol_serde::shape_service_quota_exceeded_exception::de_service_quota_exceeded_exception_json_err(
+                    _response_body,
+                    output,
+                )
+                .map_err(crate::operation::get_delivery_source::GetDeliverySourceError::unhandled)?;
                 let output = output.meta(generic);
                 output.build()
             };
@@ -120,7 +120,7 @@ pub fn de_get_delivery_source_http_response(
 
 pub fn ser_get_delivery_source_input(
     input: &crate::operation::get_delivery_source::GetDeliverySourceInput,
-) -> Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
     let mut out = String::new();
     let mut object = ::aws_smithy_json::serialize::JsonObjectWriter::new(&mut out);
     crate::protocol_serde::shape_get_delivery_source_input::ser_get_delivery_source_input_input(&mut object, input)?;
@@ -131,8 +131,10 @@ pub fn ser_get_delivery_source_input(
 pub(crate) fn de_get_delivery_source(
     value: &[u8],
     mut builder: crate::operation::get_delivery_source::builders::GetDeliverySourceOutputBuilder,
-) -> Result<crate::operation::get_delivery_source::builders::GetDeliverySourceOutputBuilder, ::aws_smithy_json::deserialize::error::DeserializeError>
-{
+) -> ::std::result::Result<
+    crate::operation::get_delivery_source::builders::GetDeliverySourceOutputBuilder,
+    ::aws_smithy_json::deserialize::error::DeserializeError,
+> {
     let mut tokens_owned = ::aws_smithy_json::deserialize::json_token_iter(crate::protocol_serde::or_empty_doc(value)).peekable();
     let tokens = &mut tokens_owned;
     ::aws_smithy_json::deserialize::token::expect_start_object(tokens.next())?;

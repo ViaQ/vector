@@ -28,7 +28,7 @@ pub struct ElasticsearchDomainStatus {
     pub elasticsearch_cluster_config: ::std::option::Option<crate::types::ElasticsearchClusterConfig>,
     /// <p>The <code>EBSOptions</code> for the specified domain. See <a href="http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-createupdatedomains.html#es-createdomain-configure-ebs" target="_blank">Configuring EBS-based Storage</a> for more information.</p>
     pub ebs_options: ::std::option::Option<crate::types::EbsOptions>,
-    /// <p> IAM access policy as a JSON-formatted string.</p>
+    /// <p>IAM access policy as a JSON-formatted string.</p>
     pub access_policies: ::std::option::Option<::std::string::String>,
     /// <p>Specifies the status of the <code>SnapshotOptions</code></p>
     pub snapshot_options: ::std::option::Option<crate::types::SnapshotOptions>,
@@ -36,7 +36,7 @@ pub struct ElasticsearchDomainStatus {
     pub vpc_options: ::std::option::Option<crate::types::VpcDerivedInfo>,
     /// <p>The <code>CognitoOptions</code> for the specified domain. For more information, see <a href="http://docs.aws.amazon.com/elasticsearch-service/latest/developerguide/es-cognito-auth.html" target="_blank">Amazon Cognito Authentication for Kibana</a>.</p>
     pub cognito_options: ::std::option::Option<crate::types::CognitoOptions>,
-    /// <p> Specifies the status of the <code>EncryptionAtRestOptions</code>.</p>
+    /// <p>Specifies the status of the <code>EncryptionAtRestOptions</code>.</p>
     pub encryption_at_rest_options: ::std::option::Option<crate::types::EncryptionAtRestOptions>,
     /// <p>Specifies the status of the <code>NodeToNodeEncryptionOptions</code>.</p>
     pub node_to_node_encryption_options: ::std::option::Option<crate::types::NodeToNodeEncryptionOptions>,
@@ -54,6 +54,10 @@ pub struct ElasticsearchDomainStatus {
     pub auto_tune_options: ::std::option::Option<crate::types::AutoTuneOptionsOutput>,
     /// <p>Specifies change details of the domain configuration change.</p>
     pub change_progress_details: ::std::option::Option<crate::types::ChangeProgressDetails>,
+    /// <p>The status of any changes that are currently in progress for the domain.</p>
+    pub domain_processing_status: ::std::option::Option<crate::types::DomainProcessingStatusType>,
+    /// <p>Information about the domain properties that are currently being modified.</p>
+    pub modifying_properties: ::std::option::Option<::std::vec::Vec<crate::types::ModifyingProperties>>,
 }
 impl ElasticsearchDomainStatus {
     /// <p>The unique identifier for the specified Elasticsearch domain.</p>
@@ -107,7 +111,7 @@ impl ElasticsearchDomainStatus {
     pub fn ebs_options(&self) -> ::std::option::Option<&crate::types::EbsOptions> {
         self.ebs_options.as_ref()
     }
-    /// <p> IAM access policy as a JSON-formatted string.</p>
+    /// <p>IAM access policy as a JSON-formatted string.</p>
     pub fn access_policies(&self) -> ::std::option::Option<&str> {
         self.access_policies.as_deref()
     }
@@ -123,7 +127,7 @@ impl ElasticsearchDomainStatus {
     pub fn cognito_options(&self) -> ::std::option::Option<&crate::types::CognitoOptions> {
         self.cognito_options.as_ref()
     }
-    /// <p> Specifies the status of the <code>EncryptionAtRestOptions</code>.</p>
+    /// <p>Specifies the status of the <code>EncryptionAtRestOptions</code>.</p>
     pub fn encryption_at_rest_options(&self) -> ::std::option::Option<&crate::types::EncryptionAtRestOptions> {
         self.encryption_at_rest_options.as_ref()
     }
@@ -161,6 +165,16 @@ impl ElasticsearchDomainStatus {
     pub fn change_progress_details(&self) -> ::std::option::Option<&crate::types::ChangeProgressDetails> {
         self.change_progress_details.as_ref()
     }
+    /// <p>The status of any changes that are currently in progress for the domain.</p>
+    pub fn domain_processing_status(&self) -> ::std::option::Option<&crate::types::DomainProcessingStatusType> {
+        self.domain_processing_status.as_ref()
+    }
+    /// <p>Information about the domain properties that are currently being modified.</p>
+    ///
+    /// If no value was sent for this field, a default will be set. If you want to determine if no value was sent, use `.modifying_properties.is_none()`.
+    pub fn modifying_properties(&self) -> &[crate::types::ModifyingProperties] {
+        self.modifying_properties.as_deref().unwrap_or_default()
+    }
 }
 impl ElasticsearchDomainStatus {
     /// Creates a new builder-style object to manufacture [`ElasticsearchDomainStatus`](crate::types::ElasticsearchDomainStatus).
@@ -170,8 +184,8 @@ impl ElasticsearchDomainStatus {
 }
 
 /// A builder for [`ElasticsearchDomainStatus`](crate::types::ElasticsearchDomainStatus).
-#[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::default::Default, ::std::fmt::Debug)]
+#[non_exhaustive]
 pub struct ElasticsearchDomainStatusBuilder {
     pub(crate) domain_id: ::std::option::Option<::std::string::String>,
     pub(crate) domain_name: ::std::option::Option<::std::string::String>,
@@ -198,6 +212,8 @@ pub struct ElasticsearchDomainStatusBuilder {
     pub(crate) advanced_security_options: ::std::option::Option<crate::types::AdvancedSecurityOptions>,
     pub(crate) auto_tune_options: ::std::option::Option<crate::types::AutoTuneOptionsOutput>,
     pub(crate) change_progress_details: ::std::option::Option<crate::types::ChangeProgressDetails>,
+    pub(crate) domain_processing_status: ::std::option::Option<crate::types::DomainProcessingStatusType>,
+    pub(crate) modifying_properties: ::std::option::Option<::std::vec::Vec<crate::types::ModifyingProperties>>,
 }
 impl ElasticsearchDomainStatusBuilder {
     /// <p>The unique identifier for the specified Elasticsearch domain.</p>
@@ -378,17 +394,17 @@ impl ElasticsearchDomainStatusBuilder {
     pub fn get_ebs_options(&self) -> &::std::option::Option<crate::types::EbsOptions> {
         &self.ebs_options
     }
-    /// <p> IAM access policy as a JSON-formatted string.</p>
+    /// <p>IAM access policy as a JSON-formatted string.</p>
     pub fn access_policies(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.access_policies = ::std::option::Option::Some(input.into());
         self
     }
-    /// <p> IAM access policy as a JSON-formatted string.</p>
+    /// <p>IAM access policy as a JSON-formatted string.</p>
     pub fn set_access_policies(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.access_policies = input;
         self
     }
-    /// <p> IAM access policy as a JSON-formatted string.</p>
+    /// <p>IAM access policy as a JSON-formatted string.</p>
     pub fn get_access_policies(&self) -> &::std::option::Option<::std::string::String> {
         &self.access_policies
     }
@@ -434,17 +450,17 @@ impl ElasticsearchDomainStatusBuilder {
     pub fn get_cognito_options(&self) -> &::std::option::Option<crate::types::CognitoOptions> {
         &self.cognito_options
     }
-    /// <p> Specifies the status of the <code>EncryptionAtRestOptions</code>.</p>
+    /// <p>Specifies the status of the <code>EncryptionAtRestOptions</code>.</p>
     pub fn encryption_at_rest_options(mut self, input: crate::types::EncryptionAtRestOptions) -> Self {
         self.encryption_at_rest_options = ::std::option::Option::Some(input);
         self
     }
-    /// <p> Specifies the status of the <code>EncryptionAtRestOptions</code>.</p>
+    /// <p>Specifies the status of the <code>EncryptionAtRestOptions</code>.</p>
     pub fn set_encryption_at_rest_options(mut self, input: ::std::option::Option<crate::types::EncryptionAtRestOptions>) -> Self {
         self.encryption_at_rest_options = input;
         self
     }
-    /// <p> Specifies the status of the <code>EncryptionAtRestOptions</code>.</p>
+    /// <p>Specifies the status of the <code>EncryptionAtRestOptions</code>.</p>
     pub fn get_encryption_at_rest_options(&self) -> &::std::option::Option<crate::types::EncryptionAtRestOptions> {
         &self.encryption_at_rest_options
     }
@@ -584,6 +600,40 @@ impl ElasticsearchDomainStatusBuilder {
     pub fn get_change_progress_details(&self) -> &::std::option::Option<crate::types::ChangeProgressDetails> {
         &self.change_progress_details
     }
+    /// <p>The status of any changes that are currently in progress for the domain.</p>
+    pub fn domain_processing_status(mut self, input: crate::types::DomainProcessingStatusType) -> Self {
+        self.domain_processing_status = ::std::option::Option::Some(input);
+        self
+    }
+    /// <p>The status of any changes that are currently in progress for the domain.</p>
+    pub fn set_domain_processing_status(mut self, input: ::std::option::Option<crate::types::DomainProcessingStatusType>) -> Self {
+        self.domain_processing_status = input;
+        self
+    }
+    /// <p>The status of any changes that are currently in progress for the domain.</p>
+    pub fn get_domain_processing_status(&self) -> &::std::option::Option<crate::types::DomainProcessingStatusType> {
+        &self.domain_processing_status
+    }
+    /// Appends an item to `modifying_properties`.
+    ///
+    /// To override the contents of this collection use [`set_modifying_properties`](Self::set_modifying_properties).
+    ///
+    /// <p>Information about the domain properties that are currently being modified.</p>
+    pub fn modifying_properties(mut self, input: crate::types::ModifyingProperties) -> Self {
+        let mut v = self.modifying_properties.unwrap_or_default();
+        v.push(input);
+        self.modifying_properties = ::std::option::Option::Some(v);
+        self
+    }
+    /// <p>Information about the domain properties that are currently being modified.</p>
+    pub fn set_modifying_properties(mut self, input: ::std::option::Option<::std::vec::Vec<crate::types::ModifyingProperties>>) -> Self {
+        self.modifying_properties = input;
+        self
+    }
+    /// <p>Information about the domain properties that are currently being modified.</p>
+    pub fn get_modifying_properties(&self) -> &::std::option::Option<::std::vec::Vec<crate::types::ModifyingProperties>> {
+        &self.modifying_properties
+    }
     /// Consumes the builder and constructs a [`ElasticsearchDomainStatus`](crate::types::ElasticsearchDomainStatus).
     /// This method will fail if any of the following fields are not set:
     /// - [`domain_id`](crate::types::builders::ElasticsearchDomainStatusBuilder::domain_id)
@@ -631,6 +681,8 @@ impl ElasticsearchDomainStatusBuilder {
             advanced_security_options: self.advanced_security_options,
             auto_tune_options: self.auto_tune_options,
             change_progress_details: self.change_progress_details,
+            domain_processing_status: self.domain_processing_status,
+            modifying_properties: self.modifying_properties,
         })
     }
 }

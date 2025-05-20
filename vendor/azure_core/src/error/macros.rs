@@ -66,6 +66,7 @@ macro_rules! ensure_ne {
 mod tests {
     use super::super::*;
 
+    #[allow(dead_code)]
     #[derive(Debug, PartialEq, Copy, Clone)]
     struct OperationError;
 
@@ -73,12 +74,6 @@ mod tests {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             write!(f, "OperationError")
         }
-    }
-
-    #[derive(thiserror::Error, Debug)]
-    enum IntermediateError {
-        #[error("second error")]
-        Io(#[from] std::io::Error),
     }
 
     #[test]

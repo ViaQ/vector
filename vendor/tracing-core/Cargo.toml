@@ -16,6 +16,7 @@ name = "tracing-core"
 version = "0.2.0"
 authors = ["Tokio Contributors <team@tokio.rs>"]
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

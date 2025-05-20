@@ -12,10 +12,10 @@ use crate::{
     args::{self, RenameRuleExt, RenameTarget, TypeDirectiveLocation},
     output_type::OutputType,
     utils::{
-        extract_input_args, gen_deprecation, gen_directive_calls, generate_default,
-        generate_guards, get_cfg_attrs, get_crate_name, get_rustdoc, get_type_path_and_name,
-        parse_complexity_expr, parse_graphql_attrs, remove_graphql_attrs, visible_fn,
-        GeneratorResult,
+        extract_input_args, gen_boxed_trait, gen_deprecation, gen_directive_calls,
+        generate_default, generate_guards, get_cfg_attrs, get_crate_name, get_rustdoc,
+        get_type_path_and_name, parse_complexity_expr, parse_graphql_attrs, remove_graphql_attrs,
+        visible_fn, GeneratorResult,
     },
 };
 
@@ -24,6 +24,7 @@ pub fn generate(
     item_impl: &mut ItemImpl,
 ) -> GeneratorResult<TokenStream> {
     let crate_name = get_crate_name(object_args.internal);
+    let boxed_trait = gen_boxed_trait(&crate_name);
     let (self_ty, _) = get_type_path_and_name(item_impl.self_ty.as_ref())?;
     let generics = &item_impl.generics;
     let where_clause = &item_impl.generics.where_clause;
@@ -174,6 +175,10 @@ pub fn generate(
             let field_deprecation = gen_deprecation(&method_args.deprecation, &crate_name);
             let external = method_args.external;
             let shareable = method_args.shareable;
+            let directives = gen_directive_calls(
+                &method_args.directives,
+                TypeDirectiveLocation::FieldDefinition,
+            );
             let override_from = match &method_args.override_from {
                 Some(from) => {
                     quote! { ::std::option::Option::Some(::std::string::ToString::to_string(#from)) }
@@ -233,6 +238,7 @@ pub fn generate(
                     tags,
                     secret,
                     directives,
+                    deprecation,
                     ..
                 },
             ) in &args
@@ -264,12 +270,15 @@ pub fn generate(
                     .map(|tag| quote!(::std::string::ToString::to_string(#tag)))
                     .collect::<Vec<_>>();
                 let directives =
-                    gen_directive_calls(&directives, TypeDirectiveLocation::ArgumentDefinition);
+                    gen_directive_calls(directives, TypeDirectiveLocation::ArgumentDefinition);
+                let deprecation = gen_deprecation(deprecation, &crate_name);
+
                 schema_args.push(quote! {
                         args.insert(::std::borrow::ToOwned::to_owned(#name), #crate_name::registry::MetaInputValue {
                             name: ::std::string::ToString::to_string(#name),
                             description: #desc,
                             ty: <#ty as #crate_name::InputType>::create_type_info(registry),
+                            deprecation: #deprecation,
                             default_value: #schema_default,
                             visible: #visible,
                             inaccessible: #inaccessible,
@@ -391,7 +400,7 @@ pub fn generate(
                     override_from: #override_from,
                     visible: #visible,
                     compute_complexity: #complexity,
-                    directive_invocations: ::std::vec![],
+                    directive_invocations: ::std::vec![ #(#directives),* ],
                 }));
             });
 
@@ -449,6 +458,7 @@ pub fn generate(
         #item_impl
 
         #[allow(clippy::all, clippy::pedantic)]
+        #boxed_trait
         impl #generics #crate_name::ComplexObject for #self_ty #where_clause {
             fn fields(registry: &mut #crate_name::registry::Registry) -> ::std::vec::Vec<(::std::string::String, #crate_name::registry::MetaField)> {
                 let mut fields = ::std::vec::Vec::new();

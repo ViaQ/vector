@@ -3,7 +3,7 @@ pub use crate::operation::remove_permission::_remove_permission_output::RemovePe
 
 pub use crate::operation::remove_permission::_remove_permission_input::RemovePermissionInputBuilder;
 
-impl RemovePermissionInputBuilder {
+impl crate::operation::remove_permission::builders::RemovePermissionInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,7 +22,7 @@ impl RemovePermissionInputBuilder {
 }
 /// Fluent builder constructing a request to `RemovePermission`.
 ///
-/// <p>Removes a statement from a topic's access control policy.</p> <note>
+/// <p>Removes a statement from a topic's access control policy.</p><note>
 /// <p>To remove the ability to change topic permissions, you must deny permissions to the <code>AddPermission</code>, <code>RemovePermission</code>, and <code>SetTopicAttributes</code> actions in your IAM policy.</p>
 /// </note>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
@@ -50,7 +50,7 @@ impl
     }
 }
 impl RemovePermissionFluentBuilder {
-    /// Creates a new `RemovePermission`.
+    /// Creates a new `RemovePermissionFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -101,12 +101,12 @@ impl RemovePermissionFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

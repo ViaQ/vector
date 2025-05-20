@@ -8,11 +8,12 @@
 //! record type definitions
 #![allow(clippy::use_self)]
 
-use std::cmp::Ordering;
-use std::fmt::{self, Display, Formatter};
-use std::str::FromStr;
+use alloc::string::ToString;
+use core::cmp::Ordering;
+use core::fmt::{self, Display, Formatter};
+use core::str::FromStr;
 
-#[cfg(feature = "serde-config")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::error::*;
@@ -25,7 +26,7 @@ use crate::serialize::binary::*;
 /// The type of the resource record.
 ///
 /// This specifies the type of data in the RData field of the Resource Record
-#[cfg_attr(feature = "serde-config", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Debug, PartialEq, Eq, Hash, Copy, Clone)]
 #[allow(dead_code)]
 #[non_exhaustive]
@@ -48,7 +49,8 @@ pub enum RecordType {
     CDS,
     /// [RFC 7344](https://tools.ietf.org/html/rfc7344) Child DNSKEY
     CDNSKEY,
-    //  CERT,       // 37 RFC 4398 Certificate record
+    /// [RFC 4398](https://tools.ietf.org/html/rfc4398) Storing Certificates in the Domain Name System (DNS)
+    CERT,
     /// [RFC 1035](https://tools.ietf.org/html/rfc1035) Canonical name record
     CNAME,
     //  DHCID,      // 49 RFC 4701 DHCP identifier
@@ -63,7 +65,7 @@ pub enum RecordType {
     /// [RFC 1035](https://tools.ietf.org/html/rfc1035) host information
     HINFO,
     //  HIP,        // 55 RFC 5205 Host Identity Protocol
-    /// [RFC draft-ietf-dnsop-svcb-https-03](https://tools.ietf.org/html/draft-ietf-dnsop-svcb-httpssvc-03) DNS SVCB and HTTPS RRs
+    /// [RFC 9460](https://tools.ietf.org/html/rfc9460) DNS SVCB and HTTPS RRs
     HTTPS,
     //  IPSECKEY,   // 45 RFC 4025 IPsec Key
     /// [RFC 1996](https://tools.ietf.org/html/rfc1996) Incremental Zone Transfer
@@ -103,7 +105,7 @@ pub enum RecordType {
     SRV,
     /// [RFC 4255](https://tools.ietf.org/html/rfc4255) SSH Public Key Fingerprint
     SSHFP,
-    /// [RFC draft-ietf-dnsop-svcb-https-03](https://tools.ietf.org/html/draft-ietf-dnsop-svcb-httpssvc-03) DNS SVCB and HTTPS RRs
+    /// [RFC 9460](https://tools.ietf.org/html/rfc9460) DNS SVCB and HTTPS RRs
     SVCB,
     //  TA,         // 32768 N/A DNSSEC Trust Authorities
     //  TKEY,       // 249 RFC 2930 Secret key record
@@ -125,6 +127,12 @@ impl RecordType {
     #[inline]
     pub fn is_any(self) -> bool {
         self == Self::ANY
+    }
+
+    /// Returns true if this is a CERT
+    #[inline]
+    pub fn is_cert(self) -> bool {
+        self == Self::CERT
     }
 
     /// Returns true if this is a CNAME
@@ -176,6 +184,12 @@ impl RecordType {
         )
     }
 
+    /// Returns true if this is an RRSIG RecordType
+    #[inline]
+    pub fn is_rrsig(self) -> bool {
+        self == Self::RRSIG
+    }
+
     /// Returns true if this is a Zero (unspecified) RecordType
     #[inline]
     pub fn is_zero(self) -> bool {
@@ -205,6 +219,7 @@ impl FromStr for RecordType {
             "AXFR" => Ok(Self::AXFR),
             "CAA" => Ok(Self::CAA),
             "CDNSKEY" => Ok(Self::CDNSKEY),
+            "CERT" => Ok(Self::CERT),
             "CDS" => Ok(Self::CDS),
             "CNAME" => Ok(Self::CNAME),
             "CSYNC" => Ok(Self::CSYNC),
@@ -258,6 +273,7 @@ impl From<u16> for RecordType {
             257 => Self::CAA,
             59 => Self::CDS,
             60 => Self::CDNSKEY,
+            37 => Self::CERT,
             5 => Self::CNAME,
             62 => Self::CSYNC,
             48 => Self::DNSKEY,
@@ -297,7 +313,7 @@ impl BinEncodable for RecordType {
     }
 }
 
-impl<'r> BinDecodable<'r> for RecordType {
+impl BinDecodable<'_> for RecordType {
     fn read(decoder: &mut BinDecoder<'_>) -> ProtoResult<Self> {
         Ok(decoder
             .read_u16()
@@ -331,6 +347,7 @@ impl From<RecordType> for &'static str {
             RecordType::AXFR => "AXFR",
             RecordType::CAA => "CAA",
             RecordType::CDNSKEY => "CDNSKEY",
+            RecordType::CERT => "CERT",
             RecordType::CDS => "CDS",
             RecordType::CNAME => "CNAME",
             RecordType::CSYNC => "CSYNC",
@@ -384,6 +401,7 @@ impl From<RecordType> for u16 {
             RecordType::AXFR => 252,
             RecordType::CAA => 257,
             RecordType::CDNSKEY => 60,
+            RecordType::CERT => 37,
             RecordType::CDS => 59,
             RecordType::CNAME => 5,
             RecordType::CSYNC => 62,
@@ -442,6 +460,9 @@ impl Display for RecordType {
 mod tests {
     #![allow(clippy::dbg_macro, clippy::print_stdout)]
 
+    #[cfg(feature = "std")]
+    use std::println;
+
     use super::*;
 
     #[test]
@@ -458,6 +479,7 @@ mod tests {
             RecordType::TXT,
             RecordType::AAAA,
             RecordType::SRV,
+            RecordType::CERT,
             RecordType::CSYNC,
             RecordType::AXFR,
             RecordType::ANY,
@@ -474,6 +496,7 @@ mod tests {
             RecordType::PTR,
             RecordType::MX,
             RecordType::CNAME,
+            RecordType::CERT,
             RecordType::TXT,
             RecordType::AAAA,
             RecordType::HINFO,
@@ -482,6 +505,7 @@ mod tests {
 
         unordered.sort();
 
+        #[cfg(feature = "std")]
         for rtype in unordered.clone() {
             println!("u16 for {:?}: {}", rtype, u16::from(rtype));
         }
@@ -498,6 +522,7 @@ mod tests {
             "AAAA",
             "ANAME",
             "CAA",
+            "CERT",
             "CNAME",
             "CSYNC",
             "HINFO",
@@ -516,7 +541,7 @@ mod tests {
             "AXFR",
         ];
 
-        #[cfg(feature = "dnssec")]
+        #[cfg(feature = "__dnssec")]
         let dnssec_record_names = &[
             "CDNSKEY",
             "CDS",
@@ -530,10 +555,13 @@ mod tests {
             "SIG",
             "TSIG",
         ];
-        #[cfg(not(feature = "dnssec"))]
+        #[cfg(not(feature = "__dnssec"))]
         let dnssec_record_names = &[];
 
+        #[cfg(feature = "std")]
         let mut rtypes = std::collections::HashSet::new();
+        #[cfg(not(feature = "std"))]
+        let mut rtypes = alloc::collections::BTreeSet::new();
         for name in record_names.iter().chain(dnssec_record_names) {
             let rtype: RecordType = name.parse().unwrap();
             assert_eq!(rtype.to_string().to_ascii_uppercase().as_str(), *name);

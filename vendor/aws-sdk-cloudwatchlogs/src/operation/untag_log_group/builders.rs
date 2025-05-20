@@ -3,7 +3,7 @@ pub use crate::operation::untag_log_group::_untag_log_group_output::UntagLogGrou
 
 pub use crate::operation::untag_log_group::_untag_log_group_input::UntagLogGroupInputBuilder;
 
-impl UntagLogGroupInputBuilder {
+impl crate::operation::untag_log_group::builders::UntagLogGroupInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -27,7 +27,7 @@ impl UntagLogGroupInputBuilder {
 /// </important>
 /// <p>Removes the specified tags from the specified log group.</p>
 /// <p>To list the tags for a log group, use <a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_ListTagsForResource.html">ListTagsForResource</a>. To add tags, use <a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_TagResource.html">TagResource</a>.</p>
-/// <p>CloudWatch Logs doesn’t support IAM policies that prevent users from assigning specified tags to log groups using the <code>aws:Resource/<i>key-name</i> </code> or <code>aws:TagKeys</code> condition keys. </p>
+/// <p>CloudWatch Logs doesn't support IAM policies that prevent users from assigning specified tags to log groups using the <code>aws:Resource/<i>key-name</i> </code> or <code>aws:TagKeys</code> condition keys.</p>
 #[deprecated(note = "Please use the generic tagging API UntagResource")]
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct UntagLogGroupFluentBuilder {
@@ -54,7 +54,7 @@ impl
     }
 }
 impl UntagLogGroupFluentBuilder {
-    /// Creates a new `UntagLogGroup`.
+    /// Creates a new `UntagLogGroupFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -105,12 +105,12 @@ impl UntagLogGroupFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -128,6 +128,7 @@ impl UntagLogGroupFluentBuilder {
     pub fn get_log_group_name(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_log_group_name()
     }
+    ///
     /// Appends an item to `tags`.
     ///
     /// To override the contents of this collection use [`set_tags`](Self::set_tags).

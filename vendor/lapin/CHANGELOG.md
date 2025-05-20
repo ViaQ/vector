@@ -1,3 +1,21 @@
+### 2.5.3 (2025-04-05)
+
+#### Bug Fixes
+
+* Fix a panic when reaching the maximum number of channels
+
+### 2.5.2 (2025-04-02)
+
+#### Bug Fixes
+
+* Fix potential deadlock in server protocol error handling
+
+### 2.5.1 (2025-03-08)
+
+#### Bug Fixes
+
+* Fix potential overflow (only in a log message)
+
 ### 2.5.0 (2024-07-27)
 
 #### Bug Fixes

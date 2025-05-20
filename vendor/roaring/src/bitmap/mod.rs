@@ -3,6 +3,7 @@ mod container;
 mod fmt;
 mod multiops;
 mod proptests;
+mod statistics;
 mod store;
 mod util;
 
@@ -17,11 +18,12 @@ mod ops_with_serialized;
 #[cfg(feature = "serde")]
 mod serde;
 #[cfg(feature = "std")]
-pub(crate) mod serialization;
+mod serialization;
 
 use self::cmp::Pairs;
 pub use self::iter::IntoIter;
 pub use self::iter::Iter;
+pub use self::statistics::Statistics;
 
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;

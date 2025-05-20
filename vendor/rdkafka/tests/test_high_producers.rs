@@ -30,7 +30,7 @@ fn future_producer(config_overrides: HashMap<&str, &str>) -> FutureProducer<Defa
 #[tokio::test]
 async fn test_future_producer_send() {
     let producer = future_producer(HashMap::new());
-    let topic_name = rand_test_topic();
+    let topic_name = rand_test_topic("test_future_producer_send");
 
     let results: FuturesUnordered<_> = (0..10)
         .map(|_| {
@@ -60,17 +60,17 @@ async fn test_future_producer_send_full() {
     config.insert("message.timeout.ms", "5000");
     config.insert("queue.buffering.max.messages", "1");
     let producer = &future_producer(config);
-    let topic_name = &rand_test_topic();
+    let topic_name = &rand_test_topic("test_future_producer_send_full");
 
     // Fill up the queue.
     producer
-        .send_result(FutureRecord::to(&topic_name).payload("A").key("B"))
+        .send_result(FutureRecord::to(topic_name).payload("A").key("B"))
         .unwrap();
 
     let send_message = |timeout| async move {
         let start = Instant::now();
         let res = producer
-            .send(FutureRecord::to(&topic_name).payload("A").key("B"), timeout)
+            .send(FutureRecord::to(topic_name).payload("A").key("B"), timeout)
             .await;
         match res {
             Ok(_) => panic!("send unexpectedly succeeded"),

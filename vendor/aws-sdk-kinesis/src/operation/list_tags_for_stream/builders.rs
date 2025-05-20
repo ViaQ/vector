@@ -3,7 +3,7 @@ pub use crate::operation::list_tags_for_stream::_list_tags_for_stream_output::Li
 
 pub use crate::operation::list_tags_for_stream::_list_tags_for_stream_input::ListTagsForStreamInputBuilder;
 
-impl ListTagsForStreamInputBuilder {
+impl crate::operation::list_tags_for_stream::builders::ListTagsForStreamInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,7 +22,7 @@ impl ListTagsForStreamInputBuilder {
 }
 /// Fluent builder constructing a request to `ListTagsForStream`.
 ///
-/// <p>Lists the tags for the specified Kinesis data stream. This operation has a limit of five transactions per second per account.</p> <note>
+/// <p>Lists the tags for the specified Kinesis data stream. This operation has a limit of five transactions per second per account.</p><note>
 /// <p>When invoking this API, you must use either the <code>StreamARN</code> or the <code>StreamName</code> parameter, or both. It is recommended that you use the <code>StreamARN</code> input parameter when you invoke this API.</p>
 /// </note>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
@@ -50,7 +50,7 @@ impl
     }
 }
 impl ListTagsForStreamFluentBuilder {
-    /// Creates a new `ListTagsForStream`.
+    /// Creates a new `ListTagsForStreamFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -101,12 +101,12 @@ impl ListTagsForStreamFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -124,17 +124,17 @@ impl ListTagsForStreamFluentBuilder {
     pub fn get_stream_name(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_stream_name()
     }
-    /// <p>The key to use as the starting point for the list of tags. If this parameter is set, <code>ListTagsForStream</code> gets all tags that occur after <code>ExclusiveStartTagKey</code>. </p>
+    /// <p>The key to use as the starting point for the list of tags. If this parameter is set, <code>ListTagsForStream</code> gets all tags that occur after <code>ExclusiveStartTagKey</code>.</p>
     pub fn exclusive_start_tag_key(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.exclusive_start_tag_key(input.into());
         self
     }
-    /// <p>The key to use as the starting point for the list of tags. If this parameter is set, <code>ListTagsForStream</code> gets all tags that occur after <code>ExclusiveStartTagKey</code>. </p>
+    /// <p>The key to use as the starting point for the list of tags. If this parameter is set, <code>ListTagsForStream</code> gets all tags that occur after <code>ExclusiveStartTagKey</code>.</p>
     pub fn set_exclusive_start_tag_key(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_exclusive_start_tag_key(input);
         self
     }
-    /// <p>The key to use as the starting point for the list of tags. If this parameter is set, <code>ListTagsForStream</code> gets all tags that occur after <code>ExclusiveStartTagKey</code>. </p>
+    /// <p>The key to use as the starting point for the list of tags. If this parameter is set, <code>ListTagsForStream</code> gets all tags that occur after <code>ExclusiveStartTagKey</code>.</p>
     pub fn get_exclusive_start_tag_key(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_exclusive_start_tag_key()
     }

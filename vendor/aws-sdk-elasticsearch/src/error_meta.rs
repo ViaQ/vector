@@ -13,7 +13,7 @@ pub enum Error {
     DisabledOperationException(crate::types::error::DisabledOperationException),
     /// <p>The request processing has failed because of an unknown error, exception or failure (the failure is internal to the service) . Gives http status code of 500.</p>
     InternalException(crate::types::error::InternalException),
-    /// <p>The request processing has failed because of invalid pagination token provided by customer. Returns an HTTP status code of 400. </p>
+    /// <p>The request processing has failed because of invalid pagination token provided by customer. Returns an HTTP status code of 400.</p>
     InvalidPaginationTokenException(crate::types::error::InvalidPaginationTokenException),
     /// <p>An exception for trying to create or access sub-resource that is either invalid or not supported. Gives http status code of 409.</p>
     InvalidTypeException(crate::types::error::InvalidTypeException),
@@ -208,6 +208,41 @@ impl From<crate::operation::authorize_vpc_endpoint_access::AuthorizeVpcEndpointA
                 Error::ValidationException(inner)
             }
             crate::operation::authorize_vpc_endpoint_access::AuthorizeVpcEndpointAccessError::Unhandled(inner) => Error::Unhandled(inner),
+        }
+    }
+}
+impl<R> From<::aws_smithy_runtime_api::client::result::SdkError<crate::operation::cancel_domain_config_change::CancelDomainConfigChangeError, R>>
+    for Error
+where
+    R: Send + Sync + std::fmt::Debug + 'static,
+{
+    fn from(
+        err: ::aws_smithy_runtime_api::client::result::SdkError<crate::operation::cancel_domain_config_change::CancelDomainConfigChangeError, R>,
+    ) -> Self {
+        match err {
+            ::aws_smithy_runtime_api::client::result::SdkError::ServiceError(context) => Self::from(context.into_err()),
+            _ => Error::Unhandled(crate::error::sealed_unhandled::Unhandled {
+                meta: ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(&err).clone(),
+                source: err.into(),
+            }),
+        }
+    }
+}
+impl From<crate::operation::cancel_domain_config_change::CancelDomainConfigChangeError> for Error {
+    fn from(err: crate::operation::cancel_domain_config_change::CancelDomainConfigChangeError) -> Self {
+        match err {
+            crate::operation::cancel_domain_config_change::CancelDomainConfigChangeError::BaseException(inner) => Error::BaseException(inner),
+            crate::operation::cancel_domain_config_change::CancelDomainConfigChangeError::DisabledOperationException(inner) => {
+                Error::DisabledOperationException(inner)
+            }
+            crate::operation::cancel_domain_config_change::CancelDomainConfigChangeError::InternalException(inner) => Error::InternalException(inner),
+            crate::operation::cancel_domain_config_change::CancelDomainConfigChangeError::ResourceNotFoundException(inner) => {
+                Error::ResourceNotFoundException(inner)
+            }
+            crate::operation::cancel_domain_config_change::CancelDomainConfigChangeError::ValidationException(inner) => {
+                Error::ValidationException(inner)
+            }
+            crate::operation::cancel_domain_config_change::CancelDomainConfigChangeError::Unhandled(inner) => Error::Unhandled(inner),
         }
     }
 }

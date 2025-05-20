@@ -19,6 +19,8 @@ macro_rules! xterm_colors {
                 )*
             }
 
+            impl crate::private::Sealed for XtermColors {}
+
             impl crate::DynColor for XtermColors {
                 fn fmt_ansi_fg(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
                     let color = match self {
@@ -96,12 +98,14 @@ macro_rules! xterm_colors {
             #[allow(missing_docs)]
             pub struct $name;
 
+            impl crate::private::Sealed for $name {}
+
             impl crate::Color for $name {
                 const ANSI_FG: &'static str = concat!("\x1b[38;5;", stringify!($xterm_num), "m");
                 const ANSI_BG: &'static str = concat!("\x1b[48;5;", stringify!($xterm_num), "m");
 
                 const RAW_ANSI_BG: &'static str = concat!("48;5;", stringify!($xterm_num));
-                const RAW_ANSI_FG: &'static str = concat!("48;5;", stringify!($xterm_num));
+                const RAW_ANSI_FG: &'static str = concat!("38;5;", stringify!($xterm_num));
 
                 #[doc(hidden)]
                 type DynEquivalent = dynamic::XtermColors;
@@ -110,9 +114,7 @@ macro_rules! xterm_colors {
                 const DYN_EQUIVALENT: Self::DynEquivalent = dynamic::XtermColors::$name;
 
                 #[doc(hidden)]
-                fn into_dyncolors() -> crate::DynColors {
-                    crate::DynColors::Xterm(dynamic::XtermColors::$name)
-                }
+                const DYN_COLORS_EQUIVALENT: crate::DynColors = crate::DynColors::Xterm(Self::DYN_EQUIVALENT);
             }
         )*
     };

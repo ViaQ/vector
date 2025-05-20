@@ -3,7 +3,7 @@ pub use crate::operation::remove_regions_from_replication::_remove_regions_from_
 
 pub use crate::operation::remove_regions_from_replication::_remove_regions_from_replication_input::RemoveRegionsFromReplicationInputBuilder;
 
-impl RemoveRegionsFromReplicationInputBuilder {
+impl crate::operation::remove_regions_from_replication::builders::RemoveRegionsFromReplicationInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -24,7 +24,7 @@ impl RemoveRegionsFromReplicationInputBuilder {
 ///
 /// <p>For a secret that is replicated to other Regions, deletes the secret replicas from the Regions you specify.</p>
 /// <p>Secrets Manager generates a CloudTrail log entry when you call this action. Do not include sensitive information in request parameters because it might be logged. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html">Logging Secrets Manager events with CloudTrail</a>.</p>
-/// <p> <b>Required permissions: </b> <code>secretsmanager:RemoveRegionsFromReplication</code>. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions"> IAM policy actions for Secrets Manager</a> and <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access.html">Authentication and access control in Secrets Manager</a>. </p>
+/// <p><b>Required permissions: </b> <code>secretsmanager:RemoveRegionsFromReplication</code>. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions"> IAM policy actions for Secrets Manager</a> and <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access.html">Authentication and access control in Secrets Manager</a>.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct RemoveRegionsFromReplicationFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -50,7 +50,7 @@ impl
     }
 }
 impl RemoveRegionsFromReplicationFluentBuilder {
-    /// Creates a new `RemoveRegionsFromReplication`.
+    /// Creates a new `RemoveRegionsFromReplicationFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -101,12 +101,12 @@ impl RemoveRegionsFromReplicationFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -124,6 +124,7 @@ impl RemoveRegionsFromReplicationFluentBuilder {
     pub fn get_secret_id(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_secret_id()
     }
+    ///
     /// Appends an item to `RemoveReplicaRegions`.
     ///
     /// To override the contents of this collection use [`set_remove_replica_regions`](Self::set_remove_replica_regions).

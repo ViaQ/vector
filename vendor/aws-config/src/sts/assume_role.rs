@@ -291,7 +291,11 @@ impl Inner {
                     access_key_id = ?assumed.credentials.as_ref().map(|c| &c.access_key_id),
                     "obtained assumed credentials"
                 );
-                super::util::into_credentials(assumed.credentials, "AssumeRoleProvider")
+                super::util::into_credentials(
+                    assumed.credentials,
+                    assumed.assumed_role_user,
+                    "AssumeRoleProvider",
+                )
             }
             Err(SdkError::ServiceError(ref context))
                 if matches!(
@@ -314,7 +318,7 @@ impl Inner {
 }
 
 impl ProvideCredentials for AssumeRoleProvider {
-    fn provide_credentials<'a>(&'a self) -> future::ProvideCredentials<'_>
+    fn provide_credentials<'a>(&'a self) -> future::ProvideCredentials<'a>
     where
         Self: 'a,
     {
@@ -335,9 +339,7 @@ mod test {
     use aws_smithy_async::rt::sleep::{SharedAsyncSleep, TokioSleep};
     use aws_smithy_async::test_util::instant_time_and_sleep;
     use aws_smithy_async::time::StaticTimeSource;
-    use aws_smithy_runtime::client::http::test_util::{
-        capture_request, ReplayEvent, StaticReplayClient,
-    };
+    use aws_smithy_http_client::test_util::{capture_request, ReplayEvent, StaticReplayClient};
     use aws_smithy_runtime::test_util::capture_test_logs::capture_test_logs;
     use aws_smithy_runtime_api::client::behavior_version::BehaviorVersion;
     use aws_smithy_types::body::SdkBody;

@@ -13,6 +13,7 @@
 /// # let dataredundancy = unimplemented!();
 /// match dataredundancy {
 ///     DataRedundancy::SingleAvailabilityZone => { /* ... */ },
+///     DataRedundancy::SingleLocalZone => { /* ... */ },
 ///     other @ _ if other.as_str() == "NewFeature" => { /* handles a case for `NewFeature` */ },
 ///     _ => { /* ... */ },
 /// }
@@ -34,6 +35,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -42,6 +44,8 @@
 pub enum DataRedundancy {
     #[allow(missing_docs)] // documentation missing in model
     SingleAvailabilityZone,
+    #[allow(missing_docs)] // documentation missing in model
+    SingleLocalZone,
     /// `Unknown` contains new variants that have been added since this code was generated.
     #[deprecated(note = "Don't directly match on `Unknown`. See the docs on this enum for the correct way to handle unknown variants.")]
     Unknown(crate::primitives::sealed_enum_unknown::UnknownVariantValue),
@@ -50,6 +54,7 @@ impl ::std::convert::From<&str> for DataRedundancy {
     fn from(s: &str) -> Self {
         match s {
             "SingleAvailabilityZone" => DataRedundancy::SingleAvailabilityZone,
+            "SingleLocalZone" => DataRedundancy::SingleLocalZone,
             other => DataRedundancy::Unknown(crate::primitives::sealed_enum_unknown::UnknownVariantValue(other.to_owned())),
         }
     }
@@ -66,12 +71,13 @@ impl DataRedundancy {
     pub fn as_str(&self) -> &str {
         match self {
             DataRedundancy::SingleAvailabilityZone => "SingleAvailabilityZone",
+            DataRedundancy::SingleLocalZone => "SingleLocalZone",
             DataRedundancy::Unknown(value) => value.as_str(),
         }
     }
     /// Returns all the `&str` representations of the enum members.
     pub const fn values() -> &'static [&'static str] {
-        &["SingleAvailabilityZone"]
+        &["SingleAvailabilityZone", "SingleLocalZone"]
     }
 }
 impl ::std::convert::AsRef<str> for DataRedundancy {
@@ -88,6 +94,15 @@ impl DataRedundancy {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for DataRedundancy {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            DataRedundancy::SingleAvailabilityZone => write!(f, "SingleAvailabilityZone"),
+            DataRedundancy::SingleLocalZone => write!(f, "SingleLocalZone"),
+            DataRedundancy::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

@@ -44,6 +44,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -150,6 +151,24 @@ impl ObjectStorageClass {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for ObjectStorageClass {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            ObjectStorageClass::DeepArchive => write!(f, "DEEP_ARCHIVE"),
+            ObjectStorageClass::ExpressOnezone => write!(f, "EXPRESS_ONEZONE"),
+            ObjectStorageClass::Glacier => write!(f, "GLACIER"),
+            ObjectStorageClass::GlacierIr => write!(f, "GLACIER_IR"),
+            ObjectStorageClass::IntelligentTiering => write!(f, "INTELLIGENT_TIERING"),
+            ObjectStorageClass::OnezoneIa => write!(f, "ONEZONE_IA"),
+            ObjectStorageClass::Outposts => write!(f, "OUTPOSTS"),
+            ObjectStorageClass::ReducedRedundancy => write!(f, "REDUCED_REDUNDANCY"),
+            ObjectStorageClass::Snow => write!(f, "SNOW"),
+            ObjectStorageClass::Standard => write!(f, "STANDARD"),
+            ObjectStorageClass::StandardIa => write!(f, "STANDARD_IA"),
+            ObjectStorageClass::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

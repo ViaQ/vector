@@ -13,13 +13,14 @@
 edition = "2018"
 rust-version = "1.65"
 name = "proptest"
-version = "1.5.0"
+version = "1.6.0"
 authors = ["Jason Lingle"]
 build = false
 exclude = [
     "/gen-*.sh",
     "/readme-*.md",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -77,11 +78,11 @@ name = "tutorial-strategy-play"
 path = "examples/tutorial-strategy-play.rs"
 
 [dependencies.bit-set]
-version = "0.5.2"
+version = "0.8.0"
 optional = true
 
 [dependencies.bit-vec]
-version = "0.6.0"
+version = "0.8.0"
 optional = true
 
 [dependencies.bitflags]
@@ -93,7 +94,6 @@ optional = true
 
 [dependencies.num-traits]
 version = "0.2.15"
-features = ["libm"]
 default-features = false
 
 [dependencies.proptest-macro]
@@ -163,7 +163,9 @@ fork = [
     "rusty-fork",
     "tempfile",
 ]
+handle-panics = ["std"]
 hardware-rng = ["x86"]
+no_std = ["num-traits/libm"]
 std = [
     "rand/std",
     "lazy_static",

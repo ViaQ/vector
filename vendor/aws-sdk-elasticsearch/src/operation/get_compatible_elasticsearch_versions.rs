@@ -50,13 +50,23 @@ impl GetCompatibleElasticsearchVersions {
         >,
     > {
         let input = ::aws_smithy_runtime_api::client::interceptors::context::Input::erase(input);
+        use ::tracing::Instrument;
         ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point(
-            "elasticsearchservice",
+            "Elasticsearch Service",
             "GetCompatibleElasticsearchVersions",
             input,
             runtime_plugins,
             stop_point,
         )
+        // Create a parent span for the entire operation. Includes a random, internal-only,
+        // seven-digit ID for the operation orchestration so that it can be correlated in the logs.
+        .instrument(::tracing::debug_span!(
+            "Elasticsearch Service.GetCompatibleElasticsearchVersions",
+            "rpc.service" = "Elasticsearch Service",
+            "rpc.method" = "GetCompatibleElasticsearchVersions",
+            "sdk_invocation_id" = ::fastrand::u32(1_000_000..10_000_000),
+            "rpc.system" = "aws-api",
+        ))
         .await
     }
 
@@ -97,9 +107,9 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for GetComp
             ::aws_smithy_runtime_api::client::auth::static_resolver::StaticAuthSchemeOptionResolverParams::new(),
         ));
 
-        cfg.store_put(::aws_smithy_http::operation::Metadata::new(
+        cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::Metadata::new(
             "GetCompatibleElasticsearchVersions",
-            "elasticsearchservice",
+            "Elasticsearch Service",
         ));
         let mut signing_options = ::aws_runtime::auth::SigningOptions::default();
         signing_options.double_uri_encode = true;
@@ -121,11 +131,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for GetComp
     ) -> ::std::borrow::Cow<'_, ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder> {
         #[allow(unused_mut)]
         let mut rcb = ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("GetCompatibleElasticsearchVersions")
-            .with_interceptor(
-                ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::new(
-                    ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptorKind::ResponseBody,
-                ),
-            )
+            .with_interceptor(::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::default())
             .with_interceptor(GetCompatibleElasticsearchVersionsEndpointParamsInterceptor)
             .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<
                 crate::operation::get_compatible_elasticsearch_versions::GetCompatibleElasticsearchVersionsError,
@@ -198,7 +204,7 @@ impl ::aws_smithy_runtime_api::client::ser_de::SerializeRequest for GetCompatibl
                 let mut query = ::aws_smithy_http::query::Writer::new(output);
                 if let ::std::option::Option::Some(inner_1) = &_input.domain_name {
                     {
-                        query.push_kv("domainName", &::aws_smithy_http::query::fmt_string(&inner_1));
+                        query.push_kv("domainName", &::aws_smithy_http::query::fmt_string(inner_1));
                     }
                 }
                 ::std::result::Result::Ok(())
@@ -258,6 +264,9 @@ impl ::aws_smithy_runtime_api::client::interceptors::Intercept for GetCompatible
         ::std::result::Result::Ok(())
     }
 }
+
+// The get_* functions below are generated from JMESPath expressions in the
+// operationContextParams trait. They target the operation's input shape.
 
 /// Error type for the `GetCompatibleElasticsearchVersionsError` operation.
 #[non_exhaustive]

@@ -26,12 +26,10 @@ pub mod query;
 pub mod response_code;
 pub mod update_message;
 
-pub use self::edns::Edns;
+pub use self::edns::{Edns, EdnsFlags};
 pub use self::header::Header;
 pub use self::header::MessageType;
-pub use self::message::{
-    Message, MessageFinalizer, MessageParts, MessageVerifier, NoopMessageFinalizer,
-};
+pub use self::message::{Message, MessageFinalizer, MessageParts, MessageVerifier};
 pub use self::op_code::OpCode;
 pub use self::query::Query;
 pub use self::response_code::ResponseCode;

@@ -35,6 +35,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 /// <p>Specifies the rollback state while disabling Auto-Tune for the domain. Valid values are NO_ROLLBACK, DEFAULT_ROLLBACK.</p>
 #[non_exhaustive]
 #[derive(
@@ -93,6 +94,15 @@ impl RollbackOnDisable {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for RollbackOnDisable {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            RollbackOnDisable::DefaultRollback => write!(f, "DEFAULT_ROLLBACK"),
+            RollbackOnDisable::NoRollback => write!(f, "NO_ROLLBACK"),
+            RollbackOnDisable::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

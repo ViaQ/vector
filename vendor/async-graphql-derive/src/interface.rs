@@ -13,13 +13,14 @@ use crate::{
     },
     output_type::OutputType,
     utils::{
-        gen_deprecation, gen_directive_calls, generate_default, get_crate_name, get_rustdoc,
-        visible_fn, GeneratorResult, RemoveLifetime,
+        gen_boxed_trait, gen_deprecation, gen_directive_calls, generate_default, get_crate_name,
+        get_rustdoc, visible_fn, GeneratorResult, RemoveLifetime,
     },
 };
 
 pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream> {
     let crate_name = get_crate_name(interface_args.internal);
+    let boxed_trait = gen_boxed_trait(&crate_name);
     let ident = &interface_args.ident;
     let type_params = interface_args.generics.type_params().collect::<Vec<_>>();
     let (impl_generics, ty_generics, where_clause) = interface_args.generics.split_for_impl();
@@ -212,6 +213,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                 tags,
                 secret,
                 directives,
+                deprecation,
             },
         ) in args.iter().enumerate()
         {
@@ -251,13 +253,15 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
                 .map(|tag| quote!(::std::string::ToString::to_string(#tag)))
                 .collect::<Vec<_>>();
             let directives =
-                gen_directive_calls(&directives, TypeDirectiveLocation::ArgumentDefinition);
+                gen_directive_calls(directives, TypeDirectiveLocation::ArgumentDefinition);
+            let deprecation = gen_deprecation(deprecation, &crate_name);
 
             schema_args.push(quote! {
                     args.insert(::std::borrow::ToOwned::to_owned(#name), #crate_name::registry::MetaInputValue {
                         name: ::std::string::ToString::to_string(#name),
                         description: #desc,
                         ty: <#ty as #crate_name::InputType>::create_type_info(registry),
+                        deprecation: #deprecation,
                         default_value: #schema_default,
                         visible: #visible,
                         inaccessible: #inaccessible,
@@ -303,7 +307,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
             .iter()
             .map(|tag| quote!(::std::string::ToString::to_string(#tag)))
             .collect::<Vec<_>>();
-        let directives = gen_directive_calls(&directives, TypeDirectiveLocation::FieldDefinition);
+        let directives = gen_directive_calls(directives, TypeDirectiveLocation::FieldDefinition);
 
         schema_fields.push(quote! {
             fields.insert(::std::string::ToString::to_string(#name), #crate_name::registry::MetaField {
@@ -365,6 +369,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
         }
 
         #[allow(clippy::all, clippy::pedantic)]
+        #boxed_trait
         impl #impl_generics #crate_name::resolver_utils::ContainerType for #ident #ty_generics #where_clause {
             async fn resolve_field(&self, ctx: &#crate_name::Context<'_>) -> #crate_name::ServerResult<::std::option::Option<#crate_name::Value>> {
                 #(#resolvers)*
@@ -379,6 +384,7 @@ pub fn generate(interface_args: &args::Interface) -> GeneratorResult<TokenStream
         }
 
         #[allow(clippy::all, clippy::pedantic)]
+        #boxed_trait
         impl #impl_generics #crate_name::OutputType for #ident #ty_generics #where_clause {
             fn type_name() -> ::std::borrow::Cow<'static, ::std::primitive::str> {
                 #gql_typename

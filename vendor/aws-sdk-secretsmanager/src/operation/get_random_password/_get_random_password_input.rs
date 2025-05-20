@@ -9,7 +9,7 @@ pub struct GetRandomPasswordInput {
     pub exclude_characters: ::std::option::Option<::std::string::String>,
     /// <p>Specifies whether to exclude numbers from the password. If you don't include this switch, the password can contain numbers.</p>
     pub exclude_numbers: ::std::option::Option<bool>,
-    /// <p>Specifies whether to exclude the following punctuation characters from the password: <code>! " # $ % &amp; ' ( ) * + , - . / : ; &lt; = &gt; ? @ [ \ ] ^ _ ` { | } ~</code>. If you don't include this switch, the password can contain punctuation.</p>
+    /// <p>Specifies whether to exclude the following punctuation characters from the password: <code>! " # $ % &amp; ' ( ) * + , - . / : ; &lt; = &gt; ? @ \[ \ \] ^ _ ` { | } ~</code>. If you don't include this switch, the password can contain punctuation.</p>
     pub exclude_punctuation: ::std::option::Option<bool>,
     /// <p>Specifies whether to exclude uppercase letters from the password. If you don't include this switch, the password can contain uppercase letters.</p>
     pub exclude_uppercase: ::std::option::Option<bool>,
@@ -33,7 +33,7 @@ impl GetRandomPasswordInput {
     pub fn exclude_numbers(&self) -> ::std::option::Option<bool> {
         self.exclude_numbers
     }
-    /// <p>Specifies whether to exclude the following punctuation characters from the password: <code>! " # $ % &amp; ' ( ) * + , - . / : ; &lt; = &gt; ? @ [ \ ] ^ _ ` { | } ~</code>. If you don't include this switch, the password can contain punctuation.</p>
+    /// <p>Specifies whether to exclude the following punctuation characters from the password: <code>! " # $ % &amp; ' ( ) * + , - . / : ; &lt; = &gt; ? @ \[ \ \] ^ _ ` { | } ~</code>. If you don't include this switch, the password can contain punctuation.</p>
     pub fn exclude_punctuation(&self) -> ::std::option::Option<bool> {
         self.exclude_punctuation
     }
@@ -62,8 +62,8 @@ impl GetRandomPasswordInput {
 }
 
 /// A builder for [`GetRandomPasswordInput`](crate::operation::get_random_password::GetRandomPasswordInput).
-#[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::default::Default, ::std::fmt::Debug)]
+#[non_exhaustive]
 pub struct GetRandomPasswordInputBuilder {
     pub(crate) password_length: ::std::option::Option<i64>,
     pub(crate) exclude_characters: ::std::option::Option<::std::string::String>,
@@ -117,17 +117,17 @@ impl GetRandomPasswordInputBuilder {
     pub fn get_exclude_numbers(&self) -> &::std::option::Option<bool> {
         &self.exclude_numbers
     }
-    /// <p>Specifies whether to exclude the following punctuation characters from the password: <code>! " # $ % &amp; ' ( ) * + , - . / : ; &lt; = &gt; ? @ [ \ ] ^ _ ` { | } ~</code>. If you don't include this switch, the password can contain punctuation.</p>
+    /// <p>Specifies whether to exclude the following punctuation characters from the password: <code>! " # $ % &amp; ' ( ) * + , - . / : ; &lt; = &gt; ? @ \[ \ \] ^ _ ` { | } ~</code>. If you don't include this switch, the password can contain punctuation.</p>
     pub fn exclude_punctuation(mut self, input: bool) -> Self {
         self.exclude_punctuation = ::std::option::Option::Some(input);
         self
     }
-    /// <p>Specifies whether to exclude the following punctuation characters from the password: <code>! " # $ % &amp; ' ( ) * + , - . / : ; &lt; = &gt; ? @ [ \ ] ^ _ ` { | } ~</code>. If you don't include this switch, the password can contain punctuation.</p>
+    /// <p>Specifies whether to exclude the following punctuation characters from the password: <code>! " # $ % &amp; ' ( ) * + , - . / : ; &lt; = &gt; ? @ \[ \ \] ^ _ ` { | } ~</code>. If you don't include this switch, the password can contain punctuation.</p>
     pub fn set_exclude_punctuation(mut self, input: ::std::option::Option<bool>) -> Self {
         self.exclude_punctuation = input;
         self
     }
-    /// <p>Specifies whether to exclude the following punctuation characters from the password: <code>! " # $ % &amp; ' ( ) * + , - . / : ; &lt; = &gt; ? @ [ \ ] ^ _ ` { | } ~</code>. If you don't include this switch, the password can contain punctuation.</p>
+    /// <p>Specifies whether to exclude the following punctuation characters from the password: <code>! " # $ % &amp; ' ( ) * + , - . / : ; &lt; = &gt; ? @ \[ \ \] ^ _ ` { | } ~</code>. If you don't include this switch, the password can contain punctuation.</p>
     pub fn get_exclude_punctuation(&self) -> &::std::option::Option<bool> {
         &self.exclude_punctuation
     }

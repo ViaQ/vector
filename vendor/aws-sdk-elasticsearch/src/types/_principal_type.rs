@@ -35,6 +35,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 /// <p>Specifies the type of AWS account permitted to manage VPC endpoints.:
 /// <ul>
 /// <li>AWS_ACCOUNT: Indicates that the account is owned by an AWS user.</li>
@@ -98,6 +99,15 @@ impl PrincipalType {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for PrincipalType {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            PrincipalType::AwsAccount => write!(f, "AWS_ACCOUNT"),
+            PrincipalType::AwsService => write!(f, "AWS_SERVICE"),
+            PrincipalType::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

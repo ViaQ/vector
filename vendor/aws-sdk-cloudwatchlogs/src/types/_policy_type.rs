@@ -13,6 +13,9 @@
 /// # let policytype = unimplemented!();
 /// match policytype {
 ///     PolicyType::DataProtectionPolicy => { /* ... */ },
+///     PolicyType::FieldIndexPolicy => { /* ... */ },
+///     PolicyType::SubscriptionFilterPolicy => { /* ... */ },
+///     PolicyType::TransformerPolicy => { /* ... */ },
 ///     other @ _ if other.as_str() == "NewFeature" => { /* handles a case for `NewFeature` */ },
 ///     _ => { /* ... */ },
 /// }
@@ -34,6 +37,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -42,6 +46,12 @@
 pub enum PolicyType {
     #[allow(missing_docs)] // documentation missing in model
     DataProtectionPolicy,
+    #[allow(missing_docs)] // documentation missing in model
+    FieldIndexPolicy,
+    #[allow(missing_docs)] // documentation missing in model
+    SubscriptionFilterPolicy,
+    #[allow(missing_docs)] // documentation missing in model
+    TransformerPolicy,
     /// `Unknown` contains new variants that have been added since this code was generated.
     #[deprecated(note = "Don't directly match on `Unknown`. See the docs on this enum for the correct way to handle unknown variants.")]
     Unknown(crate::primitives::sealed_enum_unknown::UnknownVariantValue),
@@ -50,6 +60,9 @@ impl ::std::convert::From<&str> for PolicyType {
     fn from(s: &str) -> Self {
         match s {
             "DATA_PROTECTION_POLICY" => PolicyType::DataProtectionPolicy,
+            "FIELD_INDEX_POLICY" => PolicyType::FieldIndexPolicy,
+            "SUBSCRIPTION_FILTER_POLICY" => PolicyType::SubscriptionFilterPolicy,
+            "TRANSFORMER_POLICY" => PolicyType::TransformerPolicy,
             other => PolicyType::Unknown(crate::primitives::sealed_enum_unknown::UnknownVariantValue(other.to_owned())),
         }
     }
@@ -66,12 +79,20 @@ impl PolicyType {
     pub fn as_str(&self) -> &str {
         match self {
             PolicyType::DataProtectionPolicy => "DATA_PROTECTION_POLICY",
+            PolicyType::FieldIndexPolicy => "FIELD_INDEX_POLICY",
+            PolicyType::SubscriptionFilterPolicy => "SUBSCRIPTION_FILTER_POLICY",
+            PolicyType::TransformerPolicy => "TRANSFORMER_POLICY",
             PolicyType::Unknown(value) => value.as_str(),
         }
     }
     /// Returns all the `&str` representations of the enum members.
     pub const fn values() -> &'static [&'static str] {
-        &["DATA_PROTECTION_POLICY"]
+        &[
+            "DATA_PROTECTION_POLICY",
+            "FIELD_INDEX_POLICY",
+            "SUBSCRIPTION_FILTER_POLICY",
+            "TRANSFORMER_POLICY",
+        ]
     }
 }
 impl ::std::convert::AsRef<str> for PolicyType {
@@ -88,6 +109,17 @@ impl PolicyType {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for PolicyType {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            PolicyType::DataProtectionPolicy => write!(f, "DATA_PROTECTION_POLICY"),
+            PolicyType::FieldIndexPolicy => write!(f, "FIELD_INDEX_POLICY"),
+            PolicyType::SubscriptionFilterPolicy => write!(f, "SUBSCRIPTION_FILTER_POLICY"),
+            PolicyType::TransformerPolicy => write!(f, "TRANSFORMER_POLICY"),
+            PolicyType::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

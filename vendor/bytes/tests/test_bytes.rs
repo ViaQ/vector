@@ -1,7 +1,10 @@
 #![warn(rust_2018_idioms)]
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 
+use std::panic::{self, AssertUnwindSafe};
 use std::usize;
 
 const LONG: &[u8] = b"mary had a little lamb, little lamb, little lamb";
@@ -288,6 +291,7 @@ fn split_to_uninitialized() {
 }
 
 #[test]
+#[cfg_attr(not(panic = "unwind"), ignore)]
 fn split_off_to_at_gt_len() {
     fn make_bytes() -> Bytes {
         let mut bytes = BytesMut::with_capacity(100);
@@ -724,6 +728,7 @@ fn advance_past_len() {
 // Only run these tests on little endian systems. CI uses qemu for testing
 // big endian... and qemu doesn't really support threading all that well.
 #[cfg(any(miri, target_endian = "little"))]
+#[cfg(not(target_family = "wasm"))] // wasm without experimental threads proposal doesn't support threads
 fn stress() {
     // Tests promoting a buffer from a vec -> shared in a concurrent situation
     use std::sync::{Arc, Barrier};
@@ -1478,4 +1483,167 @@ fn split_to_empty_addr_mut() {
     // Is miri happy about the provenance?
     let _ = &empty_start[..];
     let _ = &buf[..];
+}
+
+#[derive(Clone)]
+struct SharedAtomicCounter(Arc<AtomicUsize>);
+
+impl SharedAtomicCounter {
+    pub fn new() -> Self {
+        SharedAtomicCounter(Arc::new(AtomicUsize::new(0)))
+    }
+
+    pub fn increment(&self) {
+        self.0.fetch_add(1, Ordering::AcqRel);
+    }
+
+    pub fn get(&self) -> usize {
+        self.0.load(Ordering::Acquire)
+    }
+}
+
+#[derive(Clone)]
+struct OwnedTester<const L: usize> {
+    buf: [u8; L],
+    drop_count: SharedAtomicCounter,
+    pub panic_as_ref: bool,
+}
+
+impl<const L: usize> OwnedTester<L> {
+    fn new(buf: [u8; L], drop_count: SharedAtomicCounter) -> Self {
+        Self {
+            buf,
+            drop_count,
+            panic_as_ref: false,
+        }
+    }
+}
+
+impl<const L: usize> AsRef<[u8]> for OwnedTester<L> {
+    fn as_ref(&self) -> &[u8] {
+        if self.panic_as_ref {
+            panic!("test-triggered panic in `AsRef<[u8]> for OwnedTester`");
+        }
+        self.buf.as_slice()
+    }
+}
+
+impl<const L: usize> Drop for OwnedTester<L> {
+    fn drop(&mut self) {
+        self.drop_count.increment();
+    }
+}
+
+#[test]
+fn owned_is_unique_always_false() {
+    let b1 = Bytes::from_owner([1, 2, 3, 4, 5, 6, 7]);
+    assert!(!b1.is_unique()); // even if ref_cnt == 1
+    let b2 = b1.clone();
+    assert!(!b1.is_unique());
+    assert!(!b2.is_unique());
+    drop(b1);
+    assert!(!b2.is_unique()); // even if ref_cnt == 1
+}
+
+#[test]
+fn owned_buf_sharing() {
+    let buf = [1, 2, 3, 4, 5, 6, 7];
+    let b1 = Bytes::from_owner(buf);
+    let b2 = b1.clone();
+    assert_eq!(&buf[..], &b1[..]);
+    assert_eq!(&buf[..], &b2[..]);
+    assert_eq!(b1.as_ptr(), b2.as_ptr());
+    assert_eq!(b1.len(), b2.len());
+    assert_eq!(b1.len(), buf.len());
+}
+
+#[test]
+fn owned_buf_slicing() {
+    let b1 = Bytes::from_owner(SHORT);
+    assert_eq!(SHORT, &b1[..]);
+    let b2 = b1.slice(1..(b1.len() - 1));
+    assert_eq!(&SHORT[1..(SHORT.len() - 1)], b2);
+    assert_eq!(unsafe { SHORT.as_ptr().add(1) }, b2.as_ptr());
+    assert_eq!(SHORT.len() - 2, b2.len());
+}
+
+#[test]
+fn owned_dropped_exactly_once() {
+    let buf: [u8; 5] = [1, 2, 3, 4, 5];
+    let drop_counter = SharedAtomicCounter::new();
+    let owner = OwnedTester::new(buf, drop_counter.clone());
+    let b1 = Bytes::from_owner(owner);
+    let b2 = b1.clone();
+    assert_eq!(drop_counter.get(), 0);
+    drop(b1);
+    assert_eq!(drop_counter.get(), 0);
+    let b3 = b2.slice(1..b2.len() - 1);
+    drop(b2);
+    assert_eq!(drop_counter.get(), 0);
+    drop(b3);
+    assert_eq!(drop_counter.get(), 1);
+}
+
+#[test]
+fn owned_to_mut() {
+    let buf: [u8; 10] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+    let drop_counter = SharedAtomicCounter::new();
+    let owner = OwnedTester::new(buf, drop_counter.clone());
+    let b1 = Bytes::from_owner(owner);
+
+    // Holding an owner will fail converting to a BytesMut,
+    // even when the bytes instance has a ref_cnt == 1.
+    let b1 = b1.try_into_mut().unwrap_err();
+
+    // That said, it's still possible, just not cheap.
+    let bm1: BytesMut = b1.into();
+    let new_buf = &bm1[..];
+    assert_eq!(new_buf, &buf[..]);
+
+    // `.into::<BytesMut>()` has correctly dropped the owner
+    assert_eq!(drop_counter.get(), 1);
+}
+
+#[test]
+fn owned_to_vec() {
+    let buf: [u8; 10] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+    let drop_counter = SharedAtomicCounter::new();
+    let owner = OwnedTester::new(buf, drop_counter.clone());
+    let b1 = Bytes::from_owner(owner);
+
+    let v1 = b1.to_vec();
+    assert_eq!(&v1[..], &buf[..]);
+    assert_eq!(&v1[..], &b1[..]);
+
+    drop(b1);
+    assert_eq!(drop_counter.get(), 1);
+}
+
+#[test]
+fn owned_into_vec() {
+    let drop_counter = SharedAtomicCounter::new();
+    let buf: [u8; 10] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+    let owner = OwnedTester::new(buf, drop_counter.clone());
+    let b1 = Bytes::from_owner(owner);
+
+    let v1: Vec<u8> = b1.into();
+    assert_eq!(&v1[..], &buf[..]);
+    // into() vec will copy out of the owner and drop it
+    assert_eq!(drop_counter.get(), 1);
+}
+
+#[test]
+#[cfg_attr(not(panic = "unwind"), ignore)]
+fn owned_safe_drop_on_as_ref_panic() {
+    let buf: [u8; 10] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+    let drop_counter = SharedAtomicCounter::new();
+    let mut owner = OwnedTester::new(buf, drop_counter.clone());
+    owner.panic_as_ref = true;
+
+    let result = panic::catch_unwind(AssertUnwindSafe(|| {
+        let _ = Bytes::from_owner(owner);
+    }));
+
+    assert!(result.is_err());
+    assert_eq!(drop_counter.get(), 1);
 }

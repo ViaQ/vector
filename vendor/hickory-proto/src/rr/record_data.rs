@@ -8,31 +8,35 @@
 //! record data enum variants
 #![allow(deprecated, clippy::use_self)] // allows us to deprecate RData types
 
+use alloc::vec::Vec;
 #[cfg(test)]
-use std::convert::From;
-use std::{cmp::Ordering, fmt, net::IpAddr};
-
-#[cfg(feature = "serde-config")]
-use serde::{Deserialize, Serialize};
+use core::convert::From;
+#[cfg(not(feature = "std"))]
+use core::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use core::{cmp::Ordering, fmt};
+#[cfg(feature = "std")]
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 
 use enum_as_inner::EnumAsInner;
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
 use tracing::{trace, warn};
 
 use crate::{
     error::{ProtoError, ProtoErrorKind, ProtoResult},
     rr::{
+        RecordData, RecordDataDecodable,
         rdata::{
-            A, AAAA, ANAME, CAA, CNAME, CSYNC, HINFO, HTTPS, MX, NAPTR, NS, NULL, OPENPGPKEY, OPT,
-            PTR, SOA, SRV, SSHFP, SVCB, TLSA, TXT,
+            A, AAAA, ANAME, CAA, CERT, CNAME, CSYNC, HINFO, HTTPS, MX, NAPTR, NS, NULL, OPENPGPKEY,
+            OPT, PTR, SOA, SRV, SSHFP, SVCB, TLSA, TXT,
         },
         record_type::RecordType,
-        RecordData, RecordDataDecodable,
     },
     serialize::binary::{BinDecodable, BinDecoder, BinEncodable, BinEncoder, Restrict},
 };
 
-#[cfg(feature = "dnssec")]
-use super::dnssec::rdata::DNSSECRData;
+#[cfg(feature = "__dnssec")]
+use crate::dnssec::rdata::DNSSECRData;
 
 /// Record data enum variants for all valid DNS data types.
 ///
@@ -55,7 +59,7 @@ use super::dnssec::rdata::DNSSECRData;
 /// is treated as binary information, and can be up to 256 characters in
 /// length (including the length octet).
 /// ```
-#[cfg_attr(feature = "serde-config", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Debug, EnumAsInner, PartialEq, Clone, Eq)]
 #[non_exhaustive]
 pub enum RData {
@@ -132,12 +136,29 @@ pub enum RData {
     /// +----------------+----------------+.....+----------------+
     /// | Value byte 0   | Value byte 1   |.....| Value byte m-1 |
     /// +----------------+----------------+.....+----------------+
-
+    ///
     /// Where n is the length specified in the Tag length field and m is the
     /// remaining octets in the Value field (m = d - n - 2) where d is the
     /// length of the RDATA section.
     /// ```
     CAA(CAA),
+
+    /// ```text
+    /// -- RFC 4398 -- Storing Certificates in DNS       November 1987
+    /// The CERT resource record (RR) has the structure given below.  Its RR
+    /// type code is 37.
+    ///
+    ///    1 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 3 3
+    /// 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    /// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    /// |             type              |             key tag           |
+    /// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    /// |   algorithm   |                                               /
+    /// +---------------+            certificate or CRL                 /
+    /// /                                                               /
+    /// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-|
+    //// ```
+    CERT(CERT),
 
     /// ```text
     ///   3.3. Standard RRs
@@ -217,24 +238,21 @@ pub enum RData {
     /// `HINFO` is also used by [RFC 8482](https://tools.ietf.org/html/rfc8482)
     HINFO(HINFO),
 
-    /// [RFC draft-ietf-dnsop-svcb-https-03, DNS SVCB and HTTPS RRs](https://datatracker.ietf.org/doc/html/draft-ietf-dnsop-svcb-https-03#section-8)
+    /// [RFC 9460, SVCB and HTTPS RRs](https://datatracker.ietf.org/doc/html/rfc9460#section-9)
     ///
     /// ```text
-    ///    8.  Using SVCB with HTTPS and HTTP
+    /// 9.  Using Service Bindings with HTTP
     ///
-    ///    Use of any protocol with SVCB requires a protocol-specific mapping
-    ///    specification.  This section specifies the mapping for HTTPS and
-    ///    HTTP.
+    ///    The use of any protocol with SVCB requires a protocol-specific
+    ///    mapping specification.  This section specifies the mapping for the
+    ///    "http" and "https" URI schemes [HTTP].
     ///
-    ///    To enable special handling for the HTTPS and HTTP use-cases, the
-    ///    HTTPS RR type is defined as a SVCB-compatible RR type, specific to
-    ///    the https and http schemes.  Clients MUST NOT perform SVCB queries or
-    ///    accept SVCB responses for "https" or "http" schemes.
+    ///    To enable special handling for HTTP use cases, the HTTPS RR type is
+    ///    defined as a SVCB-compatible RR type, specific to the "https" and
+    ///    "http" schemes.  Clients MUST NOT perform SVCB queries or accept SVCB
+    ///    responses for "https" or "http" schemes.
     ///
-    ///    The HTTPS RR wire format and presentation format are identical to
-    ///    SVCB, and both share the SvcParamKey registry.  SVCB semantics apply
-    ///    equally to HTTPS RRs unless specified otherwise.  The presentation
-    ///    format of the record is:
+    ///    The presentation format of the record is:
     ///
     ///    Name TTL IN HTTPS SvcPriority TargetName SvcParams
     /// ```
@@ -444,8 +462,8 @@ pub enum RData {
     ///        +------------+--------------+------------------------------+
     ///
     /// The variable part of an OPT RR may contain zero or more options in
-    ///    the RDATA.  Each option MUST be treated as a bit field.  Each option
-    ///    is encoded as:
+    /// the RDATA.  Each option MUST be treated as a bit field.  Each option
+    /// is encoded as:
     ///
     ///                   +0 (MSB)                            +1 (LSB)
     ///        +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
@@ -619,28 +637,29 @@ pub enum RData {
     /// [RFC 7479](https://tools.ietf.org/html/rfc7479).
     SSHFP(SSHFP),
 
-    /// [RFC draft-ietf-dnsop-svcb-https-03, DNS SVCB and HTTPS RRs](https://datatracker.ietf.org/doc/html/draft-ietf-dnsop-svcb-https-03#section-2)
+    /// [RFC 9460, SVCB and HTTPS RRs](https://datatracker.ietf.org/doc/html/rfc9460#section-2)
     ///
     /// ```text
-    ///    2.  The SVCB record type
+    /// 2.  The SVCB Record Type
     ///
-    ///   The SVCB DNS resource record (RR) type (RR type 64) is used to locate
-    ///   alternative endpoints for a service.
+    ///    The SVCB DNS RR type (RR type 64) is used to locate alternative
+    ///    endpoints for a service.
     ///
-    ///   The algorithm for resolving SVCB records and associated address
-    ///   records is specified in Section 3.
+    ///    The algorithm for resolving SVCB records and associated address
+    ///    records is specified in Section 3.
     ///
-    ///   Other SVCB-compatible resource record types can also be defined as-
-    ///   needed.  In particular, the HTTPS RR (RR type 65) provides special
-    ///   handling for the case of "https" origins as described in Section 8.
+    ///    Other SVCB-compatible RR types can also be defined as needed (see
+    ///    Section 6).  In particular, the HTTPS RR (RR type 65) provides
+    ///    special handling for the case of "https" origins as described in
+    ///    Section 9.
     ///
-    ///   SVCB RRs are extensible by a list of SvcParams, which are pairs
-    ///   consisting of a SvcParamKey and a SvcParamValue.  Each SvcParamKey
-    ///   has a presentation name and a registered number.  Values are in a
-    ///   format specific to the SvcParamKey.  Their definition should specify
-    ///   both their presentation format and wire encoding (e.g., domain names,
-    ///   binary data, or numeric values).  The initial SvcParamKeys and
-    ///   formats are defined in Section 6.
+    ///    SVCB RRs are extensible by a list of SvcParams, which are pairs
+    ///    consisting of a SvcParamKey and a SvcParamValue.  Each SvcParamKey
+    ///    has a presentation name and a registered number.  Values are in a
+    ///    format specific to the SvcParamKey.  Each SvcParam has a specified
+    ///    presentation format (used in zone files) and wire encoding (e.g.,
+    ///    domain names, binary data, or numeric values).  The initial
+    ///    SvcParamKeys and their formats are defined in Section 7.
     /// ```
     SVCB(SVCB),
 
@@ -679,8 +698,7 @@ pub enum RData {
     ///
     /// These types are in `DNSSECRData` to make them easy to disable when
     /// crypto functionality isn't needed.
-    #[cfg(feature = "dnssec")]
-    #[cfg_attr(docsrs, doc(cfg(feature = "dnssec")))]
+    #[cfg(feature = "__dnssec")]
     DNSSEC(DNSSECRData),
 
     /// Unknown RecordData is for record types not supported by Hickory DNS
@@ -690,6 +708,9 @@ pub enum RData {
         /// RData associated to the record
         rdata: NULL,
     },
+
+    /// Update record with RDLENGTH = 0 (RFC2136)
+    Update0(RecordType),
 
     /// This corresponds to a record type of 0, unspecified
     #[deprecated(note = "Use None for the RData in the resource record instead")]
@@ -710,11 +731,12 @@ impl RData {
 
     /// Converts this to a Recordtype
     pub fn record_type(&self) -> RecordType {
-        match *self {
+        match self {
             Self::A(..) => RecordType::A,
             Self::AAAA(..) => RecordType::AAAA,
             Self::ANAME(..) => RecordType::ANAME,
             Self::CAA(..) => RecordType::CAA,
+            Self::CERT(..) => RecordType::CERT,
             Self::CNAME(..) => RecordType::CNAME,
             Self::CSYNC(..) => RecordType::CSYNC,
             Self::HINFO(..) => RecordType::HINFO,
@@ -732,16 +754,17 @@ impl RData {
             Self::SVCB(..) => RecordType::SVCB,
             Self::TLSA(..) => RecordType::TLSA,
             Self::TXT(..) => RecordType::TXT,
-            #[cfg(feature = "dnssec")]
-            Self::DNSSEC(ref rdata) => DNSSECRData::to_record_type(rdata),
-            Self::Unknown { code, .. } => code,
+            #[cfg(feature = "__dnssec")]
+            Self::DNSSEC(rdata) => DNSSECRData::to_record_type(rdata),
+            Self::Unknown { code, .. } => *code,
+            Self::Update0(record_type) => *record_type,
             Self::ZERO => RecordType::ZERO,
         }
     }
 
     /// If this is an A or AAAA record type, then an IpAddr will be returned
     pub fn ip_addr(&self) -> Option<IpAddr> {
-        match *self {
+        match self {
             Self::A(a) => Some(IpAddr::from(a.0)),
             Self::AAAA(aaaa) => Some(IpAddr::from(aaaa.0)),
             _ => None,
@@ -775,6 +798,10 @@ impl RData {
             RecordType::CAA => {
                 trace!("reading CAA");
                 CAA::read_data(decoder, length).map(Self::CAA)
+            }
+            RecordType::CERT => {
+                trace!("reading CERT");
+                CERT::read_data(decoder, length).map(Self::CERT)
             }
             RecordType::CNAME => {
                 trace!("reading CNAME");
@@ -851,7 +878,7 @@ impl RData {
                 trace!("reading TXT");
                 TXT::read_data(decoder, length).map(Self::TXT)
             }
-            #[cfg(feature = "dnssec")]
+            #[cfg(feature = "__dnssec")]
             r if r.is_dnssec() => DNSSECRData::read(decoder, record_type, length).map(Self::DNSSEC),
             record_type => {
                 trace!("reading Unknown record: {}", record_type);
@@ -897,7 +924,7 @@ impl BinEncodable for RData {
     /// ```
     ///
     /// Canonical name form for all non-1035 records:
-    ///   [RFC 3579](https://tools.ietf.org/html/rfc3597)
+    ///   [RFC 3597](https://tools.ietf.org/html/rfc3597)
     /// ```text
     ///  4.  Domain Name Compression
     ///
@@ -947,34 +974,36 @@ impl BinEncodable for RData {
     ///   ...
     /// ```
     fn emit(&self, encoder: &mut BinEncoder<'_>) -> ProtoResult<()> {
-        match *self {
-            Self::A(ref address) => address.emit(encoder),
-            Self::AAAA(ref address) => address.emit(encoder),
-            Self::ANAME(ref name) => encoder.with_canonical_names(|encoder| name.emit(encoder)),
-            Self::CAA(ref caa) => encoder.with_canonical_names(|encoder| caa.emit(encoder)),
-            Self::CNAME(ref cname) => cname.emit(encoder),
-            Self::NS(ref ns) => ns.emit(encoder),
-            Self::PTR(ref ptr) => ptr.emit(encoder),
-            Self::CSYNC(ref csync) => csync.emit(encoder),
-            Self::HINFO(ref hinfo) => hinfo.emit(encoder),
-            Self::HTTPS(ref https) => https.emit(encoder),
+        match self {
+            Self::A(address) => address.emit(encoder),
+            Self::AAAA(address) => address.emit(encoder),
+            Self::ANAME(name) => encoder.with_canonical_names(|encoder| name.emit(encoder)),
+            Self::CAA(caa) => encoder.with_canonical_names(|encoder| caa.emit(encoder)),
+            Self::CERT(cert) => cert.emit(encoder),
+            Self::CNAME(cname) => cname.emit(encoder),
+            Self::NS(ns) => ns.emit(encoder),
+            Self::PTR(ptr) => ptr.emit(encoder),
+            Self::CSYNC(csync) => csync.emit(encoder),
+            Self::HINFO(hinfo) => hinfo.emit(encoder),
+            Self::HTTPS(https) => https.emit(encoder),
             Self::ZERO => Ok(()),
-            Self::MX(ref mx) => mx.emit(encoder),
-            Self::NAPTR(ref naptr) => encoder.with_canonical_names(|encoder| naptr.emit(encoder)),
-            Self::NULL(ref null) => null.emit(encoder),
-            Self::OPENPGPKEY(ref openpgpkey) => {
+            Self::MX(mx) => mx.emit(encoder),
+            Self::NAPTR(naptr) => encoder.with_canonical_names(|encoder| naptr.emit(encoder)),
+            Self::NULL(null) => null.emit(encoder),
+            Self::OPENPGPKEY(openpgpkey) => {
                 encoder.with_canonical_names(|encoder| openpgpkey.emit(encoder))
             }
-            Self::OPT(ref opt) => opt.emit(encoder),
-            Self::SOA(ref soa) => soa.emit(encoder),
-            Self::SRV(ref srv) => encoder.with_canonical_names(|encoder| srv.emit(encoder)),
-            Self::SSHFP(ref sshfp) => encoder.with_canonical_names(|encoder| sshfp.emit(encoder)),
-            Self::SVCB(ref svcb) => svcb.emit(encoder),
-            Self::TLSA(ref tlsa) => encoder.with_canonical_names(|encoder| tlsa.emit(encoder)),
-            Self::TXT(ref txt) => txt.emit(encoder),
-            #[cfg(feature = "dnssec")]
-            Self::DNSSEC(ref rdata) => encoder.with_canonical_names(|encoder| rdata.emit(encoder)),
-            Self::Unknown { ref rdata, .. } => rdata.emit(encoder),
+            Self::OPT(opt) => opt.emit(encoder),
+            Self::SOA(soa) => soa.emit(encoder),
+            Self::SRV(srv) => encoder.with_canonical_names(|encoder| srv.emit(encoder)),
+            Self::SSHFP(sshfp) => encoder.with_canonical_names(|encoder| sshfp.emit(encoder)),
+            Self::SVCB(svcb) => svcb.emit(encoder),
+            Self::TLSA(tlsa) => encoder.with_canonical_names(|encoder| tlsa.emit(encoder)),
+            Self::TXT(txt) => txt.emit(encoder),
+            #[cfg(feature = "__dnssec")]
+            Self::DNSSEC(rdata) => encoder.with_canonical_names(|encoder| rdata.emit(encoder)),
+            Self::Unknown { rdata, .. } => rdata.emit(encoder),
+            Self::Update0(_) => Ok(()),
         }
     }
 }
@@ -995,6 +1024,10 @@ impl RecordData for RData {
     fn into_rdata(self) -> RData {
         self
     }
+
+    fn is_update(&self) -> bool {
+        matches!(self, RData::Update0(_))
+    }
 }
 
 impl fmt::Display for RData {
@@ -1003,37 +1036,39 @@ impl fmt::Display for RData {
             write!(f, "{rdata}")
         }
 
-        match *self {
+        match self {
             Self::A(address) => w(f, address),
-            Self::AAAA(ref address) => w(f, address),
-            Self::ANAME(ref name) => w(f, name),
-            Self::CAA(ref caa) => w(f, caa),
+            Self::AAAA(address) => w(f, address),
+            Self::ANAME(name) => w(f, name),
+            Self::CAA(caa) => w(f, caa),
+            Self::CERT(cert) => w(f, cert),
             // to_lowercase for rfc4034 and rfc6840
-            Self::CNAME(ref cname) => w(f, cname),
-            Self::NS(ref ns) => w(f, ns),
-            Self::PTR(ref ptr) => w(f, ptr),
-            Self::CSYNC(ref csync) => w(f, csync),
-            Self::HINFO(ref hinfo) => w(f, hinfo),
-            Self::HTTPS(ref https) => w(f, https),
+            Self::CNAME(cname) => w(f, cname),
+            Self::NS(ns) => w(f, ns),
+            Self::PTR(ptr) => w(f, ptr),
+            Self::CSYNC(csync) => w(f, csync),
+            Self::HINFO(hinfo) => w(f, hinfo),
+            Self::HTTPS(https) => w(f, https),
             Self::ZERO => Ok(()),
             // to_lowercase for rfc4034 and rfc6840
-            Self::MX(ref mx) => w(f, mx),
-            Self::NAPTR(ref naptr) => w(f, naptr),
-            Self::NULL(ref null) => w(f, null),
-            Self::OPENPGPKEY(ref openpgpkey) => w(f, openpgpkey),
+            Self::MX(mx) => w(f, mx),
+            Self::NAPTR(naptr) => w(f, naptr),
+            Self::NULL(null) => w(f, null),
+            Self::OPENPGPKEY(openpgpkey) => w(f, openpgpkey),
             // Opt has no display representation
             Self::OPT(_) => Err(fmt::Error),
             // to_lowercase for rfc4034 and rfc6840
-            Self::SOA(ref soa) => w(f, soa),
+            Self::SOA(soa) => w(f, soa),
             // to_lowercase for rfc4034 and rfc6840
-            Self::SRV(ref srv) => w(f, srv),
-            Self::SSHFP(ref sshfp) => w(f, sshfp),
-            Self::SVCB(ref svcb) => w(f, svcb),
-            Self::TLSA(ref tlsa) => w(f, tlsa),
-            Self::TXT(ref txt) => w(f, txt),
-            #[cfg(feature = "dnssec")]
-            Self::DNSSEC(ref rdata) => w(f, rdata),
-            Self::Unknown { ref rdata, .. } => w(f, rdata),
+            Self::SRV(srv) => w(f, srv),
+            Self::SSHFP(sshfp) => w(f, sshfp),
+            Self::SVCB(svcb) => w(f, svcb),
+            Self::TLSA(tlsa) => w(f, tlsa),
+            Self::TXT(txt) => w(f, txt),
+            #[cfg(feature = "__dnssec")]
+            Self::DNSSEC(rdata) => w(f, rdata),
+            Self::Unknown { rdata, .. } => w(f, rdata),
+            Self::Update0(_) => w(f, "UPDATE"),
         }
     }
 }
@@ -1070,11 +1105,35 @@ impl Ord for RData {
     }
 }
 
+impl From<IpAddr> for RData {
+    fn from(ip: IpAddr) -> Self {
+        match ip {
+            IpAddr::V4(ip) => RData::A(A(ip)),
+            IpAddr::V6(ip) => RData::AAAA(AAAA(ip)),
+        }
+    }
+}
+
+impl From<Ipv4Addr> for RData {
+    fn from(ip: Ipv4Addr) -> Self {
+        RData::A(A(ip))
+    }
+}
+
+impl From<Ipv6Addr> for RData {
+    fn from(ip: Ipv6Addr) -> Self {
+        RData::AAAA(AAAA(ip))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     #![allow(clippy::dbg_macro, clippy::print_stdout)]
 
-    use std::str::FromStr;
+    use alloc::string::ToString;
+    use core::str::FromStr;
+    #[cfg(feature = "std")]
+    use std::println;
 
     use super::*;
     use crate::rr::domain::Name;
@@ -1087,25 +1146,25 @@ mod tests {
     fn get_data() -> Vec<(RData, Vec<u8>)> {
         vec![
             (
-                RData::CNAME(CNAME(Name::from_str("www.example.com").unwrap())),
+                RData::CNAME(CNAME(Name::from_str("www.example.com.").unwrap())),
                 vec![
                     3, b'w', b'w', b'w', 7, b'e', b'x', b'a', b'm', b'p', b'l', b'e', 3, b'c',
                     b'o', b'm', 0,
                 ],
             ),
             (
-                RData::MX(MX::new(256, Name::from_str("n").unwrap())),
+                RData::MX(MX::new(256, Name::from_str("n.").unwrap())),
                 vec![1, 0, 1, b'n', 0],
             ),
             (
-                RData::NS(NS(Name::from_str("www.example.com").unwrap())),
+                RData::NS(NS(Name::from_str("www.example.com.").unwrap())),
                 vec![
                     3, b'w', b'w', b'w', 7, b'e', b'x', b'a', b'm', b'p', b'l', b'e', 3, b'c',
                     b'o', b'm', 0,
                 ],
             ),
             (
-                RData::PTR(PTR(Name::from_str("www.example.com").unwrap())),
+                RData::PTR(PTR(Name::from_str("www.example.com.").unwrap())),
                 vec![
                     3, b'w', b'w', b'w', 7, b'e', b'x', b'a', b'm', b'p', b'l', b'e', 3, b'c',
                     b'o', b'm', 0,
@@ -1113,13 +1172,13 @@ mod tests {
             ),
             (
                 RData::SOA(SOA::new(
-                    Name::from_str("www.example.com").unwrap(),
-                    Name::from_str("xxx.example.com").unwrap(),
-                    u32::max_value(),
+                    Name::from_str("www.example.com.").unwrap(),
+                    Name::from_str("xxx.example.com.").unwrap(),
+                    u32::MAX,
                     -1,
                     -1,
                     -1,
-                    u32::max_value(),
+                    u32::MAX,
                 )),
                 vec![
                     3, b'w', b'w', b'w', 7, b'e', b'x', b'a', b'm', b'p', b'l', b'e', 3, b'c',
@@ -1139,9 +1198,9 @@ mod tests {
                     6, b'a', b'b', b'c', b'd', b'e', b'f', 3, b'g', b'h', b'i', 0, 1, b'j',
                 ],
             ),
-            (RData::A(A::from_str("0.0.0.0").unwrap()), vec![0, 0, 0, 0]),
+            (RData::A(A::from(Ipv4Addr::UNSPECIFIED)), vec![0, 0, 0, 0]),
             (
-                RData::AAAA(AAAA::from_str("::").unwrap()),
+                RData::AAAA(AAAA::from(Ipv6Addr::UNSPECIFIED)),
                 vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             ),
             (
@@ -1149,7 +1208,7 @@ mod tests {
                     1,
                     2,
                     3,
-                    Name::from_str("www.example.com").unwrap(),
+                    Name::from_str("www.example.com.").unwrap(),
                 )),
                 vec![
                     0x00, 0x01, 0x00, 0x02, 0x00, 0x03, 3, b'w', b'w', b'w', 7, b'e', b'x', b'a',
@@ -1167,8 +1226,8 @@ mod tests {
     #[test]
     fn test_order() {
         let ordered: Vec<RData> = vec![
-            RData::A(A::from_str("0.0.0.0").unwrap()),
-            RData::AAAA(AAAA::from_str("::").unwrap()),
+            RData::A(A::from(Ipv4Addr::UNSPECIFIED)),
+            RData::AAAA(AAAA::from(Ipv6Addr::UNSPECIFIED)),
             RData::SRV(SRV::new(
                 1,
                 2,
@@ -1182,11 +1241,11 @@ mod tests {
             RData::SOA(SOA::new(
                 Name::from_str("www.example.com").unwrap(),
                 Name::from_str("xxx.example.com").unwrap(),
-                u32::max_value(),
+                u32::MAX,
                 -1,
                 -1,
                 -1,
-                u32::max_value(),
+                u32::MAX,
             )),
             RData::TXT(TXT::new(vec![
                 "abcdef".to_string(),
@@ -1203,11 +1262,11 @@ mod tests {
             RData::SOA(SOA::new(
                 Name::from_str("www.example.com").unwrap(),
                 Name::from_str("xxx.example.com").unwrap(),
-                u32::max_value(),
+                u32::MAX,
                 -1,
                 -1,
                 -1,
-                u32::max_value(),
+                u32::MAX,
             )),
             RData::TXT(TXT::new(vec![
                 "abcdef".to_string(),
@@ -1215,8 +1274,8 @@ mod tests {
                 "".to_string(),
                 "j".to_string(),
             ])),
-            RData::A(A::from_str("0.0.0.0").unwrap()),
-            RData::AAAA(AAAA::from_str("::").unwrap()),
+            RData::A(A::from(Ipv4Addr::UNSPECIFIED)),
+            RData::AAAA(AAAA::from(Ipv6Addr::UNSPECIFIED)),
             RData::SRV(SRV::new(
                 1,
                 2,
@@ -1230,9 +1289,11 @@ mod tests {
     }
 
     #[test]
+    #[cfg_attr(not(feature = "std"), expect(clippy::unused_enumerate_index))]
     fn test_read() {
-        for (test_pass, (expect, binary)) in get_data().into_iter().enumerate() {
-            println!("test {test_pass}: {binary:?}");
+        for (_test_pass, (expect, binary)) in get_data().into_iter().enumerate() {
+            #[cfg(feature = "std")]
+            println!("test {_test_pass}: {binary:?}");
             let length = binary.len() as u16; // pre exclusive borrow
             let mut decoder = BinDecoder::new(&binary);
 
@@ -1249,11 +1310,12 @@ mod tests {
     }
 
     fn record_type_from_rdata(rdata: &RData) -> crate::rr::record_type::RecordType {
-        match *rdata {
+        match rdata {
             RData::A(..) => RecordType::A,
             RData::AAAA(..) => RecordType::AAAA,
             RData::ANAME(..) => RecordType::ANAME,
             RData::CAA(..) => RecordType::CAA,
+            RData::CERT(..) => RecordType::CERT,
             RData::CNAME(..) => RecordType::CNAME,
             RData::CSYNC(..) => RecordType::CSYNC,
             RData::HINFO(..) => RecordType::HINFO,
@@ -1271,9 +1333,10 @@ mod tests {
             RData::SVCB(..) => RecordType::SVCB,
             RData::TLSA(..) => RecordType::TLSA,
             RData::TXT(..) => RecordType::TXT,
-            #[cfg(feature = "dnssec")]
-            RData::DNSSEC(ref rdata) => rdata.to_record_type(),
-            RData::Unknown { code, .. } => code,
+            #[cfg(feature = "__dnssec")]
+            RData::DNSSEC(rdata) => rdata.to_record_type(),
+            RData::Unknown { code, .. } => *code,
+            RData::Update0(record_type) => *record_type,
             RData::ZERO => RecordType::ZERO,
         }
     }

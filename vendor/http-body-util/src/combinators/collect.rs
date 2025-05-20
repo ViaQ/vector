@@ -1,9 +1,10 @@
 use std::{
+    future::Future,
     pin::Pin,
     task::{Context, Poll},
 };
 
-use futures_util::Future;
+use futures_core::ready;
 use http_body::Body;
 use pin_project_lite::pin_project;
 
@@ -29,7 +30,7 @@ impl<T: Body + ?Sized> Future for Collect<T> {
         let mut me = self.project();
 
         loop {
-            let frame = futures_util::ready!(me.body.as_mut().poll_frame(cx));
+            let frame = ready!(me.body.as_mut().poll_frame(cx));
 
             let frame = if let Some(frame) = frame {
                 frame?

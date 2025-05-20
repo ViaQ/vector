@@ -38,6 +38,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -108,6 +109,18 @@ impl Statistic {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for Statistic {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            Statistic::Average => write!(f, "Average"),
+            Statistic::Maximum => write!(f, "Maximum"),
+            Statistic::Minimum => write!(f, "Minimum"),
+            Statistic::SampleCount => write!(f, "SampleCount"),
+            Statistic::Sum => write!(f, "Sum"),
+            Statistic::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

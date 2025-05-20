@@ -3,7 +3,7 @@ pub use crate::operation::untag_delivery_stream::_untag_delivery_stream_output::
 
 pub use crate::operation::untag_delivery_stream::_untag_delivery_stream_input::UntagDeliveryStreamInputBuilder;
 
-impl UntagDeliveryStreamInputBuilder {
+impl crate::operation::untag_delivery_stream::builders::UntagDeliveryStreamInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,9 +22,9 @@ impl UntagDeliveryStreamInputBuilder {
 }
 /// Fluent builder constructing a request to `UntagDeliveryStream`.
 ///
-/// <p>Removes tags from the specified delivery stream. Removed tags are deleted, and you can't recover them after this operation successfully completes.</p>
+/// <p>Removes tags from the specified Firehose stream. Removed tags are deleted, and you can't recover them after this operation successfully completes.</p>
 /// <p>If you specify a tag that doesn't exist, the operation ignores it.</p>
-/// <p>This operation has a limit of five transactions per second per account. </p>
+/// <p>This operation has a limit of five transactions per second per account.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct UntagDeliveryStreamFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -50,7 +50,7 @@ impl
     }
 }
 impl UntagDeliveryStreamFluentBuilder {
-    /// Creates a new `UntagDeliveryStream`.
+    /// Creates a new `UntagDeliveryStreamFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -101,29 +101,30 @@ impl UntagDeliveryStreamFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
-    /// <p>The name of the delivery stream.</p>
+    /// <p>The name of the Firehose stream.</p>
     pub fn delivery_stream_name(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.delivery_stream_name(input.into());
         self
     }
-    /// <p>The name of the delivery stream.</p>
+    /// <p>The name of the Firehose stream.</p>
     pub fn set_delivery_stream_name(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_delivery_stream_name(input);
         self
     }
-    /// <p>The name of the delivery stream.</p>
+    /// <p>The name of the Firehose stream.</p>
     pub fn get_delivery_stream_name(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_delivery_stream_name()
     }
+    ///
     /// Appends an item to `TagKeys`.
     ///
     /// To override the contents of this collection use [`set_tag_keys`](Self::set_tag_keys).

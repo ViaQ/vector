@@ -3,7 +3,6 @@ pub use ::aws_smithy_runtime_api::client::endpoint::EndpointFuture;
 pub use ::aws_smithy_runtime_api::client::endpoint::SharedEndpointResolver;
 pub use ::aws_smithy_types::endpoint::Endpoint;
 
-///
 #[cfg(test)]
 mod test {
 
@@ -558,11 +557,11 @@ mod test {
             .expect("invalid params");
         let resolver = crate::config::endpoint::DefaultResolver::new();
         let endpoint = resolver.resolve_endpoint(&params);
-        let endpoint = endpoint.expect("Expected valid endpoint: https://es.us-east-1.api.aws");
+        let endpoint = endpoint.expect("Expected valid endpoint: https://aos.us-east-1.api.aws");
         assert_eq!(
             endpoint,
             ::aws_smithy_types::endpoint::Endpoint::builder()
-                .url("https://es.us-east-1.api.aws")
+                .url("https://aos.us-east-1.api.aws")
                 .build()
         );
     }
@@ -658,11 +657,11 @@ mod test {
             .expect("invalid params");
         let resolver = crate::config::endpoint::DefaultResolver::new();
         let endpoint = resolver.resolve_endpoint(&params);
-        let endpoint = endpoint.expect("Expected valid endpoint: https://es.cn-north-1.api.amazonwebservices.com.cn");
+        let endpoint = endpoint.expect("Expected valid endpoint: https://aos.cn-north-1.api.amazonwebservices.com.cn");
         assert_eq!(
             endpoint,
             ::aws_smithy_types::endpoint::Endpoint::builder()
-                .url("https://es.cn-north-1.api.amazonwebservices.com.cn")
+                .url("https://aos.cn-north-1.api.amazonwebservices.com.cn")
                 .build()
         );
     }
@@ -778,11 +777,11 @@ mod test {
             .expect("invalid params");
         let resolver = crate::config::endpoint::DefaultResolver::new();
         let endpoint = resolver.resolve_endpoint(&params);
-        let endpoint = endpoint.expect("Expected valid endpoint: https://es.us-gov-east-1.api.aws");
+        let endpoint = endpoint.expect("Expected valid endpoint: https://aos.us-gov-east-1.api.aws");
         assert_eq!(
             endpoint,
             ::aws_smithy_types::endpoint::Endpoint::builder()
-                .url("https://es.us-gov-east-1.api.aws")
+                .url("https://aos.us-gov-east-1.api.aws")
                 .build()
         );
     }
@@ -1079,13 +1078,15 @@ pub struct DefaultResolver {
 impl DefaultResolver {
     /// Create a new endpoint resolver with default settings
     pub fn new() -> Self {
-        Self { partition_resolver: crate::endpoint_lib::partition::PartitionResolver::new_from_json(b"{\"version\":\"1.1\",\"partitions\":[{\"id\":\"aws\",\"regionRegex\":\"^(us|eu|ap|sa|ca|me|af)-\\\\w+-\\\\d+$\",\"regions\":{\"af-south-1\":{},\"ap-east-1\":{},\"ap-northeast-1\":{},\"ap-northeast-2\":{},\"ap-northeast-3\":{},\"ap-south-1\":{},\"ap-southeast-1\":{},\"ap-southeast-2\":{},\"ap-southeast-3\":{},\"ca-central-1\":{},\"eu-central-1\":{},\"eu-north-1\":{},\"eu-south-1\":{},\"eu-west-1\":{},\"eu-west-2\":{},\"eu-west-3\":{},\"me-central-1\":{},\"me-south-1\":{},\"sa-east-1\":{},\"us-east-1\":{},\"us-east-2\":{},\"us-west-1\":{},\"us-west-2\":{},\"aws-global\":{}},\"outputs\":{\"name\":\"aws\",\"dnsSuffix\":\"amazonaws.com\",\"dualStackDnsSuffix\":\"api.aws\",\"supportsFIPS\":true,\"supportsDualStack\":true}},{\"id\":\"aws-us-gov\",\"regionRegex\":\"^us\\\\-gov\\\\-\\\\w+\\\\-\\\\d+$\",\"regions\":{\"us-gov-west-1\":{},\"us-gov-east-1\":{},\"aws-us-gov-global\":{}},\"outputs\":{\"name\":\"aws-us-gov\",\"dnsSuffix\":\"amazonaws.com\",\"dualStackDnsSuffix\":\"api.aws\",\"supportsFIPS\":true,\"supportsDualStack\":true}},{\"id\":\"aws-cn\",\"regionRegex\":\"^cn\\\\-\\\\w+\\\\-\\\\d+$\",\"regions\":{\"cn-north-1\":{},\"cn-northwest-1\":{},\"aws-cn-global\":{}},\"outputs\":{\"name\":\"aws-cn\",\"dnsSuffix\":\"amazonaws.com.cn\",\"dualStackDnsSuffix\":\"api.amazonwebservices.com.cn\",\"supportsFIPS\":true,\"supportsDualStack\":true}},{\"id\":\"aws-iso\",\"regionRegex\":\"^us\\\\-iso\\\\-\\\\w+\\\\-\\\\d+$\",\"outputs\":{\"name\":\"aws-iso\",\"dnsSuffix\":\"c2s.ic.gov\",\"supportsFIPS\":true,\"supportsDualStack\":false,\"dualStackDnsSuffix\":\"c2s.ic.gov\"},\"regions\":{\"us-iso-east-1\":{},\"us-iso-west-1\":{},\"aws-iso-global\":{}}},{\"id\":\"aws-iso-b\",\"regionRegex\":\"^us\\\\-isob\\\\-\\\\w+\\\\-\\\\d+$\",\"outputs\":{\"name\":\"aws-iso-b\",\"dnsSuffix\":\"sc2s.sgov.gov\",\"supportsFIPS\":true,\"supportsDualStack\":false,\"dualStackDnsSuffix\":\"sc2s.sgov.gov\"},\"regions\":{\"us-isob-east-1\":{},\"aws-iso-b-global\":{}}}]}").expect("valid JSON") }
+        Self {
+            partition_resolver: crate::endpoint_lib::DEFAULT_PARTITION_RESOLVER.clone(),
+        }
     }
 
     fn resolve_endpoint(
         &self,
         params: &crate::config::endpoint::Params,
-    ) -> Result<::aws_smithy_types::endpoint::Endpoint, ::aws_smithy_runtime_api::box_error::BoxError> {
+    ) -> ::std::result::Result<::aws_smithy_types::endpoint::Endpoint, ::aws_smithy_runtime_api::box_error::BoxError> {
         let mut diagnostic_collector = crate::endpoint_lib::diagnostic::DiagnosticCollector::new();
         Ok(
             crate::config::endpoint::internals::resolve_endpoint(params, &mut diagnostic_collector, &self.partition_resolver)

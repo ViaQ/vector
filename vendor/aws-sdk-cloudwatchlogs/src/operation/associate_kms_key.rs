@@ -50,7 +50,17 @@ impl AssociateKmsKey {
         >,
     > {
         let input = ::aws_smithy_runtime_api::client::interceptors::context::Input::erase(input);
-        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("cloudwatchlogs", "AssociateKmsKey", input, runtime_plugins, stop_point)
+        use ::tracing::Instrument;
+        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("CloudWatch Logs", "AssociateKmsKey", input, runtime_plugins, stop_point)
+            // Create a parent span for the entire operation. Includes a random, internal-only,
+            // seven-digit ID for the operation orchestration so that it can be correlated in the logs.
+            .instrument(::tracing::debug_span!(
+                "CloudWatch Logs.AssociateKmsKey",
+                "rpc.service" = "CloudWatch Logs",
+                "rpc.method" = "AssociateKmsKey",
+                "sdk_invocation_id" = ::fastrand::u32(1_000_000..10_000_000),
+                "rpc.system" = "aws-api",
+            ))
             .await
     }
 
@@ -91,7 +101,10 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for Associa
             ::aws_smithy_runtime_api::client::auth::static_resolver::StaticAuthSchemeOptionResolverParams::new(),
         ));
 
-        cfg.store_put(::aws_smithy_http::operation::Metadata::new("AssociateKmsKey", "cloudwatchlogs"));
+        cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::Metadata::new(
+            "AssociateKmsKey",
+            "CloudWatch Logs",
+        ));
         let mut signing_options = ::aws_runtime::auth::SigningOptions::default();
         signing_options.double_uri_encode = true;
         signing_options.content_sha256_header = false;
@@ -112,11 +125,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for Associa
     ) -> ::std::borrow::Cow<'_, ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder> {
         #[allow(unused_mut)]
         let mut rcb = ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("AssociateKmsKey")
-            .with_interceptor(
-                ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::new(
-                    ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptorKind::ResponseBody,
-                ),
-            )
+            .with_interceptor(::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::default())
             .with_interceptor(AssociateKmsKeyEndpointParamsInterceptor)
             .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<
                 crate::operation::associate_kms_key::AssociateKmsKeyError,
@@ -242,16 +251,19 @@ impl ::aws_smithy_runtime_api::client::interceptors::Intercept for AssociateKmsK
     }
 }
 
+// The get_* functions below are generated from JMESPath expressions in the
+// operationContextParams trait. They target the operation's input shape.
+
 /// Error type for the `AssociateKmsKeyError` operation.
 #[non_exhaustive]
 #[derive(::std::fmt::Debug)]
 pub enum AssociateKmsKeyError {
+    /// <p>The specified resource does not exist.</p>
+    ResourceNotFoundException(crate::types::error::ResourceNotFoundException),
     /// <p>A parameter is specified incorrectly.</p>
     InvalidParameterException(crate::types::error::InvalidParameterException),
     /// <p>Multiple concurrent requests to update the same resource were in conflict.</p>
     OperationAbortedException(crate::types::error::OperationAbortedException),
-    /// <p>The specified resource does not exist.</p>
-    ResourceNotFoundException(crate::types::error::ResourceNotFoundException),
     /// <p>The service cannot complete the request.</p>
     ServiceUnavailableException(crate::types::error::ServiceUnavailableException),
     /// An unexpected error occurred (e.g., invalid JSON returned by the service or an unknown error code).
@@ -287,12 +299,16 @@ impl AssociateKmsKeyError {
     ///
     pub fn meta(&self) -> &::aws_smithy_types::error::ErrorMetadata {
         match self {
+            Self::ResourceNotFoundException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::InvalidParameterException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::OperationAbortedException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
-            Self::ResourceNotFoundException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::ServiceUnavailableException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::Unhandled(e) => &e.meta,
         }
+    }
+    /// Returns `true` if the error kind is `AssociateKmsKeyError::ResourceNotFoundException`.
+    pub fn is_resource_not_found_exception(&self) -> bool {
+        matches!(self, Self::ResourceNotFoundException(_))
     }
     /// Returns `true` if the error kind is `AssociateKmsKeyError::InvalidParameterException`.
     pub fn is_invalid_parameter_exception(&self) -> bool {
@@ -302,10 +318,6 @@ impl AssociateKmsKeyError {
     pub fn is_operation_aborted_exception(&self) -> bool {
         matches!(self, Self::OperationAbortedException(_))
     }
-    /// Returns `true` if the error kind is `AssociateKmsKeyError::ResourceNotFoundException`.
-    pub fn is_resource_not_found_exception(&self) -> bool {
-        matches!(self, Self::ResourceNotFoundException(_))
-    }
     /// Returns `true` if the error kind is `AssociateKmsKeyError::ServiceUnavailableException`.
     pub fn is_service_unavailable_exception(&self) -> bool {
         matches!(self, Self::ServiceUnavailableException(_))
@@ -314,9 +326,9 @@ impl AssociateKmsKeyError {
 impl ::std::error::Error for AssociateKmsKeyError {
     fn source(&self) -> ::std::option::Option<&(dyn ::std::error::Error + 'static)> {
         match self {
+            Self::ResourceNotFoundException(_inner) => ::std::option::Option::Some(_inner),
             Self::InvalidParameterException(_inner) => ::std::option::Option::Some(_inner),
             Self::OperationAbortedException(_inner) => ::std::option::Option::Some(_inner),
-            Self::ResourceNotFoundException(_inner) => ::std::option::Option::Some(_inner),
             Self::ServiceUnavailableException(_inner) => ::std::option::Option::Some(_inner),
             Self::Unhandled(_inner) => ::std::option::Option::Some(&*_inner.source),
         }
@@ -325,9 +337,9 @@ impl ::std::error::Error for AssociateKmsKeyError {
 impl ::std::fmt::Display for AssociateKmsKeyError {
     fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
         match self {
+            Self::ResourceNotFoundException(_inner) => _inner.fmt(f),
             Self::InvalidParameterException(_inner) => _inner.fmt(f),
             Self::OperationAbortedException(_inner) => _inner.fmt(f),
-            Self::ResourceNotFoundException(_inner) => _inner.fmt(f),
             Self::ServiceUnavailableException(_inner) => _inner.fmt(f),
             Self::Unhandled(_inner) => {
                 if let ::std::option::Option::Some(code) = ::aws_smithy_types::error::metadata::ProvideErrorMetadata::code(self) {
@@ -350,9 +362,9 @@ impl ::aws_smithy_types::retry::ProvideErrorKind for AssociateKmsKeyError {
 impl ::aws_smithy_types::error::metadata::ProvideErrorMetadata for AssociateKmsKeyError {
     fn meta(&self) -> &::aws_smithy_types::error::ErrorMetadata {
         match self {
+            Self::ResourceNotFoundException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
             Self::InvalidParameterException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
             Self::OperationAbortedException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
-            Self::ResourceNotFoundException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
             Self::ServiceUnavailableException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
             Self::Unhandled(_inner) => &_inner.meta,
         }

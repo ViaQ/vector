@@ -12,7 +12,7 @@
 [package]
 edition = "2021"
 name = "json-patch"
-version = "1.2.0"
+version = "2.0.0"
 authors = ["Ivan Dubrov <dubrov.ivan@gmail.com>"]
 description = "RFC 6902, JavaScript Object Notation (JSON) Patch"
 readme = "README.md"
@@ -24,6 +24,9 @@ categories = []
 license = "MIT/Apache-2.0"
 repository = "https://github.com/idubrov/json-patch"
 
+[dependencies.jsonptr]
+version = "0.4.7"
+
 [dependencies.serde]
 version = "1.0.159"
 features = ["derive"]
@@ -33,11 +36,6 @@ version = "1.0.95"
 
 [dependencies.thiserror]
 version = "1.0.40"
-
-[dependencies.treediff]
-version = "4.0.2"
-features = ["with-serde-json"]
-optional = true
 
 [dependencies.utoipa]
 version = "4.0"
@@ -62,4 +60,4 @@ features = ["debug"]
 
 [features]
 default = ["diff"]
-diff = ["treediff"]
+diff = []

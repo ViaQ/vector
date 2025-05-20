@@ -4,9 +4,11 @@
 //!
 //! ```no_run
 //! use openssl::ssl::{SslConnector, SslMethod};
+//! # #[cfg(feature = "runtime")]
 //! use postgres_openssl::MakeTlsConnector;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! # #[cfg(feature = "runtime")] {
 //! let mut builder = SslConnector::builder(SslMethod::tls())?;
 //! builder.set_ca_file("database_cert.pem")?;
 //! let connector = MakeTlsConnector::new(builder.build());
@@ -15,6 +17,7 @@
 //!     "host=localhost user=postgres sslmode=require",
 //!     connector,
 //! );
+//! # }
 //!
 //! // ...
 //! # Ok(())
@@ -23,9 +26,11 @@
 //!
 //! ```no_run
 //! use openssl::ssl::{SslConnector, SslMethod};
+//! # #[cfg(feature = "runtime")]
 //! use postgres_openssl::MakeTlsConnector;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! # #[cfg(feature = "runtime")] {
 //! let mut builder = SslConnector::builder(SslMethod::tls())?;
 //! builder.set_ca_file("database_cert.pem")?;
 //! let connector = MakeTlsConnector::new(builder.build());
@@ -34,6 +39,7 @@
 //!     "host=localhost user=postgres sslmode=require",
 //!     connector,
 //! )?;
+//! # }
 //!
 //! // ...
 //! # Ok(())
@@ -47,7 +53,7 @@ use openssl::hash::MessageDigest;
 use openssl::nid::Nid;
 #[cfg(feature = "runtime")]
 use openssl::ssl::SslConnector;
-use openssl::ssl::{self, ConnectConfiguration, SslRef};
+use openssl::ssl::{self, ConnectConfiguration, SslConnectorBuilder, SslRef};
 use openssl::x509::X509VerifyResult;
 use std::error::Error;
 use std::fmt::{self, Debug};
@@ -57,7 +63,7 @@ use std::pin::Pin;
 #[cfg(feature = "runtime")]
 use std::sync::Arc;
 use std::task::{Context, Poll};
-use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
+use tokio::io::{AsyncRead, AsyncWrite, BufReader, ReadBuf};
 use tokio_openssl::SslStream;
 use tokio_postgres::tls;
 #[cfg(feature = "runtime")]
@@ -67,6 +73,9 @@ use tokio_postgres::tls::{ChannelBinding, TlsConnect};
 #[cfg(test)]
 mod test;
 
+type ConfigCallback =
+    dyn Fn(&mut ConnectConfiguration, &str) -> Result<(), ErrorStack> + Sync + Send;
+
 /// A `MakeTlsConnect` implementation using the `openssl` crate.
 ///
 /// Requires the `runtime` Cargo feature (enabled by default).
@@ -74,7 +83,7 @@ mod test;
 #[derive(Clone)]
 pub struct MakeTlsConnector {
     connector: SslConnector,
-    config: Arc<dyn Fn(&mut ConnectConfiguration, &str) -> Result<(), ErrorStack> + Sync + Send>,
+    config: Arc<ConfigCallback>,
 }
 
 #[cfg(feature = "runtime")]
@@ -140,6 +149,7 @@ where
     type Future = Pin<Box<dyn Future<Output = Result<TlsStream<S>, Self::Error>> + Send>>;
 
     fn connect(self, stream: S) -> Self::Future {
+        let stream = BufReader::with_capacity(8192, stream);
         let future = async move {
             let ssl = self.ssl.into_ssl(&self.domain)?;
             let mut stream = SslStream::new(ssl, stream)?;
@@ -182,7 +192,7 @@ impl Error for ConnectError {
 }
 
 /// The stream returned by `TlsConnector`.
-pub struct TlsStream<S>(SslStream<S>);
+pub struct TlsStream<S>(SslStream<BufReader<S>>);
 
 impl<S> AsyncRead for TlsStream<S>
 where
@@ -239,4 +249,11 @@ fn tls_server_end_point(ssl: &SslRef) -> Option<Vec<u8>> {
         nid => MessageDigest::from_nid(nid)?,
     };
     cert.digest(md).ok().map(|b| b.to_vec())
+}
+
+/// Set ALPN for `SslConnectorBuilder`
+///
+/// This is required when using `sslnegotiation=direct`
+pub fn set_postgresql_alpn(builder: &mut SslConnectorBuilder) -> Result<(), ErrorStack> {
+    builder.set_alpn_protos(b"\x0apostgresql")
 }

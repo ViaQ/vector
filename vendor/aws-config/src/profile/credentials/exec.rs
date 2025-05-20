@@ -42,16 +42,19 @@ impl AssumeRoleProvider {
         let session_name = &self.session_name.as_ref().cloned().unwrap_or_else(|| {
             sts::util::default_session_name("assume-role-from-profile", self.time_source.now())
         });
-        let assume_role_creds = client
+        let assume_role_output = client
             .assume_role()
             .role_arn(&self.role_arn)
             .set_external_id(self.external_id.clone())
             .role_session_name(session_name)
             .send()
             .await
-            .map_err(CredentialsError::provider_error)?
-            .credentials;
-        sts::util::into_credentials(assume_role_creds, "AssumeRoleProvider")
+            .map_err(CredentialsError::provider_error)?;
+        sts::util::into_credentials(
+            assume_role_output.credentials,
+            assume_role_output.assumed_role_user,
+            "AssumeRoleProvider",
+        )
     }
 }
 
@@ -86,13 +89,24 @@ impl ProviderChain {
                     })?
             }
             BaseProvider::AccessKey(key) => Arc::new(key.clone()),
-            BaseProvider::CredentialProcess(_credential_process) => {
+            BaseProvider::CredentialProcess {
+                command_with_sensitive_args,
+                account_id,
+            } => {
                 #[cfg(feature = "credentials-process")]
                 {
-                    Arc::new(CredentialProcessProvider::from_command(_credential_process))
+                    Arc::new({
+                        let mut builder = CredentialProcessProvider::builder()
+                            .command(command_with_sensitive_args.to_owned_string());
+                        builder.set_account_id(
+                            account_id.map(aws_credential_types::attributes::AccountId::from),
+                        );
+                        builder.build()
+                    })
                 }
                 #[cfg(not(feature = "credentials-process"))]
                 {
+                    let _ = (command_with_sensitive_args, account_id);
                     Err(ProfileFileError::FeatureNotEnabled {
                         feature: "credentials-process".into(),
                         message: Some(
@@ -130,19 +144,24 @@ impl ProviderChain {
                 sso_region,
                 sso_role_name,
                 sso_start_url,
+                sso_session_name,
             } => {
                 #[cfg(feature = "sso")]
                 {
                     use crate::sso::{credentials::SsoProviderConfig, SsoCredentialsProvider};
                     use aws_types::region::Region;
 
+                    let (Some(sso_account_id), Some(sso_role_name)) =
+                        (sso_account_id, sso_role_name)
+                    else {
+                        return Err(ProfileFileError::TokenProviderConfig {});
+                    };
                     let sso_config = SsoProviderConfig {
                         account_id: sso_account_id.to_string(),
                         role_name: sso_role_name.to_string(),
                         start_url: sso_start_url.to_string(),
                         region: Region::new(sso_region.to_string()),
-                        // TODO(https://github.com/awslabs/aws-sdk-rust/issues/703): Implement sso_session_name profile property
-                        session_name: None,
+                        session_name: sso_session_name.map(|s| s.to_string()),
                     };
                     Arc::new(SsoCredentialsProvider::new(provider_config, sso_config))
                 }
@@ -155,12 +174,12 @@ impl ProviderChain {
                 }
             }
         };
-        tracing::info!(base = ?repr.base(), "first credentials will be loaded from {:?}", repr.base());
+        tracing::debug!(base = ?repr.base(), "first credentials will be loaded from {:?}", repr.base());
         let chain = repr
             .chain()
             .iter()
             .map(|role_arn| {
-                tracing::info!(role_arn = ?role_arn, "which will be used to assume a role");
+                tracing::debug!(role_arn = ?role_arn, "which will be used to assume a role");
                 AssumeRoleProvider {
                     role_arn: role_arn.role_arn.into(),
                     external_id: role_arn.external_id.map(Into::into),

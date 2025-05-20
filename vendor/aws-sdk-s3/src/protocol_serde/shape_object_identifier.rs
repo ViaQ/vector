@@ -2,7 +2,7 @@
 pub fn ser_object_identifier(
     input: &crate::types::ObjectIdentifier,
     writer: ::aws_smithy_xml::encode::ElWriter,
-) -> Result<(), ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<(), ::aws_smithy_types::error::operation::SerializationError> {
     #[allow(unused_mut)]
     let mut scope = writer.finish();
     {
@@ -12,6 +12,18 @@ pub fn ser_object_identifier(
     if let Some(var_1) = &input.version_id {
         let mut inner_writer = scope.start_el("VersionId").finish();
         inner_writer.data(var_1.as_str());
+    }
+    if let Some(var_2) = &input.e_tag {
+        let mut inner_writer = scope.start_el("ETag").finish();
+        inner_writer.data(var_2.as_str());
+    }
+    if let Some(var_3) = &input.last_modified_time {
+        let mut inner_writer = scope.start_el("LastModifiedTime").finish();
+        inner_writer.data(var_3.fmt(::aws_smithy_types::date_time::Format::HttpDate)?.as_ref());
+    }
+    if let Some(var_4) = &input.size {
+        let mut inner_writer = scope.start_el("Size").finish();
+        inner_writer.data(::aws_smithy_types::primitive::Encoder::from(*var_4).encode());
     }
     scope.finish();
     Ok(())

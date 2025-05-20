@@ -42,8 +42,8 @@ pub struct LaneTable<'grammar> {
     successors: Multimap<StateIndex, Set<StateIndex>>,
 }
 
-impl<'grammar> LaneTable<'grammar> {
-    pub fn new(grammar: &'grammar Grammar, conflicts: usize) -> LaneTable {
+impl LaneTable<'_> {
+    pub fn new(grammar: &Grammar, conflicts: usize) -> LaneTable<'_> {
         LaneTable {
             _grammar: grammar,
             conflicts,
@@ -55,7 +55,7 @@ impl<'grammar> LaneTable<'grammar> {
     pub fn add_lookahead(&mut self, state: StateIndex, conflict: ConflictIndex, tokens: &TokenSet) {
         self.lookaheads
             .entry((state, conflict))
-            .or_insert_with(TokenSet::new)
+            .or_default()
             .union_with(tokens);
     }
 
@@ -121,11 +121,11 @@ impl<'grammar> LaneTable<'grammar> {
                 "rows: inserting state_index={:?} conflict_index={:?} token_set={:?}",
                 state_index, conflict_index, token_set
             );
-            match {
-                map.entry(state_index)
-                    .or_insert_with(|| ContextSet::new(self.conflicts))
-                    .insert(conflict_index, token_set)
-            } {
+            match map
+                .entry(state_index)
+                .or_insert_with(|| ContextSet::new(self.conflicts))
+                .insert(conflict_index, token_set)
+            {
                 Ok(_changed) => {}
                 Err(OverlappingLookahead) => {
                     debug!("rows: intra-row conflict inserting state_index={:?} conflict_index={:?} token_set={:?}",
@@ -147,8 +147,8 @@ impl<'grammar> LaneTable<'grammar> {
     }
 }
 
-impl<'grammar> Debug for LaneTable<'grammar> {
-    fn fmt(&self, fmt: &mut Formatter) -> Result<(), Error> {
+impl Debug for LaneTable<'_> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> Result<(), Error> {
         let indices: Set<StateIndex> = self
             .lookaheads
             .keys()
@@ -167,13 +167,13 @@ impl<'grammar> Debug for LaneTable<'grammar> {
                     self.lookaheads
                         .get(&(index, ConflictIndex::new(i)))
                         .map(|token_set| format!("{:?}", token_set))
-                        .unwrap_or_else(String::new)
+                        .unwrap_or_default()
                 }))
                 .chain(Some(
                     self.successors
                         .get(&index)
                         .map(|c| format!("{:?}", c))
-                        .unwrap_or_else(String::new),
+                        .unwrap_or_default(),
                 ))
                 .collect()
         });

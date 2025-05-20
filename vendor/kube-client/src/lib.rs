@@ -59,10 +59,8 @@
 //! - [`Client`](crate::client) for the extensible Kubernetes client
 //! - [`Config`](crate::config) for the Kubernetes config abstraction
 //! - [`Api`](crate::Api) for the generic api methods available on Kubernetes resources
-//! - [k8s-openapi](https://docs.rs/k8s-openapi/*/k8s_openapi/) for how to create typed kubernetes objects directly
+//! - [k8s-openapi](https://docs.rs/k8s-openapi) for how to create typed kubernetes objects directly
 #![cfg_attr(docsrs, feature(doc_cfg))]
-#![deny(missing_docs)]
-#![forbid(unsafe_code)]
 // Nightly clippy (0.1.64) considers Drop a side effect, see https://github.com/rust-lang/rust-clippy/issues/9608
 #![allow(clippy::unnecessary_lazy_evaluations)]
 
@@ -129,17 +127,18 @@ pub use kube_core as core;
 // Can be run with `cargo test -p kube-client --lib features=rustls-tls,ws -- --ignored`
 #[cfg(all(feature = "client", feature = "config"))]
 #[cfg(test)]
+#[allow(unused_imports)] // varying test imports depending on feature
 mod test {
-    #![allow(unused_imports)]
     use crate::{
         api::{AttachParams, AttachedProcess},
         client::ConfigExt,
         Api, Client, Config, ResourceExt,
     };
-    use futures::{StreamExt, TryStreamExt};
-    use k8s_openapi::api::core::v1::Pod;
+    use futures::{AsyncBufRead, AsyncBufReadExt, StreamExt, TryStreamExt};
+    use hyper::Uri;
+    use k8s_openapi::api::core::v1::{EphemeralContainer, Pod, PodSpec};
     use kube_core::{
-        params::{DeleteParams, Patch, WatchParams},
+        params::{DeleteParams, Patch, PatchParams, PostParams, WatchParams},
         response::StatusSummary,
     };
     use serde_json::json;
@@ -149,7 +148,7 @@ mod test {
     #[cfg(feature = "when_rustls_works_with_k3d")]
     #[tokio::test]
     #[ignore = "needs cluster (lists pods)"]
-    #[cfg(all(feature = "rustls-tls"))]
+    #[cfg(feature = "rustls-tls")]
     async fn custom_client_rustls_configuration() -> Result<(), Box<dyn std::error::Error>> {
         let config = Config::infer().await?;
         let https = config.rustls_https_connector()?;
@@ -164,13 +163,15 @@ mod test {
 
     #[tokio::test]
     #[ignore = "needs cluster (lists pods)"]
-    #[cfg(all(feature = "openssl-tls"))]
+    #[cfg(feature = "openssl-tls")]
     async fn custom_client_openssl_tls_configuration() -> Result<(), Box<dyn std::error::Error>> {
+        use hyper_util::rt::TokioExecutor;
+
         let config = Config::infer().await?;
         let https = config.openssl_https_connector()?;
         let service = ServiceBuilder::new()
             .layer(config.base_uri_layer())
-            .service(hyper::Client::builder().build(https));
+            .service(hyper_util::client::legacy::Client::builder(TokioExecutor::new()).build(https));
         let client = Client::new(service, config.default_namespace);
         let pods: Api<Pod> = Api::default_namespaced(client);
         pods.list(&Default::default()).await?;
@@ -179,7 +180,7 @@ mod test {
 
     #[tokio::test]
     #[ignore = "needs cluster (lists api resources)"]
-    #[cfg(all(feature = "discovery"))]
+    #[cfg(feature = "discovery")]
     async fn group_discovery_oneshot() -> Result<(), Box<dyn std::error::Error>> {
         use crate::{core::DynamicObject, discovery};
         let client = Client::try_default().await?;
@@ -273,7 +274,7 @@ mod test {
 
     #[tokio::test]
     #[ignore = "needs cluster (will create and attach to a pod)"]
-    #[cfg(all(feature = "ws"))]
+    #[cfg(feature = "ws")]
     async fn pod_can_exec_and_write_to_stdin() -> Result<(), Box<dyn std::error::Error>> {
         use crate::api::{DeleteParams, ListParams, Patch, PatchParams, WatchEvent};
 
@@ -444,7 +445,7 @@ mod test {
             follow: true,
             ..LogParams::default()
         };
-        let mut logs_stream = pods.log_stream("busybox-kube3", &lp).await?.boxed();
+        let mut logs_stream = pods.log_stream("busybox-kube3", &lp).await?.lines();
 
         // wait for container to finish
         tokio::time::sleep(std::time::Duration::from_secs(2)).await;
@@ -453,11 +454,11 @@ mod test {
         assert_eq!(all_logs, "kube 1\nkube 2\nkube 3\nkube 4\nkube 5\n");
 
         // individual logs may or may not buffer
-        let mut output = String::new();
+        let mut output = vec![];
         while let Some(line) = logs_stream.try_next().await? {
-            output.push_str(&String::from_utf8_lossy(&line));
+            output.push(line);
         }
-        assert_eq!(output, "kube 1\nkube 2\nkube 3\nkube 4\nkube 5\n");
+        assert_eq!(output, vec!["kube 1", "kube 2", "kube 3", "kube 4", "kube 5"]);
 
         // evict the pod
         let ep = EvictParams::default();
@@ -608,6 +609,285 @@ mod test {
             approval_type.to_string()
         );
         csr.delete(csr_name, &DeleteParams::default()).await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    #[ignore = "needs cluster for ephemeral containers operations"]
+    async fn can_operate_on_ephemeral_containers() -> Result<(), Box<dyn std::error::Error>> {
+        let client = Client::try_default().await?;
+
+        // Ephemeral containers were stabilized in Kubernetes v1.25.
+        // This test therefore exits early if the current cluster version is older than v1.25.
+        let api_version = client.apiserver_version().await?;
+        if api_version.major.parse::<i32>()? < 1 || api_version.minor.parse::<i32>()? < 25 {
+            return Ok(());
+        }
+
+        let pod: Pod = serde_json::from_value(serde_json::json!({
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "name": "ephemeral-container-test",
+                "labels": { "app": "kube-rs-test" },
+            },
+            "spec": {
+                "restartPolicy": "Never",
+                "containers": [{
+                  "name": "busybox",
+                  "image": "busybox:1.34.1",
+                  "command": ["sh", "-c", "sleep 2"],
+                }],
+            }
+        }))?;
+
+        let pod_name = pod.name_any();
+        let pods = Api::<Pod>::default_namespaced(client);
+
+        // If cleanup failed and a pod already exists, we attempt to remove it
+        // before proceeding. This is important as ephemeral containers can't
+        // be removed from a Pod's spec. Therefore this test must start with a fresh
+        // Pod every time.
+        let _ = pods
+            .delete(&pod.name_any(), &DeleteParams::default())
+            .await
+            .map(|v| v.map_left(|pdel| assert_eq!(pdel.name_any(), pod.name_any())));
+
+        // Ephemeral containes can only be applied to a running pod, so one must
+        // be created before any operations are tested.
+        match pods.create(&Default::default(), &pod).await {
+            Ok(o) => assert_eq!(pod.name_unchecked(), o.name_unchecked()),
+            Err(e) => return Err(e.into()), // any other case if a failure
+        }
+
+        let current_ephemeral_containers = pods
+            .get_ephemeral_containers(&pod.name_any())
+            .await?
+            .spec
+            .unwrap()
+            .ephemeral_containers;
+
+        // We expect no ephemeral containers initially, get_ephemeral_containers should
+        // reflect that.
+        assert_eq!(current_ephemeral_containers, None);
+
+        let mut busybox_eph: EphemeralContainer = serde_json::from_value(json!(
+            {
+                "name": "myephemeralcontainer1",
+                "image": "busybox:1.34.1",
+                "command": ["sh", "-c", "sleep 2"],
+            }
+        ))?;
+
+        // Attempt to replace ephemeral containers.
+
+        let patch: Pod = serde_json::from_value(json!({
+            "metadata": { "name": pod_name },
+            "spec":{ "ephemeralContainers": [ busybox_eph ] }
+        }))?;
+
+        let current_containers = pods
+            .replace_ephemeral_containers(&pod_name, &PostParams::default(), &patch)
+            .await?
+            .spec
+            .unwrap()
+            .ephemeral_containers
+            .expect("could find ephemeral container");
+
+        // Note that we can't compare the whole ephemeral containers object, as some fields
+        // are set by the cluster. We therefore compare the fields specified in the patch.
+        assert_eq!(current_containers.len(), 1);
+        assert_eq!(current_containers[0].name, busybox_eph.name);
+        assert_eq!(current_containers[0].image, busybox_eph.image);
+        assert_eq!(current_containers[0].command, busybox_eph.command);
+
+        // Attempt to patch ephemeral containers.
+
+        // The new ephemeral container will have different values from the
+        // first to ensure we can test for its presence.
+        busybox_eph = serde_json::from_value(json!(
+            {
+                "name": "myephemeralcontainer2",
+                "image": "busybox:1.35.0",
+                "command": ["sh", "-c", "sleep 1"],
+            }
+        ))?;
+
+        let patch: Pod =
+            serde_json::from_value(json!({ "spec": { "ephemeralContainers": [ busybox_eph ] }}))?;
+
+        let current_containers = pods
+            .patch_ephemeral_containers(&pod_name, &PatchParams::default(), &Patch::Strategic(patch))
+            .await?
+            .spec
+            .unwrap()
+            .ephemeral_containers
+            .expect("could find ephemeral container");
+
+        // There should only be 2 ephemeral containers at this point,
+        // one from each patch
+        assert_eq!(current_containers.len(), 2);
+
+        let new_container = current_containers
+            .iter()
+            .find(|c| c.name == busybox_eph.name)
+            .expect("could find myephemeralcontainer2");
+
+        // Note that we can't compare the whole ephemeral container object, as some fields
+        // get set in the cluster. We therefore compare the fields specified in the patch.
+        assert_eq!(new_container.image, busybox_eph.image);
+        assert_eq!(new_container.command, busybox_eph.command);
+
+        // Attempt to get ephemeral containers.
+
+        let expected_containers = current_containers;
+
+        let current_containers = pods
+            .get_ephemeral_containers(&pod.name_any())
+            .await?
+            .spec
+            .unwrap()
+            .ephemeral_containers
+            .unwrap();
+
+        assert_eq!(current_containers, expected_containers);
+
+        pods.delete(&pod.name_any(), &DeleteParams::default())
+            .await?
+            .map_left(|pdel| {
+                assert_eq!(pdel.name_any(), pod.name_any());
+            });
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    #[ignore = "needs kubelet debug methods"]
+    #[cfg(feature = "kubelet-debug")]
+    async fn pod_can_exec_and_write_to_stdin_from_node_proxy() -> Result<(), Box<dyn std::error::Error>> {
+        use crate::{
+            api::{DeleteParams, ListParams, Patch, PatchParams, WatchEvent},
+            core::kubelet_debug::KubeletDebugParams,
+        };
+
+        let client = Client::try_default().await?;
+        let pods: Api<Pod> = Api::default_namespaced(client);
+
+        // create busybox pod that's alive for at most 30s
+        let p: Pod = serde_json::from_value(json!({
+            "apiVersion": "v1",
+            "kind": "Pod",
+            "metadata": {
+                "name": "busybox-kube2",
+                "labels": { "app": "kube-rs-test" },
+            },
+            "spec": {
+                "terminationGracePeriodSeconds": 1,
+                "restartPolicy": "Never",
+                "containers": [{
+                  "name": "busybox",
+                  "image": "busybox:1.34.1",
+                  "command": ["sh", "-c", "sleep 30"],
+                }],
+            }
+        }))?;
+
+        match pods.create(&Default::default(), &p).await {
+            Ok(o) => assert_eq!(p.name_unchecked(), o.name_unchecked()),
+            Err(crate::Error::Api(ae)) => assert_eq!(ae.code, 409), // if we failed to clean-up
+            Err(e) => return Err(e.into()),                         // any other case if a failure
+        }
+
+        // Manual watch-api for it to become ready
+        // NB: don't do this; using conditions (see pod_api example) is easier and less error prone
+        let wp = WatchParams::default()
+            .fields(&format!("metadata.name={}", "busybox-kube2"))
+            .timeout(15);
+        let mut stream = pods.watch(&wp, "0").await?.boxed();
+        while let Some(ev) = stream.try_next().await? {
+            match ev {
+                WatchEvent::Modified(o) => {
+                    let s = o.status.as_ref().expect("status exists on pod");
+                    let phase = s.phase.clone().unwrap_or_default();
+                    if phase == "Running" {
+                        break;
+                    }
+                }
+                WatchEvent::Error(e) => panic!("watch error: {e}"),
+                _ => {}
+            }
+        }
+
+        let mut config = Config::infer().await?;
+        config.accept_invalid_certs = true;
+        config.cluster_url = "https://localhost:10250".to_string().parse::<Uri>().unwrap();
+        let kubelet_client: Client = config.try_into()?;
+
+        // Verify exec works and we can get the output
+        {
+            let mut attached = kubelet_client
+                .kubelet_node_exec(
+                    &KubeletDebugParams {
+                        name: "busybox-kube2",
+                        namespace: "default",
+                        ..Default::default()
+                    },
+                    "busybox",
+                    vec!["sh", "-c", "for i in $(seq 1 3); do echo $i; done"],
+                    &AttachParams::default().stderr(false),
+                )
+                .await?;
+            let stdout = tokio_util::io::ReaderStream::new(attached.stdout().unwrap());
+            let out = stdout
+                .filter_map(|r| async { r.ok().and_then(|v| String::from_utf8(v.to_vec()).ok()) })
+                .collect::<Vec<_>>()
+                .await
+                .join("");
+            attached.join().await.unwrap();
+            assert_eq!(out.lines().count(), 3);
+            assert_eq!(out, "1\n2\n3\n");
+        }
+
+        // Verify we can write to Stdin
+        {
+            use tokio::io::AsyncWriteExt;
+            let mut attached = kubelet_client
+                .kubelet_node_exec(
+                    &KubeletDebugParams {
+                        name: "busybox-kube2",
+                        namespace: "default",
+                        ..Default::default()
+                    },
+                    "busybox",
+                    vec!["sh"],
+                    &AttachParams::default().stdin(true).stderr(false),
+                )
+                .await?;
+            let mut stdin_writer = attached.stdin().unwrap();
+            let mut stdout_stream = tokio_util::io::ReaderStream::new(attached.stdout().unwrap());
+            let next_stdout = stdout_stream.next();
+            stdin_writer.write_all(b"echo test string 1\n").await?;
+            let stdout = String::from_utf8(next_stdout.await.unwrap().unwrap().to_vec()).unwrap();
+            println!("{stdout}");
+            assert_eq!(stdout, "test string 1\n");
+
+            // AttachedProcess resolves with status object.
+            // Send `exit 1` to get a failure status.
+            stdin_writer.write_all(b"exit 1\n").await?;
+            let status = attached.take_status().unwrap();
+            if let Some(status) = status.await {
+                println!("{status:?}");
+                assert_eq!(status.status, Some("Failure".to_owned()));
+                assert_eq!(status.reason, Some("NonZeroExitCode".to_owned()));
+            }
+        }
+
+        // Delete it
+        let dp = DeleteParams::default();
+        pods.delete("busybox-kube2", &dp).await?.map_left(|pdel| {
+            assert_eq!(pdel.name_unchecked(), "busybox-kube2");
+        });
+
         Ok(())
     }
 }

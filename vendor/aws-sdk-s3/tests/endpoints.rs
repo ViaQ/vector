@@ -9,7 +9,7 @@ use aws_credential_types::provider::SharedCredentialsProvider;
 use aws_sdk_s3::config::Builder;
 use aws_sdk_s3::config::{Credentials, Region};
 use aws_sdk_s3::{Client, Config};
-use aws_smithy_runtime::client::http::test_util::{capture_request, CaptureRequestReceiver};
+use aws_smithy_http_client::test_util::{capture_request, CaptureRequestReceiver};
 
 fn test_client(update_builder: fn(Builder) -> Builder) -> (CaptureRequestReceiver, Client) {
     let (http_client, captured_request) = capture_request(None);
@@ -80,7 +80,7 @@ async fn multi_region_access_points() {
     let auth_header = captured_request.headers().get("AUTHORIZATION").unwrap();
     // Verifies that the sigv4a signing algorithm was used, that the signing scope doesn't include a region, and that the x-amz-region-set header was signed.
     let expected_start =
-        "AWS4-ECDSA-P256-SHA256 Credential=ANOTREAL/20090213/s3/aws4_request, SignedHeaders=host;x-amz-content-sha256;x-amz-date;x-amz-region-set;x-amz-user-agent, Signature=";
+        "AWS4-ECDSA-P256-SHA256 Credential=ANOTREAL/20090213/s3/aws4_request, SignedHeaders=host;x-amz-checksum-mode;x-amz-content-sha256;x-amz-date;x-amz-region-set;x-amz-user-agent, Signature=";
 
     assert!(
         auth_header.starts_with(expected_start),
@@ -151,8 +151,16 @@ async fn write_get_object_response() {
     );
 
     let captured_request = req.expect_request();
+    let uri_no_query = captured_request
+        .uri()
+        .splitn(2, '?')
+        .into_iter()
+        .next()
+        .unwrap()
+        .to_string();
+
     assert_eq!(
-        captured_request.uri().to_string(),
-        "https://req-route.s3-object-lambda.us-west-4.amazonaws.com/WriteGetObjectResponse?x-id=WriteGetObjectResponse"
+        uri_no_query,
+        "https://req-route.s3-object-lambda.us-west-4.amazonaws.com/WriteGetObjectResponse"
     );
 }

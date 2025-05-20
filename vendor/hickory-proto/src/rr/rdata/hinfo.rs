@@ -7,9 +7,10 @@
 
 //! HINFO record for storing host information
 
-use std::fmt;
+use alloc::{boxed::Box, string::String};
+use core::fmt;
 
-#[cfg(feature = "serde-config")]
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -44,7 +45,7 @@ use crate::{
 /// ```
 ///
 /// [rfc1035]: https://tools.ietf.org/html/rfc1035
-#[cfg_attr(feature = "serde-config", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "serde", derive(Deserialize, Serialize))]
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct HINFO {
     cpu: Box<[u8]>,
@@ -56,8 +57,8 @@ impl HINFO {
     ///
     /// # Arguments
     ///
-    /// * `cpu` - A <character-string> which specifies the CPU type.
-    /// * `os` - A <character-string> which specifies the operating system type.
+    /// * `cpu` - A `character-string` which specifies the CPU type.
+    /// * `os` - A `character-string` which specifies the operating system type.
     ///
     /// # Return value
     ///
@@ -74,8 +75,8 @@ impl HINFO {
     ///
     /// # Arguments
     ///
-    /// * `cpu` - A <character-string> which specifies the CPU type.
-    /// * `os` - A <character-string> which specifies the operating system type.
+    /// * `cpu` - A `character-string` which specifies the CPU type.
+    /// * `os` - A `character-string` which specifies the operating system type.
     ///
     /// # Return value
     ///
@@ -84,12 +85,12 @@ impl HINFO {
         Self { cpu, os }
     }
 
-    /// A <character-string> which specifies the CPU type.
+    /// A `character-string` which specifies the CPU type.
     pub fn cpu(&self) -> &[u8] {
         &self.cpu
     }
 
-    /// A <character-string> which specifies the operating system type.
+    /// A `character-string` which specifies the operating system type.
     pub fn os(&self) -> &[u8] {
         &self.os
     }
@@ -181,6 +182,10 @@ impl fmt::Display for HINFO {
 mod tests {
     #![allow(clippy::dbg_macro, clippy::print_stdout)]
 
+    use alloc::{string::ToString, vec::Vec};
+    #[cfg(feature = "std")]
+    use std::println;
+
     use super::*;
 
     #[test]
@@ -192,6 +197,7 @@ mod tests {
         assert!(rdata.emit(&mut encoder).is_ok());
         let bytes = encoder.into_bytes();
 
+        #[cfg(feature = "std")]
         println!("bytes: {bytes:?}");
 
         let mut decoder: BinDecoder<'_> = BinDecoder::new(bytes);
@@ -212,6 +218,7 @@ mod tests {
         assert!(rdata.emit(&mut encoder).is_ok());
         let bytes = encoder.into_bytes();
 
+        #[cfg(feature = "std")]
         println!("bytes: {bytes:?}");
 
         let mut decoder: BinDecoder<'_> = BinDecoder::new(bytes);

@@ -6,6 +6,7 @@ use crate::bitmap::store::array_store::visitor::{CardinalityCounter, VecWriter};
 use core::cmp::Ordering;
 use core::cmp::Ordering::*;
 use core::fmt::{Display, Formatter};
+use core::mem::size_of;
 use core::ops::{BitAnd, BitAndAssign, BitOr, BitXor, RangeInclusive, Sub, SubAssign};
 
 #[cfg(not(feature = "std"))]
@@ -17,7 +18,7 @@ use alloc::boxed::Box;
 use super::bitmap_store::{bit, key, BitmapStore, BITMAP_LENGTH};
 
 #[derive(Clone, Eq, PartialEq)]
-pub struct ArrayStore {
+pub(crate) struct ArrayStore {
     vec: Vec<u16>,
 }
 
@@ -26,8 +27,14 @@ impl ArrayStore {
         ArrayStore { vec: vec![] }
     }
 
+    #[cfg(feature = "std")]
     pub fn with_capacity(capacity: usize) -> ArrayStore {
         ArrayStore { vec: Vec::with_capacity(capacity) }
+    }
+
+    /// The number of total values that can be inserted without needing to reallocate.
+    pub fn capacity(&self) -> usize {
+        self.vec.capacity()
     }
 
     ///
@@ -47,6 +54,34 @@ impl ArrayStore {
         }
     }
 
+    pub fn from_lsb0_bytes(bytes: &[u8], byte_offset: usize, bits_set: u64) -> Self {
+        type Word = u64;
+
+        let mut vec = Vec::with_capacity(bits_set as usize);
+
+        let chunks = bytes.chunks_exact(size_of::<Word>());
+        let remainder = chunks.remainder();
+        for (index, chunk) in chunks.enumerate() {
+            let bit_index = (byte_offset + index * size_of::<Word>()) * 8;
+            let mut word = Word::from_le_bytes(chunk.try_into().unwrap());
+
+            while word != 0 {
+                vec.push((word.trailing_zeros() + bit_index as u32) as u16);
+                word &= word - 1;
+            }
+        }
+        for (index, mut byte) in remainder.iter().copied().enumerate() {
+            let bit_index = (byte_offset + (bytes.len() - remainder.len()) + index) * 8;
+            while byte != 0 {
+                vec.push((byte.trailing_zeros() + bit_index as u32) as u16);
+                byte &= byte - 1;
+            }
+        }
+
+        Self::from_vec_unchecked(vec)
+    }
+
+    #[inline]
     pub fn insert(&mut self, index: u16) -> bool {
         self.vec.binary_search(&index).map_err(|loc| self.vec.insert(loc, index)).is_err()
     }
@@ -208,6 +243,7 @@ impl ArrayStore {
         self.vec.first().copied()
     }
 
+    #[inline]
     pub fn max(&self) -> Option<u16> {
         self.vec.last().copied()
     }

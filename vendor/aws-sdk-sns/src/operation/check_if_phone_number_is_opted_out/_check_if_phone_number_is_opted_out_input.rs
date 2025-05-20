@@ -2,7 +2,7 @@
 
 /// <p>The input for the <code>CheckIfPhoneNumberIsOptedOut</code> action.</p>
 #[non_exhaustive]
-#[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::fmt::Debug)]
+#[derive(::std::clone::Clone, ::std::cmp::PartialEq)]
 pub struct CheckIfPhoneNumberIsOptedOutInput {
     /// <p>The phone number for which you want to check the opt out status.</p>
     pub phone_number: ::std::option::Option<::std::string::String>,
@@ -13,6 +13,13 @@ impl CheckIfPhoneNumberIsOptedOutInput {
         self.phone_number.as_deref()
     }
 }
+impl ::std::fmt::Debug for CheckIfPhoneNumberIsOptedOutInput {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+        let mut formatter = f.debug_struct("CheckIfPhoneNumberIsOptedOutInput");
+        formatter.field("phone_number", &"*** Sensitive Data Redacted ***");
+        formatter.finish()
+    }
+}
 impl CheckIfPhoneNumberIsOptedOutInput {
     /// Creates a new builder-style object to manufacture [`CheckIfPhoneNumberIsOptedOutInput`](crate::operation::check_if_phone_number_is_opted_out::CheckIfPhoneNumberIsOptedOutInput).
     pub fn builder() -> crate::operation::check_if_phone_number_is_opted_out::builders::CheckIfPhoneNumberIsOptedOutInputBuilder {
@@ -21,8 +28,8 @@ impl CheckIfPhoneNumberIsOptedOutInput {
 }
 
 /// A builder for [`CheckIfPhoneNumberIsOptedOutInput`](crate::operation::check_if_phone_number_is_opted_out::CheckIfPhoneNumberIsOptedOutInput).
+#[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::default::Default)]
 #[non_exhaustive]
-#[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::default::Default, ::std::fmt::Debug)]
 pub struct CheckIfPhoneNumberIsOptedOutInputBuilder {
     pub(crate) phone_number: ::std::option::Option<::std::string::String>,
 }
@@ -52,5 +59,12 @@ impl CheckIfPhoneNumberIsOptedOutInputBuilder {
         ::std::result::Result::Ok(crate::operation::check_if_phone_number_is_opted_out::CheckIfPhoneNumberIsOptedOutInput {
             phone_number: self.phone_number,
         })
+    }
+}
+impl ::std::fmt::Debug for CheckIfPhoneNumberIsOptedOutInputBuilder {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+        let mut formatter = f.debug_struct("CheckIfPhoneNumberIsOptedOutInputBuilder");
+        formatter.field("phone_number", &"*** Sensitive Data Redacted ***");
+        formatter.finish()
     }
 }

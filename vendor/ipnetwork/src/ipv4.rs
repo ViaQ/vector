@@ -1,4 +1,5 @@
-use crate::common::{cidr_parts, parse_prefix, IpNetworkError};
+use crate::error::IpNetworkError;
+use crate::parse::{cidr_parts, parse_prefix};
 use std::{convert::TryFrom, fmt, net::Ipv4Addr, str::FromStr};
 
 const IPV4_BITS: u8 = 32;
@@ -66,10 +67,49 @@ impl Ipv4Network {
     ///
     /// If the prefix is larger than 32 this will return an `IpNetworkError::InvalidPrefix`.
     pub const fn new(addr: Ipv4Addr, prefix: u8) -> Result<Ipv4Network, IpNetworkError> {
+        match Ipv4Network::new_checked(addr, prefix) {
+            Some(a) => Ok(a),
+            None => Err(IpNetworkError::InvalidPrefix),
+        }
+    }
+
+    /// Constructs a new `Ipv4Network` from any `Ipv4Addr`, and a prefix denoting the network size.
+    ///
+    /// If the prefix is larger than 32 this will return `None`. This is useful in const contexts,
+    /// where [`Option::unwrap`] may be called to trigger a compile-time error in case the prefix
+    /// is an unexpected value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::net::Ipv4Addr;
+    /// use ipnetwork::Ipv4Network;
+    ///
+    /// const PREFIX: u8 = 24;
+    /// const ADDR: Ipv4Addr = Ipv4Addr::new(192, 168, 1, 1);
+    ///
+    /// // Okay!
+    /// const NETWORK: Ipv4Network = Ipv4Network::new_checked(ADDR, PREFIX).unwrap();
+    /// assert_eq!(NETWORK.prefix(), PREFIX);
+    /// ```
+    ///
+    /// ```should_panic
+    /// use std::net::Ipv4Addr;
+    /// use ipnetwork::Ipv4Network;
+    ///
+    /// // Prefix is greater than 32.
+    /// const PREFIX: u8 = 32 + 1;
+    /// const ADDR: Ipv4Addr = Ipv4Addr::new(192, 168, 1, 1);
+    ///
+    /// // This fails!
+    /// const NETWORK: Option<Ipv4Network> = Ipv4Network::new_checked(ADDR, PREFIX);
+    /// assert_eq!(NETWORK.unwrap().prefix(), PREFIX);
+    /// ```
+    pub const fn new_checked(addr: Ipv4Addr, prefix: u8) -> Option<Ipv4Network> {
         if prefix > IPV4_BITS {
-            Err(IpNetworkError::InvalidPrefix)
+            None
         } else {
-            Ok(Ipv4Network { addr, prefix })
+            Some(Ipv4Network { addr, prefix })
         }
     }
 
@@ -121,8 +161,9 @@ impl Ipv4Network {
     /// Checks if the given `Ipv4Network` is partly contained in other.
     pub fn overlaps(self, other: Ipv4Network) -> bool {
         other.contains(self.ip())
-            || (other.contains(self.broadcast())
-                || (self.contains(other.ip()) || (self.contains(other.broadcast()))))
+            || other.contains(self.broadcast())
+            || self.contains(other.ip())
+            || self.contains(other.broadcast())
     }
 
     /// Returns the mask for this `Ipv4Network`.
@@ -139,9 +180,12 @@ impl Ipv4Network {
     /// let net: Ipv4Network = "127.0.0.0/16".parse().unwrap();
     /// assert_eq!(net.mask(), Ipv4Addr::new(255, 255, 0, 0));
     /// ```
-    pub fn mask(self) -> Ipv4Addr {
-        let prefix = self.prefix;
-        let mask = !(0xffff_ffff as u64 >> prefix) as u32;
+    pub fn mask(&self) -> Ipv4Addr {
+        debug_assert!(self.prefix <= 32);
+        if self.prefix == 0 {
+            return Ipv4Addr::new(0, 0, 0, 0);
+        }
+        let mask = u32::MAX << (IPV4_BITS - self.prefix);
         Ipv4Addr::from(mask)
     }
 
@@ -157,7 +201,7 @@ impl Ipv4Network {
     /// let net: Ipv4Network = "10.1.9.32/16".parse().unwrap();
     /// assert_eq!(net.network(), Ipv4Addr::new(10, 1, 0, 0));
     /// ```
-    pub fn network(self) -> Ipv4Addr {
+    pub fn network(&self) -> Ipv4Addr {
         let mask = u32::from(self.mask());
         let ip = u32::from(self.addr) & mask;
         Ipv4Addr::from(ip)
@@ -175,7 +219,7 @@ impl Ipv4Network {
     /// let net: Ipv4Network = "10.9.0.32/16".parse().unwrap();
     /// assert_eq!(net.broadcast(), Ipv4Addr::new(10, 9, 255, 255));
     /// ```
-    pub fn broadcast(self) -> Ipv4Addr {
+    pub fn broadcast(&self) -> Ipv4Addr {
         let mask = u32::from(self.mask());
         let broadcast = u32::from(self.addr) | !mask;
         Ipv4Addr::from(broadcast)
@@ -194,8 +238,10 @@ impl Ipv4Network {
     /// assert!(!net.contains(Ipv4Addr::new(127, 0, 1, 70)));
     /// ```
     #[inline]
-    pub fn contains(self, ip: Ipv4Addr) -> bool {
-        let mask = !(0xffff_ffff as u64 >> self.prefix) as u32;
+    pub fn contains(&self, ip: Ipv4Addr) -> bool {
+        debug_assert!(self.prefix <= IPV4_BITS);
+
+        let mask = !(0xffff_ffff_u64 >> self.prefix) as u32;
         let net = u32::from(self.addr) & mask;
         (u32::from(ip) & mask) == net
     }
@@ -215,8 +261,11 @@ impl Ipv4Network {
     /// assert_eq!(tinynet.size(), 1);
     /// ```
     pub fn size(self) -> u32 {
-        let host_bits = u32::from(IPV4_BITS - self.prefix);
-        (2 as u32).pow(host_bits)
+        debug_assert!(self.prefix <= 32);
+        if self.prefix == 0 {
+            return u32::MAX;
+        }
+        1 << (IPV4_BITS - self.prefix)
     }
 
     /// Returns the `n`:th address within this network.
@@ -269,8 +318,7 @@ impl FromStr for Ipv4Network {
     type Err = IpNetworkError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let (addr_str, prefix_str) = cidr_parts(s)?;
-        let addr = Ipv4Addr::from_str(addr_str)
-            .map_err(|_| IpNetworkError::InvalidAddr(addr_str.to_string()))?;
+        let addr = Ipv4Addr::from_str(addr_str)?;
         let prefix = match prefix_str {
             Some(v) => {
                 if let Ok(netmask) = Ipv4Addr::from_str(v) {
@@ -364,6 +412,18 @@ mod test {
     }
 
     #[test]
+    fn create_checked_v4() {
+        let cidr = Ipv4Network::new_checked(Ipv4Addr::new(77, 88, 21, 11), 24).unwrap();
+        assert_eq!(cidr.prefix(), 24);
+    }
+
+    #[test]
+    #[should_panic]
+    fn try_create_invalid_checked_v4() {
+        Ipv4Network::new_checked(Ipv4Addr::new(0, 0, 0, 0), 33).unwrap();
+    }
+
+    #[test]
     fn parse_v4_24bit() {
         let cidr: Ipv4Network = "127.1.0.0/24".parse().unwrap();
         assert_eq!(cidr.ip(), Ipv4Addr::new(127, 1, 0, 0));
@@ -445,6 +505,7 @@ mod test {
     }
 
     #[test]
+    #[allow(dropping_copy_types)]
     fn copy_compatibility_v4() {
         let net = Ipv4Network::new(Ipv4Addr::new(127, 0, 0, 1), 16).unwrap();
         mem::drop(net);
@@ -504,7 +565,7 @@ mod test {
     fn iterator_v4_huge() {
         let cidr: Ipv4Network = "0/0".parse().unwrap();
         let mut iter = cidr.iter();
-        for i in 0..(u32::max_value() as u64 + 1) {
+        for i in 0..(u32::MAX as u64 + 1) {
             assert_eq!(i as u32, u32::from(iter.next().unwrap()));
         }
         assert_eq!(None, iter.next());
@@ -616,9 +677,7 @@ mod test {
             assert_eq!(
                 src.is_subnet_of(dest),
                 *val,
-                "testing with {} and {}",
-                src,
-                dest
+                "testing with {src} and {dest}"
             );
         }
     }
@@ -661,9 +720,7 @@ mod test {
             assert_eq!(
                 src.is_supernet_of(dest),
                 *val,
-                "testing with {} and {}",
-                src,
-                dest
+                "testing with {src} and {dest}"
             );
         }
     }
@@ -675,9 +732,9 @@ mod test {
         let other3: Ipv4Network = "1.2.2.64/26".parse().unwrap();
 
         let skynet: Ipv4Network = "1.2.3.0/24".parse().unwrap();
-        assert_eq!(skynet.overlaps(other), true);
-        assert_eq!(skynet.overlaps(other2), false);
-        assert_eq!(other2.overlaps(other3), true);
+        assert!(skynet.overlaps(other));
+        assert!(!skynet.overlaps(other2));
+        assert!(other2.overlaps(other3));
     }
 
     #[test]

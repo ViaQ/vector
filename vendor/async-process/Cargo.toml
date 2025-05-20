@@ -10,12 +10,17 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
+edition = "2021"
 rust-version = "1.63"
 name = "async-process"
-version = "1.8.1"
+version = "2.3.0"
 authors = ["Stjepan Glavina <stjepang@gmail.com>"]
+build = false
 exclude = ["/.*"]
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Async interface for working with processes"
 readme = "README.md"
 keywords = [
@@ -32,23 +37,58 @@ categories = [
 license = "Apache-2.0 OR MIT"
 repository = "https://github.com/smol-rs/async-process"
 
+[lib]
+name = "async_process"
+path = "src/lib.rs"
+
+[[example]]
+name = "timeout"
+path = "examples/timeout.rs"
+
+[[test]]
+name = "sleep"
+path = "tests/sleep.rs"
+
+[[test]]
+name = "std"
+path = "tests/std.rs"
+
+[dependencies.async-io]
+version = "2.1.0"
+
 [dependencies.async-lock]
-version = "2.6.0"
+version = "3.0.0"
 
 [dependencies.cfg-if]
 version = "1.0"
 
 [dependencies.event-listener]
-version = "3.0.0"
+version = "5.1.0"
 
 [dependencies.futures-lite]
-version = "1.11.0"
+version = "2.0.0"
 
-[dev-dependencies.async-io]
-version = "1.8"
+[dependencies.tracing]
+version = "0.1.40"
+default-features = false
 
-[target."cfg(unix)".dependencies.async-io]
-version = "1.8"
+[dev-dependencies.async-executor]
+version = "1.5.1"
+
+[target.'cfg(all(unix, not(target_os = "linux")))'.dependencies.rustix]
+version = "0.38"
+features = [
+    "std",
+    "fs",
+    "process",
+]
+default-features = false
+
+[target.'cfg(any(windows, target_os = "linux"))'.dependencies.async-channel]
+version = "2.0.0"
+
+[target.'cfg(any(windows, target_os = "linux"))'.dependencies.async-task]
+version = "4.7.0"
 
 [target."cfg(unix)".dependencies.async-signal]
 version = "0.2.3"
@@ -64,10 +104,15 @@ default-features = false
 [target."cfg(windows)".dependencies.blocking]
 version = "1.0.0"
 
-[target."cfg(windows)".dependencies.windows-sys]
-version = "0.48"
+[target."cfg(windows)".dev-dependencies.windows-sys]
+version = "0.59"
 features = [
     "Win32_Foundation",
     "Win32_System_Threading",
 ]
 default-features = false
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+priority = 0
+check-cfg = ["cfg(async_process_force_signal_backend)"]

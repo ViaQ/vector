@@ -27,9 +27,9 @@ pub(crate) struct Handle {
 /// # }
 /// ```
 ///
-/// Occasionally, SDKs may have additional service-specific that can be set on the [`Config`] that
+/// Occasionally, SDKs may have additional service-specific values that can be set on the [`Config`] that
 /// is absent from [`SdkConfig`], or slightly different settings for a specific client may be desired.
-/// The [`Config`] struct implements `From<&SdkConfig>`, so setting these specific settings can be
+/// The [`Builder`](crate::config::Builder) struct implements `From<&SdkConfig>`, so setting these specific settings can be
 /// done as follows:
 ///
 /// ```rust,no_run
@@ -74,6 +74,20 @@ pub(crate) struct Handle {
 /// The underlying HTTP requests that get made by this can be modified with the `customize_operation`
 /// function on the fluent builder. See the [`customize`](crate::client::customize) module for more
 /// information.
+/// # Waiters
+///
+/// This client provides `wait_until` methods behind the [`Waiters`](crate::client::Waiters) trait.
+/// To use them, simply import the trait, and then call one of the `wait_until` methods. This will
+/// return a waiter fluent builder that takes various parameters, which are documented on the builder
+/// type. Once parameters have been provided, the `wait` method can be called to initiate waiting.
+///
+/// For example, if there was a `wait_until_thing` method, it could look like:
+/// ```rust,ignore
+/// let result = client.wait_until_thing()
+///     .thing_id("someId")
+///     .wait(Duration::from_secs(120))
+///     .await;
+/// ```
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct Client {
     handle: ::std::sync::Arc<Handle>,
@@ -110,13 +124,33 @@ impl Client {
         &self.handle.conf
     }
 
-    fn validate_config(handle: &Handle) -> Result<(), ::aws_smithy_runtime_api::box_error::BoxError> {
+    fn validate_config(handle: &Handle) -> ::std::result::Result<(), ::aws_smithy_runtime_api::box_error::BoxError> {
         let mut cfg = ::aws_smithy_types::config_bag::ConfigBag::base();
         handle
             .runtime_plugins
             .apply_client_configuration(&mut cfg)?
             .validate_base_client_config(&cfg)?;
         Ok(())
+    }
+}
+
+///
+/// Waiter functions for the client.
+///
+/// Import this trait to get `wait_until` methods on the client.
+///
+pub trait Waiters {
+    /// Wait for `alarm_exists`
+    fn wait_until_alarm_exists(&self) -> crate::waiters::alarm_exists::AlarmExistsFluentBuilder;
+    /// Wait for `composite_alarm_exists`
+    fn wait_until_composite_alarm_exists(&self) -> crate::waiters::composite_alarm_exists::CompositeAlarmExistsFluentBuilder;
+}
+impl Waiters for Client {
+    fn wait_until_alarm_exists(&self) -> crate::waiters::alarm_exists::AlarmExistsFluentBuilder {
+        crate::waiters::alarm_exists::AlarmExistsFluentBuilder::new(self.handle.clone())
+    }
+    fn wait_until_composite_alarm_exists(&self) -> crate::waiters::composite_alarm_exists::CompositeAlarmExistsFluentBuilder {
+        crate::waiters::composite_alarm_exists::CompositeAlarmExistsFluentBuilder::new(self.handle.clone())
     }
 }
 

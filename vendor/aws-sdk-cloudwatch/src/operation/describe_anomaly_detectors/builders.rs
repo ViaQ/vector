@@ -3,7 +3,7 @@ pub use crate::operation::describe_anomaly_detectors::_describe_anomaly_detector
 
 pub use crate::operation::describe_anomaly_detectors::_describe_anomaly_detectors_input::DescribeAnomalyDetectorsInputBuilder;
 
-impl DescribeAnomalyDetectorsInputBuilder {
+impl crate::operation::describe_anomaly_detectors::builders::DescribeAnomalyDetectorsInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -48,7 +48,7 @@ impl
     }
 }
 impl DescribeAnomalyDetectorsFluentBuilder {
-    /// Creates a new `DescribeAnomalyDetectors`.
+    /// Creates a new `DescribeAnomalyDetectorsFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -99,12 +99,12 @@ impl DescribeAnomalyDetectorsFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -129,19 +129,19 @@ impl DescribeAnomalyDetectorsFluentBuilder {
         self.inner.get_next_token()
     }
     /// <p>The maximum number of results to return in one operation. The maximum value that you can specify is 100.</p>
-    /// <p>To retrieve the remaining results, make another call with the returned <code>NextToken</code> value. </p>
+    /// <p>To retrieve the remaining results, make another call with the returned <code>NextToken</code> value.</p>
     pub fn max_results(mut self, input: i32) -> Self {
         self.inner = self.inner.max_results(input);
         self
     }
     /// <p>The maximum number of results to return in one operation. The maximum value that you can specify is 100.</p>
-    /// <p>To retrieve the remaining results, make another call with the returned <code>NextToken</code> value. </p>
+    /// <p>To retrieve the remaining results, make another call with the returned <code>NextToken</code> value.</p>
     pub fn set_max_results(mut self, input: ::std::option::Option<i32>) -> Self {
         self.inner = self.inner.set_max_results(input);
         self
     }
     /// <p>The maximum number of results to return in one operation. The maximum value that you can specify is 100.</p>
-    /// <p>To retrieve the remaining results, make another call with the returned <code>NextToken</code> value. </p>
+    /// <p>To retrieve the remaining results, make another call with the returned <code>NextToken</code> value.</p>
     pub fn get_max_results(&self) -> &::std::option::Option<i32> {
         self.inner.get_max_results()
     }
@@ -173,6 +173,7 @@ impl DescribeAnomalyDetectorsFluentBuilder {
     pub fn get_metric_name(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_metric_name()
     }
+    ///
     /// Appends an item to `Dimensions`.
     ///
     /// To override the contents of this collection use [`set_dimensions`](Self::set_dimensions).
@@ -191,6 +192,7 @@ impl DescribeAnomalyDetectorsFluentBuilder {
     pub fn get_dimensions(&self) -> &::std::option::Option<::std::vec::Vec<crate::types::Dimension>> {
         self.inner.get_dimensions()
     }
+    ///
     /// Appends an item to `AnomalyDetectorTypes`.
     ///
     /// To override the contents of this collection use [`set_anomaly_detector_types`](Self::set_anomaly_detector_types).

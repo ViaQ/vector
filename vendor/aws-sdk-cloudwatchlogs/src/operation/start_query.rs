@@ -50,7 +50,18 @@ impl StartQuery {
         >,
     > {
         let input = ::aws_smithy_runtime_api::client::interceptors::context::Input::erase(input);
-        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("cloudwatchlogs", "StartQuery", input, runtime_plugins, stop_point).await
+        use ::tracing::Instrument;
+        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("CloudWatch Logs", "StartQuery", input, runtime_plugins, stop_point)
+            // Create a parent span for the entire operation. Includes a random, internal-only,
+            // seven-digit ID for the operation orchestration so that it can be correlated in the logs.
+            .instrument(::tracing::debug_span!(
+                "CloudWatch Logs.StartQuery",
+                "rpc.service" = "CloudWatch Logs",
+                "rpc.method" = "StartQuery",
+                "sdk_invocation_id" = ::fastrand::u32(1_000_000..10_000_000),
+                "rpc.system" = "aws-api",
+            ))
+            .await
     }
 
     pub(crate) fn operation_runtime_plugins(
@@ -90,7 +101,10 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for StartQu
             ::aws_smithy_runtime_api::client::auth::static_resolver::StaticAuthSchemeOptionResolverParams::new(),
         ));
 
-        cfg.store_put(::aws_smithy_http::operation::Metadata::new("StartQuery", "cloudwatchlogs"));
+        cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::Metadata::new(
+            "StartQuery",
+            "CloudWatch Logs",
+        ));
         let mut signing_options = ::aws_runtime::auth::SigningOptions::default();
         signing_options.double_uri_encode = true;
         signing_options.content_sha256_header = false;
@@ -111,11 +125,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for StartQu
     ) -> ::std::borrow::Cow<'_, ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder> {
         #[allow(unused_mut)]
         let mut rcb = ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("StartQuery")
-            .with_interceptor(
-                ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::new(
-                    ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptorKind::ResponseBody,
-                ),
-            )
+            .with_interceptor(::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::default())
             .with_interceptor(StartQueryEndpointParamsInterceptor)
             .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<
                 crate::operation::start_query::StartQueryError,
@@ -239,19 +249,22 @@ impl ::aws_smithy_runtime_api::client::interceptors::Intercept for StartQueryEnd
     }
 }
 
+// The get_* functions below are generated from JMESPath expressions in the
+// operationContextParams trait. They target the operation's input shape.
+
 /// Error type for the `StartQueryError` operation.
 #[non_exhaustive]
 #[derive(::std::fmt::Debug)]
 pub enum StartQueryError {
-    /// <p>A parameter is specified incorrectly.</p>
-    InvalidParameterException(crate::types::error::InvalidParameterException),
-    /// <p>You have reached the maximum number of resources that can be created.</p>
-    LimitExceededException(crate::types::error::LimitExceededException),
     /// <p>The query string is not valid. Details about this error are displayed in a <code>QueryCompileError</code> object. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_QueryCompileError.html">QueryCompileError</a>.</p>
     /// <p>For more information about valid query syntax, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CWL_QuerySyntax.html">CloudWatch Logs Insights Query Syntax</a>.</p>
     MalformedQueryException(crate::types::error::MalformedQueryException),
     /// <p>The specified resource does not exist.</p>
     ResourceNotFoundException(crate::types::error::ResourceNotFoundException),
+    /// <p>A parameter is specified incorrectly.</p>
+    InvalidParameterException(crate::types::error::InvalidParameterException),
+    /// <p>You have reached the maximum number of resources that can be created.</p>
+    LimitExceededException(crate::types::error::LimitExceededException),
     /// <p>The service cannot complete the request.</p>
     ServiceUnavailableException(crate::types::error::ServiceUnavailableException),
     /// An unexpected error occurred (e.g., invalid JSON returned by the service or an unknown error code).
@@ -287,21 +300,13 @@ impl StartQueryError {
     ///
     pub fn meta(&self) -> &::aws_smithy_types::error::ErrorMetadata {
         match self {
-            Self::InvalidParameterException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
-            Self::LimitExceededException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::MalformedQueryException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::ResourceNotFoundException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
+            Self::InvalidParameterException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
+            Self::LimitExceededException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::ServiceUnavailableException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::Unhandled(e) => &e.meta,
         }
-    }
-    /// Returns `true` if the error kind is `StartQueryError::InvalidParameterException`.
-    pub fn is_invalid_parameter_exception(&self) -> bool {
-        matches!(self, Self::InvalidParameterException(_))
-    }
-    /// Returns `true` if the error kind is `StartQueryError::LimitExceededException`.
-    pub fn is_limit_exceeded_exception(&self) -> bool {
-        matches!(self, Self::LimitExceededException(_))
     }
     /// Returns `true` if the error kind is `StartQueryError::MalformedQueryException`.
     pub fn is_malformed_query_exception(&self) -> bool {
@@ -311,6 +316,14 @@ impl StartQueryError {
     pub fn is_resource_not_found_exception(&self) -> bool {
         matches!(self, Self::ResourceNotFoundException(_))
     }
+    /// Returns `true` if the error kind is `StartQueryError::InvalidParameterException`.
+    pub fn is_invalid_parameter_exception(&self) -> bool {
+        matches!(self, Self::InvalidParameterException(_))
+    }
+    /// Returns `true` if the error kind is `StartQueryError::LimitExceededException`.
+    pub fn is_limit_exceeded_exception(&self) -> bool {
+        matches!(self, Self::LimitExceededException(_))
+    }
     /// Returns `true` if the error kind is `StartQueryError::ServiceUnavailableException`.
     pub fn is_service_unavailable_exception(&self) -> bool {
         matches!(self, Self::ServiceUnavailableException(_))
@@ -319,10 +332,10 @@ impl StartQueryError {
 impl ::std::error::Error for StartQueryError {
     fn source(&self) -> ::std::option::Option<&(dyn ::std::error::Error + 'static)> {
         match self {
-            Self::InvalidParameterException(_inner) => ::std::option::Option::Some(_inner),
-            Self::LimitExceededException(_inner) => ::std::option::Option::Some(_inner),
             Self::MalformedQueryException(_inner) => ::std::option::Option::Some(_inner),
             Self::ResourceNotFoundException(_inner) => ::std::option::Option::Some(_inner),
+            Self::InvalidParameterException(_inner) => ::std::option::Option::Some(_inner),
+            Self::LimitExceededException(_inner) => ::std::option::Option::Some(_inner),
             Self::ServiceUnavailableException(_inner) => ::std::option::Option::Some(_inner),
             Self::Unhandled(_inner) => ::std::option::Option::Some(&*_inner.source),
         }
@@ -331,10 +344,10 @@ impl ::std::error::Error for StartQueryError {
 impl ::std::fmt::Display for StartQueryError {
     fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
         match self {
-            Self::InvalidParameterException(_inner) => _inner.fmt(f),
-            Self::LimitExceededException(_inner) => _inner.fmt(f),
             Self::MalformedQueryException(_inner) => _inner.fmt(f),
             Self::ResourceNotFoundException(_inner) => _inner.fmt(f),
+            Self::InvalidParameterException(_inner) => _inner.fmt(f),
+            Self::LimitExceededException(_inner) => _inner.fmt(f),
             Self::ServiceUnavailableException(_inner) => _inner.fmt(f),
             Self::Unhandled(_inner) => {
                 if let ::std::option::Option::Some(code) = ::aws_smithy_types::error::metadata::ProvideErrorMetadata::code(self) {
@@ -357,10 +370,10 @@ impl ::aws_smithy_types::retry::ProvideErrorKind for StartQueryError {
 impl ::aws_smithy_types::error::metadata::ProvideErrorMetadata for StartQueryError {
     fn meta(&self) -> &::aws_smithy_types::error::ErrorMetadata {
         match self {
-            Self::InvalidParameterException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
-            Self::LimitExceededException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
             Self::MalformedQueryException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
             Self::ResourceNotFoundException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
+            Self::InvalidParameterException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
+            Self::LimitExceededException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
             Self::ServiceUnavailableException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
             Self::Unhandled(_inner) => &_inner.meta,
         }

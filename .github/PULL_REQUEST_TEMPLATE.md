@@ -1,57 +1,14 @@
-<!--
-  Your PR title must conform to the conventional commit spec:
-  https://www.conventionalcommits.org/en/v1.0.0/
+### Description
+<!-- MANDATORY: Summarize the intent of the change in the title. Provide a text description about the issue the PR is addressing that ensures the reader understands the context, the rationale behind and catches a 1000-feet perspective of the implementation.  Enrich the description with screenshots, code blocks. Use formatting to ensure a good readability for all public audience! -->
 
-  <type>(<scope>)!: <description>
+/cc <!-- MANDATORY: Assign at least one reviewer from top-level OWNERS file -->
+/assign <!-- MANDATORY: Assign at least one approver from top-level OWNERS file -->
 
-  * `type` = chore, enhancement, feat, fix, docs, revert
-  * `!` = OPTIONAL: signals a breaking change
-  * `scope` = Optional when `type` is "chore" or "docs", available scopes https://github.com/vectordotdev/vector/blob/master/.github/workflows/semantic.yml#L31
-  * `description` = short description of the change
+<!-- OPTIONAL: Declare release name for the next release branch to get this PR cherry-picked by the bot. Example: /cherrypick release-x.y  -->
 
-Examples:
-
-  * enhancement(file source): Add `sort` option to sort discovered files
-  * feat(new source): Initial `statsd` source
-  * fix(file source): Fix a bug discovering new files
-  * chore(external docs): Clarify `batch_size` option
--->
-
-## Summary
-<!-- Please provide a brief summary about what this PR does.
-This should help the reviewers give feedback faster and with higher quality. -->
-
-## Change Type
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Non-functional (chore, refactoring, docs)
-- [ ] Performance
-
-## Is this a breaking change?
-- [ ] Yes
-- [ ] No
-
-## How did you test this PR?
-<!-- Please describe your testing plan here.
-Sharing information about your setup and the Vector configuration(s) you used (when applicable) is highly recommended.
-Providing this information upfront will facilitate a smoother review process. -->
-
-## Does this PR include user facing changes?
-
-- [ ] Yes. Please add a changelog fragment based on our [guidelines](https://github.com/vectordotdev/vector/blob/master/changelog.d/README.md).
-- [ ] No. A maintainer will apply the "no-changelog" label to this PR.
-
-## Checklist
-- [ ] Please read our [Vector contributor resources](https://github.com/vectordotdev/vector/tree/master/docs#getting-started).
-- [ ] If this PR introduces changes Vector dependencies (modifies `Cargo.lock`), please
-  run `dd-rust-license-tool write` to regenerate the [license inventory](https://github.com/vectordotdev/vrl/blob/main/LICENSE-3rdparty.csv) and commit the changes (if any). More details [here](https://crates.io/crates/dd-rust-license-tool).
-
-## References
-
-<!-- Please list any issues closed by this PR. -->
-
-<!--
-- Closes: <issue link>
--->
-
-<!-- Any other issues or PRs relevant to this PR? Feel free to list them here. -->
+### Links
+<!-- Provide links to dependent PRs, related JIRA issues or enhancement proposals related to this PR -->
+- Depending on PR(s):
+- GitHub issue:
+- JIRA:
+- Enhancement proposal:

@@ -88,6 +88,14 @@ pub struct Builder {
     /// To run before each task is spawned.
     pub(super) before_spawn: Option<TaskCallback>,
 
+    /// To run before each poll
+    #[cfg(tokio_unstable)]
+    pub(super) before_poll: Option<TaskCallback>,
+
+    /// To run after each poll
+    #[cfg(tokio_unstable)]
+    pub(super) after_poll: Option<TaskCallback>,
+
     /// To run after each task is terminated.
     pub(super) after_termination: Option<TaskCallback>,
 
@@ -105,8 +113,6 @@ pub struct Builder {
 
     /// How many ticks before yielding to the driver for timer and I/O events?
     pub(super) event_interval: u32,
-
-    pub(super) local_queue_capacity: usize,
 
     /// When true, the multi-threade scheduler LIFO slot should not be used.
     ///
@@ -214,8 +220,6 @@ pub(crate) enum Kind {
     CurrentThread,
     #[cfg(feature = "rt-multi-thread")]
     MultiThread,
-    #[cfg(all(tokio_unstable, feature = "rt-multi-thread"))]
-    MultiThreadAlt,
 }
 
 impl Builder {
@@ -245,26 +249,6 @@ impl Builder {
     pub fn new_multi_thread() -> Builder {
         // The number `61` is fairly arbitrary. I believe this value was copied from golang.
         Builder::new(Kind::MultiThread, 61)
-    }
-
-    cfg_unstable! {
-        /// Returns a new builder with the alternate multi thread scheduler
-        /// selected.
-        ///
-        /// The alternate multi threaded scheduler is an in-progress
-        /// candidate to replace the existing multi threaded scheduler. It
-        /// currently does not scale as well to 16+ processors.
-        ///
-        /// This runtime flavor is currently **not considered production
-        /// ready**.
-        ///
-        /// Configuration methods can be chained on the return value.
-        #[cfg(feature = "rt-multi-thread")]
-        #[cfg_attr(docsrs, doc(cfg(feature = "rt-multi-thread")))]
-        pub fn new_multi_thread_alt() -> Builder {
-            // The number `61` is fairly arbitrary. I believe this value was copied from golang.
-            Builder::new(Kind::MultiThreadAlt, 61)
-        }
     }
 
     /// Returns a new runtime builder initialized with default configuration
@@ -306,18 +290,17 @@ impl Builder {
             before_spawn: None,
             after_termination: None,
 
+            #[cfg(tokio_unstable)]
+            before_poll: None,
+            #[cfg(tokio_unstable)]
+            after_poll: None,
+
             keep_alive: None,
 
             // Defaults for these values depend on the scheduler kind, so we get them
             // as parameters.
             global_queue_interval: None,
             event_interval,
-
-            #[cfg(not(loom))]
-            local_queue_capacity: 256,
-
-            #[cfg(loom)]
-            local_queue_capacity: 4,
 
             seed_generator: RngSeedGenerator::new(RngSeed::new()),
 
@@ -431,6 +414,15 @@ impl Builder {
     /// requiring [`spawn_blocking`].
     ///
     /// The default value is 512.
+    ///
+    /// # Queue Behavior
+    ///
+    /// When a blocking task is submitted, it will be inserted into a queue. If available, one of
+    /// the idle threads will be notified to run the task. Otherwise, if the threshold set by this
+    /// method has not been reached, a new thread will be spawned. If no idle thread is available
+    /// and no more threads are allowed to be spawned, the task will remain in the queue until one
+    /// of the busy threads pick it up. Note that since the queue does not apply any backpressure,
+    /// it could potentially grow unbounded.
     ///
     /// # Panics
     ///
@@ -706,11 +698,11 @@ impl Builder {
     ///
     /// This *does not* support [`LocalSet`](crate::task::LocalSet) at this time.
     ///
-    /// **Note**: This is an [unstable API][unstable]. The public API of this type  
-    /// may break in 1.x releases. See [the documentation on unstable  
-    /// features][unstable] for details.  
-    ///  
-    /// [unstable]: crate#unstable-features  
+    /// **Note**: This is an [unstable API][unstable]. The public API of this type
+    /// may break in 1.x releases. See [the documentation on unstable
+    /// features][unstable] for details.
+    ///
+    /// [unstable]: crate#unstable-features
     ///
     /// # Examples
     ///
@@ -743,6 +735,92 @@ impl Builder {
         self
     }
 
+    /// Executes function `f` just before a task is polled
+    ///
+    /// `f` is called within the Tokio context, so functions like
+    /// [`tokio::spawn`](crate::spawn) can be called, and may result in this callback being
+    /// invoked immediately.
+    ///
+    /// **Note**: This is an [unstable API][unstable]. The public API of this type
+    /// may break in 1.x releases. See [the documentation on unstable
+    /// features][unstable] for details.
+    ///
+    /// [unstable]: crate#unstable-features
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use std::sync::{atomic::AtomicUsize, Arc};
+    /// # use tokio::task::yield_now;
+    /// # pub fn main() {
+    /// let poll_start_counter = Arc::new(AtomicUsize::new(0));
+    /// let poll_start = poll_start_counter.clone();
+    /// let rt = tokio::runtime::Builder::new_multi_thread()
+    ///     .enable_all()
+    ///     .on_before_task_poll(move |meta| {
+    ///         println!("task {} is about to be polled", meta.id())
+    ///     })
+    ///     .build()
+    ///     .unwrap();
+    /// let task = rt.spawn(async {
+    ///     yield_now().await;
+    /// });
+    /// let _ = rt.block_on(task);
+    ///
+    /// # }
+    /// ```
+    #[cfg(tokio_unstable)]
+    pub fn on_before_task_poll<F>(&mut self, f: F) -> &mut Self
+    where
+        F: Fn(&TaskMeta<'_>) + Send + Sync + 'static,
+    {
+        self.before_poll = Some(std::sync::Arc::new(f));
+        self
+    }
+
+    /// Executes function `f` just after a task is polled
+    ///
+    /// `f` is called within the Tokio context, so functions like
+    /// [`tokio::spawn`](crate::spawn) can be called, and may result in this callback being
+    /// invoked immediately.
+    ///
+    /// **Note**: This is an [unstable API][unstable]. The public API of this type
+    /// may break in 1.x releases. See [the documentation on unstable
+    /// features][unstable] for details.
+    ///
+    /// [unstable]: crate#unstable-features
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use std::sync::{atomic::AtomicUsize, Arc};
+    /// # use tokio::task::yield_now;
+    /// # pub fn main() {
+    /// let poll_stop_counter = Arc::new(AtomicUsize::new(0));
+    /// let poll_stop = poll_stop_counter.clone();
+    /// let rt = tokio::runtime::Builder::new_multi_thread()
+    ///     .enable_all()
+    ///     .on_after_task_poll(move |meta| {
+    ///         println!("task {} completed polling", meta.id());
+    ///     })
+    ///     .build()
+    ///     .unwrap();
+    /// let task = rt.spawn(async {
+    ///     yield_now().await;
+    /// });
+    /// let _ = rt.block_on(task);
+    ///
+    /// # }
+    /// ```
+    #[cfg(tokio_unstable)]
+    pub fn on_after_task_poll<F>(&mut self, f: F) -> &mut Self
+    where
+        F: Fn(&TaskMeta<'_>) + Send + Sync + 'static,
+    {
+        self.after_poll = Some(std::sync::Arc::new(f));
+        self
+    }
+
     /// Executes function `f` just after a task is terminated.
     ///
     /// `f` is called within the Tokio context, so functions like
@@ -755,11 +833,11 @@ impl Builder {
     ///
     /// This *does not* support [`LocalSet`](crate::task::LocalSet) at this time.
     ///
-    /// **Note**: This is an [unstable API][unstable]. The public API of this type  
-    /// may break in 1.x releases. See [the documentation on unstable  
-    /// features][unstable] for details.  
-    ///  
-    /// [unstable]: crate#unstable-features  
+    /// **Note**: This is an [unstable API][unstable]. The public API of this type
+    /// may break in 1.x releases. See [the documentation on unstable
+    /// features][unstable] for details.
+    ///
+    /// [unstable]: crate#unstable-features
     ///
     /// # Examples
     ///
@@ -812,8 +890,6 @@ impl Builder {
             Kind::CurrentThread => self.build_current_thread_runtime(),
             #[cfg(feature = "rt-multi-thread")]
             Kind::MultiThread => self.build_threaded_runtime(),
-            #[cfg(all(tokio_unstable, feature = "rt-multi-thread"))]
-            Kind::MultiThreadAlt => self.build_alt_threaded_runtime(),
         }
     }
 
@@ -848,20 +924,17 @@ impl Builder {
         }
     }
 
-    fn get_cfg(&self, workers: usize) -> driver::Cfg {
+    fn get_cfg(&self) -> driver::Cfg {
         driver::Cfg {
             enable_pause_time: match self.kind {
                 Kind::CurrentThread => true,
                 #[cfg(feature = "rt-multi-thread")]
                 Kind::MultiThread => false,
-                #[cfg(all(tokio_unstable, feature = "rt-multi-thread"))]
-                Kind::MultiThreadAlt => false,
             },
             enable_io: self.enable_io,
             enable_time: self.enable_time,
             start_paused: self.start_paused,
             nevents: self.nevents,
-            workers,
         }
     }
 
@@ -1245,8 +1318,31 @@ impl Builder {
         ///     .unwrap();
         /// ```
         ///
+        /// When migrating from the legacy histogram ([`HistogramScale::Log`]) and wanting
+        /// to match the previous behavior, use `precision_exact(0)`. This creates a histogram
+        /// where each bucket is twice the size of the previous bucket.
+        /// ```rust
+        /// use std::time::Duration;
+        /// use tokio::runtime::{HistogramConfiguration, LogHistogram};
+        /// let rt = tokio::runtime::Builder::new_current_thread()
+        ///     .enable_all()
+        ///     .enable_metrics_poll_time_histogram()
+        ///     .metrics_poll_time_histogram_configuration(HistogramConfiguration::log(
+        ///         LogHistogram::builder()
+        ///             .min_value(Duration::from_micros(20))
+        ///             .max_value(Duration::from_millis(4))
+        ///             // Set `precision_exact` to `0` to match `HistogramScale::Log`
+        ///             .precision_exact(0)
+        ///             .max_buckets(10)
+        ///             .unwrap(),
+        ///     ))
+        ///     .build()
+        ///     .unwrap();
+        /// ```
+        ///
         /// [`LogHistogram`]: crate::runtime::LogHistogram
         /// [default configuration]: crate::runtime::LogHistogramBuilder
+        /// [`HistogramScale::Log`]: crate::runtime::HistogramScale::Log
         pub fn metrics_poll_time_histogram_configuration(&mut self, configuration: HistogramConfiguration) -> &mut Self {
             self.metrics_poll_count_histogram.histogram_type = configuration.inner;
             self
@@ -1320,14 +1416,6 @@ impl Builder {
         }
     }
 
-    cfg_loom! {
-        pub(crate) fn local_queue_capacity(&mut self, value: usize) -> &mut Self {
-            assert!(value.is_power_of_two());
-            self.local_queue_capacity = value;
-            self
-        }
-    }
-
     fn build_current_thread_runtime(&mut self) -> io::Result<Runtime> {
         use crate::runtime::runtime::Scheduler;
 
@@ -1364,7 +1452,7 @@ impl Builder {
         use crate::runtime::scheduler;
         use crate::runtime::Config;
 
-        let (driver, driver_handle) = driver::Driver::new(self.get_cfg(1))?;
+        let (driver, driver_handle) = driver::Driver::new(self.get_cfg())?;
 
         // Blocking pool
         let blocking_pool = blocking::create_blocking_pool(self, self.max_blocking_threads);
@@ -1387,10 +1475,13 @@ impl Builder {
                 before_park: self.before_park.clone(),
                 after_unpark: self.after_unpark.clone(),
                 before_spawn: self.before_spawn.clone(),
+                #[cfg(tokio_unstable)]
+                before_poll: self.before_poll.clone(),
+                #[cfg(tokio_unstable)]
+                after_poll: self.after_poll.clone(),
                 after_termination: self.after_termination.clone(),
                 global_queue_interval: self.global_queue_interval,
                 event_interval: self.event_interval,
-                local_queue_capacity: self.local_queue_capacity,
                 #[cfg(tokio_unstable)]
                 unhandled_panic: self.unhandled_panic.clone(),
                 disable_lifo_slot: self.disable_lifo_slot,
@@ -1514,13 +1605,13 @@ cfg_rt_multi_thread! {
             use crate::runtime::{Config, runtime::Scheduler};
             use crate::runtime::scheduler::{self, MultiThread};
 
-            let core_threads = self.worker_threads.unwrap_or_else(num_cpus);
+            let worker_threads = self.worker_threads.unwrap_or_else(num_cpus);
 
-            let (driver, driver_handle) = driver::Driver::new(self.get_cfg(core_threads))?;
+            let (driver, driver_handle) = driver::Driver::new(self.get_cfg())?;
 
             // Create the blocking pool
             let blocking_pool =
-                blocking::create_blocking_pool(self, self.max_blocking_threads + core_threads);
+                blocking::create_blocking_pool(self, self.max_blocking_threads + worker_threads);
             let blocking_spawner = blocking_pool.spawner().clone();
 
             // Generate a rng seed for this runtime.
@@ -1528,7 +1619,7 @@ cfg_rt_multi_thread! {
             let seed_generator_2 = self.seed_generator.next_generator();
 
             let (scheduler, handle, launch) = MultiThread::new(
-                core_threads,
+                worker_threads,
                 driver,
                 driver_handle,
                 blocking_spawner,
@@ -1537,10 +1628,13 @@ cfg_rt_multi_thread! {
                     before_park: self.before_park.clone(),
                     after_unpark: self.after_unpark.clone(),
                     before_spawn: self.before_spawn.clone(),
+                    #[cfg(tokio_unstable)]
+                    before_poll: self.before_poll.clone(),
+                    #[cfg(tokio_unstable)]
+                    after_poll: self.after_poll.clone(),
                     after_termination: self.after_termination.clone(),
                     global_queue_interval: self.global_queue_interval,
                     event_interval: self.event_interval,
-                    local_queue_capacity: self.local_queue_capacity,
                     #[cfg(tokio_unstable)]
                     unhandled_panic: self.unhandled_panic.clone(),
                     disable_lifo_slot: self.disable_lifo_slot,
@@ -1556,50 +1650,6 @@ cfg_rt_multi_thread! {
             launch.launch();
 
             Ok(Runtime::from_parts(Scheduler::MultiThread(scheduler), handle, blocking_pool))
-        }
-
-        cfg_unstable! {
-            fn build_alt_threaded_runtime(&mut self) -> io::Result<Runtime> {
-                use crate::loom::sys::num_cpus;
-                use crate::runtime::{Config, runtime::Scheduler};
-                use crate::runtime::scheduler::MultiThreadAlt;
-
-                let core_threads = self.worker_threads.unwrap_or_else(num_cpus);
-                let (driver, driver_handle) = driver::Driver::new(self.get_cfg(core_threads))?;
-
-                // Create the blocking pool
-                let blocking_pool =
-                    blocking::create_blocking_pool(self, self.max_blocking_threads + core_threads);
-                let blocking_spawner = blocking_pool.spawner().clone();
-
-                // Generate a rng seed for this runtime.
-                let seed_generator_1 = self.seed_generator.next_generator();
-                let seed_generator_2 = self.seed_generator.next_generator();
-
-                let (scheduler, handle) = MultiThreadAlt::new(
-                    core_threads,
-                    driver,
-                    driver_handle,
-                    blocking_spawner,
-                    seed_generator_2,
-                    Config {
-                        before_park: self.before_park.clone(),
-                        after_unpark: self.after_unpark.clone(),
-                        before_spawn: self.before_spawn.clone(),
-                        after_termination: self.after_termination.clone(),
-                        global_queue_interval: self.global_queue_interval,
-                        event_interval: self.event_interval,
-                        local_queue_capacity: self.local_queue_capacity,
-                        #[cfg(tokio_unstable)]
-                        unhandled_panic: self.unhandled_panic.clone(),
-                        disable_lifo_slot: self.disable_lifo_slot,
-                        seed_generator: seed_generator_1,
-                        metrics_poll_count_histogram: self.metrics_poll_count_histogram_builder(),
-                    },
-                );
-
-                Ok(Runtime::from_parts(Scheduler::MultiThreadAlt(scheduler), handle, blocking_pool))
-            }
         }
     }
 }

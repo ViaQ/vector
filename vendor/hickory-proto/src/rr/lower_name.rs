@@ -7,15 +7,17 @@
 
 //! domain name, aka labels, implementation
 
-use std::borrow::Borrow;
-use std::cmp::{Ordering, PartialEq};
-use std::fmt;
-use std::hash::{Hash, Hasher};
-use std::str::FromStr;
+#[cfg(feature = "serde")]
+use alloc::string::{String, ToString};
+use core::cmp::{Ordering, PartialEq};
+use core::fmt;
+use core::hash::{Hash, Hasher};
+use core::ops::Deref;
+use core::str::FromStr;
 
 use crate::error::*;
-#[cfg(feature = "serde-config")]
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
 use crate::rr::Name;
 use crate::serialize::binary::*;
@@ -207,7 +209,7 @@ impl Ord for LowerName {
     /// ```text
     /// RFC 4034                DNSSEC Resource Records               March 2005
     ///
-    /// 6.1.  Canonical DNS LowerName Order
+    /// 6.1.  Canonical DNS Name Order
     ///
     ///  For the purposes of DNS security, owner names are ordered by treating
     ///  individual labels as unsigned left-justified octet strings.  The
@@ -266,8 +268,10 @@ impl<'a> From<&'a LowerName> for Name {
     }
 }
 
-impl Borrow<Name> for LowerName {
-    fn borrow(&self) -> &Name {
+impl Deref for LowerName {
+    type Target = Name;
+
+    fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
@@ -291,7 +295,7 @@ impl FromStr for LowerName {
     }
 }
 
-#[cfg(feature = "serde-config")]
+#[cfg(feature = "serde")]
 impl Serialize for LowerName {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -301,7 +305,7 @@ impl Serialize for LowerName {
     }
 }
 
-#[cfg(feature = "serde-config")]
+#[cfg(feature = "serde")]
 impl<'de> Deserialize<'de> for LowerName {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -310,4 +314,22 @@ impl<'de> Deserialize<'de> for LowerName {
         let s = String::deserialize(deserializer)?;
         FromStr::from_str(&s).map_err(de::Error::custom)
     }
+}
+
+#[test]
+fn test_name_lowername_roundtrip() {
+    // Test that roundtrip conversions from Name <-> LowerName <-> Name are
+    // equal and preserve is_fqdn.
+    let fqdn_name = Name::from_ascii("example.com.").unwrap();
+    let relative_name = Name::from_ascii("example.com").unwrap();
+
+    let fqdn_lname = LowerName::from(fqdn_name.clone());
+    let relative_lname = LowerName::from(relative_name.clone());
+
+    let fqdn_rt_name: Name = fqdn_lname.into();
+    let relative_rt_name: Name = relative_lname.into();
+
+    assert_eq!(fqdn_name, fqdn_rt_name);
+    assert_eq!(relative_name, relative_rt_name);
+    assert!(fqdn_rt_name != relative_rt_name);
 }

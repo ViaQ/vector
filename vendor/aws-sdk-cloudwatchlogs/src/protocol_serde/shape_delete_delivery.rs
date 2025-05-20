@@ -17,12 +17,42 @@ pub fn de_delete_delivery_http_error(
 
     let _error_message = generic.message().map(|msg| msg.to_owned());
     Err(match error_code {
+        "ThrottlingException" => crate::operation::delete_delivery::DeleteDeliveryError::ThrottlingException({
+            #[allow(unused_mut)]
+            let mut tmp = {
+                #[allow(unused_mut)]
+                let mut output = crate::types::error::builders::ThrottlingExceptionBuilder::default();
+                output = crate::protocol_serde::shape_throttling_exception::de_throttling_exception_json_err(_response_body, output)
+                    .map_err(crate::operation::delete_delivery::DeleteDeliveryError::unhandled)?;
+                let output = output.meta(generic);
+                output.build()
+            };
+            if tmp.message.is_none() {
+                tmp.message = _error_message;
+            }
+            tmp
+        }),
         "ConflictException" => crate::operation::delete_delivery::DeleteDeliveryError::ConflictException({
             #[allow(unused_mut)]
             let mut tmp = {
                 #[allow(unused_mut)]
                 let mut output = crate::types::error::builders::ConflictExceptionBuilder::default();
                 output = crate::protocol_serde::shape_conflict_exception::de_conflict_exception_json_err(_response_body, output)
+                    .map_err(crate::operation::delete_delivery::DeleteDeliveryError::unhandled)?;
+                let output = output.meta(generic);
+                output.build()
+            };
+            if tmp.message.is_none() {
+                tmp.message = _error_message;
+            }
+            tmp
+        }),
+        "ValidationException" => crate::operation::delete_delivery::DeleteDeliveryError::ValidationException({
+            #[allow(unused_mut)]
+            let mut tmp = {
+                #[allow(unused_mut)]
+                let mut output = crate::types::error::builders::ValidationExceptionBuilder::default();
+                output = crate::protocol_serde::shape_validation_exception::de_validation_exception_json_err(_response_body, output)
                     .map_err(crate::operation::delete_delivery::DeleteDeliveryError::unhandled)?;
                 let output = output.meta(generic);
                 output.build()
@@ -47,24 +77,6 @@ pub fn de_delete_delivery_http_error(
             }
             tmp
         }),
-        "ServiceQuotaExceededException" => crate::operation::delete_delivery::DeleteDeliveryError::ServiceQuotaExceededException({
-            #[allow(unused_mut)]
-            let mut tmp = {
-                #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::ServiceQuotaExceededExceptionBuilder::default();
-                output = crate::protocol_serde::shape_service_quota_exceeded_exception::de_service_quota_exceeded_exception_json_err(
-                    _response_body,
-                    output,
-                )
-                .map_err(crate::operation::delete_delivery::DeleteDeliveryError::unhandled)?;
-                let output = output.meta(generic);
-                output.build()
-            };
-            if tmp.message.is_none() {
-                tmp.message = _error_message;
-            }
-            tmp
-        }),
         "ServiceUnavailableException" => crate::operation::delete_delivery::DeleteDeliveryError::ServiceUnavailableException({
             #[allow(unused_mut)]
             let mut tmp = {
@@ -81,28 +93,16 @@ pub fn de_delete_delivery_http_error(
             }
             tmp
         }),
-        "ThrottlingException" => crate::operation::delete_delivery::DeleteDeliveryError::ThrottlingException({
+        "ServiceQuotaExceededException" => crate::operation::delete_delivery::DeleteDeliveryError::ServiceQuotaExceededException({
             #[allow(unused_mut)]
             let mut tmp = {
                 #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::ThrottlingExceptionBuilder::default();
-                output = crate::protocol_serde::shape_throttling_exception::de_throttling_exception_json_err(_response_body, output)
-                    .map_err(crate::operation::delete_delivery::DeleteDeliveryError::unhandled)?;
-                let output = output.meta(generic);
-                output.build()
-            };
-            if tmp.message.is_none() {
-                tmp.message = _error_message;
-            }
-            tmp
-        }),
-        "ValidationException" => crate::operation::delete_delivery::DeleteDeliveryError::ValidationException({
-            #[allow(unused_mut)]
-            let mut tmp = {
-                #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::ValidationExceptionBuilder::default();
-                output = crate::protocol_serde::shape_validation_exception::de_validation_exception_json_err(_response_body, output)
-                    .map_err(crate::operation::delete_delivery::DeleteDeliveryError::unhandled)?;
+                let mut output = crate::types::error::builders::ServiceQuotaExceededExceptionBuilder::default();
+                output = crate::protocol_serde::shape_service_quota_exceeded_exception::de_service_quota_exceeded_exception_json_err(
+                    _response_body,
+                    output,
+                )
+                .map_err(crate::operation::delete_delivery::DeleteDeliveryError::unhandled)?;
                 let output = output.meta(generic);
                 output.build()
             };
@@ -131,7 +131,7 @@ pub fn de_delete_delivery_http_response(
 
 pub fn ser_delete_delivery_input(
     input: &crate::operation::delete_delivery::DeleteDeliveryInput,
-) -> Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
     let mut out = String::new();
     let mut object = ::aws_smithy_json::serialize::JsonObjectWriter::new(&mut out);
     crate::protocol_serde::shape_delete_delivery_input::ser_delete_delivery_input_input(&mut object, input)?;

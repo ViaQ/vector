@@ -50,13 +50,23 @@ impl StopReplicationToReplica {
         >,
     > {
         let input = ::aws_smithy_runtime_api::client::interceptors::context::Input::erase(input);
+        use ::tracing::Instrument;
         ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point(
-            "secretsmanager",
+            "Secrets Manager",
             "StopReplicationToReplica",
             input,
             runtime_plugins,
             stop_point,
         )
+        // Create a parent span for the entire operation. Includes a random, internal-only,
+        // seven-digit ID for the operation orchestration so that it can be correlated in the logs.
+        .instrument(::tracing::debug_span!(
+            "Secrets Manager.StopReplicationToReplica",
+            "rpc.service" = "Secrets Manager",
+            "rpc.method" = "StopReplicationToReplica",
+            "sdk_invocation_id" = ::fastrand::u32(1_000_000..10_000_000),
+            "rpc.system" = "aws-api",
+        ))
         .await
     }
 
@@ -97,7 +107,10 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for StopRep
             ::aws_smithy_runtime_api::client::auth::static_resolver::StaticAuthSchemeOptionResolverParams::new(),
         ));
 
-        cfg.store_put(::aws_smithy_http::operation::Metadata::new("StopReplicationToReplica", "secretsmanager"));
+        cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::Metadata::new(
+            "StopReplicationToReplica",
+            "Secrets Manager",
+        ));
         let mut signing_options = ::aws_runtime::auth::SigningOptions::default();
         signing_options.double_uri_encode = true;
         signing_options.content_sha256_header = false;
@@ -118,11 +131,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for StopRep
     ) -> ::std::borrow::Cow<'_, ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder> {
         #[allow(unused_mut)]
         let mut rcb = ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("StopReplicationToReplica")
-            .with_interceptor(
-                ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::new(
-                    ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptorKind::ResponseBody,
-                ),
-            )
+            .with_interceptor(::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::default())
             .with_interceptor(StopReplicationToReplicaEndpointParamsInterceptor)
             .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<
                 crate::operation::stop_replication_to_replica::StopReplicationToReplicaError,
@@ -250,6 +259,9 @@ impl ::aws_smithy_runtime_api::client::interceptors::Intercept for StopReplicati
     }
 }
 
+// The get_* functions below are generated from JMESPath expressions in the
+// operationContextParams trait. They target the operation's input shape.
+
 /// Error type for the `StopReplicationToReplicaError` operation.
 #[non_exhaustive]
 #[derive(::std::fmt::Debug)]
@@ -261,9 +273,12 @@ pub enum StopReplicationToReplicaError {
     /// <p>A parameter value is not valid for the current state of the resource.</p>
     /// <p>Possible causes:</p>
     /// <ul>
-    /// <li> <p>The secret is scheduled for deletion.</p> </li>
-    /// <li> <p>You tried to enable rotation on a secret that doesn't already have a Lambda function ARN configured and you didn't include such an ARN as a parameter in this call. </p> </li>
-    /// <li> <p>The secret is managed by another service, and you must use that service to update it. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/service-linked-secrets.html">Secrets managed by other Amazon Web Services services</a>.</p> </li>
+    /// <li>
+    /// <p>The secret is scheduled for deletion.</p></li>
+    /// <li>
+    /// <p>You tried to enable rotation on a secret that doesn't already have a Lambda function ARN configured and you didn't include such an ARN as a parameter in this call.</p></li>
+    /// <li>
+    /// <p>The secret is managed by another service, and you must use that service to update it. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/service-linked-secrets.html">Secrets managed by other Amazon Web Services services</a>.</p></li>
     /// </ul>
     InvalidRequestException(crate::types::error::InvalidRequestException),
     /// <p>Secrets Manager can't find the resource that you asked for.</p>

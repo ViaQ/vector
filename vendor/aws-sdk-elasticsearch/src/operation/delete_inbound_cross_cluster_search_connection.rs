@@ -50,13 +50,23 @@ impl DeleteInboundCrossClusterSearchConnection {
         >,
     > {
         let input = ::aws_smithy_runtime_api::client::interceptors::context::Input::erase(input);
+        use ::tracing::Instrument;
         ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point(
-            "elasticsearchservice",
+            "Elasticsearch Service",
             "DeleteInboundCrossClusterSearchConnection",
             input,
             runtime_plugins,
             stop_point,
         )
+        // Create a parent span for the entire operation. Includes a random, internal-only,
+        // seven-digit ID for the operation orchestration so that it can be correlated in the logs.
+        .instrument(::tracing::debug_span!(
+            "Elasticsearch Service.DeleteInboundCrossClusterSearchConnection",
+            "rpc.service" = "Elasticsearch Service",
+            "rpc.method" = "DeleteInboundCrossClusterSearchConnection",
+            "sdk_invocation_id" = ::fastrand::u32(1_000_000..10_000_000),
+            "rpc.system" = "aws-api",
+        ))
         .await
     }
 
@@ -97,9 +107,9 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for DeleteI
             ::aws_smithy_runtime_api::client::auth::static_resolver::StaticAuthSchemeOptionResolverParams::new(),
         ));
 
-        cfg.store_put(::aws_smithy_http::operation::Metadata::new(
+        cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::Metadata::new(
             "DeleteInboundCrossClusterSearchConnection",
-            "elasticsearchservice",
+            "Elasticsearch Service",
         ));
         let mut signing_options = ::aws_runtime::auth::SigningOptions::default();
         signing_options.double_uri_encode = true;
@@ -122,11 +132,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for DeleteI
         #[allow(unused_mut)]
         let mut rcb =
             ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("DeleteInboundCrossClusterSearchConnection")
-                .with_interceptor(
-                    ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::new(
-                        ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptorKind::ResponseBody,
-                    ),
-                )
+                .with_interceptor(::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::default())
                 .with_interceptor(DeleteInboundCrossClusterSearchConnectionEndpointParamsInterceptor)
                 .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<
                     crate::operation::delete_inbound_cross_cluster_search_connection::DeleteInboundCrossClusterSearchConnectionError,
@@ -261,6 +267,9 @@ impl ::aws_smithy_runtime_api::client::interceptors::Intercept for DeleteInbound
         ::std::result::Result::Ok(())
     }
 }
+
+// The get_* functions below are generated from JMESPath expressions in the
+// operationContextParams trait. They target the operation's input shape.
 
 /// Error type for the `DeleteInboundCrossClusterSearchConnectionError` operation.
 #[non_exhaustive]

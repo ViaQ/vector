@@ -48,6 +48,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -174,6 +175,28 @@ impl InventoryOptionalField {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for InventoryOptionalField {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            InventoryOptionalField::BucketKeyStatus => write!(f, "BucketKeyStatus"),
+            InventoryOptionalField::ChecksumAlgorithm => write!(f, "ChecksumAlgorithm"),
+            InventoryOptionalField::ETag => write!(f, "ETag"),
+            InventoryOptionalField::EncryptionStatus => write!(f, "EncryptionStatus"),
+            InventoryOptionalField::IntelligentTieringAccessTier => write!(f, "IntelligentTieringAccessTier"),
+            InventoryOptionalField::IsMultipartUploaded => write!(f, "IsMultipartUploaded"),
+            InventoryOptionalField::LastModifiedDate => write!(f, "LastModifiedDate"),
+            InventoryOptionalField::ObjectAccessControlList => write!(f, "ObjectAccessControlList"),
+            InventoryOptionalField::ObjectLockLegalHoldStatus => write!(f, "ObjectLockLegalHoldStatus"),
+            InventoryOptionalField::ObjectLockMode => write!(f, "ObjectLockMode"),
+            InventoryOptionalField::ObjectLockRetainUntilDate => write!(f, "ObjectLockRetainUntilDate"),
+            InventoryOptionalField::ObjectOwner => write!(f, "ObjectOwner"),
+            InventoryOptionalField::ReplicationStatus => write!(f, "ReplicationStatus"),
+            InventoryOptionalField::Size => write!(f, "Size"),
+            InventoryOptionalField::StorageClass => write!(f, "StorageClass"),
+            InventoryOptionalField::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

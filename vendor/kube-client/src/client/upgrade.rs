@@ -1,7 +1,8 @@
 use http::{self, Response, StatusCode};
-use hyper::Body;
 use thiserror::Error;
 use tokio_tungstenite::tungstenite as ws;
+
+use crate::client::Body;
 
 // Binary subprotocol v4. See `Client::connect`.
 pub const WS_PROTOCOL: &str = "v4.channel.k8s.io";
@@ -38,7 +39,6 @@ pub enum UpgradeConnectionError {
     #[error("failed to get pending HTTP upgrade: {0}")]
     GetPendingUpgrade(#[source] hyper::Error),
 }
-
 
 // Verify upgrade response according to RFC6455.
 // Based on `tungstenite` and added subprotocol verification.
@@ -90,6 +90,7 @@ pub fn verify_response(res: &Response<Body>, key: &str) -> Result<(), UpgradeCon
 /// Generate a random key for the `Sec-WebSocket-Key` header.
 /// This must be nonce consisting of a randomly selected 16-byte value in base64.
 pub fn sec_websocket_key() -> String {
+    use base64::Engine;
     let r: [u8; 16] = rand::random();
-    base64::encode(r)
+    base64::engine::general_purpose::STANDARD.encode(r)
 }

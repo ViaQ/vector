@@ -1,3 +1,5 @@
+#![doc = include_str!("../README.md")]
+#![warn(missing_docs)]
 // Need this for rusty_peg
 #![recursion_limit = "256"]
 // I hate this lint.
@@ -7,26 +9,12 @@
 //
 // ε shows up in lalrpop/src/lr1/example/test.rs
 #![cfg_attr(test, allow(dead_code, mixed_script_confusables))]
-
-extern crate ascii_canvas;
-extern crate bit_set;
-extern crate diff;
-extern crate ena;
-extern crate is_terminal;
-extern crate itertools;
-extern crate petgraph;
-extern crate regex;
-extern crate regex_syntax;
-extern crate string_cache;
-extern crate term;
-extern crate tiny_keccak;
-extern crate unicode_xid;
-
-#[cfg_attr(feature = "test", macro_use)]
-extern crate lalrpop_util;
-
-#[cfg(test)]
-extern crate rand;
+#![warn(rust_2018_idioms)]
+#![deny(clippy::exit)]
+#![warn(clippy::cargo)]
+// This is implied by clippy::cargo, but the version overlap may happen deep in
+// our dependency tree and there's little we can do about it.
+#![allow(clippy::multiple_crate_versions)]
 
 // hoist the modules that define macros up earlier
 #[macro_use]
@@ -56,6 +44,8 @@ mod generate;
 mod test_util;
 
 pub use crate::api::process_root;
+#[allow(deprecated)]
 pub use crate::api::process_root_unconditionally;
+pub use crate::api::process_src;
 pub use crate::api::Configuration;
 use ascii_canvas::style;

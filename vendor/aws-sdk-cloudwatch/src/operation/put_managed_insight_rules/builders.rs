@@ -3,7 +3,7 @@ pub use crate::operation::put_managed_insight_rules::_put_managed_insight_rules_
 
 pub use crate::operation::put_managed_insight_rules::_put_managed_insight_rules_input::PutManagedInsightRulesInputBuilder;
 
-impl PutManagedInsightRulesInputBuilder {
+impl crate::operation::put_managed_insight_rules::builders::PutManagedInsightRulesInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,7 +22,7 @@ impl PutManagedInsightRulesInputBuilder {
 }
 /// Fluent builder constructing a request to `PutManagedInsightRules`.
 ///
-/// <p> Creates a managed Contributor Insights rule for a specified Amazon Web Services resource. When you enable a managed rule, you create a Contributor Insights rule that collects data from Amazon Web Services services. You cannot edit these rules with <code>PutInsightRule</code>. The rules can be enabled, disabled, and deleted using <code>EnableInsightRules</code>, <code>DisableInsightRules</code>, and <code>DeleteInsightRules</code>. If a previously created managed rule is currently disabled, a subsequent call to this API will re-enable it. Use <code>ListManagedInsightRules</code> to describe all available rules. </p>
+/// <p>Creates a managed Contributor Insights rule for a specified Amazon Web Services resource. When you enable a managed rule, you create a Contributor Insights rule that collects data from Amazon Web Services services. You cannot edit these rules with <code>PutInsightRule</code>. The rules can be enabled, disabled, and deleted using <code>EnableInsightRules</code>, <code>DisableInsightRules</code>, and <code>DeleteInsightRules</code>. If a previously created managed rule is currently disabled, a subsequent call to this API will re-enable it. Use <code>ListManagedInsightRules</code> to describe all available rules.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct PutManagedInsightRulesFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -48,7 +48,7 @@ impl
     }
 }
 impl PutManagedInsightRulesFluentBuilder {
-    /// Creates a new `PutManagedInsightRules`.
+    /// Creates a new `PutManagedInsightRulesFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -99,30 +99,31 @@ impl PutManagedInsightRulesFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
+    ///
     /// Appends an item to `ManagedRules`.
     ///
     /// To override the contents of this collection use [`set_managed_rules`](Self::set_managed_rules).
     ///
-    /// <p> A list of <code>ManagedRules</code> to enable. </p>
+    /// <p>A list of <code>ManagedRules</code> to enable.</p>
     pub fn managed_rules(mut self, input: crate::types::ManagedRule) -> Self {
         self.inner = self.inner.managed_rules(input);
         self
     }
-    /// <p> A list of <code>ManagedRules</code> to enable. </p>
+    /// <p>A list of <code>ManagedRules</code> to enable.</p>
     pub fn set_managed_rules(mut self, input: ::std::option::Option<::std::vec::Vec<crate::types::ManagedRule>>) -> Self {
         self.inner = self.inner.set_managed_rules(input);
         self
     }
-    /// <p> A list of <code>ManagedRules</code> to enable. </p>
+    /// <p>A list of <code>ManagedRules</code> to enable.</p>
     pub fn get_managed_rules(&self) -> &::std::option::Option<::std::vec::Vec<crate::types::ManagedRule>> {
         self.inner.get_managed_rules()
     }

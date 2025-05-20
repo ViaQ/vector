@@ -3,7 +3,7 @@ pub use crate::operation::tag_resource::_tag_resource_output::TagResourceOutputB
 
 pub use crate::operation::tag_resource::_tag_resource_input::TagResourceInputBuilder;
 
-impl TagResourceInputBuilder {
+impl crate::operation::tag_resource::builders::TagResourceInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -25,11 +25,16 @@ impl TagResourceInputBuilder {
 /// <p>Add tags to the specified Amazon SNS topic. For an overview, see <a href="https://docs.aws.amazon.com/sns/latest/dg/sns-tags.html">Amazon SNS Tags</a> in the <i>Amazon SNS Developer Guide</i>.</p>
 /// <p>When you use topic tags, keep the following guidelines in mind:</p>
 /// <ul>
-/// <li> <p>Adding more than 50 tags to a topic isn't recommended.</p> </li>
-/// <li> <p>Tags don't have any semantic meaning. Amazon SNS interprets tags as character strings.</p> </li>
-/// <li> <p>Tags are case-sensitive.</p> </li>
-/// <li> <p>A new tag with a key identical to that of an existing tag overwrites the existing tag.</p> </li>
-/// <li> <p>Tagging actions are limited to 10 TPS per Amazon Web Services account, per Amazon Web Services Region. If your application requires a higher throughput, file a <a href="https://console.aws.amazon.com/support/home#/case/create?issueType=technical">technical support request</a>.</p> </li>
+/// <li>
+/// <p>Adding more than 50 tags to a topic isn't recommended.</p></li>
+/// <li>
+/// <p>Tags don't have any semantic meaning. Amazon SNS interprets tags as character strings.</p></li>
+/// <li>
+/// <p>Tags are case-sensitive.</p></li>
+/// <li>
+/// <p>A new tag with a key identical to that of an existing tag overwrites the existing tag.</p></li>
+/// <li>
+/// <p>Tagging actions are limited to 10 TPS per Amazon Web Services account, per Amazon Web Services Region. If your application requires a higher throughput, file a <a href="https://console.aws.amazon.com/support/home#/case/create?issueType=technical">technical support request</a>.</p></li>
 /// </ul>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct TagResourceFluentBuilder {
@@ -56,7 +61,7 @@ impl
     }
 }
 impl TagResourceFluentBuilder {
-    /// Creates a new `TagResource`.
+    /// Creates a new `TagResourceFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -107,12 +112,12 @@ impl TagResourceFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -130,6 +135,7 @@ impl TagResourceFluentBuilder {
     pub fn get_resource_arn(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_resource_arn()
     }
+    ///
     /// Appends an item to `Tags`.
     ///
     /// To override the contents of this collection use [`set_tags`](Self::set_tags).

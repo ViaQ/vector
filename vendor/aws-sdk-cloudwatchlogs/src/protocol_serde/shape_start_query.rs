@@ -17,36 +17,6 @@ pub fn de_start_query_http_error(
 
     let _error_message = generic.message().map(|msg| msg.to_owned());
     Err(match error_code {
-        "InvalidParameterException" => crate::operation::start_query::StartQueryError::InvalidParameterException({
-            #[allow(unused_mut)]
-            let mut tmp = {
-                #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::InvalidParameterExceptionBuilder::default();
-                output = crate::protocol_serde::shape_invalid_parameter_exception::de_invalid_parameter_exception_json_err(_response_body, output)
-                    .map_err(crate::operation::start_query::StartQueryError::unhandled)?;
-                let output = output.meta(generic);
-                output.build()
-            };
-            if tmp.message.is_none() {
-                tmp.message = _error_message;
-            }
-            tmp
-        }),
-        "LimitExceededException" => crate::operation::start_query::StartQueryError::LimitExceededException({
-            #[allow(unused_mut)]
-            let mut tmp = {
-                #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::LimitExceededExceptionBuilder::default();
-                output = crate::protocol_serde::shape_limit_exceeded_exception::de_limit_exceeded_exception_json_err(_response_body, output)
-                    .map_err(crate::operation::start_query::StartQueryError::unhandled)?;
-                let output = output.meta(generic);
-                output.build()
-            };
-            if tmp.message.is_none() {
-                tmp.message = _error_message;
-            }
-            tmp
-        }),
         "MalformedQueryException" => crate::operation::start_query::StartQueryError::MalformedQueryException({
             #[allow(unused_mut)]
             let mut tmp = {
@@ -68,6 +38,36 @@ pub fn de_start_query_http_error(
                 #[allow(unused_mut)]
                 let mut output = crate::types::error::builders::ResourceNotFoundExceptionBuilder::default();
                 output = crate::protocol_serde::shape_resource_not_found_exception::de_resource_not_found_exception_json_err(_response_body, output)
+                    .map_err(crate::operation::start_query::StartQueryError::unhandled)?;
+                let output = output.meta(generic);
+                output.build()
+            };
+            if tmp.message.is_none() {
+                tmp.message = _error_message;
+            }
+            tmp
+        }),
+        "InvalidParameterException" => crate::operation::start_query::StartQueryError::InvalidParameterException({
+            #[allow(unused_mut)]
+            let mut tmp = {
+                #[allow(unused_mut)]
+                let mut output = crate::types::error::builders::InvalidParameterExceptionBuilder::default();
+                output = crate::protocol_serde::shape_invalid_parameter_exception::de_invalid_parameter_exception_json_err(_response_body, output)
+                    .map_err(crate::operation::start_query::StartQueryError::unhandled)?;
+                let output = output.meta(generic);
+                output.build()
+            };
+            if tmp.message.is_none() {
+                tmp.message = _error_message;
+            }
+            tmp
+        }),
+        "LimitExceededException" => crate::operation::start_query::StartQueryError::LimitExceededException({
+            #[allow(unused_mut)]
+            let mut tmp = {
+                #[allow(unused_mut)]
+                let mut output = crate::types::error::builders::LimitExceededExceptionBuilder::default();
+                output = crate::protocol_serde::shape_limit_exceeded_exception::de_limit_exceeded_exception_json_err(_response_body, output)
                     .map_err(crate::operation::start_query::StartQueryError::unhandled)?;
                 let output = output.meta(generic);
                 output.build()
@@ -115,7 +115,7 @@ pub fn de_start_query_http_response(
 
 pub fn ser_start_query_input(
     input: &crate::operation::start_query::StartQueryInput,
-) -> Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
     let mut out = String::new();
     let mut object = ::aws_smithy_json::serialize::JsonObjectWriter::new(&mut out);
     crate::protocol_serde::shape_start_query_input::ser_start_query_input_input(&mut object, input)?;
@@ -126,7 +126,8 @@ pub fn ser_start_query_input(
 pub(crate) fn de_start_query(
     value: &[u8],
     mut builder: crate::operation::start_query::builders::StartQueryOutputBuilder,
-) -> Result<crate::operation::start_query::builders::StartQueryOutputBuilder, ::aws_smithy_json::deserialize::error::DeserializeError> {
+) -> ::std::result::Result<crate::operation::start_query::builders::StartQueryOutputBuilder, ::aws_smithy_json::deserialize::error::DeserializeError>
+{
     let mut tokens_owned = ::aws_smithy_json::deserialize::json_token_iter(crate::protocol_serde::or_empty_doc(value)).peekable();
     let tokens = &mut tokens_owned;
     ::aws_smithy_json::deserialize::token::expect_start_object(tokens.next())?;

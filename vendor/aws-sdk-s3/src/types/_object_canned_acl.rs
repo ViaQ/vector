@@ -40,6 +40,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -126,6 +127,20 @@ impl ObjectCannedAcl {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for ObjectCannedAcl {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            ObjectCannedAcl::AuthenticatedRead => write!(f, "authenticated-read"),
+            ObjectCannedAcl::AwsExecRead => write!(f, "aws-exec-read"),
+            ObjectCannedAcl::BucketOwnerFullControl => write!(f, "bucket-owner-full-control"),
+            ObjectCannedAcl::BucketOwnerRead => write!(f, "bucket-owner-read"),
+            ObjectCannedAcl::Private => write!(f, "private"),
+            ObjectCannedAcl::PublicRead => write!(f, "public-read"),
+            ObjectCannedAcl::PublicReadWrite => write!(f, "public-read-write"),
+            ObjectCannedAcl::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

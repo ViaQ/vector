@@ -1,8 +1,5 @@
 #![cfg(all(test, feature = "test_e2e", feature = "md5"))]
-#[macro_use]
-extern crate log;
-
-use azure_core::date;
+use azure_core::{date, Url};
 use azure_storage::prelude::*;
 use azure_storage_blobs::container::operations::ListBlobsResponse;
 use azure_storage_blobs::{blob::BlockListType, container::PublicAccess, prelude::*};
@@ -11,7 +8,7 @@ use futures::StreamExt;
 use std::ops::{Add, Deref};
 use std::time::Duration;
 use time::OffsetDateTime;
-use url::Url;
+use tracing::trace;
 use uuid::Uuid;
 
 #[tokio::test]

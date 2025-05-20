@@ -3,7 +3,7 @@ pub use crate::operation::describe_deliveries::_describe_deliveries_output::Desc
 
 pub use crate::operation::describe_deliveries::_describe_deliveries_input::DescribeDeliveriesInputBuilder;
 
-impl DescribeDeliveriesInputBuilder {
+impl crate::operation::describe_deliveries::builders::DescribeDeliveriesInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -23,6 +23,8 @@ impl DescribeDeliveriesInputBuilder {
 /// Fluent builder constructing a request to `DescribeDeliveries`.
 ///
 /// <p>Retrieves a list of the deliveries that have been created in the account.</p>
+/// <p>A <i>delivery</i> is a connection between a <a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDeliverySource.html"> <i>delivery source</i> </a> and a <a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutDeliveryDestination.html"> <i>delivery destination</i> </a>.</p>
+/// <p>A delivery source represents an Amazon Web Services resource that sends logs to an logs delivery destination. The destination can be CloudWatch Logs, Amazon S3, or Firehose. Only some Amazon Web Services services support being configured as a delivery source. These services are listed in <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/AWS-logs-and-resource-policy.html">Enable logging from Amazon Web Services services.</a></p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct DescribeDeliveriesFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -48,7 +50,7 @@ impl
     }
 }
 impl DescribeDeliveriesFluentBuilder {
-    /// Creates a new `DescribeDeliveries`.
+    /// Creates a new `DescribeDeliveriesFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -99,12 +101,12 @@ impl DescribeDeliveriesFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

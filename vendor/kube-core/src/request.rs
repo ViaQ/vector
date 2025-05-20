@@ -1,6 +1,8 @@
 //! Request builder type for arbitrary api types
 use thiserror::Error;
 
+use crate::params::GetParams;
+
 use super::params::{DeleteParams, ListParams, Patch, PatchParams, PostParams, WatchParams};
 
 pub(crate) const JSON_MIME: &str = "application/json";
@@ -77,10 +79,17 @@ impl Request {
     }
 
     /// Get a single instance
-    pub fn get(&self, name: &str) -> Result<http::Request<Vec<u8>>, Error> {
-        let target = format!("{}/{}", self.url_path, name);
-        let mut qp = form_urlencoded::Serializer::new(target);
-        let urlstr = qp.finish();
+    pub fn get(&self, name: &str, gp: &GetParams) -> Result<http::Request<Vec<u8>>, Error> {
+        validate_name(name)?;
+        let urlstr = if let Some(rv) = &gp.resource_version {
+            let target = format!("{}/{}?", self.url_path, name);
+            form_urlencoded::Serializer::new(target)
+                .append_pair("resourceVersion", rv)
+                .finish()
+        } else {
+            let target = format!("{}/{}", self.url_path, name);
+            form_urlencoded::Serializer::new(target).finish()
+        };
         let req = http::Request::get(urlstr);
         req.body(vec![]).map_err(Error::BuildRequest)
     }
@@ -98,6 +107,7 @@ impl Request {
 
     /// Delete an instance of a resource
     pub fn delete(&self, name: &str, dp: &DeleteParams) -> Result<http::Request<Vec<u8>>, Error> {
+        validate_name(name)?;
         let target = format!("{}/{}?", self.url_path, name);
         let mut qp = form_urlencoded::Serializer::new(target);
         let urlstr = qp.finish();
@@ -141,6 +151,7 @@ impl Request {
         pp: &PatchParams,
         patch: &Patch<P>,
     ) -> Result<http::Request<Vec<u8>>, Error> {
+        validate_name(name)?;
         pp.validate(patch)?;
         let target = format!("{}/{}?", self.url_path, name);
         let mut qp = form_urlencoded::Serializer::new(target);
@@ -163,6 +174,7 @@ impl Request {
         pp: &PostParams,
         data: Vec<u8>,
     ) -> Result<http::Request<Vec<u8>>, Error> {
+        validate_name(name)?;
         let target = format!("{}/{}?", self.url_path, name);
         let mut qp = form_urlencoded::Serializer::new(target);
         pp.populate_qp(&mut qp);
@@ -180,6 +192,7 @@ impl Request {
         subresource_name: &str,
         name: &str,
     ) -> Result<http::Request<Vec<u8>>, Error> {
+        validate_name(name)?;
         let target = format!("{}/{}/{}", self.url_path, name, subresource_name);
         let mut qp = form_urlencoded::Serializer::new(target);
         let urlstr = qp.finish();
@@ -195,6 +208,7 @@ impl Request {
         pp: &PostParams,
         data: Vec<u8>,
     ) -> Result<http::Request<Vec<u8>>, Error> {
+        validate_name(name)?;
         let target = format!("{}/{}/{}?", self.url_path, name, subresource_name);
         let mut qp = form_urlencoded::Serializer::new(target);
         pp.populate_qp(&mut qp);
@@ -211,6 +225,7 @@ impl Request {
         pp: &PatchParams,
         patch: &Patch<P>,
     ) -> Result<http::Request<Vec<u8>>, Error> {
+        validate_name(name)?;
         pp.validate(patch)?;
         let target = format!("{}/{}/{}?", self.url_path, name, subresource_name);
         let mut qp = form_urlencoded::Serializer::new(target);
@@ -232,6 +247,7 @@ impl Request {
         pp: &PostParams,
         data: Vec<u8>,
     ) -> Result<http::Request<Vec<u8>>, Error> {
+        validate_name(name)?;
         let target = format!("{}/{}/{}?", self.url_path, name, subresource_name);
         let mut qp = form_urlencoded::Serializer::new(target);
         pp.populate_qp(&mut qp);
@@ -247,10 +263,17 @@ impl Request {
 /// additional parameters that retrieve only necessary metadata from an object.
 impl Request {
     /// Get a single metadata instance for a named resource
-    pub fn get_metadata(&self, name: &str) -> Result<http::Request<Vec<u8>>, Error> {
-        let target = format!("{}/{}", self.url_path, name);
-        let mut qp = form_urlencoded::Serializer::new(target);
-        let urlstr = qp.finish();
+    pub fn get_metadata(&self, name: &str, gp: &GetParams) -> Result<http::Request<Vec<u8>>, Error> {
+        validate_name(name)?;
+        let urlstr = if let Some(rv) = &gp.resource_version {
+            let target = format!("{}/{}?", self.url_path, name);
+            form_urlencoded::Serializer::new(target)
+                .append_pair("resourceVersion", rv)
+                .finish()
+        } else {
+            let target = format!("{}/{}", self.url_path, name);
+            form_urlencoded::Serializer::new(target).finish()
+        };
         let req = http::Request::get(urlstr)
             .header(http::header::ACCEPT, JSON_METADATA_MIME)
             .header(http::header::CONTENT_TYPE, JSON_MIME);
@@ -296,6 +319,7 @@ impl Request {
         pp: &PatchParams,
         patch: &Patch<P>,
     ) -> Result<http::Request<Vec<u8>>, Error> {
+        validate_name(name)?;
         pp.validate(patch)?;
         let target = format!("{}/{}?", self.url_path, name);
         let mut qp = form_urlencoded::Serializer::new(target);
@@ -310,14 +334,22 @@ impl Request {
     }
 }
 
+/// Names must not be empty as otherwise API server would interpret a `get` as `list`, or a `delete` as `delete_collection`
+fn validate_name(name: &str) -> Result<(), Error> {
+    if name.is_empty() {
+        return Err(Error::Validation("A non-empty name is required".into()));
+    }
+    Ok(())
+}
+
 /// Extensive tests for Request of k8s_openapi::Resource structs
 ///
 /// Cheap sanity check to ensure type maps work as expected
 #[cfg(test)]
 mod test {
     use crate::{
-        params::{PostParams, VersionMatch, WatchParams},
-        request::Request,
+        params::{GetParams, PostParams, VersionMatch, WatchParams},
+        request::{Error, Request},
         resource::Resource,
     };
     use http::header;
@@ -434,7 +466,10 @@ mod test {
     #[test]
     fn get_metadata_path() {
         let url = appsv1::Deployment::url_path(&(), Some("ns"));
-        let req = Request::new(url).get_metadata("mydeploy").unwrap();
+        let req = Request::new(url)
+            .get_metadata("mydeploy", &GetParams::default())
+            .unwrap();
+        println!("{}", req.uri());
         assert_eq!(req.uri(), "/apis/apps/v1/namespaces/ns/deployments/mydeploy");
         assert_eq!(req.method(), "GET");
         assert_eq!(req.headers().get(header::CONTENT_TYPE).unwrap(), super::JSON_MIME);
@@ -443,6 +478,43 @@ mod test {
             super::JSON_METADATA_MIME
         );
     }
+
+    #[test]
+    fn get_path_with_rv() {
+        let url = appsv1::Deployment::url_path(&(), Some("ns"));
+        let req = Request::new(url).get("mydeploy", &GetParams::any()).unwrap();
+        assert_eq!(
+            req.uri(),
+            "/apis/apps/v1/namespaces/ns/deployments/mydeploy?&resourceVersion=0"
+        );
+    }
+
+    #[test]
+    fn get_meta_path_with_rv() {
+        let url = appsv1::Deployment::url_path(&(), Some("ns"));
+        let req = Request::new(url)
+            .get_metadata("mydeploy", &GetParams::at("665"))
+            .unwrap();
+        assert_eq!(
+            req.uri(),
+            "/apis/apps/v1/namespaces/ns/deployments/mydeploy?&resourceVersion=665"
+        );
+
+        assert_eq!(req.method(), "GET");
+        assert_eq!(req.headers().get(header::CONTENT_TYPE).unwrap(), super::JSON_MIME);
+        assert_eq!(
+            req.headers().get(header::ACCEPT).unwrap(),
+            super::JSON_METADATA_MIME
+        );
+    }
+
+    #[test]
+    fn get_empty_name() {
+        let url = appsv1::Deployment::url_path(&(), Some("ns"));
+        let req = Request::new(url).get("", &GetParams::any());
+        assert!(matches!(req, Err(Error::Validation(_))));
+    }
+
     #[test]
     fn list_path() {
         let url = appsv1::Deployment::url_path(&(), Some("ns"));
@@ -475,6 +547,18 @@ mod test {
             "/api/v1/namespaces/ns/pods?&watch=true&timeoutSeconds=290&allowWatchBookmarks=true&resourceVersion=0"
         );
     }
+
+    #[test]
+    fn watch_streaming_list() {
+        let url = corev1::Pod::url_path(&(), Some("ns"));
+        let wp = WatchParams::default().initial_events();
+        let req = Request::new(url).watch(&wp, "0").unwrap();
+        assert_eq!(
+            req.uri(),
+            "/api/v1/namespaces/ns/pods?&watch=true&timeoutSeconds=290&allowWatchBookmarks=true&sendInitialEvents=true&resourceVersionMatch=NotOlderThan&resourceVersion=0"
+        );
+    }
+
     #[test]
     fn watch_metadata_path() {
         let url = corev1::Pod::url_path(&(), Some("ns"));
@@ -686,18 +770,32 @@ mod test {
         assert!(format!("{err}").contains("non-zero resource_version is required when using an Exact match"));
     }
 
+    #[test]
+    fn list_paged_any_semantic() {
+        let url = corev1::Pod::url_path(&(), Some("ns"));
+        let gp = ListParams::default().limit(50).match_any();
+        let req = Request::new(url).list(&gp).unwrap();
+        assert_eq!(req.uri().query().unwrap(), "&limit=50");
+    }
 
     #[test]
-    fn list_not_older() {
+    fn list_paged_with_continue_any_semantic() {
+        let url = corev1::Pod::url_path(&(), Some("ns"));
+        let gp = ListParams::default().limit(50).continue_token("1234").match_any();
+        let req = Request::new(url).list(&gp).unwrap();
+        assert_eq!(req.uri().query().unwrap(), "&limit=50&continue=1234");
+    }
+
+    #[test]
+    fn list_paged_with_continue_starting_at() {
         let url = corev1::Pod::url_path(&(), Some("ns"));
         let gp = ListParams::default()
-            .at("20")
-            .matching(VersionMatch::NotOlderThan);
+            .limit(50)
+            .continue_token("1234")
+            .at("9999")
+            .matching(VersionMatch::Exact);
         let req = Request::new(url).list(&gp).unwrap();
-        assert_eq!(
-            req.uri().query().unwrap(),
-            "&resourceVersion=20&resourceVersionMatch=NotOlderThan"
-        );
+        assert_eq!(req.uri().query().unwrap(), "&limit=50&continue=1234");
     }
 
     #[test]

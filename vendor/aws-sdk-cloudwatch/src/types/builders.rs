@@ -7,11 +7,15 @@ pub use crate::types::_metric_stream_statistics_metric::MetricStreamStatisticsMe
 
 pub use crate::types::_metric_stream_filter::MetricStreamFilterBuilder;
 
+pub use crate::types::_entity_metric_data::EntityMetricDataBuilder;
+
 pub use crate::types::_metric_datum::MetricDatumBuilder;
 
 pub use crate::types::_statistic_set::StatisticSetBuilder;
 
 pub use crate::types::_dimension::DimensionBuilder;
+
+pub use crate::types::_entity::EntityBuilder;
 
 pub use crate::types::_metric_data_query::MetricDataQueryBuilder;
 
@@ -28,6 +32,8 @@ pub use crate::types::_dashboard_validation_message::DashboardValidationMessageB
 pub use crate::types::_metric_math_anomaly_detector::MetricMathAnomalyDetectorBuilder;
 
 pub use crate::types::_single_metric_anomaly_detector::SingleMetricAnomalyDetectorBuilder;
+
+pub use crate::types::_metric_characteristics::MetricCharacteristicsBuilder;
 
 pub use crate::types::_anomaly_detector_configuration::AnomalyDetectorConfigurationBuilder;
 

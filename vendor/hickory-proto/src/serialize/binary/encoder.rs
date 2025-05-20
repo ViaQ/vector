@@ -5,9 +5,12 @@
 // https://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
-use std::marker::PhantomData;
+use core::marker::PhantomData;
+
+use alloc::vec::Vec;
 
 use crate::{
+    ProtoError,
     error::{ProtoErrorKind, ProtoResult},
     op::Header,
 };
@@ -16,6 +19,8 @@ use super::BinEncodable;
 
 // this is private to make sure there is no accidental access to the inner buffer.
 mod private {
+    use alloc::vec::Vec;
+
     use crate::error::{ProtoErrorKind, ProtoResult};
 
     /// A wrapper for a buffer that guarantees writes never exceed a defined set of bytes
@@ -366,14 +371,16 @@ impl<'a> BinEncoder<'a> {
         let mut count = 0;
         for i in iter {
             let rollback = self.set_rollback();
-            i.emit(self).map_err(|e| {
-                if let ProtoErrorKind::MaxBufferSizeExceeded(_) = e.kind() {
-                    rollback.rollback(self);
-                    return ProtoErrorKind::NotAllRecordsWritten { count }.into();
-                } else {
-                    return e;
-                }
-            })?;
+            if let Err(e) = i.emit(self) {
+                return Err(match e.kind() {
+                    ProtoErrorKind::MaxBufferSizeExceeded(_) => {
+                        rollback.rollback(self);
+                        ProtoError::from(ProtoErrorKind::NotAllRecordsWritten { count })
+                    }
+                    _ => e,
+                });
+            }
+
             count += 1;
         }
         Ok(count)
@@ -426,14 +433,15 @@ impl<'a> BinEncoder<'a> {
 
     fn set_rollback(&self) -> Rollback {
         Rollback {
-            rollback_index: self.offset(),
+            offset: self.offset(),
+            pointers: self.name_pointers.len(),
         }
     }
 }
 
 /// A trait to return the size of a type as it will be encoded in DNS
 ///
-/// it does not necessarily equal `std::mem::size_of`, though it might, especially for primitives
+/// it does not necessarily equal `core::mem::size_of`, though it might, especially for primitives
 pub trait EncodedSize: BinEncodable {
     /// Return the size in bytes of the
     fn size_of() -> usize;
@@ -470,12 +478,15 @@ impl<T: EncodedSize> Place<T> {
 
 /// A type representing a rollback point in a stream
 pub(crate) struct Rollback {
-    rollback_index: usize,
+    offset: usize,
+    pointers: usize,
 }
 
 impl Rollback {
     pub(crate) fn rollback(self, encoder: &mut BinEncoder<'_>) {
-        encoder.set_offset(self.rollback_index)
+        let Self { offset, pointers } = self;
+        encoder.set_offset(offset);
+        encoder.name_pointers.truncate(pointers);
     }
 }
 
@@ -491,14 +502,14 @@ pub enum EncodeMode {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
+    use core::str::FromStr;
 
     use super::*;
     use crate::{
         op::{Message, Query},
         rr::{
-            rdata::{CNAME, SRV},
             RData, Record, RecordType,
+            rdata::{CNAME, SRV},
         },
         serialize::binary::BinDecodable,
     };
@@ -514,7 +525,7 @@ mod tests {
         ;; AUTHORITY SECTION:
         gds.alibabadns.com.     1799    IN      SOA     gdsns1.alibabadns.com. none. 2015080610 1800 600 3600 360
         */
-        let data: Vec<u8> = vec![
+        let data = vec![
             154, 50, 129, 128, 0, 1, 0, 0, 0, 1, 0, 1, 7, 98, 108, 117, 101, 100, 111, 116, 2, 105,
             115, 8, 97, 117, 116, 111, 110, 97, 118, 105, 3, 99, 111, 109, 3, 103, 100, 115, 10,
             97, 108, 105, 98, 97, 98, 97, 100, 110, 115, 3, 99, 111, 109, 0, 0, 28, 0, 1, 192, 36,
@@ -574,7 +585,7 @@ mod tests {
         encoder.emit(4).expect("failed to write");
         let error = encoder.emit(5).unwrap_err();
 
-        match *error.kind() {
+        match error.kind() {
             ProtoErrorKind::MaxBufferSizeExceeded(_) => (),
             _ => panic!(),
         }
@@ -588,7 +599,7 @@ mod tests {
         encoder.set_max_size(0);
         let error = encoder.emit(0).unwrap_err();
 
-        match *error.kind() {
+        match error.kind() {
             ProtoErrorKind::MaxBufferSizeExceeded(_) => (),
             _ => panic!(),
         }
@@ -605,7 +616,7 @@ mod tests {
 
         let error = encoder.place::<u16>().unwrap_err();
 
-        match *error.kind() {
+        match error.kind() {
             ProtoErrorKind::MaxBufferSizeExceeded(_) => (),
             _ => panic!(),
         }
@@ -625,7 +636,7 @@ mod tests {
                 0,
                 0,
                 0,
-                Name::from_str("www.compressme.com").unwrap(),
+                Name::from_str("www.compressme.com.").unwrap(),
             )),
         ))
         .add_additional(Record::from_rdata(
@@ -635,14 +646,14 @@ mod tests {
                 0,
                 0,
                 0,
-                Name::from_str("www.compressme.com").unwrap(),
+                Name::from_str("www.compressme.com.").unwrap(),
             )),
         ))
         // name here should use compressed label from target in previous records
         .add_answer(Record::from_rdata(
-            Name::from_str("www.compressme.com").unwrap(),
+            Name::from_str("www.compressme.com.").unwrap(),
             0,
-            RData::CNAME(CNAME(Name::from_str("www.foo.com").unwrap())),
+            RData::CNAME(CNAME(Name::from_str("www.foo.com.").unwrap())),
         ));
 
         let bytes = msg.to_vec().unwrap();

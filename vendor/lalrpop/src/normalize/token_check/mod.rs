@@ -110,7 +110,7 @@ struct MatchBlock {
     spans: Map<TerminalLiteral, Span>,
 
     /// True if we should permit unrecognized literals to be used.
-    catch_all: bool,
+    catch_all: Option<Precedence>,
 }
 
 impl MatchBlock {
@@ -140,14 +140,14 @@ impl MatchBlock {
                             )?;
                         }
                         MatchItem::CatchAll(_) => {
-                            match_block.catch_all = true;
+                            match_block.catch_all = Some(Precedence(precedence));
                         }
                     }
                 }
             }
         } else {
             // no match block is equivalent to `match { _ }`
-            match_block.catch_all = true;
+            match_block.catch_all = Some(Precedence(0));
         }
         Ok(match_block)
     }
@@ -185,19 +185,22 @@ impl MatchBlock {
             return Ok(());
         }
 
-        if !self.catch_all {
-            return_err!(
-                span,
-                "terminal `{}` does not have a match mapping defined for it",
-                sym
-            );
-        }
+        let match_group_precedence = match self.catch_all {
+            Some(p) => p.0,
+            None => {
+                return_err!(
+                    span,
+                    "terminal `{}` does not have a match mapping defined for it",
+                    sym
+                );
+            }
+        };
 
         self.match_user_names
             .insert(TerminalString::Literal(sym.clone()));
 
         self.match_entries.push(MatchEntry {
-            precedence: sym.base_precedence(),
+            precedence: match_group_precedence * 2 + sym.base_precedence(),
             match_literal: sym.clone(),
             user_name: MatchMapping::Terminal(TerminalString::Literal(sym.clone())),
         });
@@ -208,7 +211,7 @@ impl MatchBlock {
     }
 }
 
-impl<'grammar> Validator<'grammar> {
+impl Validator<'_> {
     fn validate(&mut self) -> NormResult<()> {
         for item in &self.grammar.items {
             match *item {
@@ -349,10 +352,10 @@ fn construct(grammar: &mut Grammar, match_block: MatchBlock) -> NormResult<()> {
         Ok(dfa) => dfa,
         Err(DfaConstructionError::NfaConstructionError { index, error }) => {
             let feature = match error {
-                NamedCaptures => r#"named captures (`(?P<foo>...)`)"#,
+                NamedCaptures => r"named captures (`(?P<foo>...)`)",
                 NonGreedy => r#""non-greedy" repetitions (`*?` or `+?`)"#,
-                LookAround => r#"all boundaries like `\b` or `\B` or `^` or `$`"#,
-                ByteRegex => r#"byte-based matches"#,
+                LookAround => r"all boundaries like `\b` or `\B` or `^` or `$`",
+                ByteRegex => r"byte-based matches",
             };
             let literal = &match_entries[index.index()].match_literal;
             return_err!(

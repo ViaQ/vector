@@ -51,68 +51,58 @@ pub fn ser_list_parts_headers(
 ) -> std::result::Result<::http::request::Builder, ::aws_smithy_types::error::operation::BuildError> {
     if let ::std::option::Option::Some(inner_1) = &input.request_payer {
         let formatted_2 = inner_1.as_str();
-        if !formatted_2.is_empty() {
-            let header_value = formatted_2;
-            let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
-                ::aws_smithy_types::error::operation::BuildError::invalid_field(
-                    "request_payer",
-                    format!("`{}` cannot be used as a header value: {}", &header_value, err),
-                )
-            })?;
-            builder = builder.header("x-amz-request-payer", header_value);
-        }
+        let header_value = formatted_2;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "request_payer",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("x-amz-request-payer", header_value);
     }
     if let ::std::option::Option::Some(inner_3) = &input.expected_bucket_owner {
         let formatted_4 = inner_3.as_str();
-        if !formatted_4.is_empty() {
-            let header_value = formatted_4;
-            let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
-                ::aws_smithy_types::error::operation::BuildError::invalid_field(
-                    "expected_bucket_owner",
-                    format!("`{}` cannot be used as a header value: {}", &header_value, err),
-                )
-            })?;
-            builder = builder.header("x-amz-expected-bucket-owner", header_value);
-        }
+        let header_value = formatted_4;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "expected_bucket_owner",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("x-amz-expected-bucket-owner", header_value);
     }
     if let ::std::option::Option::Some(inner_5) = &input.sse_customer_algorithm {
         let formatted_6 = inner_5.as_str();
-        if !formatted_6.is_empty() {
-            let header_value = formatted_6;
-            let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
-                ::aws_smithy_types::error::operation::BuildError::invalid_field(
-                    "sse_customer_algorithm",
-                    format!("`{}` cannot be used as a header value: {}", &header_value, err),
-                )
-            })?;
-            builder = builder.header("x-amz-server-side-encryption-customer-algorithm", header_value);
-        }
+        let header_value = formatted_6;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "sse_customer_algorithm",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("x-amz-server-side-encryption-customer-algorithm", header_value);
     }
     if let ::std::option::Option::Some(inner_7) = &input.sse_customer_key {
         let formatted_8 = inner_7.as_str();
-        if !formatted_8.is_empty() {
-            let header_value = formatted_8;
-            let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
-                ::aws_smithy_types::error::operation::BuildError::invalid_field(
-                    "sse_customer_key",
-                    format!("`{}` cannot be used as a header value: {}", &"*** Sensitive Data Redacted ***", err),
-                )
-            })?;
-            builder = builder.header("x-amz-server-side-encryption-customer-key", header_value);
-        }
+        let header_value = formatted_8;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "sse_customer_key",
+                format!("`{}` cannot be used as a header value: {}", &"*** Sensitive Data Redacted ***", err),
+            )
+        })?;
+        builder = builder.header("x-amz-server-side-encryption-customer-key", header_value);
     }
     if let ::std::option::Option::Some(inner_9) = &input.sse_customer_key_md5 {
         let formatted_10 = inner_9.as_str();
-        if !formatted_10.is_empty() {
-            let header_value = formatted_10;
-            let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
-                ::aws_smithy_types::error::operation::BuildError::invalid_field(
-                    "sse_customer_key_md5",
-                    format!("`{}` cannot be used as a header value: {}", &header_value, err),
-                )
-            })?;
-            builder = builder.header("x-amz-server-side-encryption-customer-key-MD5", header_value);
-        }
+        let header_value = formatted_10;
+        let header_value: ::http::HeaderValue = header_value.parse().map_err(|err| {
+            ::aws_smithy_types::error::operation::BuildError::invalid_field(
+                "sse_customer_key_md5",
+                format!("`{}` cannot be used as a header value: {}", &header_value, err),
+            )
+        })?;
+        builder = builder.header("x-amz-server-side-encryption-customer-key-MD5", header_value);
     }
     Ok(builder)
 }
@@ -121,7 +111,7 @@ pub fn ser_list_parts_headers(
 pub fn de_list_parts(
     inp: &[u8],
     mut builder: crate::operation::list_parts::builders::ListPartsOutputBuilder,
-) -> Result<crate::operation::list_parts::builders::ListPartsOutputBuilder, ::aws_smithy_xml::decode::XmlDecodeError> {
+) -> std::result::Result<crate::operation::list_parts::builders::ListPartsOutputBuilder, ::aws_smithy_xml::decode::XmlDecodeError> {
     let mut doc = ::aws_smithy_xml::decode::Document::try_from(inp)?;
 
     #[allow(unused_mut)]
@@ -217,20 +207,21 @@ pub fn de_list_parts(
                 builder = builder.set_max_parts(var_16);
             }
             ,
-            s if s.matches("UploadId") /* UploadId com.amazonaws.s3.synthetic#ListPartsOutput$UploadId */ =>  {
+            s if s.matches("ChecksumType") /* ChecksumType com.amazonaws.s3.synthetic#ListPartsOutput$ChecksumType */ =>  {
                 let var_17 =
                     Some(
-                        Result::<::std::string::String, ::aws_smithy_xml::decode::XmlDecodeError>::Ok(
-                            ::aws_smithy_xml::decode::try_data(&mut tag)?.as_ref()
-                            .into()
+                        Result::<crate::types::ChecksumType, ::aws_smithy_xml::decode::XmlDecodeError>::Ok(
+                            crate::types::ChecksumType::from(
+                                ::aws_smithy_xml::decode::try_data(&mut tag)?.as_ref()
+                            )
                         )
                         ?
                     )
                 ;
-                builder = builder.set_upload_id(var_17);
+                builder = builder.set_checksum_type(var_17);
             }
             ,
-            s if s.matches("PartNumberMarker") /* PartNumberMarker com.amazonaws.s3.synthetic#ListPartsOutput$PartNumberMarker */ =>  {
+            s if s.matches("UploadId") /* UploadId com.amazonaws.s3.synthetic#ListPartsOutput$UploadId */ =>  {
                 let var_18 =
                     Some(
                         Result::<::std::string::String, ::aws_smithy_xml::decode::XmlDecodeError>::Ok(
@@ -240,10 +231,10 @@ pub fn de_list_parts(
                         ?
                     )
                 ;
-                builder = builder.set_part_number_marker(var_18);
+                builder = builder.set_upload_id(var_18);
             }
             ,
-            s if s.matches("Bucket") /* Bucket com.amazonaws.s3.synthetic#ListPartsOutput$Bucket */ =>  {
+            s if s.matches("PartNumberMarker") /* PartNumberMarker com.amazonaws.s3.synthetic#ListPartsOutput$PartNumberMarker */ =>  {
                 let var_19 =
                     Some(
                         Result::<::std::string::String, ::aws_smithy_xml::decode::XmlDecodeError>::Ok(
@@ -253,38 +244,11 @@ pub fn de_list_parts(
                         ?
                     )
                 ;
-                builder = builder.set_bucket(var_19);
+                builder = builder.set_part_number_marker(var_19);
             }
             ,
-            s if s.matches("Part") /* Parts com.amazonaws.s3.synthetic#ListPartsOutput$Parts */ =>  {
+            s if s.matches("Bucket") /* Bucket com.amazonaws.s3.synthetic#ListPartsOutput$Bucket */ =>  {
                 let var_20 =
-                    Some(
-                        Result::<::std::vec::Vec::<crate::types::Part>, ::aws_smithy_xml::decode::XmlDecodeError>::Ok({
-                            let mut list_21 = builder.parts.take().unwrap_or_default();
-                            list_21.push(
-                                crate::protocol_serde::shape_part::de_part(&mut tag)
-                                ?
-                            );
-                            list_21
-                        })
-                        ?
-                    )
-                ;
-                builder = builder.set_parts(var_20);
-            }
-            ,
-            s if s.matches("Initiator") /* Initiator com.amazonaws.s3.synthetic#ListPartsOutput$Initiator */ =>  {
-                let var_22 =
-                    Some(
-                        crate::protocol_serde::shape_initiator::de_initiator(&mut tag)
-                        ?
-                    )
-                ;
-                builder = builder.set_initiator(var_22);
-            }
-            ,
-            s if s.matches("Key") /* Key com.amazonaws.s3.synthetic#ListPartsOutput$Key */ =>  {
-                let var_23 =
                     Some(
                         Result::<::std::string::String, ::aws_smithy_xml::decode::XmlDecodeError>::Ok(
                             ::aws_smithy_xml::decode::try_data(&mut tag)?.as_ref()
@@ -293,7 +257,47 @@ pub fn de_list_parts(
                         ?
                     )
                 ;
-                builder = builder.set_key(var_23);
+                builder = builder.set_bucket(var_20);
+            }
+            ,
+            s if s.matches("Part") /* Parts com.amazonaws.s3.synthetic#ListPartsOutput$Parts */ =>  {
+                let var_21 =
+                    Some(
+                        Result::<::std::vec::Vec::<crate::types::Part>, ::aws_smithy_xml::decode::XmlDecodeError>::Ok({
+                            let mut list_22 = builder.parts.take().unwrap_or_default();
+                            list_22.push(
+                                crate::protocol_serde::shape_part::de_part(&mut tag)
+                                ?
+                            );
+                            list_22
+                        })
+                        ?
+                    )
+                ;
+                builder = builder.set_parts(var_21);
+            }
+            ,
+            s if s.matches("Initiator") /* Initiator com.amazonaws.s3.synthetic#ListPartsOutput$Initiator */ =>  {
+                let var_23 =
+                    Some(
+                        crate::protocol_serde::shape_initiator::de_initiator(&mut tag)
+                        ?
+                    )
+                ;
+                builder = builder.set_initiator(var_23);
+            }
+            ,
+            s if s.matches("Key") /* Key com.amazonaws.s3.synthetic#ListPartsOutput$Key */ =>  {
+                let var_24 =
+                    Some(
+                        Result::<::std::string::String, ::aws_smithy_xml::decode::XmlDecodeError>::Ok(
+                            ::aws_smithy_xml::decode::try_data(&mut tag)?.as_ref()
+                            .into()
+                        )
+                        ?
+                    )
+                ;
+                builder = builder.set_key(var_24);
             }
             ,
             _ => {}

@@ -1,7 +1,7 @@
 #@follow_tag(registry.redhat.io/ubi9:latest)
 FROM registry.redhat.io/ubi9/ubi:9.1.0-1817 AS builder
 
-ENV BUILD_VERSION=v0.40.1-rh
+ENV BUILD_VERSION=v0.46.1-rh
 ENV SOURCE_GIT_COMMIT=${CI_VECTOR_UPSTREAM_COMMIT}
 ENV SOURCE_GIT_URL=${CI_VECTOR_UPSTREAM_URL}
 
@@ -53,7 +53,7 @@ LABEL \
         io.k8s.display-name="Vector" \
         io.openshift.tags="logging,vector" \
         vendor="Red Hat" \
-        name="openshift-logging/vector-rhel8" \
+        name="openshift-logging/vector-rhel9" \
         com.redhat.component="logging-vector-container" \
         io.openshift.maintainer.product="OpenShift Container Platform" \
         io.openshift.build.commit.id=${CI_VECTOR_UPSTREAM_COMMIT} \

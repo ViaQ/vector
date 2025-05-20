@@ -37,6 +37,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -103,6 +104,17 @@ impl StatusCode {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for StatusCode {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            StatusCode::Complete => write!(f, "Complete"),
+            StatusCode::Forbidden => write!(f, "Forbidden"),
+            StatusCode::InternalError => write!(f, "InternalError"),
+            StatusCode::PartialData => write!(f, "PartialData"),
+            StatusCode::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

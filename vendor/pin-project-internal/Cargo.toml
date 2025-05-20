@@ -13,8 +13,9 @@
 edition = "2021"
 rust-version = "1.56"
 name = "pin-project-internal"
-version = "1.1.7"
+version = "1.1.10"
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -74,6 +75,7 @@ pedantic = "warn"
 trailing_empty_array = "warn"
 transmute_undefined_repr = "warn"
 undocumented_unsafe_blocks = "warn"
+unused_trait_names = "warn"
 
 [lints.clippy.bool_assert_comparison]
 level = "allow"
@@ -178,6 +180,7 @@ improper_ctypes_definitions = "warn"
 non_ascii_idents = "warn"
 rust_2018_idioms = "warn"
 single_use_lifetimes = "warn"
+unnameable_types = "warn"
 unreachable_pub = "warn"
 
 [lints.rust.unexpected_cfgs]

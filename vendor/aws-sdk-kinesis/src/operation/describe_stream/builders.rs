@@ -3,7 +3,7 @@ pub use crate::operation::describe_stream::_describe_stream_output::DescribeStre
 
 pub use crate::operation::describe_stream::_describe_stream_input::DescribeStreamInputBuilder;
 
-impl DescribeStreamInputBuilder {
+impl crate::operation::describe_stream::builders::DescribeStreamInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,8 +22,8 @@ impl DescribeStreamInputBuilder {
 }
 /// Fluent builder constructing a request to `DescribeStream`.
 ///
-/// <p>Describes the specified Kinesis data stream.</p> <note>
-/// <p>This API has been revised. It's highly recommended that you use the <code>DescribeStreamSummary</code> API to get a summarized description of the specified Kinesis data stream and the <code>ListShards</code> API to list the shards in a specified data stream and obtain information about each shard. </p>
+/// <p>Describes the specified Kinesis data stream.</p><note>
+/// <p>This API has been revised. It's highly recommended that you use the <code>DescribeStreamSummary</code> API to get a summarized description of the specified Kinesis data stream and the <code>ListShards</code> API to list the shards in a specified data stream and obtain information about each shard.</p>
 /// </note> <note>
 /// <p>When invoking this API, you must use either the <code>StreamARN</code> or the <code>StreamName</code> parameter, or both. It is recommended that you use the <code>StreamARN</code> input parameter when you invoke this API.</p>
 /// </note>
@@ -56,7 +56,7 @@ impl
     }
 }
 impl DescribeStreamFluentBuilder {
-    /// Creates a new `DescribeStream`.
+    /// Creates a new `DescribeStreamFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -107,12 +107,12 @@ impl DescribeStreamFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

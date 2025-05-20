@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-// Wrap the standard library's atomic types in newtype.
-//
-// This is not a reexport, because we want to backport changes like
-// https://github.com/rust-lang/rust/pull/98383 to old compilers.
+/*
+Wrap the standard library's atomic types in newtype.
+
+This is not a reexport, because we want to backport changes like
+https://github.com/rust-lang/rust/pull/98383 to old compilers.
+*/
 
 use core::{cell::UnsafeCell, marker::PhantomData, sync::atomic::Ordering};
 
@@ -13,6 +15,7 @@ use core::{cell::UnsafeCell, marker::PhantomData, sync::atomic::Ordering};
 // RefUnwindSafe when "linked to std", and that's behavior that our other atomic
 // implementations can't emulate, so use PhantomData<NotRefUnwindSafe> to match
 // conditions where our other atomic implementations implement RefUnwindSafe.
+//
 // If we do not do this, for example, downstream that is only tested on x86_64
 // may incorrectly assume that AtomicU64 always implements RefUnwindSafe even on
 // older rustc, and may be broken on platforms where std AtomicU64 is not available.
@@ -33,20 +36,9 @@ impl<T> AtomicPtr<T> {
     }
     #[inline]
     pub(crate) fn is_lock_free() -> bool {
-        Self::is_always_lock_free()
+        Self::IS_ALWAYS_LOCK_FREE
     }
-    #[inline]
-    pub(crate) const fn is_always_lock_free() -> bool {
-        true
-    }
-    #[inline]
-    pub(crate) fn get_mut(&mut self) -> &mut *mut T {
-        self.inner.get_mut()
-    }
-    #[inline]
-    pub(crate) fn into_inner(self) -> *mut T {
-        self.inner.into_inner()
-    }
+    pub(crate) const IS_ALWAYS_LOCK_FREE: bool = true;
     #[inline]
     #[cfg_attr(
         any(all(debug_assertions, not(portable_atomic_no_track_caller)), miri),
@@ -140,7 +132,7 @@ macro_rules! atomic_int {
         #[cfg(not(all(
             any(target_arch = "x86", target_arch = "x86_64"),
             not(any(miri, portable_atomic_sanitize_thread)),
-            not(portable_atomic_no_asm),
+            any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
         )))]
         #[cfg_attr(
             portable_atomic_no_cfg_target_has_atomic,
@@ -158,25 +150,15 @@ macro_rules! atomic_int {
             }
             #[inline]
             pub(crate) fn is_lock_free() -> bool {
-                Self::is_always_lock_free()
+                Self::IS_ALWAYS_LOCK_FREE
             }
-            #[inline]
-            pub(crate) const fn is_always_lock_free() -> bool {
-                // ESP-IDF targets' 64-bit atomics are not lock-free.
-                // https://github.com/rust-lang/rust/pull/115577#issuecomment-1732259297
-                cfg!(not(all(
-                    any(target_arch = "riscv32", target_arch = "xtensa"),
-                    target_os = "espidf",
-                ))) | (core::mem::size_of::<$int_type>() < 8)
-            }
-            #[inline]
-            pub(crate) fn get_mut(&mut self) -> &mut $int_type {
-                self.inner.get_mut()
-            }
-            #[inline]
-            pub(crate) fn into_inner(self) -> $int_type {
-                self.inner.into_inner()
-            }
+            // ESP-IDF targets' 64-bit atomics are not lock-free.
+            // https://github.com/rust-lang/rust/pull/115577#issuecomment-1732259297
+            pub(crate) const IS_ALWAYS_LOCK_FREE: bool = cfg!(not(all(
+                any(target_arch = "riscv32", target_arch = "xtensa"),
+                target_os = "espidf",
+            ))) | (core::mem::size_of::<$int_type>()
+                < 8);
             #[inline]
             #[cfg_attr(
                 any(all(debug_assertions, not(portable_atomic_no_track_caller)), miri),
@@ -273,7 +255,7 @@ macro_rules! atomic_int {
                 {
                     #[cfg(any(
                         all(
-                            target_arch = "aarch64",
+                            any(target_arch = "aarch64", target_arch = "arm64ec"),
                             any(target_feature = "lse", portable_atomic_target_feature = "lse"),
                         ),
                         all(
@@ -325,7 +307,7 @@ macro_rules! atomic_int {
                 {
                     #[cfg(any(
                         all(
-                            target_arch = "aarch64",
+                            any(target_arch = "aarch64", target_arch = "arm64ec"),
                             any(target_feature = "lse", portable_atomic_target_feature = "lse"),
                         ),
                         all(
@@ -378,13 +360,14 @@ macro_rules! atomic_int {
             #[cfg(not(all(
                 any(target_arch = "x86", target_arch = "x86_64"),
                 not(any(miri, portable_atomic_sanitize_thread)),
-                not(portable_atomic_no_asm),
+                any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
             )))]
             #[inline]
             #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
             pub(crate) fn not(&self, order: Ordering) {
                 self.fetch_not(order);
             }
+            // TODO: provide asm-based implementation on AArch64 without FEAT_LSE, Armv7, RISC-V, etc.
             #[inline]
             #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
             pub(crate) fn fetch_neg(&self, order: Ordering) -> $int_type {
@@ -393,7 +376,7 @@ macro_rules! atomic_int {
             #[cfg(not(all(
                 any(target_arch = "x86", target_arch = "x86_64"),
                 not(any(miri, portable_atomic_sanitize_thread)),
-                not(portable_atomic_no_asm),
+                any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
             )))]
             #[inline]
             #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces

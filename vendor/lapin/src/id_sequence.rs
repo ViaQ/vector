@@ -1,4 +1,7 @@
-use std::{fmt, ops::AddAssign};
+use std::{
+    fmt,
+    ops::{AddAssign, Sub},
+};
 
 pub(crate) struct IdSequence<T> {
     allow_zero: bool,
@@ -8,7 +11,10 @@ pub(crate) struct IdSequence<T> {
     id: T,
 }
 
-impl<T: Default + Copy + AddAssign<T> + PartialEq<T> + PartialOrd<T> + From<u8>> IdSequence<T> {
+impl<
+        T: Default + Copy + AddAssign<T> + Sub<Output = T> + PartialEq<T> + PartialOrd<T> + From<u8>,
+    > IdSequence<T>
+{
     pub(crate) fn new(allow_zero: bool) -> Self {
         Self {
             allow_zero,
@@ -19,8 +25,23 @@ impl<T: Default + Copy + AddAssign<T> + PartialEq<T> + PartialOrd<T> + From<u8>>
         }
     }
 
-    pub(crate) fn current(&self) -> T {
-        self.id
+    pub(crate) fn current(&self) -> Option<T> {
+        // self.id is actually the next (so that first call to next returns 0
+        // if we're 0 (or 1 if 0 is not allowed), either we haven't started yet, or last number we yielded (current one) is
+        // the max.
+        if self.id <= self.first() {
+            self.max
+        } else {
+            Some(self.id - self.one)
+        }
+    }
+
+    fn first(&self) -> T {
+        if self.allow_zero {
+            self.zero
+        } else {
+            self.one
+        }
     }
 
     pub(crate) fn set_max(&mut self, max: T) {
@@ -31,22 +52,13 @@ impl<T: Default + Copy + AddAssign<T> + PartialEq<T> + PartialOrd<T> + From<u8>>
         if !self.allow_zero && self.id == self.zero {
             self.id += self.one;
         }
-        if self.check_max() {
-            let id = self.id;
-            self.id += self.one;
-            id
-        } else {
+        let id = self.id;
+        if self.max == Some(id) {
             self.id = self.zero;
-            self.next()
-        }
-    }
-
-    fn check_max(&self) -> bool {
-        if let Some(max) = self.max {
-            self.id <= max
         } else {
-            true
+            self.id += self.one;
         }
+        id
     }
 }
 
@@ -57,5 +69,32 @@ impl<T: fmt::Debug> fmt::Debug for IdSequence<T> {
             .field("max", &self.max)
             .field("id", &self.id)
             .finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_low_max() {
+        let mut sequence = IdSequence::<u8>::new(false);
+        sequence.set_max(10);
+        for i in 1..=10 {
+            assert_eq!(sequence.next(), i)
+        }
+        // We should cycle back to first correct value
+        assert_eq!(sequence.next(), 1)
+    }
+
+    #[test]
+    fn test_highest_max() {
+        let mut sequence = IdSequence::<u8>::new(false);
+        sequence.set_max(u8::MAX);
+        for i in 1..=u8::MAX {
+            assert_eq!(sequence.next(), i)
+        }
+        // We should cycle back to first correct value
+        assert_eq!(sequence.next(), 1)
     }
 }

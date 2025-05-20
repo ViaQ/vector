@@ -3,7 +3,7 @@ pub use crate::operation::get_topic_attributes::_get_topic_attributes_output::Ge
 
 pub use crate::operation::get_topic_attributes::_get_topic_attributes_input::GetTopicAttributesInputBuilder;
 
-impl GetTopicAttributesInputBuilder {
+impl crate::operation::get_topic_attributes::builders::GetTopicAttributesInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -48,7 +48,7 @@ impl
     }
 }
 impl GetTopicAttributesFluentBuilder {
-    /// Creates a new `GetTopicAttributes`.
+    /// Creates a new `GetTopicAttributesFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -99,12 +99,12 @@ impl GetTopicAttributesFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

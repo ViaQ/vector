@@ -1,6 +1,15 @@
 # Changelog
 ## [Unreleased]
 
+## [0.1.5] - 2024-09-22
+
+### Bug fixes
+* Fix Undefined Behavior in WebAssembly SIMD128 (#86) (thanks @CryZe)
+* Documentation and clippy fixes (thanks @rtfeldman, @jqnatividad, @rhysd)
+
+### Performance
+* WASM: Don't use u8x16_bitmask for ASCII Check (#79) (thanks @CryZe)
+
 ## [0.1.4] - 2022-04-02
 
 ### New features
@@ -63,7 +72,8 @@
 ## [0.0.1] - 2021-04-20
 - Initial release.
 
-[Unreleased]: https://github.com/rusticstuff/simdutf8/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/rusticstuff/simdutf8/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/rusticstuff/simdutf8/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/rusticstuff/simdutf8/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/rusticstuff/simdutf8/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/rusticstuff/simdutf8/compare/v0.1.1...v0.1.2
@@ -72,4 +82,3 @@
 [0.0.3]: https://github.com/rusticstuff/simdutf8/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/rusticstuff/simdutf8/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/rusticstuff/simdutf8/releases/tag/v0.0.1
-

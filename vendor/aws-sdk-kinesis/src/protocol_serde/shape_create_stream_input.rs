@@ -2,7 +2,7 @@
 pub fn ser_create_stream_input_input(
     object: &mut ::aws_smithy_json::serialize::JsonObjectWriter,
     input: &crate::operation::create_stream::CreateStreamInput,
-) -> Result<(), ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<(), ::aws_smithy_types::error::operation::SerializationError> {
     if let Some(var_1) = &input.stream_name {
         object.key("StreamName").string(var_1.as_str());
     }
@@ -17,6 +17,16 @@ pub fn ser_create_stream_input_input(
         let mut object_4 = object.key("StreamModeDetails").start_object();
         crate::protocol_serde::shape_stream_mode_details::ser_stream_mode_details(&mut object_4, var_3)?;
         object_4.finish();
+    }
+    if let Some(var_5) = &input.tags {
+        #[allow(unused_mut)]
+        let mut object_6 = object.key("Tags").start_object();
+        for (key_7, value_8) in var_5 {
+            {
+                object_6.key(key_7.as_str()).string(value_8.as_str());
+            }
+        }
+        object_6.finish();
     }
     Ok(())
 }

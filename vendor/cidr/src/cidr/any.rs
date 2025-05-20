@@ -1,10 +1,13 @@
 use core::{
 	fmt,
+	net::{
+		IpAddr,
+		Ipv4Addr,
+		Ipv6Addr,
+	},
 	str::FromStr,
 };
-use std::net::IpAddr;
 
-use super::from_str::cidr_from_str;
 use crate::{
 	errors::*,
 	Family,
@@ -244,11 +247,7 @@ impl FromStr for AnyIpCidr {
 	type Err = NetworkParseError;
 
 	fn from_str(s: &str) -> Result<Self, NetworkParseError> {
-		if s == "any" {
-			Ok(Self::Any)
-		} else {
-			cidr_from_str::<IpCidr>(s).map(Self::from)
-		}
+		crate::parsers::parse_any_cidr(s, str::parse)
 	}
 }
 
@@ -267,14 +266,31 @@ impl From<Ipv4Cidr> for AnyIpCidr {
 	}
 }
 
+impl From<Ipv4Addr> for AnyIpCidr {
+	fn from(address: Ipv4Addr) -> Self {
+		Self::V4(address.into())
+	}
+}
+
 impl From<Ipv6Cidr> for AnyIpCidr {
 	fn from(c: Ipv6Cidr) -> Self {
 		Self::V6(c)
 	}
 }
 
+impl From<Ipv6Addr> for AnyIpCidr {
+	fn from(address: Ipv6Addr) -> Self {
+		Self::V6(address.into())
+	}
+}
+
+impl From<IpAddr> for AnyIpCidr {
+	fn from(address: IpAddr) -> Self {
+		Self::new_host(address)
+	}
+}
+
 #[cfg(feature = "bitstring")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "bitstring")))]
 impl bitstring::BitString for AnyIpCidr {
 	fn get(&self, ndx: usize) -> bool {
 		assert!(!self.is_any());

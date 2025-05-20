@@ -111,7 +111,7 @@ impl<'grammar> TraceGraph<'grammar> {
     }
 }
 
-impl<'grammar> From<NonterminalString> for TraceGraphNode<'grammar> {
+impl From<NonterminalString> for TraceGraphNode<'_> {
     fn from(val: NonterminalString) -> Self {
         TraceGraphNode::Nonterminal(val)
     }
@@ -140,14 +140,14 @@ struct TraceGraphEdge<'grammar> {
     ),
 }
 
-impl<'grammar> Debug for TraceGraphEdge<'grammar> {
-    fn fmt(&self, fmt: &mut Formatter) -> Result<(), Error> {
+impl Debug for TraceGraphEdge<'_> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> Result<(), Error> {
         write!(fmt, "({:?} -{:?}-> {:?})", self.from, self.label, self.to)
     }
 }
 
-impl<'grammar> Debug for TraceGraph<'grammar> {
-    fn fmt(&self, fmt: &mut Formatter) -> Result<(), Error> {
+impl Debug for TraceGraph<'_> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> Result<(), Error> {
         let mut s = fmt.debug_list();
         for (node, &index) in &self.indices {
             for edge in self.graph.edges_directed(index, EdgeDirection::Outgoing) {
@@ -166,17 +166,17 @@ impl<'grammar> Debug for TraceGraph<'grammar> {
 ///////////////////////////////////////////////////////////////////////////
 // PathEnumerator
 //
-// The path enumerater walks a trace graph searching for paths that
+// The path enumerator walks a trace graph searching for paths that
 // start at a given item and terminate at another item. If such a path
 // is found, you can then find the complete list of symbols by calling
 // `symbols_and_cursor` and also get access to the state.
 
-pub struct PathEnumerator<'graph, 'grammar: 'graph> {
+pub struct PathEnumerator<'graph, 'grammar> {
     graph: &'graph TraceGraph<'grammar>,
     stack: Vec<EnumeratorState<'graph, 'grammar>>,
 }
 
-struct EnumeratorState<'graph, 'grammar: 'graph> {
+struct EnumeratorState<'graph, 'grammar> {
     index: NodeIndex,
     symbol_sets: SymbolSets<'grammar>,
     edges: Edges<'graph, SymbolSets<'grammar>, Directed>,
@@ -354,7 +354,6 @@ impl<'graph, 'grammar> PathEnumerator<'graph, 'grammar> {
             None => {
                 if self.stack[1].symbol_sets.prefix.is_empty() {
                     symbols.push(ExampleSymbol::Epsilon)
-                } else {
                 }
             }
         }
@@ -397,7 +396,7 @@ impl<'graph, 'grammar> PathEnumerator<'graph, 'grammar> {
     }
 }
 
-impl<'graph, 'grammar> Iterator for PathEnumerator<'graph, 'grammar> {
+impl Iterator for PathEnumerator<'_, '_> {
     type Item = Example;
 
     fn next(&mut self) -> Option<Example> {
@@ -417,7 +416,7 @@ impl<'graph, 'grammar> Iterator for PathEnumerator<'graph, 'grammar> {
 // Like the path enumerator, but tests for examples with some specific
 // lookahead
 
-pub struct FilteredPathEnumerator<'graph, 'grammar: 'graph> {
+pub struct FilteredPathEnumerator<'graph, 'grammar> {
     base: PathEnumerator<'graph, 'grammar>,
     first_sets: &'graph FirstSets,
     lookahead: TokenSet,
@@ -438,7 +437,7 @@ impl<'graph, 'grammar> FilteredPathEnumerator<'graph, 'grammar> {
     }
 }
 
-impl<'graph, 'grammar> Iterator for FilteredPathEnumerator<'graph, 'grammar> {
+impl Iterator for FilteredPathEnumerator<'_, '_> {
     type Item = Example;
 
     fn next(&mut self) -> Option<Example> {

@@ -22,6 +22,7 @@ All methods are converted to camelCase.
 | serial               | Resolve each field sequentially.                                                                                                                                                    | bool                                       | Y        |
 | concretes            | Specify how the concrete type of the generic SimpleObject should be implemented.                                                                                                    | ConcreteType                               | Y        |
 | guard                | Field of guard *[See also the Book](https://async-graphql.github.io/async-graphql/en/field_guard.html)*                                                                             | string                                     | Y        |
+| directives           | Directives                                                                                                                                                                          | expr                                       | Y        |
 
 # Field attributes
 
@@ -55,6 +56,8 @@ All methods are converted to camelCase.
 | name         | Argument name                                                                                                                                   | string      | Y        |
 | desc         | Argument description                                                                                                                            | string      | Y        |
 | default      | Use `Default::default` for default value                                                                                                        | none        | Y        |
+| deprecation  | Argument deprecated                                                                                                                             | bool        | Y        |
+| deprecation  | Argument deprecation reason                                                                                                                     | string      | Y        |
 | default      | Argument default value                                                                                                                          | literal     | Y        |
 | default_with | Expression to generate default value                                                                                                            | code string | Y        |
 | validator    | Input value validator *[See also the Book](https://async-graphql.github.io/async-graphql/en/input_value_validators.html)*                       | object      | Y        |
@@ -65,6 +68,7 @@ All methods are converted to camelCase.
 | secret       | Mark this field as a secret, it will not output the actual value in the log.                                                                    | bool        | Y        |
 | key          | Is entity key(for Federation)                                                                                                                   | bool        | Y        |
 | process_with | Upon successful parsing, invokes specified function. Its signature must be `fn(&mut T)`.                                                        | code path   | Y        |
+| directives   | Directives                                                                                                                                      | expr        | Y        |
 
 # Derived argument attributes
 
@@ -76,8 +80,7 @@ All methods are converted to camelCase.
 
 # Valid field return types
 
-- Scalar values, such as `i32` and `bool`. `usize`, `isize`, `u128` and `i128` are not
-supported
+- Scalar values, such as `i32` and `bool`. `usize`, `isize`, `u128` and `i128` are not supported
 - `Vec<T>`, such as `Vec<i32>`
 - Slices, such as `&[i32]`
 - `Option<T>`, such as `Option<i32>`

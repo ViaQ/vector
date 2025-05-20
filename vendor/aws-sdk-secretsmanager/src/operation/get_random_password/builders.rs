@@ -3,7 +3,7 @@ pub use crate::operation::get_random_password::_get_random_password_output::GetR
 
 pub use crate::operation::get_random_password::_get_random_password_input::GetRandomPasswordInputBuilder;
 
-impl GetRandomPasswordInputBuilder {
+impl crate::operation::get_random_password::builders::GetRandomPasswordInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,9 +22,9 @@ impl GetRandomPasswordInputBuilder {
 }
 /// Fluent builder constructing a request to `GetRandomPassword`.
 ///
-/// <p>Generates a random password. We recommend that you specify the maximum length and include every character type that the system you are generating a password for can support.</p>
-/// <p>Secrets Manager generates a CloudTrail log entry when you call this action. Do not include sensitive information in request parameters because it might be logged. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/retrieve-ct-entries.html">Logging Secrets Manager events with CloudTrail</a>.</p>
-/// <p> <b>Required permissions: </b> <code>secretsmanager:GetRandomPassword</code>. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions"> IAM policy actions for Secrets Manager</a> and <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access.html">Authentication and access control in Secrets Manager</a>. </p>
+/// <p>Generates a random password. We recommend that you specify the maximum length and include every character type that the system you are generating a password for can support. By default, Secrets Manager uses uppercase and lowercase letters, numbers, and the following characters in passwords: <code>!\"#$%&amp;'()*+,-./:;&lt;=&gt;?@\[\\\]^_`{|}~</code></p>
+/// <p>Secrets Manager generates a CloudTrail log entry when you call this action.</p>
+/// <p><b>Required permissions: </b> <code>secretsmanager:GetRandomPassword</code>. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/reference_iam-permissions.html#reference_iam-permissions_actions"> IAM policy actions for Secrets Manager</a> and <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access.html">Authentication and access control in Secrets Manager</a>.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct GetRandomPasswordFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -50,7 +50,7 @@ impl
     }
 }
 impl GetRandomPasswordFluentBuilder {
-    /// Creates a new `GetRandomPassword`.
+    /// Creates a new `GetRandomPasswordFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -101,12 +101,12 @@ impl GetRandomPasswordFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -152,17 +152,17 @@ impl GetRandomPasswordFluentBuilder {
     pub fn get_exclude_numbers(&self) -> &::std::option::Option<bool> {
         self.inner.get_exclude_numbers()
     }
-    /// <p>Specifies whether to exclude the following punctuation characters from the password: <code>! " # $ % &amp; ' ( ) * + , - . / : ; &lt; = &gt; ? @ [ \ ] ^ _ ` { | } ~</code>. If you don't include this switch, the password can contain punctuation.</p>
+    /// <p>Specifies whether to exclude the following punctuation characters from the password: <code>! " # $ % &amp; ' ( ) * + , - . / : ; &lt; = &gt; ? @ \[ \ \] ^ _ ` { | } ~</code>. If you don't include this switch, the password can contain punctuation.</p>
     pub fn exclude_punctuation(mut self, input: bool) -> Self {
         self.inner = self.inner.exclude_punctuation(input);
         self
     }
-    /// <p>Specifies whether to exclude the following punctuation characters from the password: <code>! " # $ % &amp; ' ( ) * + , - . / : ; &lt; = &gt; ? @ [ \ ] ^ _ ` { | } ~</code>. If you don't include this switch, the password can contain punctuation.</p>
+    /// <p>Specifies whether to exclude the following punctuation characters from the password: <code>! " # $ % &amp; ' ( ) * + , - . / : ; &lt; = &gt; ? @ \[ \ \] ^ _ ` { | } ~</code>. If you don't include this switch, the password can contain punctuation.</p>
     pub fn set_exclude_punctuation(mut self, input: ::std::option::Option<bool>) -> Self {
         self.inner = self.inner.set_exclude_punctuation(input);
         self
     }
-    /// <p>Specifies whether to exclude the following punctuation characters from the password: <code>! " # $ % &amp; ' ( ) * + , - . / : ; &lt; = &gt; ? @ [ \ ] ^ _ ` { | } ~</code>. If you don't include this switch, the password can contain punctuation.</p>
+    /// <p>Specifies whether to exclude the following punctuation characters from the password: <code>! " # $ % &amp; ' ( ) * + , - . / : ; &lt; = &gt; ? @ \[ \ \] ^ _ ` { | } ~</code>. If you don't include this switch, the password can contain punctuation.</p>
     pub fn get_exclude_punctuation(&self) -> &::std::option::Option<bool> {
         self.inner.get_exclude_punctuation()
     }

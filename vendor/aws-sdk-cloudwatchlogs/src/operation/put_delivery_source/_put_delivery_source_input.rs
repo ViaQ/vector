@@ -5,12 +5,32 @@
 pub struct PutDeliverySourceInput {
     /// <p>A name for this delivery source. This name must be unique for all delivery sources in your account.</p>
     pub name: ::std::option::Option<::std::string::String>,
-    /// <p>The ARN of the Amazon Web Services resource that is generating and sending logs. For example, <code>arn:aws:workmail:us-east-1:123456789012:organization/m-1234EXAMPLEabcd1234abcd1234abcd1234</code> </p>
+    /// <p>The ARN of the Amazon Web Services resource that is generating and sending logs. For example, <code>arn:aws:workmail:us-east-1:123456789012:organization/m-1234EXAMPLEabcd1234abcd1234abcd1234</code></p>
     pub resource_arn: ::std::option::Option<::std::string::String>,
-    /// <p>Defines the type of log that the source is sending. For valid values for this parameter, see the documentation for the source service.</p>
+    /// <p>Defines the type of log that the source is sending.</p>
+    /// <ul>
+    /// <li>
+    /// <p>For Amazon Bedrock, the valid value is <code>APPLICATION_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For CloudFront, the valid value is <code>ACCESS_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For Amazon CodeWhisperer, the valid value is <code>EVENT_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For Elemental MediaPackage, the valid values are <code>EGRESS_ACCESS_LOGS</code> and <code>INGRESS_ACCESS_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For Elemental MediaTailor, the valid values are <code>AD_DECISION_SERVER_LOGS</code>, <code>MANIFEST_SERVICE_LOGS</code>, and <code>TRANSCODE_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For IAM Identity Center, the valid value is <code>ERROR_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For Amazon Q, the valid value is <code>EVENT_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For Amazon SES mail manager, the valid value is <code>APPLICATION_LOG</code>.</p></li>
+    /// <li>
+    /// <p>For Amazon WorkMail, the valid values are <code>ACCESS_CONTROL_LOGS</code>, <code>AUTHENTICATION_LOGS</code>, <code>WORKMAIL_AVAILABILITY_PROVIDER_LOGS</code>, <code>WORKMAIL_MAILBOX_ACCESS_LOGS</code>, and <code>WORKMAIL_PERSONAL_ACCESS_TOKEN_LOGS</code>.</p></li>
+    /// </ul>
     pub log_type: ::std::option::Option<::std::string::String>,
     /// <p>An optional list of key-value pairs to associate with the resource.</p>
-    /// <p>For more information about tagging, see <a href="https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html">Tagging Amazon Web Services resources</a> </p>
+    /// <p>For more information about tagging, see <a href="https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html">Tagging Amazon Web Services resources</a></p>
     pub tags: ::std::option::Option<::std::collections::HashMap<::std::string::String, ::std::string::String>>,
 }
 impl PutDeliverySourceInput {
@@ -18,16 +38,36 @@ impl PutDeliverySourceInput {
     pub fn name(&self) -> ::std::option::Option<&str> {
         self.name.as_deref()
     }
-    /// <p>The ARN of the Amazon Web Services resource that is generating and sending logs. For example, <code>arn:aws:workmail:us-east-1:123456789012:organization/m-1234EXAMPLEabcd1234abcd1234abcd1234</code> </p>
+    /// <p>The ARN of the Amazon Web Services resource that is generating and sending logs. For example, <code>arn:aws:workmail:us-east-1:123456789012:organization/m-1234EXAMPLEabcd1234abcd1234abcd1234</code></p>
     pub fn resource_arn(&self) -> ::std::option::Option<&str> {
         self.resource_arn.as_deref()
     }
-    /// <p>Defines the type of log that the source is sending. For valid values for this parameter, see the documentation for the source service.</p>
+    /// <p>Defines the type of log that the source is sending.</p>
+    /// <ul>
+    /// <li>
+    /// <p>For Amazon Bedrock, the valid value is <code>APPLICATION_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For CloudFront, the valid value is <code>ACCESS_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For Amazon CodeWhisperer, the valid value is <code>EVENT_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For Elemental MediaPackage, the valid values are <code>EGRESS_ACCESS_LOGS</code> and <code>INGRESS_ACCESS_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For Elemental MediaTailor, the valid values are <code>AD_DECISION_SERVER_LOGS</code>, <code>MANIFEST_SERVICE_LOGS</code>, and <code>TRANSCODE_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For IAM Identity Center, the valid value is <code>ERROR_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For Amazon Q, the valid value is <code>EVENT_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For Amazon SES mail manager, the valid value is <code>APPLICATION_LOG</code>.</p></li>
+    /// <li>
+    /// <p>For Amazon WorkMail, the valid values are <code>ACCESS_CONTROL_LOGS</code>, <code>AUTHENTICATION_LOGS</code>, <code>WORKMAIL_AVAILABILITY_PROVIDER_LOGS</code>, <code>WORKMAIL_MAILBOX_ACCESS_LOGS</code>, and <code>WORKMAIL_PERSONAL_ACCESS_TOKEN_LOGS</code>.</p></li>
+    /// </ul>
     pub fn log_type(&self) -> ::std::option::Option<&str> {
         self.log_type.as_deref()
     }
     /// <p>An optional list of key-value pairs to associate with the resource.</p>
-    /// <p>For more information about tagging, see <a href="https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html">Tagging Amazon Web Services resources</a> </p>
+    /// <p>For more information about tagging, see <a href="https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html">Tagging Amazon Web Services resources</a></p>
     pub fn tags(&self) -> ::std::option::Option<&::std::collections::HashMap<::std::string::String, ::std::string::String>> {
         self.tags.as_ref()
     }
@@ -40,8 +80,8 @@ impl PutDeliverySourceInput {
 }
 
 /// A builder for [`PutDeliverySourceInput`](crate::operation::put_delivery_source::PutDeliverySourceInput).
-#[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::default::Default, ::std::fmt::Debug)]
+#[non_exhaustive]
 pub struct PutDeliverySourceInputBuilder {
     pub(crate) name: ::std::option::Option<::std::string::String>,
     pub(crate) resource_arn: ::std::option::Option<::std::string::String>,
@@ -64,33 +104,93 @@ impl PutDeliverySourceInputBuilder {
     pub fn get_name(&self) -> &::std::option::Option<::std::string::String> {
         &self.name
     }
-    /// <p>The ARN of the Amazon Web Services resource that is generating and sending logs. For example, <code>arn:aws:workmail:us-east-1:123456789012:organization/m-1234EXAMPLEabcd1234abcd1234abcd1234</code> </p>
+    /// <p>The ARN of the Amazon Web Services resource that is generating and sending logs. For example, <code>arn:aws:workmail:us-east-1:123456789012:organization/m-1234EXAMPLEabcd1234abcd1234abcd1234</code></p>
     /// This field is required.
     pub fn resource_arn(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.resource_arn = ::std::option::Option::Some(input.into());
         self
     }
-    /// <p>The ARN of the Amazon Web Services resource that is generating and sending logs. For example, <code>arn:aws:workmail:us-east-1:123456789012:organization/m-1234EXAMPLEabcd1234abcd1234abcd1234</code> </p>
+    /// <p>The ARN of the Amazon Web Services resource that is generating and sending logs. For example, <code>arn:aws:workmail:us-east-1:123456789012:organization/m-1234EXAMPLEabcd1234abcd1234abcd1234</code></p>
     pub fn set_resource_arn(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.resource_arn = input;
         self
     }
-    /// <p>The ARN of the Amazon Web Services resource that is generating and sending logs. For example, <code>arn:aws:workmail:us-east-1:123456789012:organization/m-1234EXAMPLEabcd1234abcd1234abcd1234</code> </p>
+    /// <p>The ARN of the Amazon Web Services resource that is generating and sending logs. For example, <code>arn:aws:workmail:us-east-1:123456789012:organization/m-1234EXAMPLEabcd1234abcd1234abcd1234</code></p>
     pub fn get_resource_arn(&self) -> &::std::option::Option<::std::string::String> {
         &self.resource_arn
     }
-    /// <p>Defines the type of log that the source is sending. For valid values for this parameter, see the documentation for the source service.</p>
+    /// <p>Defines the type of log that the source is sending.</p>
+    /// <ul>
+    /// <li>
+    /// <p>For Amazon Bedrock, the valid value is <code>APPLICATION_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For CloudFront, the valid value is <code>ACCESS_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For Amazon CodeWhisperer, the valid value is <code>EVENT_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For Elemental MediaPackage, the valid values are <code>EGRESS_ACCESS_LOGS</code> and <code>INGRESS_ACCESS_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For Elemental MediaTailor, the valid values are <code>AD_DECISION_SERVER_LOGS</code>, <code>MANIFEST_SERVICE_LOGS</code>, and <code>TRANSCODE_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For IAM Identity Center, the valid value is <code>ERROR_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For Amazon Q, the valid value is <code>EVENT_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For Amazon SES mail manager, the valid value is <code>APPLICATION_LOG</code>.</p></li>
+    /// <li>
+    /// <p>For Amazon WorkMail, the valid values are <code>ACCESS_CONTROL_LOGS</code>, <code>AUTHENTICATION_LOGS</code>, <code>WORKMAIL_AVAILABILITY_PROVIDER_LOGS</code>, <code>WORKMAIL_MAILBOX_ACCESS_LOGS</code>, and <code>WORKMAIL_PERSONAL_ACCESS_TOKEN_LOGS</code>.</p></li>
+    /// </ul>
     /// This field is required.
     pub fn log_type(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.log_type = ::std::option::Option::Some(input.into());
         self
     }
-    /// <p>Defines the type of log that the source is sending. For valid values for this parameter, see the documentation for the source service.</p>
+    /// <p>Defines the type of log that the source is sending.</p>
+    /// <ul>
+    /// <li>
+    /// <p>For Amazon Bedrock, the valid value is <code>APPLICATION_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For CloudFront, the valid value is <code>ACCESS_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For Amazon CodeWhisperer, the valid value is <code>EVENT_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For Elemental MediaPackage, the valid values are <code>EGRESS_ACCESS_LOGS</code> and <code>INGRESS_ACCESS_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For Elemental MediaTailor, the valid values are <code>AD_DECISION_SERVER_LOGS</code>, <code>MANIFEST_SERVICE_LOGS</code>, and <code>TRANSCODE_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For IAM Identity Center, the valid value is <code>ERROR_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For Amazon Q, the valid value is <code>EVENT_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For Amazon SES mail manager, the valid value is <code>APPLICATION_LOG</code>.</p></li>
+    /// <li>
+    /// <p>For Amazon WorkMail, the valid values are <code>ACCESS_CONTROL_LOGS</code>, <code>AUTHENTICATION_LOGS</code>, <code>WORKMAIL_AVAILABILITY_PROVIDER_LOGS</code>, <code>WORKMAIL_MAILBOX_ACCESS_LOGS</code>, and <code>WORKMAIL_PERSONAL_ACCESS_TOKEN_LOGS</code>.</p></li>
+    /// </ul>
     pub fn set_log_type(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.log_type = input;
         self
     }
-    /// <p>Defines the type of log that the source is sending. For valid values for this parameter, see the documentation for the source service.</p>
+    /// <p>Defines the type of log that the source is sending.</p>
+    /// <ul>
+    /// <li>
+    /// <p>For Amazon Bedrock, the valid value is <code>APPLICATION_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For CloudFront, the valid value is <code>ACCESS_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For Amazon CodeWhisperer, the valid value is <code>EVENT_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For Elemental MediaPackage, the valid values are <code>EGRESS_ACCESS_LOGS</code> and <code>INGRESS_ACCESS_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For Elemental MediaTailor, the valid values are <code>AD_DECISION_SERVER_LOGS</code>, <code>MANIFEST_SERVICE_LOGS</code>, and <code>TRANSCODE_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For IAM Identity Center, the valid value is <code>ERROR_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For Amazon Q, the valid value is <code>EVENT_LOGS</code>.</p></li>
+    /// <li>
+    /// <p>For Amazon SES mail manager, the valid value is <code>APPLICATION_LOG</code>.</p></li>
+    /// <li>
+    /// <p>For Amazon WorkMail, the valid values are <code>ACCESS_CONTROL_LOGS</code>, <code>AUTHENTICATION_LOGS</code>, <code>WORKMAIL_AVAILABILITY_PROVIDER_LOGS</code>, <code>WORKMAIL_MAILBOX_ACCESS_LOGS</code>, and <code>WORKMAIL_PERSONAL_ACCESS_TOKEN_LOGS</code>.</p></li>
+    /// </ul>
     pub fn get_log_type(&self) -> &::std::option::Option<::std::string::String> {
         &self.log_type
     }
@@ -99,7 +199,7 @@ impl PutDeliverySourceInputBuilder {
     /// To override the contents of this collection use [`set_tags`](Self::set_tags).
     ///
     /// <p>An optional list of key-value pairs to associate with the resource.</p>
-    /// <p>For more information about tagging, see <a href="https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html">Tagging Amazon Web Services resources</a> </p>
+    /// <p>For more information about tagging, see <a href="https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html">Tagging Amazon Web Services resources</a></p>
     pub fn tags(mut self, k: impl ::std::convert::Into<::std::string::String>, v: impl ::std::convert::Into<::std::string::String>) -> Self {
         let mut hash_map = self.tags.unwrap_or_default();
         hash_map.insert(k.into(), v.into());
@@ -107,13 +207,13 @@ impl PutDeliverySourceInputBuilder {
         self
     }
     /// <p>An optional list of key-value pairs to associate with the resource.</p>
-    /// <p>For more information about tagging, see <a href="https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html">Tagging Amazon Web Services resources</a> </p>
+    /// <p>For more information about tagging, see <a href="https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html">Tagging Amazon Web Services resources</a></p>
     pub fn set_tags(mut self, input: ::std::option::Option<::std::collections::HashMap<::std::string::String, ::std::string::String>>) -> Self {
         self.tags = input;
         self
     }
     /// <p>An optional list of key-value pairs to associate with the resource.</p>
-    /// <p>For more information about tagging, see <a href="https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html">Tagging Amazon Web Services resources</a> </p>
+    /// <p>For more information about tagging, see <a href="https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html">Tagging Amazon Web Services resources</a></p>
     pub fn get_tags(&self) -> &::std::option::Option<::std::collections::HashMap<::std::string::String, ::std::string::String>> {
         &self.tags
     }

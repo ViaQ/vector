@@ -3,7 +3,7 @@ pub use crate::operation::filter_log_events::_filter_log_events_output::FilterLo
 
 pub use crate::operation::filter_log_events::_filter_log_events_input::FilterLogEventsInputBuilder;
 
-impl FilterLogEventsInputBuilder {
+impl crate::operation::filter_log_events::builders::FilterLogEventsInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,12 +22,24 @@ impl FilterLogEventsInputBuilder {
 }
 /// Fluent builder constructing a request to `FilterLogEvents`.
 ///
-/// <p>Lists log events from the specified log group. You can list all the log events or filter the results using a filter pattern, a time range, and the name of the log stream.</p>
+/// <p>Lists log events from the specified log group. You can list all the log events or filter the results using one or more of the following:</p>
+/// <ul>
+/// <li>
+/// <p>A filter pattern</p></li>
+/// <li>
+/// <p>A time range</p></li>
+/// <li>
+/// <p>The log stream name, or a log stream name prefix that matches mutltiple log streams</p></li>
+/// </ul>
 /// <p>You must have the <code>logs:FilterLogEvents</code> permission to perform this operation.</p>
-/// <p>You can specify the log group to search by using either <code>logGroupIdentifier</code> or <code>logGroupName</code>. You must include one of these two parameters, but you can't include both. </p>
-/// <p>By default, this operation returns as many log events as can fit in 1 MB (up to 10,000 log events) or all the events found within the specified time range. If the results include a token, that means there are more log events available. You can get additional results by specifying the token in a subsequent call. This operation can return empty results while there are more log events available through the token.</p>
+/// <p>You can specify the log group to search by using either <code>logGroupIdentifier</code> or <code>logGroupName</code>. You must include one of these two parameters, but you can't include both.</p>
+/// <p><code>FilterLogEvents</code> is a paginated operation. Each page returned can contain up to 1 MB of log events or up to 10,000 log events. A returned page might only be partially full, or even empty. For example, if the result of a query would return 15,000 log events, the first page isn't guaranteed to have 10,000 log events even if they all fit into 1 MB.</p>
+/// <p>Partially full or empty pages don't necessarily mean that pagination is finished. If the results include a <code>nextToken</code>, there might be more log events available. You can return these additional log events by providing the nextToken in a subsequent <code>FilterLogEvents</code> operation. If the results don't include a <code>nextToken</code>, then pagination is finished.</p>
+/// <p>Specifying the <code>limit</code> parameter only guarantees that a single page doesn't return more log events than the specified limit, but it might return fewer events than the limit. This is the expected API behavior.</p>
 /// <p>The returned log events are sorted by event timestamp, the timestamp when the event was ingested by CloudWatch Logs, and the ID of the <code>PutLogEvents</code> request.</p>
-/// <p>If you are using CloudWatch cross-account observability, you can use this operation in a monitoring account and view data from the linked source accounts. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch-Unified-Cross-Account.html">CloudWatch cross-account observability</a>.</p>
+/// <p>If you are using CloudWatch cross-account observability, you can use this operation in a monitoring account and view data from the linked source accounts. For more information, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/monitoring/CloudWatch-Unified-Cross-Account.html">CloudWatch cross-account observability</a>.</p><note>
+/// <p>If you are using <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CloudWatch-Logs-Transformation.html">log transformation</a>, the <code>FilterLogEvents</code> operation returns only the original versions of log events, before they were transformed. To view the transformed versions, you must use a <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/AnalyzingLogData.html">CloudWatch Logs query.</a></p>
+/// </note>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct FilterLogEventsFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -53,7 +65,7 @@ impl
     }
 }
 impl FilterLogEventsFluentBuilder {
-    /// Creates a new `FilterLogEvents`.
+    /// Creates a new `FilterLogEventsFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -104,12 +116,12 @@ impl FilterLogEventsFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -119,81 +131,82 @@ impl FilterLogEventsFluentBuilder {
     pub fn into_paginator(self) -> crate::operation::filter_log_events::paginator::FilterLogEventsPaginator {
         crate::operation::filter_log_events::paginator::FilterLogEventsPaginator::new(self.handle, self.inner)
     }
-    /// <p>The name of the log group to search.</p> <note>
-    /// <p> You must include either <code>logGroupIdentifier</code> or <code>logGroupName</code>, but not both. </p>
+    /// <p>The name of the log group to search.</p><note>
+    /// <p>You must include either <code>logGroupIdentifier</code> or <code>logGroupName</code>, but not both.</p>
     /// </note>
     pub fn log_group_name(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.log_group_name(input.into());
         self
     }
-    /// <p>The name of the log group to search.</p> <note>
-    /// <p> You must include either <code>logGroupIdentifier</code> or <code>logGroupName</code>, but not both. </p>
+    /// <p>The name of the log group to search.</p><note>
+    /// <p>You must include either <code>logGroupIdentifier</code> or <code>logGroupName</code>, but not both.</p>
     /// </note>
     pub fn set_log_group_name(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_log_group_name(input);
         self
     }
-    /// <p>The name of the log group to search.</p> <note>
-    /// <p> You must include either <code>logGroupIdentifier</code> or <code>logGroupName</code>, but not both. </p>
+    /// <p>The name of the log group to search.</p><note>
+    /// <p>You must include either <code>logGroupIdentifier</code> or <code>logGroupName</code>, but not both.</p>
     /// </note>
     pub fn get_log_group_name(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_log_group_name()
     }
-    /// <p>Specify either the name or ARN of the log group to view log events from. If the log group is in a source account and you are using a monitoring account, you must use the log group ARN.</p> <note>
-    /// <p> You must include either <code>logGroupIdentifier</code> or <code>logGroupName</code>, but not both. </p>
+    /// <p>Specify either the name or ARN of the log group to view log events from. If the log group is in a source account and you are using a monitoring account, you must use the log group ARN.</p><note>
+    /// <p>You must include either <code>logGroupIdentifier</code> or <code>logGroupName</code>, but not both.</p>
     /// </note>
     pub fn log_group_identifier(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.log_group_identifier(input.into());
         self
     }
-    /// <p>Specify either the name or ARN of the log group to view log events from. If the log group is in a source account and you are using a monitoring account, you must use the log group ARN.</p> <note>
-    /// <p> You must include either <code>logGroupIdentifier</code> or <code>logGroupName</code>, but not both. </p>
+    /// <p>Specify either the name or ARN of the log group to view log events from. If the log group is in a source account and you are using a monitoring account, you must use the log group ARN.</p><note>
+    /// <p>You must include either <code>logGroupIdentifier</code> or <code>logGroupName</code>, but not both.</p>
     /// </note>
     pub fn set_log_group_identifier(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_log_group_identifier(input);
         self
     }
-    /// <p>Specify either the name or ARN of the log group to view log events from. If the log group is in a source account and you are using a monitoring account, you must use the log group ARN.</p> <note>
-    /// <p> You must include either <code>logGroupIdentifier</code> or <code>logGroupName</code>, but not both. </p>
+    /// <p>Specify either the name or ARN of the log group to view log events from. If the log group is in a source account and you are using a monitoring account, you must use the log group ARN.</p><note>
+    /// <p>You must include either <code>logGroupIdentifier</code> or <code>logGroupName</code>, but not both.</p>
     /// </note>
     pub fn get_log_group_identifier(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_log_group_identifier()
     }
+    ///
     /// Appends an item to `logStreamNames`.
     ///
     /// To override the contents of this collection use [`set_log_stream_names`](Self::set_log_stream_names).
     ///
     /// <p>Filters the results to only logs from the log streams in this list.</p>
-    /// <p>If you specify a value for both <code>logStreamNamePrefix</code> and <code>logStreamNames</code>, the action returns an <code>InvalidParameterException</code> error.</p>
+    /// <p>If you specify a value for both <code>logStreamNames</code> and <code>logStreamNamePrefix</code>, the action returns an <code>InvalidParameterException</code> error.</p>
     pub fn log_stream_names(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.log_stream_names(input.into());
         self
     }
     /// <p>Filters the results to only logs from the log streams in this list.</p>
-    /// <p>If you specify a value for both <code>logStreamNamePrefix</code> and <code>logStreamNames</code>, the action returns an <code>InvalidParameterException</code> error.</p>
+    /// <p>If you specify a value for both <code>logStreamNames</code> and <code>logStreamNamePrefix</code>, the action returns an <code>InvalidParameterException</code> error.</p>
     pub fn set_log_stream_names(mut self, input: ::std::option::Option<::std::vec::Vec<::std::string::String>>) -> Self {
         self.inner = self.inner.set_log_stream_names(input);
         self
     }
     /// <p>Filters the results to only logs from the log streams in this list.</p>
-    /// <p>If you specify a value for both <code>logStreamNamePrefix</code> and <code>logStreamNames</code>, the action returns an <code>InvalidParameterException</code> error.</p>
+    /// <p>If you specify a value for both <code>logStreamNames</code> and <code>logStreamNamePrefix</code>, the action returns an <code>InvalidParameterException</code> error.</p>
     pub fn get_log_stream_names(&self) -> &::std::option::Option<::std::vec::Vec<::std::string::String>> {
         self.inner.get_log_stream_names()
     }
     /// <p>Filters the results to include only events from log streams that have names starting with this prefix.</p>
-    /// <p>If you specify a value for both <code>logStreamNamePrefix</code> and <code>logStreamNames</code>, but the value for <code>logStreamNamePrefix</code> does not match any log stream names specified in <code>logStreamNames</code>, the action returns an <code>InvalidParameterException</code> error.</p>
+    /// <p>If you specify a value for both <code>logStreamNamePrefix</code> and <code>logStreamNames</code>, the action returns an <code>InvalidParameterException</code> error.</p>
     pub fn log_stream_name_prefix(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.log_stream_name_prefix(input.into());
         self
     }
     /// <p>Filters the results to include only events from log streams that have names starting with this prefix.</p>
-    /// <p>If you specify a value for both <code>logStreamNamePrefix</code> and <code>logStreamNames</code>, but the value for <code>logStreamNamePrefix</code> does not match any log stream names specified in <code>logStreamNames</code>, the action returns an <code>InvalidParameterException</code> error.</p>
+    /// <p>If you specify a value for both <code>logStreamNamePrefix</code> and <code>logStreamNames</code>, the action returns an <code>InvalidParameterException</code> error.</p>
     pub fn set_log_stream_name_prefix(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_log_stream_name_prefix(input);
         self
     }
     /// <p>Filters the results to include only events from log streams that have names starting with this prefix.</p>
-    /// <p>If you specify a value for both <code>logStreamNamePrefix</code> and <code>logStreamNames</code>, but the value for <code>logStreamNamePrefix</code> does not match any log stream names specified in <code>logStreamNames</code>, the action returns an <code>InvalidParameterException</code> error.</p>
+    /// <p>If you specify a value for both <code>logStreamNamePrefix</code> and <code>logStreamNames</code>, the action returns an <code>InvalidParameterException</code> error.</p>
     pub fn get_log_stream_name_prefix(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_log_stream_name_prefix()
     }
@@ -271,7 +284,7 @@ impl FilterLogEventsFluentBuilder {
         self.inner.get_limit()
     }
     /// <p>If the value is true, the operation attempts to provide responses that contain events from multiple log streams within the log group, interleaved in a single response. If the value is false, all the matched log events in the first log stream are searched first, then those in the next log stream, and so on.</p>
-    /// <p> <b>Important</b> As of June 17, 2019, this parameter is ignored and the value is assumed to be true. The response from this operation always interleaves events from multiple log streams within a log group.</p>
+    /// <p><b>Important</b> As of June 17, 2019, this parameter is ignored and the value is assumed to be true. The response from this operation always interleaves events from multiple log streams within a log group.</p>
     #[deprecated(
         note = "Starting on June 17, 2019, this parameter will be ignored and the value will be assumed to be true. The response from this operation will always interleave events from multiple log streams within a log group."
     )]
@@ -280,7 +293,7 @@ impl FilterLogEventsFluentBuilder {
         self
     }
     /// <p>If the value is true, the operation attempts to provide responses that contain events from multiple log streams within the log group, interleaved in a single response. If the value is false, all the matched log events in the first log stream are searched first, then those in the next log stream, and so on.</p>
-    /// <p> <b>Important</b> As of June 17, 2019, this parameter is ignored and the value is assumed to be true. The response from this operation always interleaves events from multiple log streams within a log group.</p>
+    /// <p><b>Important</b> As of June 17, 2019, this parameter is ignored and the value is assumed to be true. The response from this operation always interleaves events from multiple log streams within a log group.</p>
     #[deprecated(
         note = "Starting on June 17, 2019, this parameter will be ignored and the value will be assumed to be true. The response from this operation will always interleave events from multiple log streams within a log group."
     )]
@@ -289,7 +302,7 @@ impl FilterLogEventsFluentBuilder {
         self
     }
     /// <p>If the value is true, the operation attempts to provide responses that contain events from multiple log streams within the log group, interleaved in a single response. If the value is false, all the matched log events in the first log stream are searched first, then those in the next log stream, and so on.</p>
-    /// <p> <b>Important</b> As of June 17, 2019, this parameter is ignored and the value is assumed to be true. The response from this operation always interleaves events from multiple log streams within a log group.</p>
+    /// <p><b>Important</b> As of June 17, 2019, this parameter is ignored and the value is assumed to be true. The response from this operation always interleaves events from multiple log streams within a log group.</p>
     #[deprecated(
         note = "Starting on June 17, 2019, this parameter will be ignored and the value will be assumed to be true. The response from this operation will always interleave events from multiple log streams within a log group."
     )]

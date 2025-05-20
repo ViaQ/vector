@@ -12,14 +12,21 @@
 [package]
 edition = "2021"
 name = "async-graphql-derive"
-version = "7.0.7"
+version = "7.0.16"
 authors = [
     "sunli <scott_s829@163.com>",
     "Koxiaet",
 ]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Macros for async-graphql"
 homepage = "https://github.com/async-graphql/async-graphql"
 documentation = "https://docs.rs/async-graphql/"
+readme = false
 keywords = [
     "futures",
     "async",
@@ -32,17 +39,22 @@ categories = [
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/async-graphql/async-graphql"
 
+[features]
+boxed-trait = []
+
 [lib]
+name = "async_graphql_derive"
+path = "src/lib.rs"
 proc-macro = true
 
 [dependencies.Inflector]
 version = "0.11.4"
 
 [dependencies.async-graphql-parser]
-version = "7.0.7"
+version = "7.0.16"
 
 [dependencies.darling]
-version = "0.20.8"
+version = "0.20.10"
 
 [dependencies.proc-macro-crate]
 version = "3.1.0"
@@ -60,7 +72,6 @@ features = ["derive"]
 [dependencies.syn]
 version = "2.0"
 features = [
-    "full",
     "extra-traits",
     "visit-mut",
     "visit",

@@ -5,7 +5,9 @@
 
 //! Configuration Options for Credential Providers
 
+use crate::env_service_config::EnvServiceConfig;
 use crate::profile;
+#[allow(deprecated)]
 use crate::profile::profile_file::ProfileFiles;
 use crate::profile::{ProfileFileLoadError, ProfileSet};
 use aws_smithy_async::rt::sleep::{default_async_sleep, AsyncSleep, SharedAsyncSleep};
@@ -37,6 +39,7 @@ pub struct ProviderConfig {
     fs: Fs,
     time_source: SharedTimeSource,
     http_client: Option<SharedHttpClient>,
+    retry_config: Option<RetryConfig>,
     sleep_impl: Option<SharedAsyncSleep>,
     region: Option<Region>,
     use_fips: Option<bool>,
@@ -44,6 +47,7 @@ pub struct ProviderConfig {
     /// An AWS profile created from `ProfileFiles` and a `profile_name`
     parsed_profile: Arc<OnceCell<Result<ProfileSet, ProfileFileLoadError>>>,
     /// A list of [std::path::Path]s to profile files
+    #[allow(deprecated)]
     profile_files: ProfileFiles,
     /// An override to use when constructing a `ProfileSet`
     profile_name_override: Option<Cow<'static, str>>,
@@ -56,6 +60,7 @@ impl Debug for ProviderConfig {
             .field("fs", &self.fs)
             .field("time_source", &self.time_source)
             .field("http_client", &self.http_client)
+            .field("retry_config", &self.retry_config)
             .field("sleep_impl", &self.sleep_impl)
             .field("region", &self.region)
             .field("use_fips", &self.use_fips)
@@ -72,11 +77,13 @@ impl Default for ProviderConfig {
             fs: Fs::default(),
             time_source: SharedTimeSource::default(),
             http_client: None,
+            retry_config: None,
             sleep_impl: default_async_sleep(),
             region: None,
             use_fips: None,
             use_dual_stack: None,
             parsed_profile: Default::default(),
+            #[allow(deprecated)]
             profile_files: ProfileFiles::default(),
             profile_name_override: None,
         }
@@ -97,11 +104,13 @@ impl ProviderConfig {
         let env = Env::from_slice(&[]);
         Self {
             parsed_profile: Default::default(),
+            #[allow(deprecated)]
             profile_files: ProfileFiles::default(),
             env,
             fs,
             time_source: SharedTimeSource::new(StaticTimeSource::new(UNIX_EPOCH)),
             http_client: None,
+            retry_config: None,
             sleep_impl: None,
             region: None,
             use_fips: None,
@@ -123,7 +132,7 @@ impl ProviderConfig {
     ///
     /// # Examples
     /// ```no_run
-    /// # #[cfg(feature = "rustls")]
+    /// # #[cfg(feature = "default-https-client")]
     /// # fn example() {
     /// use aws_config::provider_config::ProviderConfig;
     /// use aws_sdk_sts::config::Region;
@@ -144,11 +153,13 @@ impl ProviderConfig {
             fs: Fs::default(),
             time_source: SharedTimeSource::default(),
             http_client: None,
+            retry_config: None,
             sleep_impl: None,
             region: None,
             use_fips: None,
             use_dual_stack: None,
             parsed_profile: Default::default(),
+            #[allow(deprecated)]
             profile_files: ProfileFiles::default(),
             profile_name_override: None,
         }
@@ -161,11 +172,13 @@ impl ProviderConfig {
     ) -> Self {
         Self {
             parsed_profile: Default::default(),
+            #[allow(deprecated)]
             profile_files: ProfileFiles::default(),
             env: Env::default(),
             fs: Fs::default(),
             time_source,
             http_client: None,
+            retry_config: None,
             sleep_impl,
             region: None,
             use_fips: None,
@@ -190,13 +203,30 @@ impl ProviderConfig {
         Self::without_region().load_default_region().await
     }
 
+    /// Attempt to get a representation of `SdkConfig` from this `ProviderConfig`.
+    ///
+    ///
+    /// **WARN**: Some options (e.g. `service_config`) can only be set if the profile has been
+    /// parsed already (e.g. by calling [`ProviderConfig::profile()`]). This is an
+    /// imperfect mapping and should be used sparingly.
     pub(crate) fn client_config(&self) -> SdkConfig {
+        let profiles = self.parsed_profile.get().and_then(|v| v.as_ref().ok());
+        let service_config = EnvServiceConfig {
+            env: self.env(),
+            env_config_sections: profiles.cloned().unwrap_or_default(),
+        };
+
         let mut builder = SdkConfig::builder()
-            .retry_config(RetryConfig::standard())
+            .retry_config(
+                self.retry_config
+                    .as_ref()
+                    .map_or(RetryConfig::standard(), |config| config.clone()),
+            )
             .region(self.region())
             .time_source(self.time_source())
             .use_fips(self.use_fips().unwrap_or_default())
             .use_dual_stack(self.use_dual_stack().unwrap_or_default())
+            .service_config(service_config)
             .behavior_version(crate::BehaviorVersion::latest());
         builder.set_http_client(self.http_client.clone());
         builder.set_sleep_impl(self.sleep_impl.clone());
@@ -223,6 +253,11 @@ impl ProviderConfig {
     #[allow(dead_code)]
     pub(crate) fn http_client(&self) -> Option<SharedHttpClient> {
         self.http_client.clone()
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn retry_config(&self) -> Option<RetryConfig> {
+        self.retry_config.clone()
     }
 
     #[allow(dead_code)]
@@ -293,6 +328,7 @@ impl ProviderConfig {
     }
 
     /// Override the profile file paths (`~/.aws/config` by default) and name (`default` by default)
+    #[allow(deprecated)]
     pub(crate) fn with_profile_config(
         self,
         profile_files: Option<ProfileFiles>,
@@ -359,6 +395,14 @@ impl ProviderConfig {
     pub fn with_sleep_impl(self, sleep_impl: impl AsyncSleep + 'static) -> Self {
         ProviderConfig {
             sleep_impl: Some(sleep_impl.into_shared()),
+            ..self
+        }
+    }
+
+    /// Override the retry config for this configuration
+    pub fn with_retry_config(self, retry_config: RetryConfig) -> Self {
+        ProviderConfig {
+            retry_config: Some(retry_config),
             ..self
         }
     }

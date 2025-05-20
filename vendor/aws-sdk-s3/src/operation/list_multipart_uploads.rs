@@ -50,7 +50,18 @@ impl ListMultipartUploads {
         >,
     > {
         let input = ::aws_smithy_runtime_api::client::interceptors::context::Input::erase(input);
-        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("s3", "ListMultipartUploads", input, runtime_plugins, stop_point).await
+        use ::tracing::Instrument;
+        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("S3", "ListMultipartUploads", input, runtime_plugins, stop_point)
+            // Create a parent span for the entire operation. Includes a random, internal-only,
+            // seven-digit ID for the operation orchestration so that it can be correlated in the logs.
+            .instrument(::tracing::debug_span!(
+                "S3.ListMultipartUploads",
+                "rpc.service" = "S3",
+                "rpc.method" = "ListMultipartUploads",
+                "sdk_invocation_id" = ::fastrand::u32(1_000_000..10_000_000),
+                "rpc.system" = "aws-api",
+            ))
+            .await
     }
 
     pub(crate) fn operation_runtime_plugins(
@@ -59,7 +70,7 @@ impl ListMultipartUploads {
         config_override: ::std::option::Option<crate::config::Builder>,
     ) -> ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugins {
         let mut runtime_plugins = client_runtime_plugins.with_operation_plugin(Self::new());
-        runtime_plugins = runtime_plugins.with_client_plugin(crate::auth_plugin::DefaultAuthOptionsPlugin::new(vec![
+        runtime_plugins = runtime_plugins.with_client_plugin(crate::endpoint_auth_plugin::EndpointBasedAuthOptionsPlugin::new(vec![
             ::aws_runtime::auth::sigv4::SCHEME_ID,
             #[cfg(feature = "sigv4a")]
             {
@@ -95,7 +106,10 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for ListMul
             ::aws_smithy_runtime_api::client::auth::static_resolver::StaticAuthSchemeOptionResolverParams::new(),
         ));
 
-        cfg.store_put(::aws_smithy_http::operation::Metadata::new("ListMultipartUploads", "s3"));
+        cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::Metadata::new(
+            "ListMultipartUploads",
+            "S3",
+        ));
         let mut signing_options = ::aws_runtime::auth::SigningOptions::default();
         signing_options.double_uri_encode = false;
         signing_options.content_sha256_header = true;
@@ -115,22 +129,16 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for ListMul
         _: &::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder,
     ) -> ::std::borrow::Cow<'_, ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder> {
         #[allow(unused_mut)]
-        let mut rcb = ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("ListMultipartUploads")
-            .with_interceptor(
-                ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::new(
-                    ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptorKind::ResponseBody,
-                ),
-            )
-            .with_interceptor(ListMultipartUploadsEndpointParamsInterceptor)
-            .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<
-                crate::operation::list_multipart_uploads::ListMultipartUploadsError,
-            >::new())
-            .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::ModeledAsRetryableClassifier::<
-                crate::operation::list_multipart_uploads::ListMultipartUploadsError,
-            >::new())
-            .with_retry_classifier(::aws_runtime::retries::classifiers::AwsErrorCodeClassifier::<
-                crate::operation::list_multipart_uploads::ListMultipartUploadsError,
-            >::new());
+                    let mut rcb = ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("ListMultipartUploads")
+                            .with_interceptor(::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::default())
+.with_interceptor(ListMultipartUploadsEndpointParamsInterceptor)
+                            .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<crate::operation::list_multipart_uploads::ListMultipartUploadsError>::new())
+.with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::ModeledAsRetryableClassifier::<crate::operation::list_multipart_uploads::ListMultipartUploadsError>::new())
+.with_retry_classifier(::aws_runtime::retries::classifiers::AwsErrorCodeClassifier::<crate::operation::list_multipart_uploads::ListMultipartUploadsError>::builder().transient_errors({
+                                            let mut transient_errors: Vec<&'static str> = ::aws_runtime::retries::classifiers::TRANSIENT_ERRORS.into();
+                                            transient_errors.push("InternalError");
+                                            ::std::borrow::Cow::Owned(transient_errors)
+                                            }).build());
 
         ::std::borrow::Cow::Owned(rcb)
     }
@@ -194,32 +202,32 @@ impl ::aws_smithy_runtime_api::client::ser_de::SerializeRequest for ListMultipar
                 query.push_v("uploads");
                 if let ::std::option::Option::Some(inner_1) = &_input.delimiter {
                     {
-                        query.push_kv("delimiter", &::aws_smithy_http::query::fmt_string(&inner_1));
+                        query.push_kv("delimiter", &::aws_smithy_http::query::fmt_string(inner_1));
                     }
                 }
                 if let ::std::option::Option::Some(inner_2) = &_input.encoding_type {
                     {
-                        query.push_kv("encoding-type", &::aws_smithy_http::query::fmt_string(&inner_2));
+                        query.push_kv("encoding-type", &::aws_smithy_http::query::fmt_string(inner_2));
                     }
                 }
                 if let ::std::option::Option::Some(inner_3) = &_input.key_marker {
                     {
-                        query.push_kv("key-marker", &::aws_smithy_http::query::fmt_string(&inner_3));
+                        query.push_kv("key-marker", &::aws_smithy_http::query::fmt_string(inner_3));
                     }
                 }
                 if let ::std::option::Option::Some(inner_4) = &_input.max_uploads {
-                    if *inner_4 != 0 {
+                    {
                         query.push_kv("max-uploads", ::aws_smithy_types::primitive::Encoder::from(*inner_4).encode());
                     }
                 }
                 if let ::std::option::Option::Some(inner_5) = &_input.prefix {
                     {
-                        query.push_kv("prefix", &::aws_smithy_http::query::fmt_string(&inner_5));
+                        query.push_kv("prefix", &::aws_smithy_http::query::fmt_string(inner_5));
                     }
                 }
                 if let ::std::option::Option::Some(inner_6) = &_input.upload_id_marker {
                     {
-                        query.push_kv("upload-id-marker", &::aws_smithy_http::query::fmt_string(&inner_6));
+                        query.push_kv("upload-id-marker", &::aws_smithy_http::query::fmt_string(inner_6));
                     }
                 }
                 ::std::result::Result::Ok(())
@@ -293,6 +301,9 @@ impl ::aws_smithy_runtime_api::client::interceptors::Intercept for ListMultipart
         ::std::result::Result::Ok(())
     }
 }
+
+// The get_* functions below are generated from JMESPath expressions in the
+// operationContextParams trait. They target the operation's input shape.
 
 /// Error type for the `ListMultipartUploadsError` operation.
 #[non_exhaustive]

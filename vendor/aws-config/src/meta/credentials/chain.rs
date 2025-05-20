@@ -9,16 +9,15 @@ use aws_credential_types::{
 };
 use aws_smithy_types::error::display::DisplayErrorContext;
 use std::borrow::Cow;
+use std::fmt::Debug;
 use tracing::Instrument;
 
 /// Credentials provider that checks a series of inner providers
 ///
 /// Each provider will be evaluated in order:
-/// * If a provider returns valid [`Credentials`](aws_credential_types::Credentials) they will be returned immediately.
+/// * If a provider returns valid [`Credentials`] they will be returned immediately.
 ///   No other credential providers will be used.
-/// * Otherwise, if a provider returns
-///   [`CredentialsError::CredentialsNotLoaded`](aws_credential_types::provider::error::CredentialsError::CredentialsNotLoaded),
-///   the next provider will be checked.
+/// * Otherwise, if a provider returns [`CredentialsError::CredentialsNotLoaded`], the next provider will be checked.
 /// * Finally, if a provider returns any other error condition, an error will be returned immediately.
 ///
 /// # Examples
@@ -33,9 +32,23 @@ use tracing::Instrument;
 ///     .or_else("Profile", ProfileFileCredentialsProvider::builder().build());
 /// # }
 /// ```
-#[derive(Debug)]
 pub struct CredentialsProviderChain {
     providers: Vec<(Cow<'static, str>, Box<dyn ProvideCredentials>)>,
+}
+
+impl Debug for CredentialsProviderChain {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CredentialsProviderChain")
+            .field(
+                "providers",
+                &self
+                    .providers
+                    .iter()
+                    .map(|provider| &provider.0)
+                    .collect::<Vec<&Cow<'static, str>>>(),
+            )
+            .finish()
+    }
 }
 
 impl CredentialsProviderChain {
@@ -60,7 +73,7 @@ impl CredentialsProviderChain {
     }
 
     /// Add a fallback to the default provider chain
-    #[cfg(feature = "rustls")]
+    #[cfg(any(feature = "default-https-client", feature = "rustls"))]
     pub async fn or_default_provider(self) -> Self {
         self.or_else(
             "DefaultProviderChain",
@@ -69,7 +82,7 @@ impl CredentialsProviderChain {
     }
 
     /// Creates a credential provider chain that starts with the default provider
-    #[cfg(feature = "rustls")]
+    #[cfg(any(feature = "default-https-client", feature = "rustls"))]
     pub async fn default_provider() -> Self {
         Self::first_try(
             "DefaultProviderChain",
@@ -79,7 +92,7 @@ impl CredentialsProviderChain {
 
     async fn credentials(&self) -> provider::Result {
         for (name, provider) in &self.providers {
-            let span = tracing::debug_span!("load_credentials", provider = %name);
+            let span = tracing::debug_span!("credentials_provider_chain", provider = %name);
             match provider.provide_credentials().instrument(span).await {
                 Ok(credentials) => {
                     tracing::debug!(provider = %name, "loaded credentials");
@@ -101,7 +114,7 @@ impl CredentialsProviderChain {
 }
 
 impl ProvideCredentials for CredentialsProviderChain {
-    fn provide_credentials<'a>(&'a self) -> future::ProvideCredentials<'_>
+    fn provide_credentials<'a>(&'a self) -> future::ProvideCredentials<'a>
     where
         Self: 'a,
     {
@@ -110,9 +123,8 @@ impl ProvideCredentials for CredentialsProviderChain {
 
     fn fallback_on_interrupt(&self) -> Option<Credentials> {
         for (_, provider) in &self.providers {
-            match provider.fallback_on_interrupt() {
-                creds @ Some(_) => return creds,
-                None => {}
+            if let creds @ Some(_) = provider.fallback_on_interrupt() {
+                return creds;
             }
         }
         None

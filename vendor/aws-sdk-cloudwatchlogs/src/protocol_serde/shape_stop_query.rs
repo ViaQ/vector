@@ -17,12 +17,12 @@ pub fn de_stop_query_http_error(
 
     let _error_message = generic.message().map(|msg| msg.to_owned());
     Err(match error_code {
-        "InvalidParameterException" => crate::operation::stop_query::StopQueryError::InvalidParameterException({
+        "ResourceNotFoundException" => crate::operation::stop_query::StopQueryError::ResourceNotFoundException({
             #[allow(unused_mut)]
             let mut tmp = {
                 #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::InvalidParameterExceptionBuilder::default();
-                output = crate::protocol_serde::shape_invalid_parameter_exception::de_invalid_parameter_exception_json_err(_response_body, output)
+                let mut output = crate::types::error::builders::ResourceNotFoundExceptionBuilder::default();
+                output = crate::protocol_serde::shape_resource_not_found_exception::de_resource_not_found_exception_json_err(_response_body, output)
                     .map_err(crate::operation::stop_query::StopQueryError::unhandled)?;
                 let output = output.meta(generic);
                 output.build()
@@ -32,12 +32,12 @@ pub fn de_stop_query_http_error(
             }
             tmp
         }),
-        "ResourceNotFoundException" => crate::operation::stop_query::StopQueryError::ResourceNotFoundException({
+        "InvalidParameterException" => crate::operation::stop_query::StopQueryError::InvalidParameterException({
             #[allow(unused_mut)]
             let mut tmp = {
                 #[allow(unused_mut)]
-                let mut output = crate::types::error::builders::ResourceNotFoundExceptionBuilder::default();
-                output = crate::protocol_serde::shape_resource_not_found_exception::de_resource_not_found_exception_json_err(_response_body, output)
+                let mut output = crate::types::error::builders::InvalidParameterExceptionBuilder::default();
+                output = crate::protocol_serde::shape_invalid_parameter_exception::de_invalid_parameter_exception_json_err(_response_body, output)
                     .map_err(crate::operation::stop_query::StopQueryError::unhandled)?;
                 let output = output.meta(generic);
                 output.build()
@@ -85,7 +85,7 @@ pub fn de_stop_query_http_response(
 
 pub fn ser_stop_query_input(
     input: &crate::operation::stop_query::StopQueryInput,
-) -> Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
     let mut out = String::new();
     let mut object = ::aws_smithy_json::serialize::JsonObjectWriter::new(&mut out);
     crate::protocol_serde::shape_stop_query_input::ser_stop_query_input_input(&mut object, input)?;
@@ -96,7 +96,7 @@ pub fn ser_stop_query_input(
 pub(crate) fn de_stop_query(
     value: &[u8],
     mut builder: crate::operation::stop_query::builders::StopQueryOutputBuilder,
-) -> Result<crate::operation::stop_query::builders::StopQueryOutputBuilder, ::aws_smithy_json::deserialize::error::DeserializeError> {
+) -> ::std::result::Result<crate::operation::stop_query::builders::StopQueryOutputBuilder, ::aws_smithy_json::deserialize::error::DeserializeError> {
     let mut tokens_owned = ::aws_smithy_json::deserialize::json_token_iter(crate::protocol_serde::or_empty_doc(value)).peekable();
     let tokens = &mut tokens_owned;
     ::aws_smithy_json::deserialize::token::expect_start_object(tokens.next())?;

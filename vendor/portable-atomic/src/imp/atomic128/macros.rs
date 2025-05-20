@@ -23,22 +23,7 @@ macro_rules! atomic128 {
             pub(crate) fn is_lock_free() -> bool {
                 is_lock_free()
             }
-            #[inline]
-            pub(crate) const fn is_always_lock_free() -> bool {
-                IS_ALWAYS_LOCK_FREE
-            }
-
-            #[inline]
-            pub(crate) fn get_mut(&mut self) -> &mut $int_type {
-                // SAFETY: the mutable reference guarantees unique ownership.
-                // (UnsafeCell::get_mut requires Rust 1.50)
-                unsafe { &mut *self.v.get() }
-            }
-
-            #[inline]
-            pub(crate) fn into_inner(self) -> $int_type {
-                self.v.into_inner()
-            }
+            pub(crate) const IS_ALWAYS_LOCK_FREE: bool = IS_ALWAYS_LOCK_FREE;
 
             #[inline]
             #[cfg_attr(
@@ -47,9 +32,12 @@ macro_rules! atomic128 {
             )]
             pub(crate) fn load(&self, order: Ordering) -> $int_type {
                 crate::utils::assert_load_ordering(order);
+                #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
                 // SAFETY: any data races are prevented by atomic intrinsics and the raw
                 // pointer passed in is valid because we got it from a reference.
-                unsafe { atomic_load(self.v.get().cast::<u128>(), order) as $int_type }
+                unsafe {
+                    atomic_load(self.v.get().cast::<u128>(), order) as $int_type
+                }
             }
 
             #[inline]
@@ -59,17 +47,23 @@ macro_rules! atomic128 {
             )]
             pub(crate) fn store(&self, val: $int_type, order: Ordering) {
                 crate::utils::assert_store_ordering(order);
+                #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
                 // SAFETY: any data races are prevented by atomic intrinsics and the raw
                 // pointer passed in is valid because we got it from a reference.
-                unsafe { atomic_store(self.v.get().cast::<u128>(), val as u128, order) }
+                unsafe {
+                    atomic_store(self.v.get().cast::<u128>(), val as u128, order)
+                }
             }
 
             #[inline]
             #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
             pub(crate) fn swap(&self, val: $int_type, order: Ordering) -> $int_type {
+                #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
                 // SAFETY: any data races are prevented by atomic intrinsics and the raw
                 // pointer passed in is valid because we got it from a reference.
-                unsafe { atomic_swap(self.v.get().cast::<u128>(), val as u128, order) as $int_type }
+                unsafe {
+                    atomic_swap(self.v.get().cast::<u128>(), val as u128, order) as $int_type
+                }
             }
 
             #[inline]
@@ -85,6 +79,7 @@ macro_rules! atomic128 {
                 failure: Ordering,
             ) -> Result<$int_type, $int_type> {
                 crate::utils::assert_compare_exchange_ordering(success, failure);
+                #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
                 // SAFETY: any data races are prevented by atomic intrinsics and the raw
                 // pointer passed in is valid because we got it from a reference.
                 unsafe {
@@ -114,6 +109,7 @@ macro_rules! atomic128 {
                 failure: Ordering,
             ) -> Result<$int_type, $int_type> {
                 crate::utils::assert_compare_exchange_ordering(success, failure);
+                #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
                 // SAFETY: any data races are prevented by atomic intrinsics and the raw
                 // pointer passed in is valid because we got it from a reference.
                 unsafe {
@@ -133,73 +129,100 @@ macro_rules! atomic128 {
             #[inline]
             #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
             pub(crate) fn fetch_add(&self, val: $int_type, order: Ordering) -> $int_type {
+                #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
                 // SAFETY: any data races are prevented by atomic intrinsics and the raw
                 // pointer passed in is valid because we got it from a reference.
-                unsafe { atomic_add(self.v.get().cast::<u128>(), val as u128, order) as $int_type }
+                unsafe {
+                    atomic_add(self.v.get().cast::<u128>(), val as u128, order) as $int_type
+                }
             }
 
             #[inline]
             #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
             pub(crate) fn fetch_sub(&self, val: $int_type, order: Ordering) -> $int_type {
+                #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
                 // SAFETY: any data races are prevented by atomic intrinsics and the raw
                 // pointer passed in is valid because we got it from a reference.
-                unsafe { atomic_sub(self.v.get().cast::<u128>(), val as u128, order) as $int_type }
+                unsafe {
+                    atomic_sub(self.v.get().cast::<u128>(), val as u128, order) as $int_type
+                }
             }
 
             #[inline]
             #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
             pub(crate) fn fetch_and(&self, val: $int_type, order: Ordering) -> $int_type {
+                #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
                 // SAFETY: any data races are prevented by atomic intrinsics and the raw
                 // pointer passed in is valid because we got it from a reference.
-                unsafe { atomic_and(self.v.get().cast::<u128>(), val as u128, order) as $int_type }
+                unsafe {
+                    atomic_and(self.v.get().cast::<u128>(), val as u128, order) as $int_type
+                }
             }
 
             #[inline]
             #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
             pub(crate) fn fetch_nand(&self, val: $int_type, order: Ordering) -> $int_type {
+                #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
                 // SAFETY: any data races are prevented by atomic intrinsics and the raw
                 // pointer passed in is valid because we got it from a reference.
-                unsafe { atomic_nand(self.v.get().cast::<u128>(), val as u128, order) as $int_type }
+                unsafe {
+                    atomic_nand(self.v.get().cast::<u128>(), val as u128, order) as $int_type
+                }
             }
 
             #[inline]
             #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
             pub(crate) fn fetch_or(&self, val: $int_type, order: Ordering) -> $int_type {
+                #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
                 // SAFETY: any data races are prevented by atomic intrinsics and the raw
                 // pointer passed in is valid because we got it from a reference.
-                unsafe { atomic_or(self.v.get().cast::<u128>(), val as u128, order) as $int_type }
+                unsafe {
+                    atomic_or(self.v.get().cast::<u128>(), val as u128, order) as $int_type
+                }
             }
 
             #[inline]
             #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
             pub(crate) fn fetch_xor(&self, val: $int_type, order: Ordering) -> $int_type {
+                #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
                 // SAFETY: any data races are prevented by atomic intrinsics and the raw
                 // pointer passed in is valid because we got it from a reference.
-                unsafe { atomic_xor(self.v.get().cast::<u128>(), val as u128, order) as $int_type }
+                unsafe {
+                    atomic_xor(self.v.get().cast::<u128>(), val as u128, order) as $int_type
+                }
             }
 
             #[inline]
             #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
             pub(crate) fn fetch_max(&self, val: $int_type, order: Ordering) -> $int_type {
+                #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
                 // SAFETY: any data races are prevented by atomic intrinsics and the raw
                 // pointer passed in is valid because we got it from a reference.
-                unsafe { $atomic_max(self.v.get().cast::<u128>(), val as u128, order) as $int_type }
+                unsafe {
+                    $atomic_max(self.v.get().cast::<u128>(), val as u128, order) as $int_type
+                }
             }
 
             #[inline]
             #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
             pub(crate) fn fetch_min(&self, val: $int_type, order: Ordering) -> $int_type {
+                #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
                 // SAFETY: any data races are prevented by atomic intrinsics and the raw
                 // pointer passed in is valid because we got it from a reference.
-                unsafe { $atomic_min(self.v.get().cast::<u128>(), val as u128, order) as $int_type }
+                unsafe {
+                    $atomic_min(self.v.get().cast::<u128>(), val as u128, order) as $int_type
+                }
             }
 
             #[inline]
             #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
             pub(crate) fn fetch_not(&self, order: Ordering) -> $int_type {
+                #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
                 // SAFETY: any data races are prevented by atomic intrinsics and the raw
                 // pointer passed in is valid because we got it from a reference.
-                unsafe { atomic_not(self.v.get().cast::<u128>(), order) as $int_type }
+                unsafe {
+                    atomic_not(self.v.get().cast::<u128>(), order) as $int_type
+                }
             }
             #[inline]
             #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
@@ -210,9 +233,12 @@ macro_rules! atomic128 {
             #[inline]
             #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces
             pub(crate) fn fetch_neg(&self, order: Ordering) -> $int_type {
+                #[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
                 // SAFETY: any data races are prevented by atomic intrinsics and the raw
                 // pointer passed in is valid because we got it from a reference.
-                unsafe { atomic_neg(self.v.get().cast::<u128>(), order) as $int_type }
+                unsafe {
+                    atomic_neg(self.v.get().cast::<u128>(), order) as $int_type
+                }
             }
             #[inline]
             #[cfg_attr(miri, track_caller)] // even without panics, this helps for Miri backtraces

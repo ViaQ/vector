@@ -2,7 +2,7 @@
 #[allow(clippy::needless_question_mark)]
 pub fn de_multipart_upload(
     decoder: &mut ::aws_smithy_xml::decode::ScopedDecoder,
-) -> Result<crate::types::MultipartUpload, ::aws_smithy_xml::decode::XmlDecodeError> {
+) -> ::std::result::Result<crate::types::MultipartUpload, ::aws_smithy_xml::decode::XmlDecodeError> {
     #[allow(unused_mut)]
     let mut builder = crate::types::MultipartUpload::builder();
     while let Some(mut tag) = decoder.next_tag() {
@@ -93,6 +93,20 @@ pub fn de_multipart_upload(
                     )
                 ;
                 builder = builder.set_checksum_algorithm(var_7);
+            }
+            ,
+            s if s.matches("ChecksumType") /* ChecksumType com.amazonaws.s3#MultipartUpload$ChecksumType */ =>  {
+                let var_8 =
+                    Some(
+                        Result::<crate::types::ChecksumType, ::aws_smithy_xml::decode::XmlDecodeError>::Ok(
+                            crate::types::ChecksumType::from(
+                                ::aws_smithy_xml::decode::try_data(&mut tag)?.as_ref()
+                            )
+                        )
+                        ?
+                    )
+                ;
+                builder = builder.set_checksum_type(var_8);
             }
             ,
             _ => {}

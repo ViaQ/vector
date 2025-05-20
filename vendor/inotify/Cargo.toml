@@ -11,19 +11,24 @@
 
 [package]
 edition = "2018"
-rust-version = "1.63"
+rust-version = "1.70"
 name = "inotify"
-version = "0.10.2"
+version = "0.11.0"
 authors = [
     "Hanno Braun <mail@hannobraun.de>",
     "Félix Saparelli <me@passcod.name>",
     "Cristian Kubis <cristian.kubis@tsunix.de>",
     "Frank Denis <github@pureftpd.org>",
 ]
+build = false
 exclude = [
     "/.travis.yml",
     "/inotify-rs.sublime-project",
 ]
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Idiomatic wrapper for inotify"
 documentation = "https://docs.rs/inotify"
 readme = "README.md"
@@ -38,15 +43,25 @@ categories = [
 license = "ISC"
 repository = "https://github.com/hannobraun/inotify"
 
+[lib]
+name = "inotify"
+path = "src/lib.rs"
+
 [[example]]
 name = "stream"
+path = "examples/stream.rs"
 required-features = ["stream"]
 
 [[example]]
 name = "watch"
+path = "examples/watch.rs"
+
+[[test]]
+name = "main"
+path = "tests/main.rs"
 
 [dependencies.bitflags]
-version = "1"
+version = "2"
 
 [dependencies.futures-core]
 version = "0.3.1"

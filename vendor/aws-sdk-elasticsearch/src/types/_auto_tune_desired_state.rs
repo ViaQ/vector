@@ -35,6 +35,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 /// <p>Specifies the Auto-Tune desired state. Valid values are ENABLED, DISABLED.</p>
 #[non_exhaustive]
 #[derive(
@@ -93,6 +94,15 @@ impl AutoTuneDesiredState {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for AutoTuneDesiredState {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            AutoTuneDesiredState::Disabled => write!(f, "DISABLED"),
+            AutoTuneDesiredState::Enabled => write!(f, "ENABLED"),
+            AutoTuneDesiredState::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

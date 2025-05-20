@@ -23,6 +23,7 @@ include = [
     "LICENSE-APACHE",
     "LICENSE-MIT",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

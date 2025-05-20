@@ -41,6 +41,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -132,6 +133,21 @@ impl MetricsName {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for MetricsName {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            MetricsName::All => write!(f, "ALL"),
+            MetricsName::IncomingBytes => write!(f, "IncomingBytes"),
+            MetricsName::IncomingRecords => write!(f, "IncomingRecords"),
+            MetricsName::IteratorAgeMilliseconds => write!(f, "IteratorAgeMilliseconds"),
+            MetricsName::OutgoingBytes => write!(f, "OutgoingBytes"),
+            MetricsName::OutgoingRecords => write!(f, "OutgoingRecords"),
+            MetricsName::ReadProvisionedThroughputExceeded => write!(f, "ReadProvisionedThroughputExceeded"),
+            MetricsName::WriteProvisionedThroughputExceeded => write!(f, "WriteProvisionedThroughputExceeded"),
+            MetricsName::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

@@ -2,7 +2,7 @@
 
 /// <p>Input for the OptInPhoneNumber action.</p>
 #[non_exhaustive]
-#[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::fmt::Debug)]
+#[derive(::std::clone::Clone, ::std::cmp::PartialEq)]
 pub struct OptInPhoneNumberInput {
     /// <p>The phone number to opt in. Use E.164 format.</p>
     pub phone_number: ::std::option::Option<::std::string::String>,
@@ -13,6 +13,13 @@ impl OptInPhoneNumberInput {
         self.phone_number.as_deref()
     }
 }
+impl ::std::fmt::Debug for OptInPhoneNumberInput {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+        let mut formatter = f.debug_struct("OptInPhoneNumberInput");
+        formatter.field("phone_number", &"*** Sensitive Data Redacted ***");
+        formatter.finish()
+    }
+}
 impl OptInPhoneNumberInput {
     /// Creates a new builder-style object to manufacture [`OptInPhoneNumberInput`](crate::operation::opt_in_phone_number::OptInPhoneNumberInput).
     pub fn builder() -> crate::operation::opt_in_phone_number::builders::OptInPhoneNumberInputBuilder {
@@ -21,8 +28,8 @@ impl OptInPhoneNumberInput {
 }
 
 /// A builder for [`OptInPhoneNumberInput`](crate::operation::opt_in_phone_number::OptInPhoneNumberInput).
+#[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::default::Default)]
 #[non_exhaustive]
-#[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::default::Default, ::std::fmt::Debug)]
 pub struct OptInPhoneNumberInputBuilder {
     pub(crate) phone_number: ::std::option::Option<::std::string::String>,
 }
@@ -49,5 +56,12 @@ impl OptInPhoneNumberInputBuilder {
         ::std::result::Result::Ok(crate::operation::opt_in_phone_number::OptInPhoneNumberInput {
             phone_number: self.phone_number,
         })
+    }
+}
+impl ::std::fmt::Debug for OptInPhoneNumberInputBuilder {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+        let mut formatter = f.debug_struct("OptInPhoneNumberInputBuilder");
+        formatter.field("phone_number", &"*** Sensitive Data Redacted ***");
+        formatter.finish()
     }
 }

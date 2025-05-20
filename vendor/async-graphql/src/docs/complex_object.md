@@ -42,6 +42,7 @@ some simple fields, and use the `ComplexObject` macro to define some other field
 | complexity    | Custom field complexity.                                                                                                                                                                                                                 | string                                     | Y        |
 | derived       | Generate derived fields *[See also the Book](https://async-graphql.github.io/async-graphql/en/derived_fields.html).*                                                                                                                     | object                                     | Y        |
 | flatten       | Similar to serde (flatten)                                                                                                                                                                                                               | boolean                                    | Y        |
+| directives    | Directives                                                                                                                                                                                                                               | expr                                       | Y        |
 
 # Field argument attributes
 
@@ -49,6 +50,8 @@ some simple fields, and use the `ComplexObject` macro to define some other field
 |--------------|-------------------------------------------------------------------------------------------------------------------------------------------------|-------------|----------|
 | name         | Argument name                                                                                                                                   | string      | Y        |
 | desc         | Argument description                                                                                                                            | string      | Y        |
+| deprecation  | Argument deprecation                                                                                                                            | bool        | Y        |
+| deprecation  | Argument deprecation reason                                                                                                                     | string      | Y        |
 | default      | Use `Default::default` for default value                                                                                                        | none        | Y        |
 | default      | Argument default value                                                                                                                          | literal     | Y        |
 | default_with | Expression to generate default value                                                                                                            | code string | Y        |

@@ -6,33 +6,47 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-//! The Pareto distribution.
+//! The Pareto distribution `Pareto(xₘ, α)`.
 
-use num_traits::Float;
 use crate::{Distribution, OpenClosed01};
-use rand::Rng;
 use core::fmt;
+use num_traits::Float;
+use rand::Rng;
 
-/// Samples floating-point numbers according to the Pareto distribution
+/// The [Pareto distribution](https://en.wikipedia.org/wiki/Pareto_distribution) `Pareto(xₘ, α)`.
+///
+/// The Pareto distribution is a continuous probability distribution with
+/// scale parameter `xₘ` ( or `k`) and shape parameter `α`.
+///
+/// # Plot
+///
+/// The following plot shows the Pareto distribution with various values of
+/// `xₘ` and `α`.
+/// Note how the shape parameter `α` corresponds to the height of the jump
+/// in density at `x = xₘ`, and to the rate of decay in the tail.
+///
+/// ![Pareto distribution](https://raw.githubusercontent.com/rust-random/charts/main/charts/pareto.svg)
 ///
 /// # Example
 /// ```
 /// use rand::prelude::*;
 /// use rand_distr::Pareto;
 ///
-/// let val: f64 = thread_rng().sample(Pareto::new(1., 2.).unwrap());
+/// let val: f64 = rand::rng().sample(Pareto::new(1., 2.).unwrap());
 /// println!("{}", val);
 /// ```
-#[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "serde1", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Copy, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Pareto<F>
-where F: Float, OpenClosed01: Distribution<F>
+where
+    F: Float,
+    OpenClosed01: Distribution<F>,
 {
     scale: F,
     inv_neg_shape: F,
 }
 
-/// Error type returned from `Pareto::new`.
+/// Error type returned from [`Pareto::new`].
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
     /// `scale <= 0` or `nan`.
@@ -51,11 +65,12 @@ impl fmt::Display for Error {
 }
 
 #[cfg(feature = "std")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "std")))]
 impl std::error::Error for Error {}
 
 impl<F> Pareto<F>
-where F: Float, OpenClosed01: Distribution<F>
+where
+    F: Float,
+    OpenClosed01: Distribution<F>,
 {
     /// Construct a new Pareto distribution with given `scale` and `shape`.
     ///
@@ -78,7 +93,9 @@ where F: Float, OpenClosed01: Distribution<F>
 }
 
 impl<F> Distribution<F> for Pareto<F>
-where F: Float, OpenClosed01: Distribution<F>
+where
+    F: Float,
+    OpenClosed01: Distribution<F>,
 {
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> F {
         let u: F = OpenClosed01.sample(rng);
@@ -112,7 +129,9 @@ mod tests {
     #[test]
     fn value_stability() {
         fn test_samples<F: Float + Debug + Display + LowerExp, D: Distribution<F>>(
-            distr: D, thresh: F, expected: &[F],
+            distr: D,
+            thresh: F,
+            expected: &[F],
         ) {
             let mut rng = crate::test::rng(213);
             for v in expected {
@@ -121,14 +140,25 @@ mod tests {
             }
         }
 
-        test_samples(Pareto::new(1f32, 1.0).unwrap(), 1e-6, &[
-            1.0423688, 2.1235929, 4.132709, 1.4679428,
-        ]);
-        test_samples(Pareto::new(2.0, 0.5).unwrap(), 1e-14, &[
-            9.019295276219136,
-            4.3097126018270595,
-            6.837815045397157,
-            105.8826669383772,
-        ]);
+        test_samples(
+            Pareto::new(1f32, 1.0).unwrap(),
+            1e-6,
+            &[1.0423688, 2.1235929, 4.132709, 1.4679428],
+        );
+        test_samples(
+            Pareto::new(2.0, 0.5).unwrap(),
+            1e-14,
+            &[
+                9.019295276219136,
+                4.3097126018270595,
+                6.837815045397157,
+                105.8826669383772,
+            ],
+        );
+    }
+
+    #[test]
+    fn pareto_distributions_can_be_compared() {
+        assert_eq!(Pareto::new(1.0, 2.0), Pareto::new(1.0, 2.0));
     }
 }

@@ -12,10 +12,10 @@
 [package]
 edition = "2021"
 name = "azure_storage_blobs"
-version = "0.17.0"
+version = "0.21.0"
 authors = ["Microsoft Corp."]
 description = "Azure Blob Storage crate from the Azure SDK for Rust"
-homepage = "https://github.com/azure/azure-sdk-for-rust"
+homepage = "https://github.com/azure/azure-sdk-for-rust/tree/legacy"
 documentation = "https://docs.rs/azure_storage_blobs"
 readme = "README.md"
 keywords = [
@@ -28,15 +28,30 @@ categories = ["api-bindings"]
 license = "MIT"
 repository = "https://github.com/azure/azure-sdk-for-rust"
 
+[package.metadata.docs.rs]
+features = [
+    "enable_reqwest",
+    "enable_reqwest_rustls",
+    "hmac_rust",
+    "hmac_openssl",
+    "md5",
+    "azurite_workaround",
+]
+
 [dependencies.RustyXML]
 version = "0.3"
 
 [dependencies.azure_core]
-version = "0.17"
+version = "0.21"
 features = ["xml"]
 
 [dependencies.azure_storage]
-version = "0.17"
+version = "0.21"
+default-features = false
+
+[dependencies.azure_svc_blobstorage]
+version = "0.21"
+features = ["default_tag"]
 default-features = false
 
 [dependencies.bytes]
@@ -44,9 +59,6 @@ version = "1.0"
 
 [dependencies.futures]
 version = "0.3"
-
-[dependencies.log]
-version = "0.4"
 
 [dependencies.md5]
 version = "0.7"
@@ -64,6 +76,9 @@ version = "1.0"
 [dependencies.time]
 version = "0.3.10"
 
+[dependencies.tracing]
+version = "0.1.40"
+
 [dependencies.url]
 version = "2.2"
 
@@ -78,7 +93,7 @@ features = [
 version = "0.1"
 
 [dev-dependencies.azure_core]
-version = "0.17"
+version = "0.21"
 features = ["tokio-fs"]
 
 [dev-dependencies.clap]
@@ -88,14 +103,8 @@ features = [
     "env",
 ]
 
-[dev-dependencies.env_logger]
-version = "0.10"
-
 [dev-dependencies.md5]
 version = "0.7"
-
-[dev-dependencies.reqwest]
-version = "0.11"
 
 [dev-dependencies.tokio]
 version = "1.0"
@@ -105,18 +114,27 @@ features = [
     "io-util",
 ]
 
+[dev-dependencies.tracing-subscriber]
+version = "0.3"
+
 [features]
 azurite_workaround = ["azure_core/azurite_workaround"]
-default = ["enable_reqwest"]
+default = [
+    "enable_reqwest",
+    "hmac_rust",
+]
 enable_reqwest = [
     "azure_core/enable_reqwest",
     "azure_storage/enable_reqwest",
+    "azure_svc_blobstorage/enable_reqwest",
 ]
 enable_reqwest_rustls = [
     "azure_core/enable_reqwest_rustls",
     "azure_storage/enable_reqwest_rustls",
+    "azure_svc_blobstorage/enable_reqwest_rustls",
 ]
-into_future = []
+hmac_openssl = ["azure_core/hmac_openssl"]
+hmac_rust = ["azure_core/hmac_rust"]
 md5 = ["dep:md5"]
 test_e2e = []
 test_integration = []

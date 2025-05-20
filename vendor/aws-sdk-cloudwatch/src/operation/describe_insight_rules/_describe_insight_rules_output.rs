@@ -3,14 +3,14 @@
 #[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::fmt::Debug)]
 pub struct DescribeInsightRulesOutput {
-    /// <p>If this parameter is present, it is a token that marks the start of the next batch of returned results. </p>
+    /// <p>If this parameter is present, it is a token that marks the start of the next batch of returned results.</p>
     pub next_token: ::std::option::Option<::std::string::String>,
     /// <p>The rules returned by the operation.</p>
     pub insight_rules: ::std::option::Option<::std::vec::Vec<crate::types::InsightRule>>,
     _request_id: Option<String>,
 }
 impl DescribeInsightRulesOutput {
-    /// <p>If this parameter is present, it is a token that marks the start of the next batch of returned results. </p>
+    /// <p>If this parameter is present, it is a token that marks the start of the next batch of returned results.</p>
     pub fn next_token(&self) -> ::std::option::Option<&str> {
         self.next_token.as_deref()
     }
@@ -34,25 +34,25 @@ impl DescribeInsightRulesOutput {
 }
 
 /// A builder for [`DescribeInsightRulesOutput`](crate::operation::describe_insight_rules::DescribeInsightRulesOutput).
-#[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::default::Default, ::std::fmt::Debug)]
+#[non_exhaustive]
 pub struct DescribeInsightRulesOutputBuilder {
     pub(crate) next_token: ::std::option::Option<::std::string::String>,
     pub(crate) insight_rules: ::std::option::Option<::std::vec::Vec<crate::types::InsightRule>>,
     _request_id: Option<String>,
 }
 impl DescribeInsightRulesOutputBuilder {
-    /// <p>If this parameter is present, it is a token that marks the start of the next batch of returned results. </p>
+    /// <p>If this parameter is present, it is a token that marks the start of the next batch of returned results.</p>
     pub fn next_token(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.next_token = ::std::option::Option::Some(input.into());
         self
     }
-    /// <p>If this parameter is present, it is a token that marks the start of the next batch of returned results. </p>
+    /// <p>If this parameter is present, it is a token that marks the start of the next batch of returned results.</p>
     pub fn set_next_token(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.next_token = input;
         self
     }
-    /// <p>If this parameter is present, it is a token that marks the start of the next batch of returned results. </p>
+    /// <p>If this parameter is present, it is a token that marks the start of the next batch of returned results.</p>
     pub fn get_next_token(&self) -> &::std::option::Option<::std::string::String> {
         &self.next_token
     }

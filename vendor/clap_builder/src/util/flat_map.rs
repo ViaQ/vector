@@ -118,6 +118,10 @@ impl<K: PartialEq + Eq, V> FlatMap<K, V> {
         self.keys.iter()
     }
 
+    pub(crate) fn values(&self) -> std::slice::Iter<'_, V> {
+        self.values.iter()
+    }
+
     pub(crate) fn iter(&self) -> Iter<'_, K, V> {
         Iter {
             keys: self.keys.iter(),
@@ -215,7 +219,7 @@ impl<'a, K, V> DoubleEndedIterator for Iter<'a, K, V> {
     }
 }
 
-impl<'a, K, V> ExactSizeIterator for Iter<'a, K, V> {}
+impl<K, V> ExactSizeIterator for Iter<'_, K, V> {}
 
 pub(crate) struct IterMut<'a, K, V> {
     keys: std::slice::IterMut<'a, K>,
@@ -251,4 +255,4 @@ impl<'a, K, V> DoubleEndedIterator for IterMut<'a, K, V> {
     }
 }
 
-impl<'a, K, V> ExactSizeIterator for IterMut<'a, K, V> {}
+impl<K, V> ExactSizeIterator for IterMut<'_, K, V> {}

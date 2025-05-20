@@ -14,12 +14,15 @@ Define a GraphQL input object
 | concretes     | Specify how the concrete type of the generic SimpleObject should be implemented.                                                                                                 | ConcreteType | Y        |
 | inaccessible  | Indicate that an input object is not accessible from a supergraph when using Apollo Federation                                                                                   | bool         | Y        |
 | tag           | Arbitrary string metadata that will be propagated to the supergraph when using Apollo Federation. This attribute is repeatable                                                   | string       | Y        |
+| directives    | Directives                                                                                                                                                                       | expr         | Y        |
 
 # Field attributes
 
 | Attribute    | description                                                                                                                                     | Type        | Optional |
 |--------------|-------------------------------------------------------------------------------------------------------------------------------------------------|-------------|----------|
 | name         | Field name                                                                                                                                      | string      | Y        |
+| deprecation  | Field deprecation                                                                                                                               | bool        | Y        |
+| deprecation  | Field deprecation reason                                                                                                                        | string      | Y        |
 | default      | Use `Default::default` for default value                                                                                                        | none        | Y        |
 | default      | Argument default value                                                                                                                          | literal     | Y        |
 | default_with | Expression to generate default value                                                                                                            | code string | Y        |
@@ -33,6 +36,7 @@ Define a GraphQL input object
 | secret       | Mark this field as a secret, it will not output the actual value in the log.                                                                    | bool        | Y        |
 | inaccessible | Indicate that a field is not accessible from a supergraph when using Apollo Federation                                                          | bool        | Y        |
 | tag          | Arbitrary string metadata that will be propagated to the supergraph when using Apollo Federation. This attribute is repeatable                  | string      | Y        |
+| directives   | Directives                                                                                                                                      | expr        | Y        |
 
 # Examples
 

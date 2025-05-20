@@ -35,6 +35,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 /// <p>Specifies Auto-Tune action type. Valid values are JVM_HEAP_SIZE_TUNING and JVM_YOUNG_GEN_TUNING. </p>
 #[non_exhaustive]
 #[derive(
@@ -93,6 +94,15 @@ impl ScheduledAutoTuneActionType {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for ScheduledAutoTuneActionType {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            ScheduledAutoTuneActionType::JvmHeapSizeTuning => write!(f, "JVM_HEAP_SIZE_TUNING"),
+            ScheduledAutoTuneActionType::JvmYoungGenTuning => write!(f, "JVM_YOUNG_GEN_TUNING"),
+            ScheduledAutoTuneActionType::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

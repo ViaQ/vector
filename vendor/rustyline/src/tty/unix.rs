@@ -41,7 +41,6 @@ const BRACKETED_PASTE_OFF: &str = "\x1b[?2004l";
 
 nix::ioctl_read_bad!(win_size, libc::TIOCGWINSZ, libc::winsize);
 
-#[allow(clippy::useless_conversion)]
 fn get_win_size(fd: RawFd) -> (usize, usize) {
     use std::mem::zeroed;
 
@@ -143,7 +142,7 @@ impl Read for TtyIn {
             let res = unsafe {
                 libc::read(
                     self.fd,
-                    buf.as_mut_ptr() as *mut libc::c_void,
+                    buf.as_mut_ptr().cast::<libc::c_void>(),
                     buf.len() as libc::size_t,
                 )
             };
@@ -158,7 +157,7 @@ impl Read for TtyIn {
                     return Err(error);
                 }
             } else {
-                #[allow(clippy::cast_sign_loss)]
+                #[expect(clippy::cast_sign_loss)]
                 return Ok(res as usize);
             }
         }
@@ -377,7 +376,7 @@ impl PosixRawReader {
     }
 
     /// Handle \E[ <seq2:digit> escape sequences
-    #[allow(clippy::cognitive_complexity)]
+    #[expect(clippy::cognitive_complexity)]
     fn extended_escape(&mut self, seq2: char) -> Result<KeyEvent> {
         let seq3 = self.next_char()?;
         if seq3 == '~' {
@@ -883,7 +882,7 @@ impl Receiver for Utf8 {
         self.valid = true;
     }
 
-    /// Called when an invalid_sequence is detected
+    /// Called when an invalid sequence is detected
     fn invalid_sequence(&mut self) {
         self.c = None;
         self.valid = false;
@@ -1021,9 +1020,7 @@ impl Renderer for PosixRenderer {
         // we have to generate our own newline on line wrap
         if end_pos.col == 0
             && end_pos.row > 0
-            && !hint
-                .map(|h| h.ends_with('\n'))
-                .unwrap_or_else(|| line.ends_with('\n'))
+            && !hint.map_or_else(|| line.ends_with('\n'), |h| h.ends_with('\n'))
         {
             self.buffer.push('\n');
         }
@@ -1035,7 +1032,7 @@ impl Renderer for PosixRenderer {
         }
         // position the cursor within the line
         if cursor.col > 0 {
-            write!(self.buffer, "\r\x1b[{}C", cursor.col).unwrap();
+            write!(self.buffer, "\r\x1b[{}C", cursor.col)?;
         } else {
             self.buffer.push('\r');
         }
@@ -1194,7 +1191,7 @@ fn set_cursor_visibility(fd: RawFd, visible: bool) -> Result<Option<PosixCursorG
 static mut SIGWINCH_PIPE: RawFd = -1;
 #[cfg(not(feature = "signal-hook"))]
 extern "C" fn sigwinch_handler(_: libc::c_int) {
-    let _ = unsafe { write(BorrowedFd::borrow_raw(SIGWINCH_PIPE), &[b's']) };
+    let _ = unsafe { write(BorrowedFd::borrow_raw(SIGWINCH_PIPE), b"s") };
 }
 
 #[derive(Clone, Debug)]
@@ -1207,7 +1204,7 @@ struct SigWinCh {
 }
 impl SigWinCh {
     #[cfg(not(feature = "signal-hook"))]
-    fn install_sigwinch_handler() -> Result<SigWinCh> {
+    fn install_sigwinch_handler() -> Result<Self> {
         use nix::sys::signal;
         let (pipe, pipe_write) = UnixStream::pair()?;
         pipe.set_nonblocking(true)?;
@@ -1218,18 +1215,18 @@ impl SigWinCh {
             signal::SigSet::empty(),
         );
         let original = unsafe { signal::sigaction(signal::SIGWINCH, &sigwinch)? };
-        Ok(SigWinCh {
+        Ok(Self {
             pipe: pipe.into_raw_fd(),
             original,
         })
     }
 
     #[cfg(feature = "signal-hook")]
-    fn install_sigwinch_handler() -> Result<SigWinCh> {
+    fn install_sigwinch_handler() -> Result<Self> {
         let (pipe, pipe_write) = UnixStream::pair()?;
         pipe.set_nonblocking(true)?;
         let id = signal_hook::low_level::pipe::register(libc::SIGWINCH, pipe_write)?;
-        Ok(SigWinCh {
+        Ok(Self {
             pipe: pipe.into_raw_fd(),
             id,
         })
@@ -1330,7 +1327,6 @@ impl Term for PosixTerminal {
                 )
             };
         let unsupported = is_unsupported_term();
-        #[allow(unused_variables)]
         let sigwinch = if !unsupported && is_in_a_tty && is_out_a_tty {
             Some(SigWinCh::install_sigwinch_handler()?)
         } else {
@@ -1440,6 +1436,7 @@ impl Term for PosixTerminal {
     }
 
     fn create_external_printer(&mut self) -> Result<ExternalPrinter> {
+        use nix::unistd::pipe;
         if let Some(ref writer) = self.pipe_writer {
             return Ok(ExternalPrinter {
                 writer: writer.clone(),
@@ -1450,7 +1447,6 @@ impl Term for PosixTerminal {
         if self.unsupported || !self.is_input_tty() || !self.is_output_tty() {
             return Err(nix::Error::ENOTTY.into());
         }
-        use nix::unistd::pipe;
         let (sender, receiver) = mpsc::sync_channel(1); // TODO validate: bound
         let (r, w) = pipe()?;
         let reader = Arc::new(Mutex::new((r.into(), receiver)));
@@ -1473,7 +1469,7 @@ impl Term for PosixTerminal {
     }
 }
 
-#[allow(unused_must_use)]
+#[expect(unused_must_use)]
 impl Drop for PosixTerminal {
     fn drop(&mut self) {
         if self.close_on_drop {
@@ -1503,7 +1499,7 @@ impl super::ExternalPrinter for ExternalPrinter {
                 .1
                 .send(msg)
                 .map_err(|_| io::Error::from(ErrorKind::Other))?; // FIXME
-            writer.write_all(&[b'm'])?;
+            writer.write_all(b"m")?;
             writer.flush()?;
         } else {
             return Err(io::Error::from(ErrorKind::Other).into()); // FIXME

@@ -1,3 +1,15 @@
+# 0.20.0 (2024-02)
+
+- [#1532](https://github.com/Azure/azure-sdk-for-rust/pull/1532) add `azure_identity::create_credential()`, `SpecificAzureCredential`, `AppServiceManagedIdentityCredential`, `VirtualMachineManagedIdentityCredential`
+    - BREAKING CHANGE: `DefaultAzureCredentialBuilder::build` now returns a `Result`. If fails when it is unable to create at least one source credential.
+    - Most credentials may now fail earlier, when they are created, instead of only during `get_token`.
+    - `DefaultAzureCredential::default()` has been removed, because creating the credential may fail. Please use `azure_identity::create_default_credential()?` or `azure_identity::create_credential()?` instead.
+
+
+# 0.18.0 (2023-12)
+
+- Removed AutoRefreshingTokenCredential, instead all token credentials now implement caching
+
 # 0.3.0 (2022-05)
 
 - [#756](https://github.com/Azure/azure-sdk-for-rust/pull/756) Export credentials from azure_identity

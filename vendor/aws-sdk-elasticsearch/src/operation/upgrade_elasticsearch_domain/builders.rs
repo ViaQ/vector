@@ -3,7 +3,7 @@ pub use crate::operation::upgrade_elasticsearch_domain::_upgrade_elasticsearch_d
 
 pub use crate::operation::upgrade_elasticsearch_domain::_upgrade_elasticsearch_domain_input::UpgradeElasticsearchDomainInputBuilder;
 
-impl UpgradeElasticsearchDomainInputBuilder {
+impl crate::operation::upgrade_elasticsearch_domain::builders::UpgradeElasticsearchDomainInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -48,7 +48,7 @@ impl
     }
 }
 impl UpgradeElasticsearchDomainFluentBuilder {
-    /// Creates a new `UpgradeElasticsearchDomain`.
+    /// Creates a new `UpgradeElasticsearchDomainFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -99,12 +99,12 @@ impl UpgradeElasticsearchDomainFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -136,17 +136,17 @@ impl UpgradeElasticsearchDomainFluentBuilder {
     pub fn get_target_version(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_target_version()
     }
-    /// <p> This flag, when set to True, indicates that an Upgrade Eligibility Check needs to be performed. This will not actually perform the Upgrade. </p>
+    /// <p>This flag, when set to True, indicates that an Upgrade Eligibility Check needs to be performed. This will not actually perform the Upgrade.</p>
     pub fn perform_check_only(mut self, input: bool) -> Self {
         self.inner = self.inner.perform_check_only(input);
         self
     }
-    /// <p> This flag, when set to True, indicates that an Upgrade Eligibility Check needs to be performed. This will not actually perform the Upgrade. </p>
+    /// <p>This flag, when set to True, indicates that an Upgrade Eligibility Check needs to be performed. This will not actually perform the Upgrade.</p>
     pub fn set_perform_check_only(mut self, input: ::std::option::Option<bool>) -> Self {
         self.inner = self.inner.set_perform_check_only(input);
         self
     }
-    /// <p> This flag, when set to True, indicates that an Upgrade Eligibility Check needs to be performed. This will not actually perform the Upgrade. </p>
+    /// <p>This flag, when set to True, indicates that an Upgrade Eligibility Check needs to be performed. This will not actually perform the Upgrade.</p>
     pub fn get_perform_check_only(&self) -> &::std::option::Option<bool> {
         self.inner.get_perform_check_only()
     }

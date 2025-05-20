@@ -3,7 +3,7 @@ pub use crate::operation::describe_query_definitions::_describe_query_definition
 
 pub use crate::operation::describe_query_definitions::_describe_query_definitions_input::DescribeQueryDefinitionsInputBuilder;
 
-impl DescribeQueryDefinitionsInputBuilder {
+impl crate::operation::describe_query_definitions::builders::DescribeQueryDefinitionsInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,7 +22,7 @@ impl DescribeQueryDefinitionsInputBuilder {
 }
 /// Fluent builder constructing a request to `DescribeQueryDefinitions`.
 ///
-/// <p>This operation returns a paginated list of your saved CloudWatch Logs Insights query definitions.</p>
+/// <p>This operation returns a paginated list of your saved CloudWatch Logs Insights query definitions. You can retrieve query definitions from the current account or from a source account that is linked to the current account.</p>
 /// <p>You can use the <code>queryDefinitionNamePrefix</code> parameter to limit the results to only the query definitions that have names that start with a certain string.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct DescribeQueryDefinitionsFluentBuilder {
@@ -49,7 +49,7 @@ impl
     }
 }
 impl DescribeQueryDefinitionsFluentBuilder {
-    /// Creates a new `DescribeQueryDefinitions`.
+    /// Creates a new `DescribeQueryDefinitionsFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -100,14 +100,28 @@ impl DescribeQueryDefinitionsFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
+    }
+    /// <p>The query language used for this query. For more information about the query languages that CloudWatch Logs supports, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CWL_AnalyzeLogData_Languages.html">Supported query languages</a>.</p>
+    pub fn query_language(mut self, input: crate::types::QueryLanguage) -> Self {
+        self.inner = self.inner.query_language(input);
+        self
+    }
+    /// <p>The query language used for this query. For more information about the query languages that CloudWatch Logs supports, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CWL_AnalyzeLogData_Languages.html">Supported query languages</a>.</p>
+    pub fn set_query_language(mut self, input: ::std::option::Option<crate::types::QueryLanguage>) -> Self {
+        self.inner = self.inner.set_query_language(input);
+        self
+    }
+    /// <p>The query language used for this query. For more information about the query languages that CloudWatch Logs supports, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CWL_AnalyzeLogData_Languages.html">Supported query languages</a>.</p>
+    pub fn get_query_language(&self) -> &::std::option::Option<crate::types::QueryLanguage> {
+        self.inner.get_query_language()
     }
     /// <p>Use this parameter to filter your results to only the query definitions that have names that start with the prefix you specify.</p>
     pub fn query_definition_name_prefix(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {

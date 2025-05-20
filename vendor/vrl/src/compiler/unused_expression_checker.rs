@@ -47,6 +47,7 @@ pub struct AstVisitor<'a> {
 struct IdentState {
     span: Span,
     pending_usage: bool,
+    used_in_closure: bool,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -55,6 +56,7 @@ struct VisitorState {
     expecting_result: HashMap<usize, bool>,
     within_block_expression: HashMap<usize, bool>,
     ident_to_state: BTreeMap<Ident, IdentState>,
+    visiting_closure: bool,
     diagnostics: DiagnosticList,
 }
 
@@ -108,10 +110,14 @@ impl VisitorState {
             .entry(ident.clone())
             .and_modify(|state| {
                 state.pending_usage = true;
+                if self.visiting_closure {
+                    state.used_in_closure = true;
+                }
             })
             .or_insert(IdentState {
                 span: *span,
                 pending_usage: true,
+                used_in_closure: self.visiting_closure,
             });
     }
 
@@ -122,6 +128,9 @@ impl VisitorState {
 
         if let Some(entry) = self.ident_to_state.get_mut(ident) {
             entry.pending_usage = false;
+            if self.visiting_closure {
+                entry.used_in_closure = true;
+            }
         } else {
             warn!("unexpected identifier `{}` reported as used", ident);
         }
@@ -132,10 +141,17 @@ impl VisitorState {
             QueryTarget::Internal(ident) => {
                 self.mark_identifier_pending_usage(ident, &query_target.span);
             }
-            QueryTarget::External(_) => {}
-            QueryTarget::FunctionCall(_) => {}
-            QueryTarget::Container(_) => {}
+            QueryTarget::External(_) | QueryTarget::FunctionCall(_) | QueryTarget::Container(_) => {
+            }
         }
+    }
+
+    fn mark_visiting_closure(&mut self) {
+        self.visiting_closure = true;
+    }
+
+    fn mark_not_visiting_closure(&mut self) {
+        self.visiting_closure = false;
     }
 
     fn append_diagnostic(&mut self, message: String, span: &Span) {
@@ -143,19 +159,20 @@ impl VisitorState {
             severity: Severity::Warning,
             code: WARNING_UNUSED_CODE,
             message,
-            labels: vec![Label::primary(
+            labels: Vec::from([Label::primary(
                 "help: use the result of this expression or remove it",
                 span,
-            )],
-            notes: vec![Note::Basic(
+            )]),
+            notes: Vec::from([Note::Basic(
                 "this expression has no side-effects".to_owned(),
-            )],
-        })
+            )]),
+        });
     }
 
     fn extend_diagnostics_for_unused_variables(&mut self) {
         for (ident, state) in self.ident_to_state.clone() {
-            if state.pending_usage {
+            // Remove the closure check after https://github.com/vectordotdev/vrl/issues/1216 is resolved.
+            if state.pending_usage && !state.used_in_closure {
                 self.append_diagnostic(format!("unused variable `{ident}`"), &state.span);
             }
         }
@@ -215,14 +232,13 @@ impl AstVisitor<'_> {
                         state.mark_identifier_used(ident);
                     }
                 }
-                QueryTarget::External(_) => {}
+                QueryTarget::External(_) | QueryTarget::Container(_) => {}
                 QueryTarget::FunctionCall(function_call) => {
-                    self.visit_function_call(function_call, &query.node.target.span, state)
+                    self.visit_function_call(function_call, &query.node.target.span, state);
                 }
-                QueryTarget::Container(_) => {}
             },
             Expr::FunctionCall(function_call) => {
-                self.visit_function_call(function_call, &function_call.span, state)
+                self.visit_function_call(function_call, &function_call.span, state);
             }
             Expr::Variable(variable) => {
                 state.mark_identifier_used(&variable.node);
@@ -300,9 +316,9 @@ impl AstVisitor<'_> {
         state.expecting_result.insert(level, true);
 
         // All targets needs to be used later.
-        let (op, targets) = match &assignment.node {
-            Assignment::Single { target, op, .. } => (op, vec![target]),
-            Assignment::Infallible { ok, err, op, .. } => (op, vec![ok, err]),
+        let (op, targets): (&AssignmentOp, &[_]) = match &assignment.node {
+            Assignment::Single { target, op, .. } => (op, &[target]),
+            Assignment::Infallible { ok, err, op, .. } => (op, &[ok, err]),
         };
         for target in targets {
             match &target.node {
@@ -324,10 +340,7 @@ impl AstVisitor<'_> {
 
         // Visit the assignment right hand side.
         match &assignment.node {
-            Assignment::Single { expr, .. } => {
-                self.visit_node(expr, state);
-            }
-            Assignment::Infallible { expr, .. } => {
+            Assignment::Infallible { expr, .. } | Assignment::Single { expr, .. } => {
                 self.visit_node(expr, state);
             }
         }
@@ -356,6 +369,7 @@ impl AstVisitor<'_> {
 
         if !SIDE_EFFECT_FUNCTIONS.contains(&function_call.ident.0.as_str()) {
             if let Some(closure) = &function_call.closure {
+                state.mark_visiting_closure();
                 for variable in &closure.variables {
                     state.mark_identifier_pending_usage(&variable.node, &variable.span);
                 }
@@ -368,6 +382,7 @@ impl AstVisitor<'_> {
                     span,
                 );
             }
+            state.mark_not_visiting_closure();
         }
 
         if !function_call.abort_on_error && state.is_within_block() {
@@ -421,7 +436,7 @@ mod test {
     use crate::stdlib;
     use indoc::indoc;
 
-    fn unused_test(source: &str, expected_warnings: Vec<String>) {
+    fn unused_test(source: &str, expected_warnings: &[String]) {
         let warnings = crate::compiler::compile(source, &stdlib::all())
             .unwrap()
             .warnings;
@@ -445,7 +460,7 @@ mod test {
             "foo"
             "program result"
         "#};
-        unused_test(source, vec![r#"unused literal `"foo"`"#.to_string()]);
+        unused_test(source, &[r#"unused literal `"foo"`"#.to_string()]);
     }
 
     #[test]
@@ -453,7 +468,7 @@ mod test {
         let source = indoc! {"
             foo = 5
         "};
-        unused_test(source, vec!["unused variable `foo`".to_string()]);
+        unused_test(source, &["unused variable `foo`".to_string()]);
     }
 
     #[test]
@@ -464,7 +479,7 @@ mod test {
                 "a"
             }
         "#};
-        unused_test(source, vec![r#"unused literal `"unused"`"#.to_string()]);
+        unused_test(source, &[r#"unused literal `"unused"`"#.to_string()]);
     }
 
     #[test]
@@ -472,7 +487,7 @@ mod test {
         let source = indoc! {r#"
             x = "bar"
         "#};
-        unused_test(source, vec!["unused variable `x`".to_string()]);
+        unused_test(source, &["unused variable `x`".to_string()]);
     }
 
     #[test]
@@ -497,7 +512,7 @@ mod test {
         let expected_warnings: Vec<String> = (1..5)
             .map(|i| format!("unused literal `\"{i}\"`"))
             .collect();
-        unused_test(source, expected_warnings);
+        unused_test(source, &expected_warnings);
     }
 
     #[test]
@@ -509,7 +524,7 @@ mod test {
         "#};
         unused_test(
             source,
-            vec![r#"unused object `{ "array": [{ "a": "b" }], "b": 2 }`"#.to_string()],
+            &[r#"unused object `{ "array": [{ "a": "b" }], "b": 2 }`"#.to_string()],
         );
     }
 
@@ -525,10 +540,10 @@ mod test {
             . = d
         "#};
 
-        let expected_warnings = ('a'..'d')
+        let expected_warnings: Vec<String> = ('a'..'d')
             .map(|ident| format!("unused variable `{ident}`"))
             .collect();
-        unused_test(source, expected_warnings);
+        unused_test(source, &expected_warnings);
     }
 
     #[test]
@@ -540,7 +555,7 @@ mod test {
         "#};
         unused_test(
             source,
-            vec!["unused result for function call `random_bool()`".to_string()],
+            &["unused result for function call `random_bool()`".to_string()],
         );
     }
 
@@ -552,7 +567,7 @@ mod test {
             y = {}
             y.a = 1
         "};
-        unused_test(source, vec!["unused variable `y`".to_string()]);
+        unused_test(source, &["unused variable `y`".to_string()]);
     }
 
     #[test]
@@ -566,7 +581,7 @@ mod test {
 
             y = {"foo": 3}.foo
         "#};
-        unused_test(source, vec!["unused variable `y`".to_string()]);
+        unused_test(source, &["unused variable `y`".to_string()]);
     }
 
     #[test]
@@ -589,7 +604,7 @@ mod test {
             x.a = 1
             .d = if (x.a < 1) { 0 } else { 1 }
         "#};
-        unused_test(source, vec![]);
+        unused_test(source, &[]);
     }
 
     #[test]
@@ -605,7 +620,7 @@ mod test {
         "};
         unused_test(
             source,
-            vec!["unused result for function call `exists(field: xbar)`".to_string()],
+            &["unused result for function call `exists(field: xbar)`".to_string()],
         );
     }
 
@@ -618,7 +633,7 @@ mod test {
             count
         "#};
         // Note that the `value` outside of the closure block is unused but not detected.
-        unused_test(source, vec![]);
+        unused_test(source, &[]);
     }
 
     #[test]
@@ -634,7 +649,7 @@ mod test {
             matched
         "};
         // Note that the `value` outside of the closure block is unused but not detected.
-        unused_test(source, vec![]);
+        unused_test(source, &[]);
     }
 
     #[test]
@@ -645,7 +660,7 @@ mod test {
               2
             } ?? 1
         "#};
-        unused_test(source, vec![]);
+        unused_test(source, &[]);
     }
 
     #[test]
@@ -666,7 +681,7 @@ mod test {
                 x
             }
         "};
-        unused_test(source, vec![]);
+        unused_test(source, &[]);
     }
 
     #[test]
@@ -677,6 +692,19 @@ mod test {
             x |= { "a" : 1}
             .
         "#};
-        unused_test(source, vec![]);
+        unused_test(source, &[]);
+    }
+
+    #[test]
+    fn false_closure_variable_unused_warning() {
+        let source = indoc! {r"
+           done = false
+            for_each([1]) -> |_i, _v| {
+                if !done {
+                    done = true
+                }
+            }
+        "};
+        unused_test(source, &[]);
     }
 }

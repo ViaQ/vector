@@ -10,16 +10,15 @@
 mod quic_client_stream;
 mod quic_config;
 mod quic_server;
-pub(crate) mod quic_socket;
 mod quic_stream;
 
+#[cfg(feature = "__h3")]
+pub(crate) use self::quic_client_stream::connect_quic;
 pub use self::quic_client_stream::{
-    client_config_tls13, QuicClientConnect, QuicClientResponse, QuicClientStream,
-    QuicClientStreamBuilder,
+    QuicClientConnect, QuicClientResponse, QuicClientStream, QuicClientStreamBuilder,
 };
 pub use self::quic_server::{QuicServer, QuicStreams};
 pub use self::quic_stream::{DoqErrorCode, QuicStream};
-pub use crate::udp::QuicLocalAddr;
 
 #[cfg(test)]
 mod tests;

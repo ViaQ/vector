@@ -22,12 +22,14 @@ use crate::types::{
     AppDataRef, AppDataRefMut, Callback, CallbackUpvalue, DestructedUserdata, Integer, LightUserData,
     MaybeSend, ReentrantMutex, RegistryKey, ValueRef, XRc,
 };
-use crate::userdata::{AnyUserData, MetaMethod, UserData, UserDataRegistry, UserDataStorage};
+use crate::userdata::{
+    AnyUserData, MetaMethod, RawUserDataRegistry, UserData, UserDataRegistry, UserDataStorage,
+};
 use crate::util::{
     assert_stack, check_stack, get_destructed_userdata_metatable, get_internal_userdata, get_main_state,
     get_metatable_ptr, get_userdata, init_error_registry, init_internal_metatable, init_userdata_metatable,
     pop_error, push_internal_userdata, push_string, push_table, rawset_field, safe_pcall, safe_xpcall,
-    short_type_name, take_userdata, StackGuard, WrappedFailure,
+    short_type_name, StackGuard, WrappedFailure,
 };
 use crate::value::{Nil, Value};
 
@@ -317,39 +319,58 @@ impl RawLua {
         let state = self.state();
         unsafe {
             let _sg = StackGuard::new(state);
-            check_stack(state, 2)?;
+            check_stack(state, 3)?;
 
-            let mode_str = match mode {
+            let name = name.map(CStr::as_ptr).unwrap_or(ptr::null());
+            let mode = match mode {
                 Some(ChunkMode::Binary) => cstr!("b"),
                 Some(ChunkMode::Text) => cstr!("t"),
                 None => cstr!("bt"),
             };
-
-            match ffi::luaL_loadbufferenv(
-                state,
-                source.as_ptr() as *const c_char,
-                source.len(),
-                name.map(|n| n.as_ptr()).unwrap_or_else(ptr::null),
-                mode_str,
-                match env {
-                    Some(env) => {
-                        self.push_ref(&env.0);
-                        -1
-                    }
-                    _ => 0,
-                },
-            ) {
-                ffi::LUA_OK => {
-                    #[cfg(feature = "luau-jit")]
-                    if (*self.extra.get()).enable_jit && ffi::luau_codegen_supported() != 0 {
-                        ffi::luau_codegen_compile(state, -1);
-                    }
-
-                    Ok(Function(self.pop_ref()))
-                }
+            let status = if self.unlikely_memory_error() {
+                self.load_chunk_inner(state, name, env, mode, source)
+            } else {
+                // Luau and Lua 5.2 can trigger an exception during chunk loading
+                protect_lua!(state, 0, 1, |state| {
+                    self.load_chunk_inner(state, name, env, mode, source)
+                })?
+            };
+            match status {
+                ffi::LUA_OK => Ok(Function(self.pop_ref())),
                 err => Err(pop_error(state, err)),
             }
         }
+    }
+
+    pub(crate) unsafe fn load_chunk_inner(
+        &self,
+        state: *mut ffi::lua_State,
+        name: *const c_char,
+        env: Option<&Table>,
+        mode: *const c_char,
+        source: &[u8],
+    ) -> c_int {
+        let status = ffi::luaL_loadbufferenv(
+            state,
+            source.as_ptr() as *const c_char,
+            source.len(),
+            name,
+            mode,
+            match env {
+                Some(env) => {
+                    self.push_ref(&env.0);
+                    -1
+                }
+                _ => 0,
+            },
+        );
+        #[cfg(feature = "luau-jit")]
+        if status == ffi::LUA_OK {
+            if (*self.extra.get()).enable_jit && ffi::luau_codegen_supported() != 0 {
+                ffi::luau_codegen_compile(state, -1);
+            }
+        }
+        status
     }
 
     /// Sets a 'hook' function for a thread (coroutine).
@@ -411,8 +432,8 @@ impl RawLua {
     pub(crate) unsafe fn create_string(&self, s: impl AsRef<[u8]>) -> Result<String> {
         let state = self.state();
         if self.unlikely_memory_error() {
-            push_string(self.ref_thread(), s.as_ref(), false)?;
-            return Ok(String(self.pop_ref_thread()));
+            push_string(state, s.as_ref(), false)?;
+            return Ok(String(self.pop_ref()));
         }
 
         let _sg = StackGuard::new(state);
@@ -423,12 +444,12 @@ impl RawLua {
 
     /// See [`Lua::create_table_with_capacity`]
     pub(crate) unsafe fn create_table_with_capacity(&self, narr: usize, nrec: usize) -> Result<Table> {
+        let state = self.state();
         if self.unlikely_memory_error() {
-            push_table(self.ref_thread(), narr, nrec, false)?;
-            return Ok(Table(self.pop_ref_thread()));
+            push_table(state, narr, nrec, false)?;
+            return Ok(Table(self.pop_ref()));
         }
 
-        let state = self.state();
         let _sg = StackGuard::new(state);
         check_stack(state, 3)?;
         push_table(state, narr, nrec, true)?;
@@ -713,6 +734,10 @@ impl RawLua {
 
     pub(crate) unsafe fn drop_ref(&self, vref: &ValueRef) {
         let ref_thread = self.ref_thread();
+        mlua_debug_assert!(
+            ffi::lua_gettop(ref_thread) >= vref.index,
+            "GC finalizer is not allowed in ref_thread"
+        );
         ffi::lua_pushnil(ref_thread);
         ffi::lua_replace(ref_thread, vref.index);
         (*self.extra.get()).ref_free.push(vref.index);
@@ -754,10 +779,10 @@ impl RawLua {
             }
 
             // Create a new metatable from `UserData` definition
-            let mut registry = UserDataRegistry::new(type_id);
+            let mut registry = UserDataRegistry::new(self.lua(), type_id);
             T::register(&mut registry);
 
-            self.create_userdata_metatable(registry)
+            self.create_userdata_metatable(registry.into_raw())
         })
     }
 
@@ -772,8 +797,11 @@ impl RawLua {
                 return Ok(table_id as Integer);
             }
 
-            // Create an empty metatable
-            let registry = UserDataRegistry::<T>::new(type_id);
+            // Check if metatable creation is pending or create an empty metatable otherwise
+            let registry = match (*self.extra.get()).pending_userdata_reg.remove(&type_id) {
+                Some(registry) => registry,
+                None => UserDataRegistry::<T>::new(self.lua(), type_id).into_raw(),
+            };
             self.create_userdata_metatable(registry)
         })
     }
@@ -810,12 +838,9 @@ impl RawLua {
         Ok(AnyUserData(self.pop_ref()))
     }
 
-    pub(crate) unsafe fn create_userdata_metatable<T>(
-        &self,
-        registry: UserDataRegistry<T>,
-    ) -> Result<Integer> {
+    pub(crate) unsafe fn create_userdata_metatable(&self, registry: RawUserDataRegistry) -> Result<Integer> {
         let state = self.state();
-        let type_id = registry.type_id();
+        let type_id = registry.type_id;
 
         self.push_userdata_metatable(registry)?;
 
@@ -832,7 +857,7 @@ impl RawLua {
         Ok(id as Integer)
     }
 
-    pub(crate) unsafe fn push_userdata_metatable<T>(&self, mut registry: UserDataRegistry<T>) -> Result<()> {
+    pub(crate) unsafe fn push_userdata_metatable(&self, mut registry: RawUserDataRegistry) -> Result<()> {
         let state = self.state();
         let mut stack_guard = StackGuard::new(state);
         check_stack(state, 13)?;
@@ -852,14 +877,14 @@ impl RawLua {
             rawset_field(state, -2, MetaMethod::validate(&k)?)?;
         }
         let mut has_name = false;
-        for (k, push_field) in registry.meta_fields {
+        for (k, v) in registry.meta_fields {
             has_name = has_name || k == MetaMethod::Type;
-            push_field(self)?;
+            v?.push_into_stack(self)?;
             rawset_field(state, -2, MetaMethod::validate(&k)?)?;
         }
         // Set `__name/__type` if not provided
         if !has_name {
-            let type_name = short_type_name::<T>();
+            let type_name = registry.type_name;
             push_string(state, type_name.as_bytes(), !self.unlikely_memory_error())?;
             rawset_field(state, -2, MetaMethod::Type.name())?;
         }
@@ -876,8 +901,8 @@ impl RawLua {
                         ffi::lua_pop(state, 1);
                         push_table(state, 0, fields_nrec, true)?;
                     }
-                    for (k, push_field) in mem::take(&mut registry.fields) {
-                        push_field(self)?;
+                    for (k, v) in mem::take(&mut registry.fields) {
+                        v?.push_into_stack(self)?;
                         rawset_field(state, -2, &k)?;
                     }
                     rawset_field(state, metatable_index, "__index")?;
@@ -897,12 +922,12 @@ impl RawLua {
                 self.push(self.create_callback(m)?)?;
                 rawset_field(state, -2, &k)?;
             }
-            for (k, push_field) in registry.fields {
+            for (k, v) in registry.fields {
                 unsafe extern "C-unwind" fn return_field(state: *mut ffi::lua_State) -> c_int {
                     ffi::lua_pushvalue(state, ffi::lua_upvalueindex(1));
                     1
                 }
-                push_field(self)?;
+                v?.push_into_stack(self)?;
                 protect_lua!(state, 1, 1, fn(state) {
                     ffi::lua_pushcclosure(state, return_field, 1);
                 })?;
@@ -960,18 +985,7 @@ impl RawLua {
             }
         }
 
-        unsafe extern "C-unwind" fn userdata_destructor<T>(state: *mut ffi::lua_State) -> c_int {
-            let ud = get_userdata::<UserDataStorage<T>>(state, -1);
-            if !(*ud).is_borrowed() {
-                take_userdata::<UserDataStorage<T>>(state);
-                ffi::lua_pushboolean(state, 1);
-            } else {
-                ffi::lua_pushboolean(state, 0);
-            }
-            1
-        }
-
-        ffi::lua_pushcfunction(state, userdata_destructor::<T>);
+        ffi::lua_pushcfunction(state, registry.destructor);
         rawset_field(state, metatable_index, "__gc")?;
 
         init_userdata_metatable(

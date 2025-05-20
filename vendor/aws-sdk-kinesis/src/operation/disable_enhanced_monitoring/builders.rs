@@ -3,7 +3,7 @@ pub use crate::operation::disable_enhanced_monitoring::_disable_enhanced_monitor
 
 pub use crate::operation::disable_enhanced_monitoring::_disable_enhanced_monitoring_input::DisableEnhancedMonitoringInputBuilder;
 
-impl DisableEnhancedMonitoringInputBuilder {
+impl crate::operation::disable_enhanced_monitoring::builders::DisableEnhancedMonitoringInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,7 +22,7 @@ impl DisableEnhancedMonitoringInputBuilder {
 }
 /// Fluent builder constructing a request to `DisableEnhancedMonitoring`.
 ///
-/// <p>Disables enhanced monitoring.</p> <note>
+/// <p>Disables enhanced monitoring.</p><note>
 /// <p>When invoking this API, you must use either the <code>StreamARN</code> or the <code>StreamName</code> parameter, or both. It is recommended that you use the <code>StreamARN</code> input parameter when you invoke this API.</p>
 /// </note>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
@@ -50,7 +50,7 @@ impl
     }
 }
 impl DisableEnhancedMonitoringFluentBuilder {
-    /// Creates a new `DisableEnhancedMonitoring`.
+    /// Creates a new `DisableEnhancedMonitoringFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -101,12 +101,12 @@ impl DisableEnhancedMonitoringFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -124,6 +124,7 @@ impl DisableEnhancedMonitoringFluentBuilder {
     pub fn get_stream_name(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_stream_name()
     }
+    ///
     /// Appends an item to `ShardLevelMetrics`.
     ///
     /// To override the contents of this collection use [`set_shard_level_metrics`](Self::set_shard_level_metrics).
@@ -131,14 +132,22 @@ impl DisableEnhancedMonitoringFluentBuilder {
     /// <p>List of shard-level metrics to disable.</p>
     /// <p>The following are the valid shard-level metrics. The value "<code>ALL</code>" disables every metric.</p>
     /// <ul>
-    /// <li> <p> <code>IncomingBytes</code> </p> </li>
-    /// <li> <p> <code>IncomingRecords</code> </p> </li>
-    /// <li> <p> <code>OutgoingBytes</code> </p> </li>
-    /// <li> <p> <code>OutgoingRecords</code> </p> </li>
-    /// <li> <p> <code>WriteProvisionedThroughputExceeded</code> </p> </li>
-    /// <li> <p> <code>ReadProvisionedThroughputExceeded</code> </p> </li>
-    /// <li> <p> <code>IteratorAgeMilliseconds</code> </p> </li>
-    /// <li> <p> <code>ALL</code> </p> </li>
+    /// <li>
+    /// <p><code>IncomingBytes</code></p></li>
+    /// <li>
+    /// <p><code>IncomingRecords</code></p></li>
+    /// <li>
+    /// <p><code>OutgoingBytes</code></p></li>
+    /// <li>
+    /// <p><code>OutgoingRecords</code></p></li>
+    /// <li>
+    /// <p><code>WriteProvisionedThroughputExceeded</code></p></li>
+    /// <li>
+    /// <p><code>ReadProvisionedThroughputExceeded</code></p></li>
+    /// <li>
+    /// <p><code>IteratorAgeMilliseconds</code></p></li>
+    /// <li>
+    /// <p><code>ALL</code></p></li>
     /// </ul>
     /// <p>For more information, see <a href="https://docs.aws.amazon.com/kinesis/latest/dev/monitoring-with-cloudwatch.html">Monitoring the Amazon Kinesis Data Streams Service with Amazon CloudWatch</a> in the <i>Amazon Kinesis Data Streams Developer Guide</i>.</p>
     pub fn shard_level_metrics(mut self, input: crate::types::MetricsName) -> Self {
@@ -148,14 +157,22 @@ impl DisableEnhancedMonitoringFluentBuilder {
     /// <p>List of shard-level metrics to disable.</p>
     /// <p>The following are the valid shard-level metrics. The value "<code>ALL</code>" disables every metric.</p>
     /// <ul>
-    /// <li> <p> <code>IncomingBytes</code> </p> </li>
-    /// <li> <p> <code>IncomingRecords</code> </p> </li>
-    /// <li> <p> <code>OutgoingBytes</code> </p> </li>
-    /// <li> <p> <code>OutgoingRecords</code> </p> </li>
-    /// <li> <p> <code>WriteProvisionedThroughputExceeded</code> </p> </li>
-    /// <li> <p> <code>ReadProvisionedThroughputExceeded</code> </p> </li>
-    /// <li> <p> <code>IteratorAgeMilliseconds</code> </p> </li>
-    /// <li> <p> <code>ALL</code> </p> </li>
+    /// <li>
+    /// <p><code>IncomingBytes</code></p></li>
+    /// <li>
+    /// <p><code>IncomingRecords</code></p></li>
+    /// <li>
+    /// <p><code>OutgoingBytes</code></p></li>
+    /// <li>
+    /// <p><code>OutgoingRecords</code></p></li>
+    /// <li>
+    /// <p><code>WriteProvisionedThroughputExceeded</code></p></li>
+    /// <li>
+    /// <p><code>ReadProvisionedThroughputExceeded</code></p></li>
+    /// <li>
+    /// <p><code>IteratorAgeMilliseconds</code></p></li>
+    /// <li>
+    /// <p><code>ALL</code></p></li>
     /// </ul>
     /// <p>For more information, see <a href="https://docs.aws.amazon.com/kinesis/latest/dev/monitoring-with-cloudwatch.html">Monitoring the Amazon Kinesis Data Streams Service with Amazon CloudWatch</a> in the <i>Amazon Kinesis Data Streams Developer Guide</i>.</p>
     pub fn set_shard_level_metrics(mut self, input: ::std::option::Option<::std::vec::Vec<crate::types::MetricsName>>) -> Self {
@@ -165,14 +182,22 @@ impl DisableEnhancedMonitoringFluentBuilder {
     /// <p>List of shard-level metrics to disable.</p>
     /// <p>The following are the valid shard-level metrics. The value "<code>ALL</code>" disables every metric.</p>
     /// <ul>
-    /// <li> <p> <code>IncomingBytes</code> </p> </li>
-    /// <li> <p> <code>IncomingRecords</code> </p> </li>
-    /// <li> <p> <code>OutgoingBytes</code> </p> </li>
-    /// <li> <p> <code>OutgoingRecords</code> </p> </li>
-    /// <li> <p> <code>WriteProvisionedThroughputExceeded</code> </p> </li>
-    /// <li> <p> <code>ReadProvisionedThroughputExceeded</code> </p> </li>
-    /// <li> <p> <code>IteratorAgeMilliseconds</code> </p> </li>
-    /// <li> <p> <code>ALL</code> </p> </li>
+    /// <li>
+    /// <p><code>IncomingBytes</code></p></li>
+    /// <li>
+    /// <p><code>IncomingRecords</code></p></li>
+    /// <li>
+    /// <p><code>OutgoingBytes</code></p></li>
+    /// <li>
+    /// <p><code>OutgoingRecords</code></p></li>
+    /// <li>
+    /// <p><code>WriteProvisionedThroughputExceeded</code></p></li>
+    /// <li>
+    /// <p><code>ReadProvisionedThroughputExceeded</code></p></li>
+    /// <li>
+    /// <p><code>IteratorAgeMilliseconds</code></p></li>
+    /// <li>
+    /// <p><code>ALL</code></p></li>
     /// </ul>
     /// <p>For more information, see <a href="https://docs.aws.amazon.com/kinesis/latest/dev/monitoring-with-cloudwatch.html">Monitoring the Amazon Kinesis Data Streams Service with Amazon CloudWatch</a> in the <i>Amazon Kinesis Data Streams Developer Guide</i>.</p>
     pub fn get_shard_level_metrics(&self) -> &::std::option::Option<::std::vec::Vec<crate::types::MetricsName>> {

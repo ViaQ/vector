@@ -1,3 +1,18 @@
+# Version 4.7.1
+
+- Improve the panic message for when a task is polled after completion. (#73)
+
+# Version 4.7.0
+
+- Add `from_raw` and `into_raw` functions for `Runnable` to ease passing it
+  across an FFI boundary. (#65)
+
+# Version 4.6.0
+
+- Bump MSRV to 1.57. (#63)
+- Task layout computation failures are now a compile-time error instead of a
+  runtime abort. (#63)
+
 # Version 4.5.0
 
 - Add a `portable-atomic` feature that enables the usage of fallback primitives for CPUs without atomics. (#58)

@@ -22,8 +22,11 @@
 pub(crate) mod a;
 pub(crate) mod aaaa;
 pub(crate) mod caa;
+pub(crate) mod cert;
 pub(crate) mod csync;
-#[cfg(feature = "dnssec")]
+#[cfg(feature = "__dnssec")]
+pub(crate) mod dnskey;
+#[cfg(feature = "__dnssec")]
 pub(crate) mod ds;
 pub(crate) mod hinfo;
 pub(crate) mod mx;

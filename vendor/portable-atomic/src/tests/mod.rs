@@ -15,6 +15,8 @@ pub(crate) mod helper;
 #[path = "../../version.rs"]
 mod version;
 
+use test_helper as _;
+
 use super::*;
 
 test_atomic_bool_pub!();
@@ -33,10 +35,14 @@ test_atomic_int_pub!(u64);
 test_atomic_int_pub!(i128);
 test_atomic_int_pub!(u128);
 
+#[cfg(all(feature = "float", portable_atomic_unstable_f16))]
+test_atomic_float_pub!(f16);
 #[cfg(feature = "float")]
 test_atomic_float_pub!(f32);
 #[cfg(feature = "float")]
 test_atomic_float_pub!(f64);
+#[cfg(all(feature = "float", portable_atomic_unstable_f128))]
+test_atomic_float_pub!(f128);
 
 #[deny(improper_ctypes)]
 extern "C" {
@@ -52,15 +58,17 @@ extern "C" {
     fn _atomic_u32_ffi_safety(_: AtomicU32);
     fn _atomic_i64_ffi_safety(_: AtomicI64);
     fn _atomic_u64_ffi_safety(_: AtomicU64);
-    // TODO: 128-bit integers are not FFI safe
-    // https://github.com/rust-lang/unsafe-code-guidelines/issues/119
-    // https://github.com/rust-lang/rust/issues/54341
+    // TODO: https://github.com/rust-lang/lang-team/issues/255
     // fn _atomic_i128_ffi_safety(_: AtomicI128);
     // fn _atomic_u128_ffi_safety(_: AtomicU128);
+    #[cfg(all(feature = "float", portable_atomic_unstable_f16))]
+    fn _atomic_f16_ffi_safety(_: AtomicF16);
     #[cfg(feature = "float")]
     fn _atomic_f32_ffi_safety(_: AtomicF32);
     #[cfg(feature = "float")]
     fn _atomic_f64_ffi_safety(_: AtomicF64);
+    #[cfg(all(feature = "float", portable_atomic_unstable_f128))]
+    fn _atomic_f128_ffi_safety(_: AtomicF128);
 }
 
 #[test]
@@ -73,17 +81,42 @@ fn test_is_lock_free() {
     assert!(AtomicI16::is_lock_free());
     assert!(AtomicU16::is_always_lock_free());
     assert!(AtomicU16::is_lock_free());
+    #[cfg(all(feature = "float", portable_atomic_unstable_f16))]
+    assert!(AtomicF16::is_always_lock_free());
+    #[cfg(all(feature = "float", portable_atomic_unstable_f16))]
+    assert!(AtomicF16::is_lock_free());
     assert!(AtomicI32::is_always_lock_free());
     assert!(AtomicI32::is_lock_free());
     assert!(AtomicU32::is_always_lock_free());
     assert!(AtomicU32::is_lock_free());
+    #[cfg(feature = "float")]
+    assert!(AtomicF32::is_always_lock_free());
+    #[cfg(feature = "float")]
+    assert!(AtomicF32::is_lock_free());
     #[cfg(not(portable_atomic_no_cfg_target_has_atomic))]
     {
-        if cfg!(all(
+        if cfg!(any(
+            target_has_atomic = "64",
+            all(
+                target_arch = "riscv32",
+                not(any(miri, portable_atomic_sanitize_thread)),
+                any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
+                any(target_feature = "zacas", portable_atomic_target_feature = "zacas"),
+            ),
+        )) {
+            assert!(AtomicI64::is_always_lock_free());
+            assert!(AtomicI64::is_lock_free());
+            assert!(AtomicU64::is_always_lock_free());
+            assert!(AtomicU64::is_lock_free());
+            #[cfg(feature = "float")]
+            assert!(AtomicF64::is_always_lock_free());
+            #[cfg(feature = "float")]
+            assert!(AtomicF64::is_lock_free());
+        } else if cfg!(all(
             feature = "fallback",
             target_arch = "arm",
             not(any(miri, portable_atomic_sanitize_thread)),
-            not(portable_atomic_no_asm),
+            any(not(portable_atomic_no_asm), portable_atomic_unstable_asm),
             any(target_os = "linux", target_os = "android"),
             not(any(target_feature = "v6", portable_atomic_target_feature = "v6")),
             not(portable_atomic_no_outline_atomics),
@@ -91,19 +124,29 @@ fn test_is_lock_free() {
             not(portable_atomic_test_outline_atomics_detect_false),
         )) {
             assert!(!AtomicI64::is_always_lock_free());
-            assert!(AtomicI64::is_lock_free());
             assert!(!AtomicU64::is_always_lock_free());
-            assert!(AtomicU64::is_lock_free());
-        } else if cfg!(target_has_atomic = "64") {
-            assert!(AtomicI64::is_always_lock_free());
+            #[cfg(feature = "float")]
+            assert!(!AtomicF64::is_always_lock_free());
             assert!(AtomicI64::is_lock_free());
-            assert!(AtomicU64::is_always_lock_free());
             assert!(AtomicU64::is_lock_free());
+            #[cfg(feature = "float")]
+            assert!(AtomicF64::is_lock_free());
         } else {
             assert!(!AtomicI64::is_always_lock_free());
-            assert!(!AtomicI64::is_lock_free());
             assert!(!AtomicU64::is_always_lock_free());
-            assert!(!AtomicU64::is_lock_free());
+            #[cfg(feature = "float")]
+            assert!(!AtomicF64::is_always_lock_free());
+            #[cfg(not(target_arch = "riscv32"))]
+            {
+                assert!(!AtomicI64::is_lock_free());
+                assert!(!AtomicU64::is_lock_free());
+                #[cfg(feature = "float")]
+                assert!(!AtomicF64::is_lock_free());
+            }
+            #[cfg(target_arch = "riscv32")]
+            {
+                // TODO(riscv): check detect.has_zacas
+            }
         }
     }
     if cfg!(portable_atomic_no_asm) && cfg!(not(portable_atomic_unstable_asm)) {
@@ -111,11 +154,20 @@ fn test_is_lock_free() {
         assert!(!AtomicI128::is_lock_free());
         assert!(!AtomicU128::is_always_lock_free());
         assert!(!AtomicU128::is_lock_free());
+        #[cfg(all(feature = "float", portable_atomic_unstable_f128))]
+        assert!(!AtomicF128::is_always_lock_free());
+        #[cfg(all(feature = "float", portable_atomic_unstable_f128))]
+        assert!(!AtomicF128::is_lock_free());
     } else if cfg!(any(
         target_arch = "aarch64",
+        all(target_arch = "arm64ec", not(portable_atomic_no_asm)),
         all(
             target_arch = "x86_64",
             any(target_feature = "cmpxchg16b", portable_atomic_target_feature = "cmpxchg16b"),
+        ),
+        all(
+            target_arch = "riscv64",
+            any(target_feature = "zacas", portable_atomic_target_feature = "zacas"),
         ),
         all(
             target_arch = "powerpc64",
@@ -125,35 +177,52 @@ fn test_is_lock_free() {
                 portable_atomic_target_feature = "quadword-atomics",
             ),
         ),
-        all(target_arch = "s390x", portable_atomic_unstable_asm_experimental_arch),
+        all(target_arch = "s390x", not(portable_atomic_no_asm)),
     )) {
         assert!(AtomicI128::is_always_lock_free());
         assert!(AtomicI128::is_lock_free());
         assert!(AtomicU128::is_always_lock_free());
         assert!(AtomicU128::is_lock_free());
+        #[cfg(all(feature = "float", portable_atomic_unstable_f128))]
+        assert!(AtomicF128::is_always_lock_free());
+        #[cfg(all(feature = "float", portable_atomic_unstable_f128))]
+        assert!(AtomicF128::is_lock_free());
     } else {
         assert!(!AtomicI128::is_always_lock_free());
         assert!(!AtomicU128::is_always_lock_free());
-        #[cfg(not(any(target_arch = "x86_64", target_arch = "powerpc64")))]
+        #[cfg(all(feature = "float", portable_atomic_unstable_f128))]
+        assert!(!AtomicF128::is_always_lock_free());
+        #[cfg(not(any(
+            target_arch = "x86_64",
+            target_arch = "powerpc64",
+            target_arch = "riscv64",
+        )))]
         {
             assert!(!AtomicI128::is_lock_free());
             assert!(!AtomicU128::is_lock_free());
+            #[cfg(all(feature = "float", portable_atomic_unstable_f128))]
+            assert!(!AtomicF128::is_lock_free());
         }
         #[cfg(target_arch = "x86_64")]
         {
             let has_cmpxchg16b = cfg!(all(
                 feature = "fallback",
-                not(portable_atomic_no_cmpxchg16b_target_feature),
                 not(portable_atomic_no_outline_atomics),
                 not(any(target_env = "sgx", miri)),
                 not(portable_atomic_test_outline_atomics_detect_false),
             )) && std::is_x86_feature_detected!("cmpxchg16b");
             assert_eq!(AtomicI128::is_lock_free(), has_cmpxchg16b);
             assert_eq!(AtomicU128::is_lock_free(), has_cmpxchg16b);
+            #[cfg(all(feature = "float", portable_atomic_unstable_f128))]
+            assert_eq!(AtomicF128::is_lock_free(), has_cmpxchg16b);
         }
         #[cfg(target_arch = "powerpc64")]
         {
             // TODO(powerpc64): is_powerpc_feature_detected is unstable
+        }
+        #[cfg(target_arch = "riscv64")]
+        {
+            // TODO(riscv): check detect.has_zacas
         }
     }
 }
@@ -161,7 +230,7 @@ fn test_is_lock_free() {
 // test version parsing code used in the build script.
 #[test]
 fn test_rustc_version() {
-    use version::Version;
+    use self::version::Version;
 
     // rustc 1.34 (rustup)
     let v = Version::parse(
@@ -175,6 +244,18 @@ LLVM version: 8.0",
     )
     .unwrap();
     assert_eq!(v, Version::stable(34, 8));
+
+    // rustc 1.50 (rustup)
+    let v = Version::parse(
+        "rustc 1.50.0 (cb75ad5db 2021-02-10)
+binary: rustc
+commit-hash: cb75ad5db02783e8b0222fee363c5f63f7e2cf5b
+commit-date: 2021-02-10
+host: aarch64-unknown-linux-gnu
+release: 1.50.0",
+    )
+    .unwrap();
+    assert_eq!(v, Version::stable(50, 0));
 
     // rustc 1.67 (rustup)
     let v = Version::parse(
@@ -276,7 +357,7 @@ LLVM version: 16.0.0",
     assert_eq!(v.commit_date().month, 0);
     assert_eq!(v.commit_date().day, 0);
 
-    // rustc 1.64 (debian 11: apt-get install cargo)
+    // rustc 1.48 (debian 11: apt-get install cargo)
     let v = Version::parse(
         "rustc 1.48.0
 binary: rustc
@@ -319,16 +400,46 @@ LLVM version: 15.0.3",
 #[cfg(feature = "serde")]
 #[test]
 fn test_serde() {
-    use test_helper::serde::{assert_tokens, DebugPartialEq, Token};
+    use std::fmt;
+
+    use serde::{
+        de::{Deserialize, Deserializer},
+        ser::{Serialize, Serializer},
+    };
+    use serde_test::{Token, assert_tokens};
+
+    #[derive(Debug)]
+    struct DebugPartialEq<T>(T);
+    impl<T: fmt::Debug> PartialEq for DebugPartialEq<T> {
+        fn eq(&self, other: &Self) -> bool {
+            std::format!("{:?}", self) == std::format!("{:?}", other)
+        }
+    }
+    impl<T: Serialize> Serialize for DebugPartialEq<T> {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            self.0.serialize(serializer)
+        }
+    }
+    impl<'de, T: Deserialize<'de>> Deserialize<'de> for DebugPartialEq<T> {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            T::deserialize(deserializer).map(Self)
+        }
+    }
 
     macro_rules! t {
-        ($atomic_type:ty, $value_type:ident, $token_type:ident) => {
+        ($atomic_type:ty, $value_type:ident $(as $token_value_type:ident)?, $token_type:ident) => {
             std::eprint!("test_serde {} ... ", stringify!($value_type));
             assert_tokens(&DebugPartialEq(<$atomic_type>::new($value_type::MAX)), &[
-                Token::$token_type($value_type::MAX as _),
+                Token::$token_type($value_type::MAX $(as $token_value_type)?),
             ]);
             assert_tokens(&DebugPartialEq(<$atomic_type>::new($value_type::MIN)), &[
-                Token::$token_type($value_type::MIN as _),
+                Token::$token_type($value_type::MIN $(as $token_value_type)?),
             ]);
             std::eprintln!("ok");
         };
@@ -336,8 +447,8 @@ fn test_serde() {
 
     assert_tokens(&DebugPartialEq(AtomicBool::new(true)), &[Token::Bool(true)]);
     assert_tokens(&DebugPartialEq(AtomicBool::new(false)), &[Token::Bool(false)]);
-    t!(AtomicIsize, isize, I64);
-    t!(AtomicUsize, usize, U64);
+    t!(AtomicIsize, isize as i64, I64);
+    t!(AtomicUsize, usize as u64, U64);
     t!(AtomicI8, i8, I8);
     t!(AtomicU8, u8, U8);
     t!(AtomicI16, i16, I16);
@@ -346,12 +457,13 @@ fn test_serde() {
     t!(AtomicU32, u32, U32);
     t!(AtomicI64, i64, I64);
     t!(AtomicU64, u64, U64);
-    // TODO: serde_test doesn't support Token::{I128,U128}: https://github.com/serde-rs/test/pull/6
-    // t!(AtomicI128, i128, I128);
-    // t!(AtomicU128, u128, U128);
+    t!(AtomicI128, i128, I128);
+    t!(AtomicU128, u128, U128);
+    // TODO(f16_and_f128): Test f16 & f128 once stabilized.
     #[cfg(feature = "float")]
     t!(AtomicF32, f32, F32);
     #[cfg(feature = "float")]
+    // TODO: fixed in LLVM 18?
     #[cfg(not(target_arch = "mips"))] // LLVM 17 (nightly-2023-08-09) bug: assertion failed at core/src/num/diy_float.rs:78:9
     t!(AtomicF64, f64, F64);
 }

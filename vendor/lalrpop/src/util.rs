@@ -1,10 +1,9 @@
 use std::fmt::{Display, Error, Formatter};
 
-pub use std::collections::btree_map as map;
 pub struct Sep<S>(pub &'static str, pub S);
 
-impl<'a, S: Display> Display for Sep<&'a Vec<S>> {
-    fn fmt(&self, fmt: &mut Formatter) -> Result<(), Error> {
+impl<S: Display> Display for Sep<&Vec<S>> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> Result<(), Error> {
         let &Sep(sep, vec) = self;
         let mut elems = vec.iter();
         if let Some(elem) = elems.next() {
@@ -20,7 +19,7 @@ impl<'a, S: Display> Display for Sep<&'a Vec<S>> {
 pub struct Escape<S>(pub S);
 
 impl<S: Display> Display for Escape<S> {
-    fn fmt(&self, fmt: &mut Formatter) -> Result<(), Error> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> Result<(), Error> {
         let tmp = format!("{}", self.0);
         for c in tmp.chars() {
             match c {
@@ -35,8 +34,8 @@ impl<S: Display> Display for Escape<S> {
 
 pub struct Prefix<S>(pub &'static str, pub S);
 
-impl<'a, S: Display> Display for Prefix<&'a [S]> {
-    fn fmt(&self, fmt: &mut Formatter) -> Result<(), Error> {
+impl<S: Display> Display for Prefix<&[S]> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> Result<(), Error> {
         let &Prefix(prefix, vec) = self;
         for elem in vec.iter() {
             write!(fmt, "{}{}", prefix, elem)?;

@@ -11,6 +11,7 @@
     html_favicon_url = "https://www.rust-lang.org/favicon.ico",
     html_root_url = "https://rust-random.github.io/rand/"
 )]
+#![forbid(unsafe_code)]
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![allow(
@@ -20,21 +21,22 @@
 )]
 #![allow(clippy::neg_cmp_op_on_partial_ord)] // suggested fix too verbose
 #![no_std]
-#![cfg_attr(doc_cfg, feature(doc_cfg))]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 
 //! Generating random samples from probability distributions.
 //!
 //! ## Re-exports
 //!
-//! This crate is a super-set of the [`rand::distributions`] module. See the
-//! [`rand::distributions`] module documentation for an overview of the core
+//! This crate is a super-set of the [`rand::distr`] module. See the
+//! [`rand::distr`] module documentation for an overview of the core
 //! [`Distribution`] trait and implementations.
 //!
 //! The following are re-exported:
 //!
-//! - The [`Distribution`] trait and [`DistIter`] helper type
-//! - The [`Standard`], [`Alphanumeric`], [`Uniform`], [`OpenClosed01`],
-//! [`Open01`], [`Bernoulli`], and [`WeightedIndex`] distributions
+//! - The [`Distribution`] trait and [`Iter`] helper type
+//! - The [`StandardUniform`], [`Alphanumeric`], [`Uniform`], [`OpenClosed01`],
+//!   [`Open01`], [`Bernoulli`] distributions
+//! - The [`weighted`] module
 //!
 //! ## Distributions
 //!
@@ -75,8 +77,6 @@
 //!   - [`UnitBall`] distribution
 //!   - [`UnitCircle`] distribution
 //!   - [`UnitDisc`] distribution
-//! - Alternative implementation for weighted index sampling
-//!   - [`WeightedAliasIndex`] distribution
 //! - Misc. distributions
 //!   - [`InverseGaussian`] distribution
 //!   - [`NormalInverseGaussian`] distribution
@@ -91,22 +91,21 @@ extern crate std;
 #[allow(unused)]
 use rand::Rng;
 
-pub use rand::distributions::{
-    uniform, Alphanumeric, Bernoulli, BernoulliError, DistIter, Distribution, Open01, OpenClosed01,
-    Standard, Uniform,
+pub use rand::distr::{
+    uniform, Alphanumeric, Bernoulli, BernoulliError, Distribution, Iter, Open01, OpenClosed01,
+    StandardUniform, Uniform,
 };
 
+pub use self::beta::{Beta, Error as BetaError};
 pub use self::binomial::{Binomial, Error as BinomialError};
 pub use self::cauchy::{Cauchy, Error as CauchyError};
+pub use self::chi_squared::{ChiSquared, Error as ChiSquaredError};
 #[cfg(feature = "alloc")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "alloc")))]
 pub use self::dirichlet::{Dirichlet, Error as DirichletError};
 pub use self::exponential::{Error as ExpError, Exp, Exp1};
+pub use self::fisher_f::{Error as FisherFError, FisherF};
 pub use self::frechet::{Error as FrechetError, Frechet};
-pub use self::gamma::{
-    Beta, BetaError, ChiSquared, ChiSquaredError, Error as GammaError, FisherF, FisherFError,
-    Gamma, StudentT,
-};
+pub use self::gamma::{Error as GammaError, Gamma};
 pub use self::geometric::{Error as GeoError, Geometric, StandardGeometric};
 pub use self::gumbel::{Error as GumbelError, Gumbel};
 pub use self::hypergeometric::{Error as HyperGeoError, Hypergeometric};
@@ -116,7 +115,7 @@ pub use self::normal_inverse_gaussian::{
     Error as NormalInverseGaussianError, NormalInverseGaussian,
 };
 pub use self::pareto::{Error as ParetoError, Pareto};
-pub use self::pert::{Pert, PertError};
+pub use self::pert::{Pert, PertBuilder, PertError};
 pub use self::poisson::{Error as PoissonError, Poisson};
 pub use self::skew_normal::{Error as SkewNormalError, SkewNormal};
 pub use self::triangular::{Triangular, TriangularError};
@@ -125,15 +124,14 @@ pub use self::unit_circle::UnitCircle;
 pub use self::unit_disc::UnitDisc;
 pub use self::unit_sphere::UnitSphere;
 pub use self::weibull::{Error as WeibullError, Weibull};
-pub use self::zipf::{Zeta, ZetaError, Zipf, ZipfError};
-#[cfg(feature = "alloc")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "alloc")))]
-pub use rand::distributions::{WeightedError, WeightedIndex};
-#[cfg(feature = "alloc")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "alloc")))]
-pub use weighted_alias::WeightedAliasIndex;
+pub use self::zeta::{Error as ZetaError, Zeta};
+pub use self::zipf::{Error as ZipfError, Zipf};
+pub use student_t::StudentT;
 
 pub use num_traits;
+
+#[cfg(feature = "alloc")]
+pub mod weighted;
 
 #[cfg(test)]
 #[macro_use]
@@ -173,23 +171,26 @@ mod test {
     macro_rules! assert_almost_eq {
         ($a:expr, $b:expr, $prec:expr) => {
             let diff = ($a - $b).abs();
-            assert!(diff <= $prec,
+            assert!(
+                diff <= $prec,
                 "assertion failed: `abs(left - right) = {:.1e} < {:e}`, \
                     (left: `{}`, right: `{}`)",
-                diff, $prec, $a, $b
+                diff,
+                $prec,
+                $a,
+                $b
             );
         };
     }
 }
 
-#[cfg(feature = "alloc")]
-#[cfg_attr(doc_cfg, doc(cfg(feature = "alloc")))]
-pub mod weighted_alias;
-
+mod beta;
 mod binomial;
 mod cauchy;
+mod chi_squared;
 mod dirichlet;
 mod exponential;
+mod fisher_f;
 mod frechet;
 mod gamma;
 mod geometric;
@@ -200,8 +201,9 @@ mod normal;
 mod normal_inverse_gaussian;
 mod pareto;
 mod pert;
-mod poisson;
+pub(crate) mod poisson;
 mod skew_normal;
+mod student_t;
 mod triangular;
 mod unit_ball;
 mod unit_circle;
@@ -209,5 +211,6 @@ mod unit_disc;
 mod unit_sphere;
 mod utils;
 mod weibull;
+mod zeta;
 mod ziggurat_tables;
 mod zipf;

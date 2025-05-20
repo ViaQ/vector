@@ -39,6 +39,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -113,6 +114,19 @@ impl DeliveryStreamEncryptionStatus {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for DeliveryStreamEncryptionStatus {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            DeliveryStreamEncryptionStatus::Disabled => write!(f, "DISABLED"),
+            DeliveryStreamEncryptionStatus::Disabling => write!(f, "DISABLING"),
+            DeliveryStreamEncryptionStatus::DisablingFailed => write!(f, "DISABLING_FAILED"),
+            DeliveryStreamEncryptionStatus::Enabled => write!(f, "ENABLED"),
+            DeliveryStreamEncryptionStatus::Enabling => write!(f, "ENABLING"),
+            DeliveryStreamEncryptionStatus::EnablingFailed => write!(f, "ENABLING_FAILED"),
+            DeliveryStreamEncryptionStatus::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

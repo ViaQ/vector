@@ -6,6 +6,7 @@
 //! Unless you have issues, prefer using [`Config::infer`], and pass it to a [`Client`][crate::Client].
 use std::{path::PathBuf, time::Duration};
 
+use http::{HeaderName, HeaderValue};
 use thiserror::Error;
 
 mod file_config;
@@ -122,7 +123,7 @@ pub enum LoadDataError {
 /// Prefer [`Config::infer`] unless you have particular issues, and avoid manually managing
 /// the data in this struct unless you have particular needs. It exists to be consumed by the [`Client`][crate::Client].
 ///
-/// If you are looking to parse the kubeconfig found in a user's home directory see [`Kubeconfig`](crate::config::Kubeconfig).
+/// If you are looking to parse the kubeconfig found in a user's home directory see [`Kubeconfig`].
 #[cfg_attr(docsrs, doc(cfg(feature = "config")))]
 #[derive(Debug, Clone)]
 pub struct Config {
@@ -148,13 +149,14 @@ pub struct Config {
     pub accept_invalid_certs: bool,
     /// Stores information to tell the cluster who you are.
     pub auth_info: AuthInfo,
-    // TODO Actually support proxy or create an example with custom client
-    /// Optional proxy URL.
+    /// Optional proxy URL. Proxy support requires the `socks5` feature.
     pub proxy_url: Option<http::Uri>,
     /// If set, apiserver certificate will be validated to contain this string
     ///
     /// If not set, the `cluster_url` is used instead
     pub tls_server_name: Option<String>,
+    /// Headers to pass with every request.
+    pub headers: Vec<(HeaderName, HeaderValue)>,
 }
 
 impl Config {
@@ -170,11 +172,12 @@ impl Config {
             root_cert: None,
             connect_timeout: Some(DEFAULT_CONNECT_TIMEOUT),
             read_timeout: Some(DEFAULT_READ_TIMEOUT),
-            write_timeout: None,
+            write_timeout: Some(DEFAULT_WRITE_TIMEOUT),
             accept_invalid_certs: false,
             auth_info: AuthInfo::default(),
             proxy_url: None,
             tls_server_name: None,
+            headers: Vec::new(),
         }
     }
 
@@ -232,9 +235,8 @@ impl Config {
     /// `/var/run/secrets/kubernetes.io/serviceaccount/`.
     ///
     /// This behavior does not match that of the official Kubernetes clients,
-    /// but this approach is compatible with the `rustls-tls` feature
-    /// without setting `tls_server_name`.
-    /// See <https://github.com/kube-rs/kube/issues/1003>.
+    /// but can be used as a consistent entrypoint in many clusters.
+    /// See <https://github.com/kube-rs/kube/issues/1003> for more info.
     pub fn incluster_dns() -> Result<Self, InClusterError> {
         Self::incluster_with_uri(incluster_config::kube_dns())
     }
@@ -249,7 +251,7 @@ impl Config {
             root_cert: Some(root_cert),
             connect_timeout: Some(DEFAULT_CONNECT_TIMEOUT),
             read_timeout: Some(DEFAULT_READ_TIMEOUT),
-            write_timeout: None,
+            write_timeout: Some(DEFAULT_WRITE_TIMEOUT),
             accept_invalid_certs: false,
             auth_info: AuthInfo {
                 token_file: Some(incluster_config::token_file()),
@@ -257,6 +259,7 @@ impl Config {
             },
             proxy_url: None,
             tls_server_name: None,
+            headers: Vec::new(),
         })
     }
 
@@ -309,11 +312,12 @@ impl Config {
             root_cert,
             connect_timeout: Some(DEFAULT_CONNECT_TIMEOUT),
             read_timeout: Some(DEFAULT_READ_TIMEOUT),
-            write_timeout: None,
+            write_timeout: Some(DEFAULT_WRITE_TIMEOUT),
             accept_invalid_certs,
             proxy_url: loader.proxy_url()?,
             auth_info: loader.user,
             tls_server_name: loader.cluster.tls_server_name,
+            headers: Vec::new(),
         })
     }
 
@@ -365,8 +369,8 @@ fn certs(data: &[u8]) -> Result<Vec<Vec<u8>>, pem::PemError> {
     Ok(pem::parse_many(data)?
         .into_iter()
         .filter_map(|p| {
-            if p.tag == "CERTIFICATE" {
-                Some(p.contents)
+            if p.tag() == "CERTIFICATE" {
+                Some(p.into_contents())
             } else {
                 None
             }
@@ -377,11 +381,12 @@ fn certs(data: &[u8]) -> Result<Vec<Vec<u8>>, pem::PemError> {
 // https://github.com/kube-rs/kube/issues/146#issuecomment-590924397
 const DEFAULT_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
 const DEFAULT_READ_TIMEOUT: Duration = Duration::from_secs(295);
+const DEFAULT_WRITE_TIMEOUT: Duration = Duration::from_secs(295);
 
 // Expose raw config structs
 pub use file_config::{
-    AuthInfo, AuthProviderConfig, Cluster, Context, ExecConfig, ExecInteractiveMode, Kubeconfig,
-    NamedAuthInfo, NamedCluster, NamedContext, NamedExtension, Preferences,
+    AuthInfo, AuthProviderConfig, Cluster, Context, ExecAuthCluster, ExecConfig, ExecInteractiveMode,
+    Kubeconfig, NamedAuthInfo, NamedCluster, NamedContext, NamedExtension, Preferences,
 };
 
 #[cfg(test)]

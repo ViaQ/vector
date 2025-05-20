@@ -1,4 +1,5 @@
 #![allow(deprecated)]
+#![allow(unknown_lints)]
 #![allow(clippy::module_inception)]
 #![allow(clippy::upper_case_acronyms)]
 #![allow(clippy::large_enum_variant)]
@@ -10,11 +11,20 @@
 #![allow(clippy::needless_return)]
 #![allow(clippy::derive_partial_eq_without_eq)]
 #![allow(clippy::result_large_err)]
+#![allow(clippy::unnecessary_map_on_constructor)]
 #![allow(rustdoc::bare_urls)]
+#![allow(rustdoc::redundant_explicit_links)]
+#![allow(rustdoc::invalid_html_tags)]
+#![forbid(unsafe_code)]
 #![warn(missing_docs)]
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
 //! IAM Identity Center OpenID Connect (OIDC) is a web service that enables a client (such as CLI or a native application) to register with IAM Identity Center. The service also enables the client to fetch the user’s access token upon successful authentication and authorization with IAM Identity Center.
 //!
-//! __Considerations for Using This Guide__
+//! __API namespaces__
+//!
+//! IAM Identity Center uses the sso and identitystore API namespaces. IAM Identity Center OpenID Connect uses the sso-oidc namespace.
+//!
+//! __Considerations for using this guide__
 //!
 //! Before you begin using this guide, we recommend that you first review the following important information about how the IAM Identity Center OIDC service works.
 //!   - The IAM Identity Center OIDC service currently implements only the portions of the OAuth 2.0 Device Authorization Grant standard ([https://tools.ietf.org/html/rfc8628](https://tools.ietf.org/html/rfc8628)) that are necessary to enable single sign-on authentication with the CLI.
@@ -35,8 +45,8 @@
 //!
 //! ```toml
 //! [dependencies]
-//! aws-config = { version = "1.0.1", features = ["behavior-version-latest"] }
-//! aws-sdk-ssooidc = "1.3.0"
+//! aws-config = { version = "1.1.7", features = ["behavior-version-latest"] }
+//! aws-sdk-ssooidc = "1.69.0"
 //! tokio = { version = "1", features = ["full"] }
 //! ```
 //!
@@ -141,14 +151,16 @@ pub mod operation;
 /// Primitives such as `Blob` or `DateTime` used by other types.
 pub mod primitives;
 
+/// Data structures used by operation inputs/outputs.
+pub mod types;
+
 mod auth_plugin;
 
 pub(crate) mod protocol_serde;
 
-mod serialization_settings;
+mod sdk_feature_tracker;
 
-/// Data structures used by operation inputs/outputs.
-pub mod types;
+mod serialization_settings;
 
 mod endpoint_lib;
 

@@ -13,9 +13,10 @@
 edition = "2021"
 rust-version = "1.68.2"
 name = "domain"
-version = "0.10.3"
+version = "0.10.4"
 authors = ["NLnet Labs <dns-team@nlnetlabs.nl>"]
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -36,6 +37,104 @@ all-features = true
 rustdoc-args = [
     "--cfg",
     "docsrs",
+]
+
+[features]
+bytes = [
+    "dep:bytes",
+    "octseq/bytes",
+]
+default = [
+    "std",
+    "rand",
+]
+heapless = [
+    "dep:heapless",
+    "octseq/heapless",
+]
+net = [
+    "bytes",
+    "futures-util",
+    "rand",
+    "std",
+    "tokio",
+]
+resolv = [
+    "net",
+    "smallvec",
+    "unstable-client-transport",
+]
+resolv-sync = [
+    "resolv",
+    "tokio/rt",
+]
+serde = [
+    "dep:serde",
+    "octseq/serde",
+]
+sign = ["std"]
+smallvec = [
+    "dep:smallvec",
+    "octseq/smallvec",
+]
+std = [
+    "bytes?/std",
+    "octseq/std",
+    "time/std",
+]
+tsig = [
+    "bytes",
+    "ring",
+    "smallvec",
+]
+unstable-client-transport = [
+    "moka",
+    "net",
+    "tracing",
+]
+unstable-server-transport = [
+    "arc-swap",
+    "chrono/clock",
+    "libc",
+    "net",
+    "siphasher",
+    "tracing",
+]
+unstable-stelline = [
+    "tokio/test-util",
+    "tracing",
+    "tracing-subscriber",
+    "tsig",
+    "unstable-client-transport",
+    "unstable-server-transport",
+    "zonefile",
+]
+unstable-validator = [
+    "validate",
+    "zonefile",
+    "unstable-client-transport",
+]
+unstable-xfr = ["net"]
+unstable-zonetree = [
+    "futures-util",
+    "parking_lot",
+    "rustversion",
+    "serde",
+    "std",
+    "tokio",
+    "tracing",
+    "unstable-xfr",
+    "zonefile",
+]
+validate = [
+    "bytes",
+    "std",
+    "ring",
+]
+zonefile = [
+    "bytes",
+    "serde",
+    "std",
 ]
 
 [lib]
@@ -279,101 +378,3 @@ version = "0.2.0"
 
 [dev-dependencies.webpki-roots]
 version = "0.26"
-
-[features]
-bytes = [
-    "dep:bytes",
-    "octseq/bytes",
-]
-default = [
-    "std",
-    "rand",
-]
-heapless = [
-    "dep:heapless",
-    "octseq/heapless",
-]
-net = [
-    "bytes",
-    "futures-util",
-    "rand",
-    "std",
-    "tokio",
-]
-resolv = [
-    "net",
-    "smallvec",
-    "unstable-client-transport",
-]
-resolv-sync = [
-    "resolv",
-    "tokio/rt",
-]
-serde = [
-    "dep:serde",
-    "octseq/serde",
-]
-sign = ["std"]
-smallvec = [
-    "dep:smallvec",
-    "octseq/smallvec",
-]
-std = [
-    "bytes?/std",
-    "octseq/std",
-    "time/std",
-]
-tsig = [
-    "bytes",
-    "ring",
-    "smallvec",
-]
-unstable-client-transport = [
-    "moka",
-    "net",
-    "tracing",
-]
-unstable-server-transport = [
-    "arc-swap",
-    "chrono/clock",
-    "libc",
-    "net",
-    "siphasher",
-    "tracing",
-]
-unstable-stelline = [
-    "tokio/test-util",
-    "tracing",
-    "tracing-subscriber",
-    "tsig",
-    "unstable-client-transport",
-    "unstable-server-transport",
-    "zonefile",
-]
-unstable-validator = [
-    "validate",
-    "zonefile",
-    "unstable-client-transport",
-]
-unstable-xfr = ["net"]
-unstable-zonetree = [
-    "futures-util",
-    "parking_lot",
-    "rustversion",
-    "serde",
-    "std",
-    "tokio",
-    "tracing",
-    "unstable-xfr",
-    "zonefile",
-]
-validate = [
-    "bytes",
-    "std",
-    "ring",
-]
-zonefile = [
-    "bytes",
-    "serde",
-    "std",
-]

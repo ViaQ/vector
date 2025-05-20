@@ -11,8 +11,14 @@
 
 [package]
 name = "directories"
-version = "5.0.1"
+version = "6.0.0"
 authors = ["Simon Ochsenreither <simon@ochsenreither.de>"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "A tiny mid-level library that provides platform-specific standard locations of directories for config, cache and other data on Linux, Windows and macOS by leveraging the mechanisms defined by the XDG base/user directory specifications on Linux, the Known Folder API on Windows, and the Standard Directory guidelines on macOS."
 readme = "README.md"
 keywords = [
@@ -25,12 +31,17 @@ keywords = [
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/soc/directories-rs"
 
+[lib]
+name = "directories"
+path = "src/lib.rs"
+
 [[bench]]
 name = "constructors"
+path = "benches/constructors.rs"
 harness = false
 
 [dependencies.dirs-sys]
-version = "0.4.1"
+version = "0.5.0"
 
 [dev-dependencies.bencher]
 version = "0.1.5"

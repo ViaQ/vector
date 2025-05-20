@@ -96,8 +96,8 @@ fn test_string_fmt_debug() -> Result<()> {
     assert_eq!(format!("{:?}", s.as_bytes()), "[104, 101, 108, 108, 111]");
 
     // Invalid utf8
-    let s = lua.create_string(b"hello\0world\r\n\t\xF0\x90\x80")?;
-    assert_eq!(format!("{s:?}"), r#"b"hello\0world\r\n\t\xF0\x90\x80""#);
+    let s = lua.create_string(b"hello\0world\r\n\t\xf0\x90\x80")?;
+    assert_eq!(format!("{s:?}"), r#"b"hello\0world\r\n\t\xf0\x90\x80""#);
 
     Ok(())
 }
@@ -125,6 +125,21 @@ fn test_string_display() -> Result<()> {
     // With invalid utf8
     let s = lua.create_string(b"hello\0world\xFF")?;
     assert_eq!(format!("{}", s.display()), "hello\0world�");
+
+    Ok(())
+}
+
+#[test]
+fn test_string_wrap() -> Result<()> {
+    let lua = Lua::new();
+
+    let s = String::wrap("hello, world");
+    lua.globals().set("s", s)?;
+    assert_eq!(lua.globals().get::<String>("s")?, "hello, world");
+
+    let s2 = String::wrap("hello, world (owned)".to_string());
+    lua.globals().set("s2", s2)?;
+    assert_eq!(lua.globals().get::<String>("s2")?, "hello, world (owned)");
 
     Ok(())
 }

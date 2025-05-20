@@ -48,6 +48,21 @@ pub fn de_get_resource_policy_http_error(
             }
             tmp
         }),
+        "ResourceInUseException" => crate::operation::get_resource_policy::GetResourcePolicyError::ResourceInUseException({
+            #[allow(unused_mut)]
+            let mut tmp = {
+                #[allow(unused_mut)]
+                let mut output = crate::types::error::builders::ResourceInUseExceptionBuilder::default();
+                output = crate::protocol_serde::shape_resource_in_use_exception::de_resource_in_use_exception_json_err(_response_body, output)
+                    .map_err(crate::operation::get_resource_policy::GetResourcePolicyError::unhandled)?;
+                let output = output.meta(generic);
+                output.build()
+            };
+            if tmp.message.is_none() {
+                tmp.message = _error_message;
+            }
+            tmp
+        }),
         "LimitExceededException" => crate::operation::get_resource_policy::GetResourcePolicyError::LimitExceededException({
             #[allow(unused_mut)]
             let mut tmp = {
@@ -103,7 +118,7 @@ pub fn de_get_resource_policy_http_response(
 
 pub fn ser_get_resource_policy_input(
     input: &crate::operation::get_resource_policy::GetResourcePolicyInput,
-) -> Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<::aws_smithy_types::body::SdkBody, ::aws_smithy_types::error::operation::SerializationError> {
     let mut out = String::new();
     let mut object = ::aws_smithy_json::serialize::JsonObjectWriter::new(&mut out);
     crate::protocol_serde::shape_get_resource_policy_input::ser_get_resource_policy_input_input(&mut object, input)?;
@@ -114,8 +129,10 @@ pub fn ser_get_resource_policy_input(
 pub(crate) fn de_get_resource_policy(
     value: &[u8],
     mut builder: crate::operation::get_resource_policy::builders::GetResourcePolicyOutputBuilder,
-) -> Result<crate::operation::get_resource_policy::builders::GetResourcePolicyOutputBuilder, ::aws_smithy_json::deserialize::error::DeserializeError>
-{
+) -> ::std::result::Result<
+    crate::operation::get_resource_policy::builders::GetResourcePolicyOutputBuilder,
+    ::aws_smithy_json::deserialize::error::DeserializeError,
+> {
     let mut tokens_owned = ::aws_smithy_json::deserialize::json_token_iter(crate::protocol_serde::or_empty_doc(value)).peekable();
     let tokens = &mut tokens_owned;
     ::aws_smithy_json::deserialize::token::expect_start_object(tokens.next())?;

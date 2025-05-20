@@ -38,6 +38,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -108,6 +109,18 @@ impl ObjectAttributes {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for ObjectAttributes {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            ObjectAttributes::Checksum => write!(f, "Checksum"),
+            ObjectAttributes::Etag => write!(f, "ETag"),
+            ObjectAttributes::ObjectParts => write!(f, "ObjectParts"),
+            ObjectAttributes::ObjectSize => write!(f, "ObjectSize"),
+            ObjectAttributes::StorageClass => write!(f, "StorageClass"),
+            ObjectAttributes::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

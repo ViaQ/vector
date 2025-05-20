@@ -19,7 +19,7 @@ pub fn parse_http_error_metadata(
     _response_status: u16,
     _response_headers: &::aws_smithy_runtime_api::http::Headers,
     response_body: &[u8],
-) -> Result<::aws_smithy_types::error::metadata::Builder, ::aws_smithy_xml::decode::XmlDecodeError> {
+) -> ::std::result::Result<::aws_smithy_types::error::metadata::Builder, ::aws_smithy_xml::decode::XmlDecodeError> {
     crate::rest_xml_wrapped_errors::parse_error_metadata(response_body)
 }
 
@@ -187,6 +187,8 @@ pub(crate) mod shape_dimension;
 
 pub(crate) mod shape_dimension_filter;
 
+pub(crate) mod shape_entity_metric_data;
+
 pub(crate) mod shape_internal_service_fault;
 
 pub(crate) mod shape_invalid_format_fault;
@@ -204,6 +206,8 @@ pub(crate) mod shape_limit_exceeded_exception;
 pub(crate) mod shape_limit_exceeded_fault;
 
 pub(crate) mod shape_managed_rule;
+
+pub(crate) mod shape_metric_characteristics;
 
 pub(crate) mod shape_metric_data_query;
 
@@ -238,6 +242,8 @@ pub(crate) mod shape_dashboard_entries;
 pub(crate) mod shape_dashboard_validation_messages;
 
 pub(crate) mod shape_datapoints;
+
+pub(crate) mod shape_entity;
 
 pub(crate) mod shape_insight_rule_contributor_key_labels;
 

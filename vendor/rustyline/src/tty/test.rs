@@ -21,7 +21,7 @@ impl RawMode for Mode {
     }
 }
 
-impl<'a> RawReader for Iter<'a, KeyEvent> {
+impl RawReader for Iter<'_, KeyEvent> {
     type Buffer = Buffer;
 
     fn wait_for_input(&mut self, single_esc_abort: bool) -> Result<Event> {
@@ -187,9 +187,9 @@ impl Term for DummyTerminal {
         bell_style: BellStyle,
         _enable_bracketed_paste: bool,
         _enable_signals: bool,
-    ) -> Result<DummyTerminal> {
-        Ok(DummyTerminal {
-            keys: Vec::new(),
+    ) -> Result<Self> {
+        Ok(Self {
+            keys: vec![],
             cursor: 0,
             color_mode,
             bell_style,

@@ -3,7 +3,7 @@ pub use crate::operation::create_platform_endpoint::_create_platform_endpoint_ou
 
 pub use crate::operation::create_platform_endpoint::_create_platform_endpoint_input::CreatePlatformEndpointInputBuilder;
 
-impl CreatePlatformEndpointInputBuilder {
+impl crate::operation::create_platform_endpoint::builders::CreatePlatformEndpointInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,8 +22,8 @@ impl CreatePlatformEndpointInputBuilder {
 }
 /// Fluent builder constructing a request to `CreatePlatformEndpoint`.
 ///
-/// <p>Creates an endpoint for a device and mobile app on one of the supported push notification services, such as GCM (Firebase Cloud Messaging) and APNS. <code>CreatePlatformEndpoint</code> requires the <code>PlatformApplicationArn</code> that is returned from <code>CreatePlatformApplication</code>. You can use the returned <code>EndpointArn</code> to send a message to a mobile app or by the <code>Subscribe</code> action for subscription to a topic. The <code>CreatePlatformEndpoint</code> action is idempotent, so if the requester already owns an endpoint with the same device token and attributes, that endpoint's ARN is returned without creating a new endpoint. For more information, see <a href="https://docs.aws.amazon.com/sns/latest/dg/SNSMobilePush.html">Using Amazon SNS Mobile Push Notifications</a>. </p>
-/// <p>When using <code>CreatePlatformEndpoint</code> with Baidu, two attributes must be provided: ChannelId and UserId. The token field must also contain the ChannelId. For more information, see <a href="https://docs.aws.amazon.com/sns/latest/dg/SNSMobilePushBaiduEndpoint.html">Creating an Amazon SNS Endpoint for Baidu</a>. </p>
+/// <p>Creates an endpoint for a device and mobile app on one of the supported push notification services, such as GCM (Firebase Cloud Messaging) and APNS. <code>CreatePlatformEndpoint</code> requires the <code>PlatformApplicationArn</code> that is returned from <code>CreatePlatformApplication</code>. You can use the returned <code>EndpointArn</code> to send a message to a mobile app or by the <code>Subscribe</code> action for subscription to a topic. The <code>CreatePlatformEndpoint</code> action is idempotent, so if the requester already owns an endpoint with the same device token and attributes, that endpoint's ARN is returned without creating a new endpoint. For more information, see <a href="https://docs.aws.amazon.com/sns/latest/dg/SNSMobilePush.html">Using Amazon SNS Mobile Push Notifications</a>.</p>
+/// <p>When using <code>CreatePlatformEndpoint</code> with Baidu, two attributes must be provided: ChannelId and UserId. The token field must also contain the ChannelId. For more information, see <a href="https://docs.aws.amazon.com/sns/latest/dg/SNSMobilePushBaiduEndpoint.html">Creating an Amazon SNS Endpoint for Baidu</a>.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct CreatePlatformEndpointFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -49,7 +49,7 @@ impl
     }
 }
 impl CreatePlatformEndpointFluentBuilder {
-    /// Creates a new `CreatePlatformEndpoint`.
+    /// Creates a new `CreatePlatformEndpointFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -100,26 +100,26 @@ impl CreatePlatformEndpointFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
-    /// <p>PlatformApplicationArn returned from CreatePlatformApplication is used to create a an endpoint.</p>
+    /// <p><code>PlatformApplicationArn</code> returned from CreatePlatformApplication is used to create a an endpoint.</p>
     pub fn platform_application_arn(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.platform_application_arn(input.into());
         self
     }
-    /// <p>PlatformApplicationArn returned from CreatePlatformApplication is used to create a an endpoint.</p>
+    /// <p><code>PlatformApplicationArn</code> returned from CreatePlatformApplication is used to create a an endpoint.</p>
     pub fn set_platform_application_arn(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_platform_application_arn(input);
         self
     }
-    /// <p>PlatformApplicationArn returned from CreatePlatformApplication is used to create a an endpoint.</p>
+    /// <p><code>PlatformApplicationArn</code> returned from CreatePlatformApplication is used to create a an endpoint.</p>
     pub fn get_platform_application_arn(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_platform_application_arn()
     }
@@ -151,21 +151,22 @@ impl CreatePlatformEndpointFluentBuilder {
     pub fn get_custom_user_data(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_custom_user_data()
     }
+    ///
     /// Adds a key-value pair to `Attributes`.
     ///
     /// To override the contents of this collection use [`set_attributes`](Self::set_attributes).
     ///
-    /// <p>For a list of attributes, see <a href="https://docs.aws.amazon.com/sns/latest/api/API_SetEndpointAttributes.html">SetEndpointAttributes</a>.</p>
+    /// <p>For a list of attributes, see <a href="https://docs.aws.amazon.com/sns/latest/api/API_SetEndpointAttributes.html"> <code>SetEndpointAttributes</code> </a>.</p>
     pub fn attributes(mut self, k: impl ::std::convert::Into<::std::string::String>, v: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.attributes(k.into(), v.into());
         self
     }
-    /// <p>For a list of attributes, see <a href="https://docs.aws.amazon.com/sns/latest/api/API_SetEndpointAttributes.html">SetEndpointAttributes</a>.</p>
+    /// <p>For a list of attributes, see <a href="https://docs.aws.amazon.com/sns/latest/api/API_SetEndpointAttributes.html"> <code>SetEndpointAttributes</code> </a>.</p>
     pub fn set_attributes(mut self, input: ::std::option::Option<::std::collections::HashMap<::std::string::String, ::std::string::String>>) -> Self {
         self.inner = self.inner.set_attributes(input);
         self
     }
-    /// <p>For a list of attributes, see <a href="https://docs.aws.amazon.com/sns/latest/api/API_SetEndpointAttributes.html">SetEndpointAttributes</a>.</p>
+    /// <p>For a list of attributes, see <a href="https://docs.aws.amazon.com/sns/latest/api/API_SetEndpointAttributes.html"> <code>SetEndpointAttributes</code> </a>.</p>
     pub fn get_attributes(&self) -> &::std::option::Option<::std::collections::HashMap<::std::string::String, ::std::string::String>> {
         self.inner.get_attributes()
     }

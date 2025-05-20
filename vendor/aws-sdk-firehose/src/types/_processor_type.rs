@@ -13,6 +13,7 @@
 /// # let processortype = unimplemented!();
 /// match processortype {
 ///     ProcessorType::AppendDelimiterToRecord => { /* ... */ },
+///     ProcessorType::CloudWatchLogProcessing => { /* ... */ },
 ///     ProcessorType::Decompression => { /* ... */ },
 ///     ProcessorType::Lambda => { /* ... */ },
 ///     ProcessorType::MetadataExtraction => { /* ... */ },
@@ -38,6 +39,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -46,6 +48,8 @@
 pub enum ProcessorType {
     #[allow(missing_docs)] // documentation missing in model
     AppendDelimiterToRecord,
+    #[allow(missing_docs)] // documentation missing in model
+    CloudWatchLogProcessing,
     #[allow(missing_docs)] // documentation missing in model
     Decompression,
     #[allow(missing_docs)] // documentation missing in model
@@ -62,6 +66,7 @@ impl ::std::convert::From<&str> for ProcessorType {
     fn from(s: &str) -> Self {
         match s {
             "AppendDelimiterToRecord" => ProcessorType::AppendDelimiterToRecord,
+            "CloudWatchLogProcessing" => ProcessorType::CloudWatchLogProcessing,
             "Decompression" => ProcessorType::Decompression,
             "Lambda" => ProcessorType::Lambda,
             "MetadataExtraction" => ProcessorType::MetadataExtraction,
@@ -82,6 +87,7 @@ impl ProcessorType {
     pub fn as_str(&self) -> &str {
         match self {
             ProcessorType::AppendDelimiterToRecord => "AppendDelimiterToRecord",
+            ProcessorType::CloudWatchLogProcessing => "CloudWatchLogProcessing",
             ProcessorType::Decompression => "Decompression",
             ProcessorType::Lambda => "Lambda",
             ProcessorType::MetadataExtraction => "MetadataExtraction",
@@ -93,6 +99,7 @@ impl ProcessorType {
     pub const fn values() -> &'static [&'static str] {
         &[
             "AppendDelimiterToRecord",
+            "CloudWatchLogProcessing",
             "Decompression",
             "Lambda",
             "MetadataExtraction",
@@ -114,6 +121,19 @@ impl ProcessorType {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for ProcessorType {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            ProcessorType::AppendDelimiterToRecord => write!(f, "AppendDelimiterToRecord"),
+            ProcessorType::CloudWatchLogProcessing => write!(f, "CloudWatchLogProcessing"),
+            ProcessorType::Decompression => write!(f, "Decompression"),
+            ProcessorType::Lambda => write!(f, "Lambda"),
+            ProcessorType::MetadataExtraction => write!(f, "MetadataExtraction"),
+            ProcessorType::RecordDeAggregation => write!(f, "RecordDeAggregation"),
+            ProcessorType::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

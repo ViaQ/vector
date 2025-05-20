@@ -3,7 +3,7 @@ pub use crate::operation::change_message_visibility_batch::_change_message_visib
 
 pub use crate::operation::change_message_visibility_batch::_change_message_visibility_batch_input::ChangeMessageVisibilityBatchInputBuilder;
 
-impl ChangeMessageVisibilityBatchInputBuilder {
+impl crate::operation::change_message_visibility_batch::builders::ChangeMessageVisibilityBatchInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,7 +22,7 @@ impl ChangeMessageVisibilityBatchInputBuilder {
 }
 /// Fluent builder constructing a request to `ChangeMessageVisibilityBatch`.
 ///
-/// <p>Changes the visibility timeout of multiple messages. This is a batch version of <code> <code>ChangeMessageVisibility</code>.</code> The result of the action on each message is reported individually in the response. You can send up to 10 <code> <code>ChangeMessageVisibility</code> </code> requests with each <code>ChangeMessageVisibilityBatch</code> action.</p> <important>
+/// <p>Changes the visibility timeout of multiple messages. This is a batch version of <code> <code>ChangeMessageVisibility</code>.</code> The result of the action on each message is reported individually in the response. You can send up to 10 <code> <code>ChangeMessageVisibility</code> </code> requests with each <code>ChangeMessageVisibilityBatch</code> action.</p><important>
 /// <p>Because the batch request can result in a combination of successful and unsuccessful actions, you should check for batch errors even when the call returns an HTTP status code of <code>200</code>.</p>
 /// </important>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
@@ -50,7 +50,7 @@ impl
     }
 }
 impl ChangeMessageVisibilityBatchFluentBuilder {
-    /// Creates a new `ChangeMessageVisibilityBatch`.
+    /// Creates a new `ChangeMessageVisibilityBatchFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -101,12 +101,12 @@ impl ChangeMessageVisibilityBatchFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -127,6 +127,7 @@ impl ChangeMessageVisibilityBatchFluentBuilder {
     pub fn get_queue_url(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_queue_url()
     }
+    ///
     /// Appends an item to `Entries`.
     ///
     /// To override the contents of this collection use [`set_entries`](Self::set_entries).

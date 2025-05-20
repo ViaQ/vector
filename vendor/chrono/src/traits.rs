@@ -1,4 +1,4 @@
-use crate::{IsoWeek, Weekday};
+use crate::{IsoWeek, Month, Weekday};
 
 /// The common set of methods for date component.
 ///
@@ -37,11 +37,15 @@ pub trait Datelike: Sized {
     #[inline]
     fn year_ce(&self) -> (bool, u32) {
         let year = self.year();
-        if year < 1 {
-            (false, (1 - year) as u32)
-        } else {
-            (true, year as u32)
-        }
+        if year < 1 { (false, (1 - year) as u32) } else { (true, year as u32) }
+    }
+
+    /// Returns the quarter number starting from 1.
+    ///
+    /// The return value ranges from 1 to 4.
+    #[inline]
+    fn quarter(&self) -> u32 {
+        (self.month() - 1).div_euclid(3) + 1
     }
 
     /// Returns the month number starting from 1.
@@ -261,6 +265,18 @@ pub trait Datelike: Sized {
         ndays += ((year * 1461) >> 2) - div_100 + (div_100 >> 2);
         ndays + self.ordinal() as i32
     }
+
+    /// Get the length in days of the month
+    fn num_days_in_month(&self) -> u8 {
+        use num_traits::FromPrimitive;
+        // The value returned from `self.month()` is guaranteed to be in the
+        // range [1,12], which will never result in a `None` value here.
+        let month = Month::from_u32(self.month()).unwrap();
+        // `Month::num_days` will only return `None` if the provided year is out
+        // of range. Since we are passing it directly from a verified date, we
+        // know it is in range, and the result will never be `None`.
+        month.num_days(self.year()).unwrap()
+    }
 }
 
 /// The common set of methods for time component.
@@ -385,5 +401,15 @@ mod tests {
                 mid_year
             );
         }
+    }
+
+    #[test]
+    fn test_num_days_in_month() {
+        let feb_leap_year = NaiveDate::from_ymd_opt(2004, 2, 1).unwrap();
+        assert_eq!(feb_leap_year.num_days_in_month(), 29);
+        let feb = feb_leap_year.with_year(2005).unwrap();
+        assert_eq!(feb.num_days_in_month(), 28);
+        let march = feb.with_month(3).unwrap();
+        assert_eq!(march.num_days_in_month(), 31);
     }
 }

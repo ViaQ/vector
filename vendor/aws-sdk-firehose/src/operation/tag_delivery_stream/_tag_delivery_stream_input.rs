@@ -3,13 +3,13 @@
 #[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::fmt::Debug)]
 pub struct TagDeliveryStreamInput {
-    /// <p>The name of the delivery stream to which you want to add the tags.</p>
+    /// <p>The name of the Firehose stream to which you want to add the tags.</p>
     pub delivery_stream_name: ::std::option::Option<::std::string::String>,
     /// <p>A set of key-value pairs to use to create the tags.</p>
     pub tags: ::std::option::Option<::std::vec::Vec<crate::types::Tag>>,
 }
 impl TagDeliveryStreamInput {
-    /// <p>The name of the delivery stream to which you want to add the tags.</p>
+    /// <p>The name of the Firehose stream to which you want to add the tags.</p>
     pub fn delivery_stream_name(&self) -> ::std::option::Option<&str> {
         self.delivery_stream_name.as_deref()
     }
@@ -28,25 +28,25 @@ impl TagDeliveryStreamInput {
 }
 
 /// A builder for [`TagDeliveryStreamInput`](crate::operation::tag_delivery_stream::TagDeliveryStreamInput).
-#[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::default::Default, ::std::fmt::Debug)]
+#[non_exhaustive]
 pub struct TagDeliveryStreamInputBuilder {
     pub(crate) delivery_stream_name: ::std::option::Option<::std::string::String>,
     pub(crate) tags: ::std::option::Option<::std::vec::Vec<crate::types::Tag>>,
 }
 impl TagDeliveryStreamInputBuilder {
-    /// <p>The name of the delivery stream to which you want to add the tags.</p>
+    /// <p>The name of the Firehose stream to which you want to add the tags.</p>
     /// This field is required.
     pub fn delivery_stream_name(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.delivery_stream_name = ::std::option::Option::Some(input.into());
         self
     }
-    /// <p>The name of the delivery stream to which you want to add the tags.</p>
+    /// <p>The name of the Firehose stream to which you want to add the tags.</p>
     pub fn set_delivery_stream_name(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.delivery_stream_name = input;
         self
     }
-    /// <p>The name of the delivery stream to which you want to add the tags.</p>
+    /// <p>The name of the Firehose stream to which you want to add the tags.</p>
     pub fn get_delivery_stream_name(&self) -> &::std::option::Option<::std::string::String> {
         &self.delivery_stream_name
     }

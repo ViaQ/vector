@@ -3,7 +3,7 @@ pub use crate::operation::get_bucket_logging::_get_bucket_logging_output::GetBuc
 
 pub use crate::operation::get_bucket_logging::_get_bucket_logging_input::GetBucketLoggingInputBuilder;
 
-impl GetBucketLoggingInputBuilder {
+impl crate::operation::get_bucket_logging::builders::GetBucketLoggingInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -23,13 +23,15 @@ impl GetBucketLoggingInputBuilder {
 /// Fluent builder constructing a request to `GetBucketLogging`.
 ///
 /// <note>
-/// <p>This operation is not supported by directory buckets.</p>
+/// <p>This operation is not supported for directory buckets.</p>
 /// </note>
 /// <p>Returns the logging status of a bucket and the permissions users have to view and modify that status.</p>
 /// <p>The following operations are related to <code>GetBucketLogging</code>:</p>
 /// <ul>
-/// <li> <p> <a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateBucket.html">CreateBucket</a> </p> </li>
-/// <li> <p> <a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketLogging.html">PutBucketLogging</a> </p> </li>
+/// <li>
+/// <p><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_CreateBucket.html">CreateBucket</a></p></li>
+/// <li>
+/// <p><a href="https://docs.aws.amazon.com/AmazonS3/latest/API/API_PutBucketLogging.html">PutBucketLogging</a></p></li>
 /// </ul>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct GetBucketLoggingFluentBuilder {
@@ -56,7 +58,7 @@ impl
     }
 }
 impl GetBucketLoggingFluentBuilder {
-    /// Creates a new `GetBucketLogging`.
+    /// Creates a new `GetBucketLoggingFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -107,12 +109,12 @@ impl GetBucketLoggingFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

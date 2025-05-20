@@ -8,6 +8,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - ReleaseDate
 
+## [0.12.5] - 2025-01-01
+
+### Fixed
+
+- Fixed an issue with lossy truncation in checked arithemtic methods for `Instant`. ([#110](https://github.com/metrics-rs/quanta/pull/110))
+
+## [0.12.4] - 2024-12-13
+
+### Fixed
+
+- Updated WASM support to work in WebWorkers. ([#107](https://github.com/metrics-rs/quanta/pull/107))
+
 ## [0.12.3] - 2024-03-31
 
 ### Changed
@@ -253,7 +265,9 @@ description for the finer details.  All changes below are part of the aforementi
 - Initial commit.
 
 <!-- next-url -->
-[Unreleased]: https://github.com/metrics-rs/quanta/compare/v0.12.3...HEAD
+[Unreleased]: https://github.com/metrics-rs/quanta/compare/v0.12.5...HEAD
+[0.12.5]: https://github.com/metrics-rs/quanta/compare/v0.12.4...v0.12.5
+[0.12.4]: https://github.com/metrics-rs/quanta/compare/v0.12.3...v0.12.4
 [0.12.3]: https://github.com/metrics-rs/quanta/compare/v0.12.2...v0.12.3
 [0.12.2]: https://github.com/metrics-rs/quanta/compare/v0.12.1...v0.12.2
 [0.12.1]: https://github.com/metrics-rs/quanta/compare/v0.12.0...v0.12.1

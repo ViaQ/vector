@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/* Automatically managed default lints */
+#![cfg_attr(docsrs, feature(doc_auto_cfg))]
+/* End of automatically managed default lints */
 #![allow(clippy::derive_partial_eq_without_eq)]
 #![warn(
     // missing_docs,
@@ -14,8 +17,9 @@
 //! Checksum calculation and verification callbacks.
 
 use crate::error::UnknownChecksumAlgorithmError;
+
 use bytes::Bytes;
-use std::str::FromStr;
+use std::{fmt::Debug, str::FromStr};
 
 pub mod body;
 pub mod error;
@@ -24,18 +28,23 @@ pub mod http;
 // Valid checksum algorithm names
 pub const CRC_32_NAME: &str = "crc32";
 pub const CRC_32_C_NAME: &str = "crc32c";
+pub const CRC_64_NVME_NAME: &str = "crc64nvme";
 pub const SHA_1_NAME: &str = "sha1";
 pub const SHA_256_NAME: &str = "sha256";
 pub const MD5_NAME: &str = "md5";
 
 /// We only support checksum calculation and validation for these checksum algorithms.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+#[non_exhaustive]
 pub enum ChecksumAlgorithm {
+    #[default]
     Crc32,
     Crc32c,
+    #[deprecated]
     Md5,
     Sha1,
     Sha256,
+    Crc64Nvme,
 }
 
 impl FromStr for ChecksumAlgorithm {
@@ -44,9 +53,9 @@ impl FromStr for ChecksumAlgorithm {
     /// Create a new `ChecksumAlgorithm` from an algorithm name. Valid algorithm names are:
     /// - "crc32"
     /// - "crc32c"
+    /// - "crc64nvme"
     /// - "sha1"
     /// - "sha256"
-    /// - "md5"
     ///
     /// Passing an invalid name will return an error.
     fn from_str(checksum_algorithm: &str) -> Result<Self, Self::Err> {
@@ -59,7 +68,10 @@ impl FromStr for ChecksumAlgorithm {
         } else if checksum_algorithm.eq_ignore_ascii_case(SHA_256_NAME) {
             Ok(Self::Sha256)
         } else if checksum_algorithm.eq_ignore_ascii_case(MD5_NAME) {
-            Ok(Self::Md5)
+            // MD5 is now an alias for the default Crc32 since it is deprecated
+            Ok(Self::Crc32)
+        } else if checksum_algorithm.eq_ignore_ascii_case(CRC_64_NVME_NAME) {
+            Ok(Self::Crc64Nvme)
         } else {
             Err(UnknownChecksumAlgorithmError::new(checksum_algorithm))
         }
@@ -72,7 +84,9 @@ impl ChecksumAlgorithm {
         match self {
             Self::Crc32 => Box::<Crc32>::default(),
             Self::Crc32c => Box::<Crc32c>::default(),
-            Self::Md5 => Box::<Md5>::default(),
+            Self::Crc64Nvme => Box::<Crc64Nvme>::default(),
+            #[allow(deprecated)]
+            Self::Md5 => Box::<Crc32>::default(),
             Self::Sha1 => Box::<Sha1>::default(),
             Self::Sha256 => Box::<Sha256>::default(),
         }
@@ -83,6 +97,8 @@ impl ChecksumAlgorithm {
         match self {
             Self::Crc32 => CRC_32_NAME,
             Self::Crc32c => CRC_32_C_NAME,
+            Self::Crc64Nvme => CRC_64_NVME_NAME,
+            #[allow(deprecated)]
             Self::Md5 => MD5_NAME,
             Self::Sha1 => SHA_1_NAME,
             Self::Sha256 => SHA_256_NAME,
@@ -113,9 +129,17 @@ pub trait Checksum: Send + Sync {
     fn size(&self) -> u64;
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct Crc32 {
-    hasher: crc32fast::Hasher,
+    hasher: crc_fast::Digest,
+}
+
+impl Default for Crc32 {
+    fn default() -> Self {
+        Self {
+            hasher: crc_fast::Digest::new(crc_fast::CrcAlgorithm::Crc32IsoHdlc),
+        }
+    }
 }
 
 impl Crc32 {
@@ -124,7 +148,9 @@ impl Crc32 {
     }
 
     fn finalize(self) -> Bytes {
-        Bytes::copy_from_slice(self.hasher.finalize().to_be_bytes().as_slice())
+        let checksum = self.hasher.finalize() as u32;
+
+        Bytes::copy_from_slice(checksum.to_be_bytes().as_slice())
     }
 
     // Size of the checksum in bytes
@@ -145,21 +171,28 @@ impl Checksum for Crc32 {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct Crc32c {
-    state: Option<u32>,
+    hasher: crc_fast::Digest,
+}
+
+impl Default for Crc32c {
+    fn default() -> Self {
+        Self {
+            hasher: crc_fast::Digest::new(crc_fast::CrcAlgorithm::Crc32Iscsi),
+        }
+    }
 }
 
 impl Crc32c {
     fn update(&mut self, bytes: &[u8]) {
-        self.state = match self.state {
-            Some(crc) => Some(crc32c::crc32c_append(crc, bytes)),
-            None => Some(crc32c::crc32c(bytes)),
-        };
+        self.hasher.update(bytes);
     }
 
     fn finalize(self) -> Bytes {
-        Bytes::copy_from_slice(self.state.unwrap_or_default().to_be_bytes().as_slice())
+        let checksum = self.hasher.finalize() as u32;
+
+        Bytes::copy_from_slice(checksum.to_be_bytes().as_slice())
     }
 
     // Size of the checksum in bytes
@@ -169,6 +202,46 @@ impl Crc32c {
 }
 
 impl Checksum for Crc32c {
+    fn update(&mut self, bytes: &[u8]) {
+        Self::update(self, bytes)
+    }
+    fn finalize(self: Box<Self>) -> Bytes {
+        Self::finalize(*self)
+    }
+    fn size(&self) -> u64 {
+        Self::size()
+    }
+}
+
+#[derive(Debug)]
+struct Crc64Nvme {
+    hasher: crc_fast::Digest,
+}
+
+impl Default for Crc64Nvme {
+    fn default() -> Self {
+        Self {
+            hasher: crc_fast::Digest::new(crc_fast::CrcAlgorithm::Crc64Nvme),
+        }
+    }
+}
+
+impl Crc64Nvme {
+    fn update(&mut self, bytes: &[u8]) {
+        self.hasher.update(bytes);
+    }
+
+    fn finalize(self) -> Bytes {
+        Bytes::copy_from_slice(self.hasher.finalize().to_be_bytes().as_slice())
+    }
+
+    // Size of the checksum in bytes
+    fn size() -> u64 {
+        8
+    }
+}
+
+impl Checksum for Crc64Nvme {
     fn update(&mut self, bytes: &[u8]) {
         Self::update(self, bytes)
     }
@@ -298,9 +371,11 @@ mod tests {
 
     use crate::http::HttpChecksum;
     use crate::ChecksumAlgorithm;
+
     use aws_smithy_types::base64;
     use http::HeaderValue;
     use pretty_assertions::assert_eq;
+    use std::fmt::Write;
 
     const TEST_DATA: &str = r#"test data"#;
 
@@ -308,8 +383,10 @@ mod tests {
         let decoded_checksum = base64::decode(header_value.to_str().unwrap()).unwrap();
         let decoded_checksum = decoded_checksum
             .into_iter()
-            .map(|byte| format!("{:02X?}", byte))
-            .collect::<String>();
+            .fold(String::new(), |mut acc, byte| {
+                write!(acc, "{byte:02X?}").expect("string will always be writeable");
+                acc
+            });
 
         format!("0x{}", decoded_checksum)
     }
@@ -339,6 +416,20 @@ mod tests {
         let decoded_checksum = base64_encoded_checksum_to_hex_string(encoded_checksum);
 
         let expected_checksum = "0x3379B4CA";
+
+        assert_eq!(decoded_checksum, expected_checksum);
+    }
+
+    #[test]
+    fn test_crc64nvme_checksum() {
+        use crate::{http::CRC_64_NVME_HEADER_NAME, Crc64Nvme};
+        let mut checksum = Crc64Nvme::default();
+        checksum.update(TEST_DATA.as_bytes());
+        let checksum_result = Box::new(checksum).headers();
+        let encoded_checksum = checksum_result.get(CRC_64_NVME_HEADER_NAME).unwrap();
+        let decoded_checksum = base64_encoded_checksum_to_hex_string(encoded_checksum);
+
+        let expected_checksum = "0xAECAF3AF9C98A855";
 
         assert_eq!(decoded_checksum, expected_checksum);
     }

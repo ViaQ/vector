@@ -31,8 +31,8 @@ pub use self::opentelemetry::OpenTelemetry;
 pub use self::tracing::Tracing;
 use crate::{
     parser::types::{ExecutableDocument, Field},
-    Data, DataContext, Error, QueryPathNode, Request, Response, Result, SchemaEnv, ServerError,
-    ServerResult, ValidationResult, Value, Variables,
+    Data, DataContext, Error, QueryPathNode, Request, Response, Result, SDLExportOptions,
+    SchemaEnv, ServerError, ServerResult, ValidationResult, Value, Variables,
 };
 
 /// Context for extension
@@ -70,6 +70,16 @@ impl<'a> ExtensionContext<'a> {
             .registry
             .stringify_exec_doc(variables, doc)
             .unwrap_or_default()
+    }
+
+    /// Returns SDL(Schema Definition Language) of this schema.
+    pub fn sdl(&self) -> String {
+        self.schema_env.registry.export_sdl(Default::default())
+    }
+
+    /// Returns SDL(Schema Definition Language) of this schema with options.
+    pub fn sdl_with_options(&self, options: SDLExportOptions) -> String {
+        self.schema_env.registry.export_sdl(options)
     }
 
     /// Gets the global data defined in the `Context` or `Schema`.
@@ -152,7 +162,7 @@ pub struct NextRequest<'a> {
     request_fut: RequestFut<'a>,
 }
 
-impl<'a> NextRequest<'a> {
+impl NextRequest<'_> {
     /// Call the [Extension::request] function of next extension.
     pub async fn run(self, ctx: &ExtensionContext<'_>) -> Response {
         if let Some((first, next)) = self.chain.split_first() {
@@ -176,7 +186,7 @@ pub struct NextSubscribe<'a> {
     chain: &'a [Arc<dyn Extension>],
 }
 
-impl<'a> NextSubscribe<'a> {
+impl NextSubscribe<'_> {
     /// Call the [Extension::subscribe] function of next extension.
     pub fn run<'s>(
         self,
@@ -196,7 +206,7 @@ pub struct NextPrepareRequest<'a> {
     chain: &'a [Arc<dyn Extension>],
 }
 
-impl<'a> NextPrepareRequest<'a> {
+impl NextPrepareRequest<'_> {
     /// Call the [Extension::prepare_request] function of next extension.
     pub async fn run(self, ctx: &ExtensionContext<'_>, request: Request) -> ServerResult<Request> {
         if let Some((first, next)) = self.chain.split_first() {
@@ -215,7 +225,7 @@ pub struct NextParseQuery<'a> {
     parse_query_fut: ParseFut<'a>,
 }
 
-impl<'a> NextParseQuery<'a> {
+impl NextParseQuery<'_> {
     /// Call the [Extension::parse_query] function of next extension.
     pub async fn run(
         self,
@@ -247,7 +257,7 @@ pub struct NextValidation<'a> {
     validation_fut: ValidationFut<'a>,
 }
 
-impl<'a> NextValidation<'a> {
+impl NextValidation<'_> {
     /// Call the [Extension::validation] function of next extension.
     pub async fn run(
         self,
@@ -276,7 +286,7 @@ pub struct NextExecute<'a> {
     execute_data: Option<Data>,
 }
 
-impl<'a> NextExecute<'a> {
+impl NextExecute<'_> {
     async fn internal_run(
         self,
         ctx: &ExtensionContext<'_>,
@@ -333,7 +343,7 @@ pub struct NextResolve<'a> {
     resolve_fut: ResolveFut<'a>,
 }
 
-impl<'a> NextResolve<'a> {
+impl NextResolve<'_> {
     /// Call the [Extension::resolve] function of next extension.
     pub async fn run(
         self,

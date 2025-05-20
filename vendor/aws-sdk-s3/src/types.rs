@@ -113,6 +113,8 @@ pub use crate::types::_access_control_policy::AccessControlPolicy;
 
 pub use crate::types::_owner::Owner;
 
+pub use crate::types::_checksum_type::ChecksumType;
+
 pub use crate::types::_website_configuration::WebsiteConfiguration;
 
 pub use crate::types::_routing_rule::RoutingRule;
@@ -232,6 +234,8 @@ pub use crate::types::_simple_prefix::SimplePrefix;
 pub use crate::types::_target_grant::TargetGrant;
 
 pub use crate::types::_bucket_logs_permission::BucketLogsPermission;
+
+pub use crate::types::_transition_default_minimum_object_size::TransitionDefaultMinimumObjectSize;
 
 pub use crate::types::_bucket_lifecycle_configuration::BucketLifecycleConfiguration;
 
@@ -369,6 +373,14 @@ pub use crate::types::_mfa_delete_status::MfaDeleteStatus;
 
 pub use crate::types::_policy_status::PolicyStatus;
 
+pub use crate::types::_get_bucket_metadata_table_configuration_result::GetBucketMetadataTableConfigurationResult;
+
+pub use crate::types::_error_details::ErrorDetails;
+
+pub use crate::types::_metadata_table_configuration_result::MetadataTableConfigurationResult;
+
+pub use crate::types::_s3_tables_destination_result::S3TablesDestinationResult;
+
 pub use crate::types::_bucket_location_constraint::BucketLocationConstraint;
 
 pub use crate::types::_error::Error;
@@ -382,6 +394,10 @@ pub use crate::types::_object_identifier::ObjectIdentifier;
 pub use crate::types::_session_credentials::SessionCredentials;
 
 pub use crate::types::_session_mode::SessionMode;
+
+pub use crate::types::_metadata_table_configuration::MetadataTableConfiguration;
+
+pub use crate::types::_s3_tables_destination::S3TablesDestination;
 
 pub use crate::types::_create_bucket_configuration::CreateBucketConfiguration;
 
@@ -451,6 +467,8 @@ mod _checksum_algorithm;
 
 mod _checksum_mode;
 
+mod _checksum_type;
+
 mod _common_prefix;
 
 mod _completed_multipart_upload;
@@ -503,6 +521,8 @@ mod _end_event;
 
 mod _error;
 
+mod _error_details;
+
 mod _error_document;
 
 mod _event;
@@ -522,6 +542,8 @@ mod _file_header_info;
 mod _filter_rule;
 
 mod _filter_rule_name;
+
+mod _get_bucket_metadata_table_configuration_result;
 
 mod _get_object_attributes_parts;
 
@@ -592,6 +614,10 @@ mod _logging_enabled;
 mod _metadata_directive;
 
 mod _metadata_entry;
+
+mod _metadata_table_configuration;
+
+mod _metadata_table_configuration_result;
 
 mod _metrics;
 
@@ -739,6 +765,10 @@ mod _s3_key_filter;
 
 mod _s3_location;
 
+mod _s3_tables_destination;
+
+mod _s3_tables_destination_result;
+
 mod _scan_range;
 
 mod _select_object_content_event_stream;
@@ -798,6 +828,8 @@ mod _tiering;
 mod _topic_configuration;
 
 mod _transition;
+
+mod _transition_default_minimum_object_size;
 
 mod _transition_storage_class;
 

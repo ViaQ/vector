@@ -29,6 +29,13 @@ pub(crate) fn de_checksum_crc32_c_header(
     ::aws_smithy_http::header::one_or_none(headers)
 }
 
+pub(crate) fn de_checksum_crc64_nvme_header(
+    header_map: &::aws_smithy_runtime_api::http::Headers,
+) -> ::std::result::Result<::std::option::Option<::std::string::String>, ::aws_smithy_http::header::ParseError> {
+    let headers = header_map.get_all("x-amz-checksum-crc64nvme");
+    ::aws_smithy_http::header::one_or_none(headers)
+}
+
 pub(crate) fn de_checksum_sha1_header(
     header_map: &::aws_smithy_runtime_api::http::Headers,
 ) -> ::std::result::Result<::std::option::Option<::std::string::String>, ::aws_smithy_http::header::ParseError> {
@@ -40,6 +47,13 @@ pub(crate) fn de_checksum_sha256_header(
     header_map: &::aws_smithy_runtime_api::http::Headers,
 ) -> ::std::result::Result<::std::option::Option<::std::string::String>, ::aws_smithy_http::header::ParseError> {
     let headers = header_map.get_all("x-amz-checksum-sha256");
+    ::aws_smithy_http::header::one_or_none(headers)
+}
+
+pub(crate) fn de_checksum_type_header(
+    header_map: &::aws_smithy_runtime_api::http::Headers,
+) -> ::std::result::Result<::std::option::Option<crate::types::ChecksumType>, ::aws_smithy_http::header::ParseError> {
+    let headers = header_map.get_all("x-amz-checksum-type");
     ::aws_smithy_http::header::one_or_none(headers)
 }
 
@@ -97,6 +111,22 @@ pub(crate) fn de_server_side_encryption_header(
 ) -> ::std::result::Result<::std::option::Option<crate::types::ServerSideEncryption>, ::aws_smithy_http::header::ParseError> {
     let headers = header_map.get_all("x-amz-server-side-encryption");
     ::aws_smithy_http::header::one_or_none(headers)
+}
+
+pub(crate) fn de_size_header(
+    header_map: &::aws_smithy_runtime_api::http::Headers,
+) -> ::std::result::Result<::std::option::Option<i64>, ::aws_smithy_http::header::ParseError> {
+    let headers = header_map.get_all("x-amz-object-size");
+    let var_2 = ::aws_smithy_http::header::read_many_primitive::<i64>(headers)?;
+    if var_2.len() > 1 {
+        Err(::aws_smithy_http::header::ParseError::new(format!(
+            "expected one item but found {}",
+            var_2.len()
+        )))
+    } else {
+        let mut var_2 = var_2;
+        Ok(var_2.pop())
+    }
 }
 
 pub(crate) fn de_version_id_header(

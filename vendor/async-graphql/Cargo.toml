@@ -11,12 +11,19 @@
 
 [package]
 edition = "2021"
+rust-version = "1.83.0"
 name = "async-graphql"
-version = "7.0.7"
+version = "7.0.16"
 authors = [
     "sunli <scott_s829@163.com>",
     "Koxiaet",
 ]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "A GraphQL server library implemented in Rust"
 homepage = "https://github.com/async-graphql/async-graphql"
 documentation = "https://docs.rs/async-graphql/"
@@ -40,18 +47,274 @@ rustdoc-args = [
     "docsrs",
 ]
 
+[features]
+altair = [
+    "handlebars",
+    "schemars",
+]
+apollo_persisted_queries = [
+    "lru",
+    "sha2",
+]
+apollo_tracing = ["chrono"]
+boxed-trait = ["async-graphql-derive/boxed-trait"]
+cbor = ["serde_cbor"]
+chrono-duration = [
+    "chrono",
+    "iso8601",
+]
+custom-error-conversion = []
+dataloader = [
+    "futures-channel",
+    "lru",
+]
+decimal = ["rust_decimal"]
+default = [
+    "email-validator",
+    "tempfile",
+    "playground",
+    "graphiql",
+]
+dynamic-schema = []
+email-validator = ["fast_chemail"]
+graphiql = ["handlebars"]
+password-strength-validator = ["zxcvbn"]
+playground = []
+raw_value = ["async-graphql-value/raw_value"]
+string_number = []
+tokio-sync = ["tokio"]
+tracing = [
+    "tracinglib",
+    "tracing-futures",
+]
+unblock = ["blocking"]
+uuid-validator = ["uuid"]
+
+[lib]
+name = "async_graphql"
+path = "src/lib.rs"
+
+[[test]]
+name = "batch_request"
+path = "tests/batch_request.rs"
+
+[[test]]
+name = "binary"
+path = "tests/binary.rs"
+
+[[test]]
+name = "complex_object"
+path = "tests/complex_object.rs"
+
+[[test]]
+name = "connection"
+path = "tests/connection.rs"
+
+[[test]]
+name = "default_value"
+path = "tests/default_value.rs"
+
+[[test]]
+name = "derived_field"
+path = "tests/derived_field.rs"
+
+[[test]]
+name = "description"
+path = "tests/description.rs"
+
+[[test]]
+name = "directive"
+path = "tests/directive.rs"
+
+[[test]]
+name = "dynamic_schema"
+path = "tests/dynamic_schema.rs"
+
+[[test]]
+name = "enum"
+path = "tests/enum.rs"
+
+[[test]]
+name = "error_ext"
+path = "tests/error_ext.rs"
+
+[[test]]
+name = "extension"
+path = "tests/extension.rs"
+
+[[test]]
+name = "federation"
+path = "tests/federation.rs"
+
+[[test]]
+name = "field_features"
+path = "tests/field_features.rs"
+
+[[test]]
+name = "fields_merge"
+path = "tests/fields_merge.rs"
+
+[[test]]
+name = "generic_types"
+path = "tests/generic_types.rs"
+
+[[test]]
+name = "guard"
+path = "tests/guard.rs"
+
+[[test]]
+name = "hygiene"
+path = "tests/hygiene.rs"
+
+[[test]]
+name = "input_object"
+path = "tests/input_object.rs"
+
+[[test]]
+name = "input_value"
+path = "tests/input_value.rs"
+
+[[test]]
+name = "interface"
+path = "tests/interface.rs"
+
+[[test]]
+name = "interface_exporting"
+path = "tests/interface_exporting.rs"
+
+[[test]]
+name = "introspection"
+path = "tests/introspection.rs"
+
+[[test]]
+name = "introspection_visible"
+path = "tests/introspection_visible.rs"
+
+[[test]]
+name = "json_type"
+path = "tests/json_type.rs"
+
+[[test]]
+name = "lifetime"
+path = "tests/lifetime.rs"
+
+[[test]]
+name = "list"
+path = "tests/list.rs"
+
+[[test]]
+name = "maybe_undefined"
+path = "tests/maybe_undefined.rs"
+
+[[test]]
+name = "merged_object"
+path = "tests/merged_object.rs"
+
+[[test]]
+name = "mut_args"
+path = "tests/mut_args.rs"
+
+[[test]]
+name = "mutation"
+path = "tests/mutation.rs"
+
+[[test]]
+name = "name_conflict"
+path = "tests/name_conflict.rs"
+
+[[test]]
+name = "object"
+path = "tests/object.rs"
+
+[[test]]
+name = "oneof_object"
+path = "tests/oneof_object.rs"
+
+[[test]]
+name = "optional"
+path = "tests/optional.rs"
+
+[[test]]
+name = "preserve_order"
+path = "tests/preserve_order.rs"
+
+[[test]]
+name = "proc_macro_in_macro_rules"
+path = "tests/proc_macro_in_macro_rules.rs"
+
+[[test]]
+name = "raw_ident"
+path = "tests/raw_ident.rs"
+
+[[test]]
+name = "rename"
+path = "tests/rename.rs"
+
+[[test]]
+name = "result"
+path = "tests/result.rs"
+
+[[test]]
+name = "scalar"
+path = "tests/scalar.rs"
+
+[[test]]
+name = "schema"
+path = "tests/schema.rs"
+
+[[test]]
+name = "serializer_uuid"
+path = "tests/serializer_uuid.rs"
+
+[[test]]
+name = "simple_object"
+path = "tests/simple_object.rs"
+
+[[test]]
+name = "subscription"
+path = "tests/subscription.rs"
+
+[[test]]
+name = "subscription_websocket_graphql_ws"
+path = "tests/subscription_websocket_graphql_ws.rs"
+
+[[test]]
+name = "subscription_websocket_subscriptions_transport_ws"
+path = "tests/subscription_websocket_subscriptions_transport_ws.rs"
+
+[[test]]
+name = "type_directive"
+path = "tests/type_directive.rs"
+
+[[test]]
+name = "union"
+path = "tests/union.rs"
+
+[[test]]
+name = "use_type_description"
+path = "tests/use_type_description.rs"
+
+[[test]]
+name = "validators"
+path = "tests/validators.rs"
+
+[[test]]
+name = "variables"
+path = "tests/variables.rs"
+
 [[bench]]
 name = "static_schema"
+path = "benches/static_schema.rs"
 harness = false
 
 [dependencies.async-graphql-derive]
-version = "7.0.7"
+version = "7.0.16"
 
 [dependencies.async-graphql-parser]
-version = "7.0.7"
+version = "7.0.16"
 
 [dependencies.async-graphql-value]
-version = "7.0.7"
+version = "7.0.16"
 
 [dependencies.async-stream]
 version = "0.3.5"
@@ -65,9 +328,10 @@ version = "0.22.0"
 [dependencies.bigdecimal]
 version = ">=0.3.0, <0.5.0"
 optional = true
+default-features = false
 
 [dependencies.blocking]
-version = "1.5.1"
+version = "1.6.1"
 optional = true
 
 [dependencies.bson]
@@ -92,7 +356,7 @@ optional = true
 default-features = false
 
 [dependencies.chrono-tz]
-version = "0.8.6"
+version = "0.10.0"
 optional = true
 
 [dependencies.fast_chemail]
@@ -108,7 +372,6 @@ optional = true
 
 [dependencies.futures-timer]
 version = "3.0.3"
-optional = true
 
 [dependencies.futures-util]
 version = "0.3.30"
@@ -126,7 +389,7 @@ version = "5.1.2"
 optional = true
 
 [dependencies.hashbrown]
-version = "0.14.3"
+version = "0.14.5"
 optional = true
 
 [dependencies.http]
@@ -158,11 +421,8 @@ version = "3.0.0"
 [dependencies.num-traits]
 version = "0.2.18"
 
-[dependencies.once_cell]
-version = "1.19.0"
-
 [dependencies.opentelemetry]
-version = "0.23.0"
+version = "0.27.0"
 features = ["trace"]
 optional = true
 default-features = false
@@ -176,13 +436,14 @@ version = "1.10.4"
 [dependencies.rust_decimal]
 version = "1.35.0"
 optional = true
+default-features = false
 
 [dependencies.schemars]
 version = "0.8.21"
 optional = true
 
 [dependencies.secrecy]
-version = "0.8.0"
+version = "0.10.3"
 optional = true
 
 [dependencies.serde]
@@ -204,7 +465,7 @@ version = "0.10.8"
 optional = true
 
 [dependencies.smol_str]
-version = "0.2.1"
+version = "0.3.1"
 optional = true
 
 [dependencies.static_assertions_next]
@@ -218,7 +479,7 @@ optional = true
 version = "1.0.58"
 
 [dependencies.time]
-version = "0.3.34"
+version = "0.3.36"
 features = [
     "parsing",
     "formatting",
@@ -281,44 +542,3 @@ features = [
     "sync",
     "time",
 ]
-
-[features]
-altair = [
-    "handlebars",
-    "schemars",
-]
-apollo_persisted_queries = [
-    "lru",
-    "sha2",
-]
-apollo_tracing = ["chrono"]
-cbor = ["serde_cbor"]
-chrono-duration = [
-    "chrono",
-    "iso8601",
-]
-dataloader = [
-    "futures-timer",
-    "futures-channel",
-    "lru",
-]
-decimal = ["rust_decimal"]
-default = [
-    "email-validator",
-    "tempfile",
-    "playground",
-    "graphiql",
-]
-dynamic-schema = []
-email-validator = ["fast_chemail"]
-graphiql = ["handlebars"]
-password-strength-validator = ["zxcvbn"]
-playground = []
-raw_value = ["async-graphql-value/raw_value"]
-string_number = []
-tokio-sync = ["tokio"]
-tracing = [
-    "tracinglib",
-    "tracing-futures",
-]
-unblock = ["blocking"]

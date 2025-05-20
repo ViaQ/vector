@@ -2,7 +2,7 @@
 pub fn ser_http_endpoint_destination_update(
     object: &mut ::aws_smithy_json::serialize::JsonObjectWriter,
     input: &crate::types::HttpEndpointDestinationUpdate,
-) -> Result<(), ::aws_smithy_types::error::operation::SerializationError> {
+) -> ::std::result::Result<(), ::aws_smithy_types::error::operation::SerializationError> {
     if let Some(var_1) = &input.endpoint_configuration {
         #[allow(unused_mut)]
         let mut object_2 = object.key("EndpointConfiguration").start_object();
@@ -50,6 +50,12 @@ pub fn ser_http_endpoint_destination_update(
         let mut object_16 = object.key("S3Update").start_object();
         crate::protocol_serde::shape_s3_destination_update::ser_s3_destination_update(&mut object_16, var_15)?;
         object_16.finish();
+    }
+    if let Some(var_17) = &input.secrets_manager_configuration {
+        #[allow(unused_mut)]
+        let mut object_18 = object.key("SecretsManagerConfiguration").start_object();
+        crate::protocol_serde::shape_secrets_manager_configuration::ser_secrets_manager_configuration(&mut object_18, var_17)?;
+        object_18.finish();
     }
     Ok(())
 }

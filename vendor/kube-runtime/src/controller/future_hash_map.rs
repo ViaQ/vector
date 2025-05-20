@@ -40,6 +40,10 @@ where
     pub fn contains_key(&self, key: &K) -> bool {
         self.futures.contains_key(key)
     }
+
+    pub fn len(&self) -> usize {
+        self.futures.len()
+    }
 }
 
 impl<K, F> Stream for FutureHashMap<K, F>
@@ -73,10 +77,10 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::task::Poll;
+    use std::{future, task::Poll};
 
     use super::FutureHashMap;
-    use futures::{channel::mpsc, future, poll, StreamExt};
+    use futures::{channel::mpsc, poll, StreamExt};
 
     #[tokio::test]
     async fn fhm_should_forward_all_values_and_shut_down() {

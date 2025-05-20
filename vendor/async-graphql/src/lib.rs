@@ -63,6 +63,7 @@
 //! |:-------------------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 //! | **`apollo_tracing`**           | Enable the [Apollo tracing extension](https://docs.rs/async-graphql/latest/async_graphql/extensions/struct.ApolloTracing.html).                                                               |
 //! | **`apollo_persisted_queries`** | Enable the [Apollo persisted queries extension](https://docs.rs/async-graphql/latest/async_graphql/extensions/apollo_persisted_queries/struct.ApolloPersistedQueries.html).                   |
+//! | **`boxed-trait`**              | Enables [`async-trait`](https://crates.io/crates/async-trait) for all traits.                                                                                                                 |
 //! | **`bson`**                     | Integrate with the [`bson` crate](https://crates.io/crates/bson).                                                                                                                             |
 //! | **`bigdecimal`**               | Integrate with the [`bigdecimal` crate](https://crates.io/crates/bigdecimal).                                                                                                                 |
 //! | **`cbor`**                     | Support for [serde_cbor](https://crates.io/crates/serde_cbor).                                                                                                                                |
@@ -102,10 +103,9 @@
 //!
 //! Licensed under either of
 //!
-//! * Apache License, Version 2.0,
-//! (./LICENSE-APACHE or <http://www.apache.org/licenses/LICENSE-2.0>)
-//! * MIT license (./LICENSE-MIT or <http://opensource.org/licenses/MIT>)
-//! at your option.
+//! * Apache License, Version 2.0, (./LICENSE-APACHE or <http://www.apache.org/licenses/LICENSE-2.0>)
+//! * MIT license (./LICENSE-MIT or <http://opensource.org/licenses/MIT>) at
+//!   your option.
 //!
 //! ## References
 //!
@@ -210,7 +210,7 @@ pub mod registry;
 
 pub use async_graphql_parser as parser;
 pub use async_graphql_value::{
-    from_value, to_value, value, ConstValue as Value, DeserializerError, Name, Number,
+    from_value, to_value, value, ConstValue as Value, DeserializerError, Extensions, Name, Number,
     SerializerError, Variables,
 };
 #[doc(hidden)]

@@ -1834,7 +1834,7 @@ fn BrotliAllocateRingBuffer<AllocU8: alloc::Allocator<u8>,
   {
     let custom_dict = if s.custom_dict_size as usize > max_dict_size {
       let cd = fast_slice!((s.custom_dict)[(s.custom_dict_size as usize - max_dict_size); s.custom_dict_size as usize]);
-      s.custom_dict_size = max_dict_size as i32;
+      s.custom_dict_size = max_dict_size as isize;
       cd
     } else {
       fast_slice!((s.custom_dict)[0; s.custom_dict_size as usize])
@@ -1843,7 +1843,7 @@ fn BrotliAllocateRingBuffer<AllocU8: alloc::Allocator<u8>,
     // We need at least 2 bytes of ring buffer size to get the last two
     // bytes for context from there
     if (is_last != 0) {
-      while (s.ringbuffer_size >= (s.custom_dict_size + s.meta_block_remaining_len) * 2 && s.ringbuffer_size > 32) {
+      while (s.ringbuffer_size as isize >= (s.custom_dict_size + s.meta_block_remaining_len as isize + 16) * 2 && s.ringbuffer_size as isize > 32) {
         s.ringbuffer_size >>= 1;
       }
     }
@@ -1861,7 +1861,7 @@ fn BrotliAllocateRingBuffer<AllocU8: alloc::Allocator<u8>,
     fast_mut!((s.ringbuffer.slice_mut())[s.ringbuffer_size as usize - 1]) = 0;
     fast_mut!((s.ringbuffer.slice_mut())[s.ringbuffer_size as usize - 2]) = 0;
     if custom_dict.len() != 0 {
-      let offset = ((-s.custom_dict_size) & s.ringbuffer_mask) as usize;
+      let offset = ((-s.custom_dict_size) & s.ringbuffer_mask as isize) as usize;
       fast_mut!((s.ringbuffer.slice_mut())[offset ; offset + s.custom_dict_size as usize]).clone_from_slice(custom_dict);
     }
   }
@@ -1988,8 +1988,8 @@ pub fn ReadDistanceInternal<AllocU8: alloc::Allocator<u8>,
     if (!safe && (s.distance_postfix_bits == 0)) {
       nbits = (distval as u32 >> 1) + 1;
       offset = ((2 + (distval & 1)) << nbits) - 4;
-      s.distance_code = s.num_direct_distance_codes as i32 + offset +
-                        bit_reader::BrotliReadBits(&mut s.br, nbits, input) as i32;
+      s.distance_code = (s.num_direct_distance_codes as i64 + offset as i64 +
+                        bit_reader::BrotliReadBits(&mut s.br, nbits, input) as i64) as i32;
     } else {
       // This branch also works well when s.distance_postfix_bits == 0
       let mut bits: u32 = 0;
@@ -2006,7 +2006,7 @@ pub fn ReadDistanceInternal<AllocU8: alloc::Allocator<u8>,
         bits = bit_reader::BrotliReadBits(&mut s.br, nbits, input);
       }
       offset = (((distval & 1).wrapping_add(2)) << nbits).wrapping_sub(4);
-      s.distance_code = ((offset + bits as i32) << s.distance_postfix_bits).wrapping_add(postfix).wrapping_add(s.num_direct_distance_codes as i32);
+      s.distance_code = ((i64::from(offset) + i64::from(bits)) << s.distance_postfix_bits).wrapping_add(i64::from(postfix)).wrapping_add(i64::from(s.num_direct_distance_codes)) as i32;
     }
   }
   s.distance_code = s.distance_code.wrapping_sub(NUM_DISTANCE_SHORT_CODES as i32).wrapping_add(1);
@@ -2316,6 +2316,12 @@ fn ProcessCommandsInternal<AllocU8: alloc::Allocator<u8>,
                 }
                 fast_mut!((s.ringbuffer.slice_mut())[pos as usize]) = literal as u8;
               }
+              if (s.block_type_length_state.block_length)[0] == 0 {
+                  mark_unlikely();
+                  result = BrotliDecoderErrorCode::BROTLI_DECODER_ERROR_FORMAT_WINDOW_BITS;
+                  inner_return = true;
+                  break;
+              }
               fast_mut!((s.block_type_length_state.block_length)[0]) -= 1;
               BROTLI_LOG_UINT!(s.literal_htree_index);
               BROTLI_LOG_ARRAY_INDEX!(s.ringbuffer.slice(), pos);
@@ -2342,6 +2348,17 @@ fn ProcessCommandsInternal<AllocU8: alloc::Allocator<u8>,
           } else {
             let mut p1 = fast_slice!((s.ringbuffer)[((pos - 1) & s.ringbuffer_mask) as usize]);
             let mut p2 = fast_slice!((s.ringbuffer)[((pos - 2) & s.ringbuffer_mask) as usize]);
+            if s.custom_dict_avoid_context_seed && pos < 2 {
+                mark_unlikely();
+                p2 = 0;
+                p1 = 0;
+            }
+            if pos > 1
+            {
+                // have already set both seed bytes and can now move on to using
+                // the ringbuffer.
+                s.custom_dict_avoid_context_seed = false;
+            }
             let mut inner_return: bool = false;
             let mut inner_continue: bool = false;
             loop {
@@ -2387,6 +2404,11 @@ fn ProcessCommandsInternal<AllocU8: alloc::Allocator<u8>,
                 p1 = literal as u8;
               }
               fast_slice_mut!((s.ringbuffer)[pos as usize]) = p1;
+              if (s.block_type_length_state.block_length)[0] == 0 {
+                  result = BrotliDecoderErrorCode::BROTLI_DECODER_ERROR_FORMAT_WINDOW_BITS;
+                  inner_return = true;
+                  break;
+              }
               fast_mut!((s.block_type_length_state.block_length)[0]) -= 1;
               BROTLI_LOG_UINT!(s.context_map.slice()[s.context_map_slice_index as usize +
                                                      context as usize]);
@@ -2445,7 +2467,7 @@ fn ProcessCommandsInternal<AllocU8: alloc::Allocator<u8>,
 
           if (s.max_distance != s.max_backward_distance) {
             if (pos < s.max_backward_distance_minus_custom_dict_size) {
-              s.max_distance = pos + s.custom_dict_size;
+              s.max_distance = pos + s.custom_dict_size as i32;
             } else {
               s.max_distance = s.max_backward_distance;
             }
@@ -2812,8 +2834,8 @@ pub fn BrotliDecompressStream<AllocU8: alloc::Allocator<u8>,
         }
         BrotliRunningState::BROTLI_STATE_INITIALIZE => {
           s.max_backward_distance = (1 << s.window_bits) - kBrotliWindowGap as i32;
-          s.max_backward_distance_minus_custom_dict_size = s.max_backward_distance -
-                                                           s.custom_dict_size;
+          s.max_backward_distance_minus_custom_dict_size = (s.max_backward_distance as isize -
+                                                           s.custom_dict_size) as i32;
 
           // (formerly) Allocate memory for both block_type_trees and block_len_trees.
           s.block_type_length_state.block_type_trees = s.alloc_hc

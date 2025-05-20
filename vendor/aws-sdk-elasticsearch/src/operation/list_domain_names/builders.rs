@@ -3,7 +3,7 @@ pub use crate::operation::list_domain_names::_list_domain_names_output::ListDoma
 
 pub use crate::operation::list_domain_names::_list_domain_names_input::ListDomainNamesInputBuilder;
 
-impl ListDomainNamesInputBuilder {
+impl crate::operation::list_domain_names::builders::ListDomainNamesInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,7 +22,7 @@ impl ListDomainNamesInputBuilder {
 }
 /// Fluent builder constructing a request to `ListDomainNames`.
 ///
-/// <p>Returns the name of all Elasticsearch domains owned by the current user's account. </p>
+/// <p>Returns the name of all Elasticsearch domains owned by the current user's account.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct ListDomainNamesFluentBuilder {
     handle: ::std::sync::Arc<crate::client::Handle>,
@@ -48,7 +48,7 @@ impl
     }
 }
 impl ListDomainNamesFluentBuilder {
-    /// Creates a new `ListDomainNames`.
+    /// Creates a new `ListDomainNamesFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -99,26 +99,26 @@ impl ListDomainNamesFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
-    /// <p> Optional parameter to filter the output by domain engine type. Acceptable values are 'Elasticsearch' and 'OpenSearch'. </p>
+    /// <p>Optional parameter to filter the output by domain engine type. Acceptable values are 'Elasticsearch' and 'OpenSearch'.</p>
     pub fn engine_type(mut self, input: crate::types::EngineType) -> Self {
         self.inner = self.inner.engine_type(input);
         self
     }
-    /// <p> Optional parameter to filter the output by domain engine type. Acceptable values are 'Elasticsearch' and 'OpenSearch'. </p>
+    /// <p>Optional parameter to filter the output by domain engine type. Acceptable values are 'Elasticsearch' and 'OpenSearch'.</p>
     pub fn set_engine_type(mut self, input: ::std::option::Option<crate::types::EngineType>) -> Self {
         self.inner = self.inner.set_engine_type(input);
         self
     }
-    /// <p> Optional parameter to filter the output by domain engine type. Acceptable values are 'Elasticsearch' and 'OpenSearch'. </p>
+    /// <p>Optional parameter to filter the output by domain engine type. Acceptable values are 'Elasticsearch' and 'OpenSearch'.</p>
     pub fn get_engine_type(&self) -> &::std::option::Option<crate::types::EngineType> {
         self.inner.get_engine_type()
     }

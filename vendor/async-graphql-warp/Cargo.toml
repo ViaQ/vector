@@ -12,14 +12,21 @@
 [package]
 edition = "2021"
 name = "async-graphql-warp"
-version = "7.0.7"
+version = "7.0.16"
 authors = [
     "sunli <scott_s829@163.com>",
     "Koxiaet",
 ]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "async-graphql for warp"
 homepage = "https://github.com/async-graphql/async-graphql"
 documentation = "https://docs.rs/async-graphql-warp/"
+readme = false
 keywords = [
     "futures",
     "async",
@@ -32,17 +39,18 @@ categories = [
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/async-graphql/async-graphql"
 
+[lib]
+name = "async_graphql_warp"
+path = "src/lib.rs"
+
 [dependencies.async-graphql]
-version = "7.0.7"
+version = "7.0.16"
 default-features = false
 
 [dependencies.futures-util]
 version = "0.3.30"
 features = ["sink"]
 default-features = false
-
-[dependencies.http]
-version = "0.2"
 
 [dependencies.serde_json]
 version = "1.0.115"

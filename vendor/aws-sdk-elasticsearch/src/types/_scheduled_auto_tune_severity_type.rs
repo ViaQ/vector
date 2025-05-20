@@ -36,6 +36,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 /// <p>Specifies Auto-Tune action severity. Valid values are LOW, MEDIUM and HIGH. </p>
 #[non_exhaustive]
 #[derive(
@@ -98,6 +99,16 @@ impl ScheduledAutoTuneSeverityType {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for ScheduledAutoTuneSeverityType {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            ScheduledAutoTuneSeverityType::High => write!(f, "HIGH"),
+            ScheduledAutoTuneSeverityType::Low => write!(f, "LOW"),
+            ScheduledAutoTuneSeverityType::Medium => write!(f, "MEDIUM"),
+            ScheduledAutoTuneSeverityType::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

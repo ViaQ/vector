@@ -13,12 +13,13 @@
 edition = "2018"
 rust-version = "1.56"
 name = "enumflags2"
-version = "0.7.10"
+version = "0.7.11"
 authors = [
     "maik klein <maikklein@googlemail.com>",
     "Maja Kądziołka <maya@compilercrim.es>",
 ]
 build = false
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
@@ -35,17 +36,17 @@ keywords = [
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/meithecatte/enumflags2"
 
+[features]
+std = []
+
 [lib]
 name = "enumflags2"
 path = "src/lib.rs"
 
 [dependencies.enumflags2_derive]
-version = "=0.7.10"
+version = "=0.7.11"
 
 [dependencies.serde]
 version = "^1.0.0"
 optional = true
 default-features = false
-
-[features]
-std = []

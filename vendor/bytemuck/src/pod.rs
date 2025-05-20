@@ -57,6 +57,9 @@ unsafe impl Pod for f64 {}
 unsafe impl Pod for f128 {}
 unsafe impl<T: Pod> Pod for Wrapping<T> {}
 
+#[cfg(feature = "pod_saturating")]
+unsafe impl<T: Pod> Pod for core::num::Saturating<T>{}
+
 #[cfg(feature = "unsound_ptr_pod_impl")]
 #[cfg_attr(
   feature = "nightly_docs",
@@ -153,17 +156,29 @@ where
 }
 
 impl_unsafe_marker_for_simd!(
+  #[cfg(all(target_arch = "x86", any(feature = "nightly_stdsimd", feature = "avx512_simd")))]
+  unsafe impl Pod for x86::{
+    __m512, __m512d, __m512i
+  }
+);
+
+impl_unsafe_marker_for_simd!(
+  #[cfg(all(target_arch = "x86_64", any(feature = "nightly_stdsimd", feature = "avx512_simd")))]
+  unsafe impl Pod for x86_64::{
+    __m512, __m512d, __m512i
+  }
+);
+
+impl_unsafe_marker_for_simd!(
   #[cfg(all(target_arch = "x86", feature = "nightly_stdsimd"))]
   unsafe impl Pod for x86::{
-    __m128bh, __m256bh, __m512,
-    __m512bh, __m512d, __m512i,
+    __m128bh, __m256bh, __m512bh
   }
 );
 
 impl_unsafe_marker_for_simd!(
   #[cfg(all(target_arch = "x86_64", feature = "nightly_stdsimd"))]
   unsafe impl Pod for x86_64::{
-    __m128bh, __m256bh, __m512,
-    __m512bh, __m512d, __m512i,
+    __m128bh, __m256bh, __m512bh
   }
 );

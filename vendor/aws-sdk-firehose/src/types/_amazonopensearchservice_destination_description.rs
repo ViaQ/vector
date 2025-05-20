@@ -4,15 +4,15 @@
 #[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::fmt::Debug)]
 pub struct AmazonopensearchserviceDestinationDescription {
-    /// <p>The Amazon Resource Name (ARN) of the Amazon Web Services credentials. </p>
+    /// <p>The Amazon Resource Name (ARN) of the Amazon Web Services credentials.</p>
     pub role_arn: ::std::option::Option<::std::string::String>,
     /// <p>The ARN of the Amazon OpenSearch Service domain.</p>
     pub domain_arn: ::std::option::Option<::std::string::String>,
-    /// <p>The endpoint to use when communicating with the cluster. Kinesis Data Firehose uses either this ClusterEndpoint or the DomainARN field to send data to Amazon OpenSearch Service. </p>
+    /// <p>The endpoint to use when communicating with the cluster. Firehose uses either this ClusterEndpoint or the DomainARN field to send data to Amazon OpenSearch Service.</p>
     pub cluster_endpoint: ::std::option::Option<::std::string::String>,
     /// <p>The Amazon OpenSearch Service index name.</p>
     pub index_name: ::std::option::Option<::std::string::String>,
-    /// <p>The Amazon OpenSearch Service type name. This applies to Elasticsearch 6.x and lower versions. For Elasticsearch 7.x and OpenSearch Service 1.x, there's no value for TypeName. </p>
+    /// <p>The Amazon OpenSearch Service type name. This applies to Elasticsearch 6.x and lower versions. For Elasticsearch 7.x and OpenSearch Service 1.x, there's no value for TypeName.</p>
     pub type_name: ::std::option::Option<::std::string::String>,
     /// <p>The Amazon OpenSearch Service index rotation period</p>
     pub index_rotation_period: ::std::option::Option<crate::types::AmazonopensearchserviceIndexRotationPeriod>,
@@ -26,15 +26,15 @@ pub struct AmazonopensearchserviceDestinationDescription {
     pub s3_destination_description: ::std::option::Option<crate::types::S3DestinationDescription>,
     /// <p>Describes a data processing configuration.</p>
     pub processing_configuration: ::std::option::Option<crate::types::ProcessingConfiguration>,
-    /// <p>Describes the Amazon CloudWatch logging options for your delivery stream.</p>
+    /// <p>Describes the Amazon CloudWatch logging options for your Firehose stream.</p>
     pub cloud_watch_logging_options: ::std::option::Option<crate::types::CloudWatchLoggingOptions>,
-    /// <p>The details of the VPC of the Amazon ES destination.</p>
+    /// <p>The details of the VPC of the Amazon OpenSearch Service destination.</p>
     pub vpc_configuration_description: ::std::option::Option<crate::types::VpcConfigurationDescription>,
-    /// <p>Indicates the method for setting up document ID. The supported methods are Kinesis Data Firehose generated document ID and OpenSearch Service generated document ID.</p>
+    /// <p>Indicates the method for setting up document ID. The supported methods are Firehose generated document ID and OpenSearch Service generated document ID.</p>
     pub document_id_options: ::std::option::Option<crate::types::DocumentIdOptions>,
 }
 impl AmazonopensearchserviceDestinationDescription {
-    /// <p>The Amazon Resource Name (ARN) of the Amazon Web Services credentials. </p>
+    /// <p>The Amazon Resource Name (ARN) of the Amazon Web Services credentials.</p>
     pub fn role_arn(&self) -> ::std::option::Option<&str> {
         self.role_arn.as_deref()
     }
@@ -42,7 +42,7 @@ impl AmazonopensearchserviceDestinationDescription {
     pub fn domain_arn(&self) -> ::std::option::Option<&str> {
         self.domain_arn.as_deref()
     }
-    /// <p>The endpoint to use when communicating with the cluster. Kinesis Data Firehose uses either this ClusterEndpoint or the DomainARN field to send data to Amazon OpenSearch Service. </p>
+    /// <p>The endpoint to use when communicating with the cluster. Firehose uses either this ClusterEndpoint or the DomainARN field to send data to Amazon OpenSearch Service.</p>
     pub fn cluster_endpoint(&self) -> ::std::option::Option<&str> {
         self.cluster_endpoint.as_deref()
     }
@@ -50,7 +50,7 @@ impl AmazonopensearchserviceDestinationDescription {
     pub fn index_name(&self) -> ::std::option::Option<&str> {
         self.index_name.as_deref()
     }
-    /// <p>The Amazon OpenSearch Service type name. This applies to Elasticsearch 6.x and lower versions. For Elasticsearch 7.x and OpenSearch Service 1.x, there's no value for TypeName. </p>
+    /// <p>The Amazon OpenSearch Service type name. This applies to Elasticsearch 6.x and lower versions. For Elasticsearch 7.x and OpenSearch Service 1.x, there's no value for TypeName.</p>
     pub fn type_name(&self) -> ::std::option::Option<&str> {
         self.type_name.as_deref()
     }
@@ -78,15 +78,15 @@ impl AmazonopensearchserviceDestinationDescription {
     pub fn processing_configuration(&self) -> ::std::option::Option<&crate::types::ProcessingConfiguration> {
         self.processing_configuration.as_ref()
     }
-    /// <p>Describes the Amazon CloudWatch logging options for your delivery stream.</p>
+    /// <p>Describes the Amazon CloudWatch logging options for your Firehose stream.</p>
     pub fn cloud_watch_logging_options(&self) -> ::std::option::Option<&crate::types::CloudWatchLoggingOptions> {
         self.cloud_watch_logging_options.as_ref()
     }
-    /// <p>The details of the VPC of the Amazon ES destination.</p>
+    /// <p>The details of the VPC of the Amazon OpenSearch Service destination.</p>
     pub fn vpc_configuration_description(&self) -> ::std::option::Option<&crate::types::VpcConfigurationDescription> {
         self.vpc_configuration_description.as_ref()
     }
-    /// <p>Indicates the method for setting up document ID. The supported methods are Kinesis Data Firehose generated document ID and OpenSearch Service generated document ID.</p>
+    /// <p>Indicates the method for setting up document ID. The supported methods are Firehose generated document ID and OpenSearch Service generated document ID.</p>
     pub fn document_id_options(&self) -> ::std::option::Option<&crate::types::DocumentIdOptions> {
         self.document_id_options.as_ref()
     }
@@ -99,8 +99,8 @@ impl AmazonopensearchserviceDestinationDescription {
 }
 
 /// A builder for [`AmazonopensearchserviceDestinationDescription`](crate::types::AmazonopensearchserviceDestinationDescription).
-#[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::default::Default, ::std::fmt::Debug)]
+#[non_exhaustive]
 pub struct AmazonopensearchserviceDestinationDescriptionBuilder {
     pub(crate) role_arn: ::std::option::Option<::std::string::String>,
     pub(crate) domain_arn: ::std::option::Option<::std::string::String>,
@@ -118,17 +118,17 @@ pub struct AmazonopensearchserviceDestinationDescriptionBuilder {
     pub(crate) document_id_options: ::std::option::Option<crate::types::DocumentIdOptions>,
 }
 impl AmazonopensearchserviceDestinationDescriptionBuilder {
-    /// <p>The Amazon Resource Name (ARN) of the Amazon Web Services credentials. </p>
+    /// <p>The Amazon Resource Name (ARN) of the Amazon Web Services credentials.</p>
     pub fn role_arn(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.role_arn = ::std::option::Option::Some(input.into());
         self
     }
-    /// <p>The Amazon Resource Name (ARN) of the Amazon Web Services credentials. </p>
+    /// <p>The Amazon Resource Name (ARN) of the Amazon Web Services credentials.</p>
     pub fn set_role_arn(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.role_arn = input;
         self
     }
-    /// <p>The Amazon Resource Name (ARN) of the Amazon Web Services credentials. </p>
+    /// <p>The Amazon Resource Name (ARN) of the Amazon Web Services credentials.</p>
     pub fn get_role_arn(&self) -> &::std::option::Option<::std::string::String> {
         &self.role_arn
     }
@@ -146,17 +146,17 @@ impl AmazonopensearchserviceDestinationDescriptionBuilder {
     pub fn get_domain_arn(&self) -> &::std::option::Option<::std::string::String> {
         &self.domain_arn
     }
-    /// <p>The endpoint to use when communicating with the cluster. Kinesis Data Firehose uses either this ClusterEndpoint or the DomainARN field to send data to Amazon OpenSearch Service. </p>
+    /// <p>The endpoint to use when communicating with the cluster. Firehose uses either this ClusterEndpoint or the DomainARN field to send data to Amazon OpenSearch Service.</p>
     pub fn cluster_endpoint(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.cluster_endpoint = ::std::option::Option::Some(input.into());
         self
     }
-    /// <p>The endpoint to use when communicating with the cluster. Kinesis Data Firehose uses either this ClusterEndpoint or the DomainARN field to send data to Amazon OpenSearch Service. </p>
+    /// <p>The endpoint to use when communicating with the cluster. Firehose uses either this ClusterEndpoint or the DomainARN field to send data to Amazon OpenSearch Service.</p>
     pub fn set_cluster_endpoint(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.cluster_endpoint = input;
         self
     }
-    /// <p>The endpoint to use when communicating with the cluster. Kinesis Data Firehose uses either this ClusterEndpoint or the DomainARN field to send data to Amazon OpenSearch Service. </p>
+    /// <p>The endpoint to use when communicating with the cluster. Firehose uses either this ClusterEndpoint or the DomainARN field to send data to Amazon OpenSearch Service.</p>
     pub fn get_cluster_endpoint(&self) -> &::std::option::Option<::std::string::String> {
         &self.cluster_endpoint
     }
@@ -174,17 +174,17 @@ impl AmazonopensearchserviceDestinationDescriptionBuilder {
     pub fn get_index_name(&self) -> &::std::option::Option<::std::string::String> {
         &self.index_name
     }
-    /// <p>The Amazon OpenSearch Service type name. This applies to Elasticsearch 6.x and lower versions. For Elasticsearch 7.x and OpenSearch Service 1.x, there's no value for TypeName. </p>
+    /// <p>The Amazon OpenSearch Service type name. This applies to Elasticsearch 6.x and lower versions. For Elasticsearch 7.x and OpenSearch Service 1.x, there's no value for TypeName.</p>
     pub fn type_name(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.type_name = ::std::option::Option::Some(input.into());
         self
     }
-    /// <p>The Amazon OpenSearch Service type name. This applies to Elasticsearch 6.x and lower versions. For Elasticsearch 7.x and OpenSearch Service 1.x, there's no value for TypeName. </p>
+    /// <p>The Amazon OpenSearch Service type name. This applies to Elasticsearch 6.x and lower versions. For Elasticsearch 7.x and OpenSearch Service 1.x, there's no value for TypeName.</p>
     pub fn set_type_name(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.type_name = input;
         self
     }
-    /// <p>The Amazon OpenSearch Service type name. This applies to Elasticsearch 6.x and lower versions. For Elasticsearch 7.x and OpenSearch Service 1.x, there's no value for TypeName. </p>
+    /// <p>The Amazon OpenSearch Service type name. This applies to Elasticsearch 6.x and lower versions. For Elasticsearch 7.x and OpenSearch Service 1.x, there's no value for TypeName.</p>
     pub fn get_type_name(&self) -> &::std::option::Option<::std::string::String> {
         &self.type_name
     }
@@ -272,45 +272,45 @@ impl AmazonopensearchserviceDestinationDescriptionBuilder {
     pub fn get_processing_configuration(&self) -> &::std::option::Option<crate::types::ProcessingConfiguration> {
         &self.processing_configuration
     }
-    /// <p>Describes the Amazon CloudWatch logging options for your delivery stream.</p>
+    /// <p>Describes the Amazon CloudWatch logging options for your Firehose stream.</p>
     pub fn cloud_watch_logging_options(mut self, input: crate::types::CloudWatchLoggingOptions) -> Self {
         self.cloud_watch_logging_options = ::std::option::Option::Some(input);
         self
     }
-    /// <p>Describes the Amazon CloudWatch logging options for your delivery stream.</p>
+    /// <p>Describes the Amazon CloudWatch logging options for your Firehose stream.</p>
     pub fn set_cloud_watch_logging_options(mut self, input: ::std::option::Option<crate::types::CloudWatchLoggingOptions>) -> Self {
         self.cloud_watch_logging_options = input;
         self
     }
-    /// <p>Describes the Amazon CloudWatch logging options for your delivery stream.</p>
+    /// <p>Describes the Amazon CloudWatch logging options for your Firehose stream.</p>
     pub fn get_cloud_watch_logging_options(&self) -> &::std::option::Option<crate::types::CloudWatchLoggingOptions> {
         &self.cloud_watch_logging_options
     }
-    /// <p>The details of the VPC of the Amazon ES destination.</p>
+    /// <p>The details of the VPC of the Amazon OpenSearch Service destination.</p>
     pub fn vpc_configuration_description(mut self, input: crate::types::VpcConfigurationDescription) -> Self {
         self.vpc_configuration_description = ::std::option::Option::Some(input);
         self
     }
-    /// <p>The details of the VPC of the Amazon ES destination.</p>
+    /// <p>The details of the VPC of the Amazon OpenSearch Service destination.</p>
     pub fn set_vpc_configuration_description(mut self, input: ::std::option::Option<crate::types::VpcConfigurationDescription>) -> Self {
         self.vpc_configuration_description = input;
         self
     }
-    /// <p>The details of the VPC of the Amazon ES destination.</p>
+    /// <p>The details of the VPC of the Amazon OpenSearch Service destination.</p>
     pub fn get_vpc_configuration_description(&self) -> &::std::option::Option<crate::types::VpcConfigurationDescription> {
         &self.vpc_configuration_description
     }
-    /// <p>Indicates the method for setting up document ID. The supported methods are Kinesis Data Firehose generated document ID and OpenSearch Service generated document ID.</p>
+    /// <p>Indicates the method for setting up document ID. The supported methods are Firehose generated document ID and OpenSearch Service generated document ID.</p>
     pub fn document_id_options(mut self, input: crate::types::DocumentIdOptions) -> Self {
         self.document_id_options = ::std::option::Option::Some(input);
         self
     }
-    /// <p>Indicates the method for setting up document ID. The supported methods are Kinesis Data Firehose generated document ID and OpenSearch Service generated document ID.</p>
+    /// <p>Indicates the method for setting up document ID. The supported methods are Firehose generated document ID and OpenSearch Service generated document ID.</p>
     pub fn set_document_id_options(mut self, input: ::std::option::Option<crate::types::DocumentIdOptions>) -> Self {
         self.document_id_options = input;
         self
     }
-    /// <p>Indicates the method for setting up document ID. The supported methods are Kinesis Data Firehose generated document ID and OpenSearch Service generated document ID.</p>
+    /// <p>Indicates the method for setting up document ID. The supported methods are Firehose generated document ID and OpenSearch Service generated document ID.</p>
     pub fn get_document_id_options(&self) -> &::std::option::Option<crate::types::DocumentIdOptions> {
         &self.document_id_options
     }

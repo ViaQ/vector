@@ -176,8 +176,8 @@ pub type LrResult<'grammar, L> =
     Result<Vec<State<'grammar, L>>, TableConstructionError<'grammar, L>>;
 pub type Lr1Result<'grammar> = LrResult<'grammar, TokenSet>;
 
-impl<'grammar, L: Lookahead> Debug for Item<'grammar, L> {
-    fn fmt(&self, fmt: &mut Formatter) -> Result<(), Error> {
+impl<L: Lookahead> Debug for Item<'_, L> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> Result<(), Error> {
         write!(
             fmt,
             "{} ={} (*){}",
@@ -191,7 +191,7 @@ impl<'grammar, L: Lookahead> Debug for Item<'grammar, L> {
 }
 
 impl Display for Token {
-    fn fmt(&self, fmt: &mut Formatter) -> Result<(), Error> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> Result<(), Error> {
         match *self {
             Token::Eof => write!(fmt, "Eof"),
             Token::Error => write!(fmt, "Error"),
@@ -201,19 +201,19 @@ impl Display for Token {
 }
 
 impl Debug for Token {
-    fn fmt(&self, fmt: &mut Formatter) -> Result<(), Error> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> Result<(), Error> {
         write!(fmt, "{}", self)
     }
 }
 
 impl Debug for StateIndex {
-    fn fmt(&self, fmt: &mut Formatter) -> Result<(), Error> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> Result<(), Error> {
         write!(fmt, "S{}", self.0)
     }
 }
 
 impl Display for StateIndex {
-    fn fmt(&self, fmt: &mut Formatter) -> Result<(), Error> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> Result<(), Error> {
         write!(fmt, "{}", self.0)
     }
 }
@@ -315,7 +315,7 @@ pub struct SymbolSets<'grammar> {
     pub suffix: &'grammar [Symbol],       // first [E, F], second []
 }
 
-impl<'grammar> SymbolSets<'grammar> {
+impl SymbolSets<'_> {
     pub fn new() -> Self {
         SymbolSets {
             prefix: &[],

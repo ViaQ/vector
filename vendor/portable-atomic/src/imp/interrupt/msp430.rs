@@ -1,10 +1,17 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-// Adapted from https://github.com/rust-embedded/msp430.
-//
-// See also src/imp/msp430.rs.
-//
-// Refs: https://www.ti.com/lit/ug/slau208q/slau208q.pdf
+/*
+Adapted from https://github.com/rust-embedded/msp430.
+
+See also src/imp/msp430.rs.
+
+Refs:
+- MSP430x5xx and MSP430x6xx Family User's Guide, Rev. Q
+  https://www.ti.com/lit/ug/slau208q/slau208q.pdf
+
+Generated asm:
+- msp430 https://godbolt.org/z/fc6h89xac
+*/
 
 #[cfg(not(portable_atomic_no_asm))]
 use core::arch::asm;
@@ -14,28 +21,29 @@ pub(super) use super::super::msp430 as atomic;
 pub(super) type State = u16;
 
 /// Disables interrupts and returns the previous interrupt state.
-#[inline]
+#[inline(always)]
 pub(super) fn disable() -> State {
-    let r: State;
+    let sr: State;
     // SAFETY: reading the status register and disabling interrupts are safe.
     // (see module-level comments of interrupt/mod.rs on the safety of using privileged instructions)
     unsafe {
         // Do not use `nomem` and `readonly` because prevent subsequent memory accesses from being reordered before interrupts are disabled.
         // Do not use `preserves_flags` because DINT modifies the GIE (global interrupt enable) bit of the status register.
+        // See "NOTE: Enable and Disable Interrupt" of User's Guide for NOP: https://www.ti.com/lit/ug/slau208q/slau208q.pdf#page=60
         #[cfg(not(portable_atomic_no_asm))]
         asm!(
-            "mov R2, {0}",
-            "dint {{ nop",
-            out(reg) r,
+            "mov r2, {sr}", // sr = SR
+            "dint {{ nop",  // SR.GIE = 0
+            sr = out(reg) sr,
             options(nostack),
         );
         #[cfg(portable_atomic_no_asm)]
         {
-            llvm_asm!("mov R2, $0" : "=r"(r) ::: "volatile");
+            llvm_asm!("mov r2, $0" : "=r"(sr) ::: "volatile");
             llvm_asm!("dint { nop" ::: "memory" : "volatile");
         }
     }
-    r
+    sr
 }
 
 /// Restores the previous interrupt state.
@@ -43,8 +51,8 @@ pub(super) fn disable() -> State {
 /// # Safety
 ///
 /// The state must be the one retrieved by the previous `disable`.
-#[inline]
-pub(super) unsafe fn restore(r: State) {
+#[inline(always)]
+pub(super) unsafe fn restore(prev_sr: State) {
     // SAFETY: the caller must guarantee that the state was retrieved by the previous `disable`,
     unsafe {
         // This clobbers the entire status register, but we never explicitly modify
@@ -56,9 +64,14 @@ pub(super) unsafe fn restore(r: State) {
         //
         // Do not use `nomem` and `readonly` because prevent preceding memory accesses from being reordered after interrupts are enabled.
         // Do not use `preserves_flags` because MOV modifies the status register.
+        // See "NOTE: Enable and Disable Interrupt" of User's Guide for NOP: https://www.ti.com/lit/ug/slau208q/slau208q.pdf#page=60
         #[cfg(not(portable_atomic_no_asm))]
-        asm!("nop {{ mov {0}, R2 {{ nop", in(reg) r, options(nostack));
+        asm!(
+            "nop {{ mov {prev_sr}, r2 {{ nop", // SR = prev_sr
+            prev_sr = in(reg) prev_sr,
+            options(nostack),
+        );
         #[cfg(portable_atomic_no_asm)]
-        llvm_asm!("nop { mov $0, R2 { nop" :: "r"(r) : "memory" : "volatile");
+        llvm_asm!("nop { mov $0, r2 { nop" :: "r"(prev_sr) : "memory" : "volatile");
     }
 }

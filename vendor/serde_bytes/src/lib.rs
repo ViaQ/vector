@@ -30,14 +30,16 @@
 //! }
 //! ```
 
-#![doc(html_root_url = "https://docs.rs/serde_bytes/0.11.15")]
+#![doc(html_root_url = "https://docs.rs/serde_bytes/0.11.17")]
 #![cfg_attr(not(feature = "std"), no_std)]
 #![deny(missing_docs)]
 #![allow(
+    clippy::elidable_lifetime_names,
     clippy::into_iter_without_iter,
     clippy::missing_errors_doc,
     clippy::must_use_candidate,
     clippy::needless_doctest_main,
+    clippy::needless_lifetimes,
     clippy::ptr_as_ptr
 )]
 

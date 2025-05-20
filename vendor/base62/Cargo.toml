@@ -12,12 +12,10 @@
 [package]
 edition = "2018"
 name = "base62"
-version = "2.0.3"
+version = "2.2.1"
 authors = [
     "François Bernier <frankbernier@gmail.com>",
     "Chai T. Rex <ChaiTRex@users.noreply.github.com>",
-    "Kevin Darlington <kevin@outroot.com>",
-    "Christopher Tarquini <code@tarq.io>",
 ]
 build = false
 exclude = [".github/*"]
@@ -40,6 +38,11 @@ keywords = [
 license = "MIT"
 repository = "https://github.com/fbernier/base62"
 
+[features]
+alloc = []
+default = ["alloc"]
+std = ["alloc"]
+
 [lib]
 name = "base62"
 path = "src/lib.rs"
@@ -48,6 +51,10 @@ path = "src/lib.rs"
 name = "base62"
 path = "benches/base62.rs"
 harness = false
+required-features = ["alloc"]
+
+[dependencies.rustversion]
+version = "1"
 
 [dev-dependencies.criterion]
 version = "0.5"

@@ -1,6 +1,9 @@
+use alloc::{format, string::String};
+use core::str;
+
 use super::ByteSize;
 
-impl std::str::FromStr for ByteSize {
+impl str::FromStr for ByteSize {
     type Err = String;
 
     fn from_str(value: &str) -> Result<Self, Self::Err> {
@@ -10,9 +13,7 @@ impl std::str::FromStr for ByteSize {
         let number = take_while(value, |c| c.is_ascii_digit() || c == '.');
         match number.parse::<f64>() {
             Ok(v) => {
-                let suffix = skip_while(value, |c| {
-                    c.is_whitespace() || c.is_ascii_digit() || c == '.'
-                });
+                let suffix = skip_while(&value[number.len()..], char::is_whitespace);
                 match suffix.parse::<Unit>() {
                     Ok(u) => Ok(Self((v * u) as u64)),
                     Err(error) => Err(format!(
@@ -72,26 +73,26 @@ enum Unit {
 impl Unit {
     fn factor(&self) -> u64 {
         match self {
-            Self::Byte => super::B,
-            // power of tens
-            Self::KiloByte => super::KB,
-            Self::MegaByte => super::MB,
-            Self::GigaByte => super::GB,
-            Self::TeraByte => super::TB,
-            Self::PetaByte => super::PB,
-            // power of twos
-            Self::KibiByte => super::KIB,
-            Self::MebiByte => super::MIB,
-            Self::GibiByte => super::GIB,
-            Self::TebiByte => super::TIB,
-            Self::PebiByte => super::PIB,
+            Self::Byte => 1,
+            // decimal units
+            Self::KiloByte => crate::KB,
+            Self::MegaByte => crate::MB,
+            Self::GigaByte => crate::GB,
+            Self::TeraByte => crate::TB,
+            Self::PetaByte => crate::PB,
+            // binary units
+            Self::KibiByte => crate::KIB,
+            Self::MebiByte => crate::MIB,
+            Self::GibiByte => crate::GIB,
+            Self::TebiByte => crate::TIB,
+            Self::PebiByte => crate::PIB,
         }
     }
 }
 
 mod impl_ops {
     use super::Unit;
-    use std::ops;
+    use core::ops;
 
     impl ops::Add<u64> for Unit {
         type Output = u64;
@@ -158,7 +159,7 @@ mod impl_ops {
     }
 }
 
-impl std::str::FromStr for Unit {
+impl str::FromStr for Unit {
     type Err = String;
 
     fn from_str(unit: &str) -> Result<Self, Self::Err> {
@@ -183,6 +184,8 @@ impl std::str::FromStr for Unit {
 
 #[cfg(test)]
 mod tests {
+    use alloc::string::ToString as _;
+
     use super::*;
 
     #[test]
@@ -220,6 +223,11 @@ mod tests {
 
         assert!(parse("").is_err());
         assert!(parse("a124GB").is_err());
+        assert!(parse("1.3 42.0 B").is_err());
+        assert!(parse("1.3 ... B").is_err());
+        // The original implementation did not account for the possibility that users may
+        // use whitespace to visually separate digits, thus treat it as an error
+        assert!(parse("1 000 B").is_err());
     }
 
     #[test]
@@ -229,10 +237,10 @@ mod tests {
             s.parse::<ByteSize>().unwrap().0
         }
 
-        assert_eq!(parse(&format!("{}", parse("128GB"))), 128 * Unit::GigaByte);
+        assert_eq!(parse(&parse("128GB").to_string()), 128 * Unit::GigaByte);
         assert_eq!(
-            parse(&crate::to_string(parse("128.000 GiB"), true)),
-            128 * Unit::GibiByte
+            parse(&ByteSize(parse("128.000 GiB")).to_string()),
+            128 * Unit::GibiByte,
         );
     }
 }

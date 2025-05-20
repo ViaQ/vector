@@ -50,7 +50,18 @@ impl RegisterClient {
         >,
     > {
         let input = ::aws_smithy_runtime_api::client::interceptors::context::Input::erase(input);
-        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("ssooidc", "RegisterClient", input, runtime_plugins, stop_point).await
+        use ::tracing::Instrument;
+        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("SSO OIDC", "RegisterClient", input, runtime_plugins, stop_point)
+            // Create a parent span for the entire operation. Includes a random, internal-only,
+            // seven-digit ID for the operation orchestration so that it can be correlated in the logs.
+            .instrument(::tracing::debug_span!(
+                "SSO OIDC.RegisterClient",
+                "rpc.service" = "SSO OIDC",
+                "rpc.method" = "RegisterClient",
+                "sdk_invocation_id" = ::fastrand::u32(1_000_000..10_000_000),
+                "rpc.system" = "aws-api",
+            ))
+            .await
     }
 
     pub(crate) fn operation_runtime_plugins(
@@ -91,7 +102,10 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for Registe
         ));
 
         cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::SensitiveOutput);
-        cfg.store_put(::aws_smithy_http::operation::Metadata::new("RegisterClient", "ssooidc"));
+        cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::Metadata::new(
+            "RegisterClient",
+            "SSO OIDC",
+        ));
 
         ::std::option::Option::Some(cfg.freeze())
     }
@@ -102,11 +116,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for Registe
     ) -> ::std::borrow::Cow<'_, ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder> {
         #[allow(unused_mut)]
         let mut rcb = ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("RegisterClient")
-            .with_interceptor(
-                ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::new(
-                    ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptorKind::ResponseBody,
-                ),
-            )
+            .with_interceptor(::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::default())
             .with_interceptor(RegisterClientEndpointParamsInterceptor)
             .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<
                 crate::operation::register_client::RegisterClientError,
@@ -227,6 +237,9 @@ impl ::aws_smithy_runtime_api::client::interceptors::Intercept for RegisterClien
     }
 }
 
+// The get_* functions below are generated from JMESPath expressions in the
+// operationContextParams trait. They target the operation's input shape.
+
 /// Error type for the `RegisterClientError` operation.
 #[non_exhaustive]
 #[derive(::std::fmt::Debug)]
@@ -235,10 +248,14 @@ pub enum RegisterClientError {
     InternalServerException(crate::types::error::InternalServerException),
     /// <p>Indicates that the client information sent in the request during registration is invalid.</p>
     InvalidClientMetadataException(crate::types::error::InvalidClientMetadataException),
+    /// <p>Indicates that one or more redirect URI in the request is not supported for this operation.</p>
+    InvalidRedirectUriException(crate::types::error::InvalidRedirectUriException),
     /// <p>Indicates that something is wrong with the input to the request. For example, a required parameter might be missing or out of range.</p>
     InvalidRequestException(crate::types::error::InvalidRequestException),
     /// <p>Indicates that the scope provided in the request is invalid.</p>
     InvalidScopeException(crate::types::error::InvalidScopeException),
+    /// <p>Indicates that the grant type in the request is not supported by the service.</p>
+    UnsupportedGrantTypeException(crate::types::error::UnsupportedGrantTypeException),
     /// An unexpected error occurred (e.g., invalid JSON returned by the service or an unknown error code).
     #[deprecated(note = "Matching `Unhandled` directly is not forwards compatible. Instead, match using a \
     variable wildcard pattern and check `.code()`:
@@ -274,8 +291,10 @@ impl RegisterClientError {
         match self {
             Self::InternalServerException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::InvalidClientMetadataException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
+            Self::InvalidRedirectUriException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::InvalidRequestException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::InvalidScopeException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
+            Self::UnsupportedGrantTypeException(e) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(e),
             Self::Unhandled(e) => &e.meta,
         }
     }
@@ -287,6 +306,10 @@ impl RegisterClientError {
     pub fn is_invalid_client_metadata_exception(&self) -> bool {
         matches!(self, Self::InvalidClientMetadataException(_))
     }
+    /// Returns `true` if the error kind is `RegisterClientError::InvalidRedirectUriException`.
+    pub fn is_invalid_redirect_uri_exception(&self) -> bool {
+        matches!(self, Self::InvalidRedirectUriException(_))
+    }
     /// Returns `true` if the error kind is `RegisterClientError::InvalidRequestException`.
     pub fn is_invalid_request_exception(&self) -> bool {
         matches!(self, Self::InvalidRequestException(_))
@@ -295,14 +318,20 @@ impl RegisterClientError {
     pub fn is_invalid_scope_exception(&self) -> bool {
         matches!(self, Self::InvalidScopeException(_))
     }
+    /// Returns `true` if the error kind is `RegisterClientError::UnsupportedGrantTypeException`.
+    pub fn is_unsupported_grant_type_exception(&self) -> bool {
+        matches!(self, Self::UnsupportedGrantTypeException(_))
+    }
 }
 impl ::std::error::Error for RegisterClientError {
     fn source(&self) -> ::std::option::Option<&(dyn ::std::error::Error + 'static)> {
         match self {
             Self::InternalServerException(_inner) => ::std::option::Option::Some(_inner),
             Self::InvalidClientMetadataException(_inner) => ::std::option::Option::Some(_inner),
+            Self::InvalidRedirectUriException(_inner) => ::std::option::Option::Some(_inner),
             Self::InvalidRequestException(_inner) => ::std::option::Option::Some(_inner),
             Self::InvalidScopeException(_inner) => ::std::option::Option::Some(_inner),
+            Self::UnsupportedGrantTypeException(_inner) => ::std::option::Option::Some(_inner),
             Self::Unhandled(_inner) => ::std::option::Option::Some(&*_inner.source),
         }
     }
@@ -312,8 +341,10 @@ impl ::std::fmt::Display for RegisterClientError {
         match self {
             Self::InternalServerException(_inner) => _inner.fmt(f),
             Self::InvalidClientMetadataException(_inner) => _inner.fmt(f),
+            Self::InvalidRedirectUriException(_inner) => _inner.fmt(f),
             Self::InvalidRequestException(_inner) => _inner.fmt(f),
             Self::InvalidScopeException(_inner) => _inner.fmt(f),
+            Self::UnsupportedGrantTypeException(_inner) => _inner.fmt(f),
             Self::Unhandled(_inner) => {
                 if let ::std::option::Option::Some(code) = ::aws_smithy_types::error::metadata::ProvideErrorMetadata::code(self) {
                     write!(f, "unhandled error ({code})")
@@ -337,8 +368,10 @@ impl ::aws_smithy_types::error::metadata::ProvideErrorMetadata for RegisterClien
         match self {
             Self::InternalServerException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
             Self::InvalidClientMetadataException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
+            Self::InvalidRedirectUriException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
             Self::InvalidRequestException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
             Self::InvalidScopeException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
+            Self::UnsupportedGrantTypeException(_inner) => ::aws_smithy_types::error::metadata::ProvideErrorMetadata::meta(_inner),
             Self::Unhandled(_inner) => &_inner.meta,
         }
     }

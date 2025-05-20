@@ -2,17 +2,17 @@ mod authorization_policy;
 
 pub(crate) use self::authorization_policy::AuthorizationPolicy;
 use crate::clients::{EMULATOR_ACCOUNT, EMULATOR_ACCOUNT_KEY};
+use async_lock::RwLock;
 use azure_core::{
-    auth::TokenCredential,
+    auth::{Secret, TokenCredential},
     error::{ErrorKind, ResultExt},
+    Url,
 };
-use futures::lock::Mutex;
 use std::{
     mem::replace,
     ops::{Deref, DerefMut},
     sync::Arc,
 };
-use url::Url;
 
 /// Credentials for accessing a storage account.
 ///
@@ -22,16 +22,16 @@ use url::Url;
 ///
 /// For example, to use an account name and access key:
 /// ```rust
-/// azure_storage::StorageCredentials::access_key("my_account", "SOMEACCESSKEY");
+/// azure_storage::StorageCredentials::access_key("my_account", azure_core::auth::Secret::new("SOMEACCESSKEY"));
 /// ```
 #[derive(Clone)]
-pub struct StorageCredentials(pub Arc<Mutex<StorageCredentialsInner>>);
+pub struct StorageCredentials(pub Arc<RwLock<StorageCredentialsInner>>);
 
 #[derive(Clone)]
 pub enum StorageCredentialsInner {
-    Key(String, String),
+    Key(String, Secret),
     SASToken(Vec<(String, String)>),
-    BearerToken(String),
+    BearerToken(Secret),
     TokenCredential(Arc<dyn TokenCredential>),
     Anonymous,
 }
@@ -39,7 +39,7 @@ pub enum StorageCredentialsInner {
 impl StorageCredentials {
     /// Create a new `StorageCredentials` from a `StorageCredentialsInner`
     fn wrap(inner: StorageCredentialsInner) -> Self {
-        Self(Arc::new(Mutex::new(inner)))
+        Self(Arc::new(RwLock::new(inner)))
     }
 
     /// Create an Access Key based credential
@@ -53,7 +53,7 @@ impl StorageCredentials {
     pub fn access_key<A, K>(account: A, key: K) -> Self
     where
         A: Into<String>,
-        K: Into<String>,
+        K: Into<Secret>,
     {
         Self::wrap(StorageCredentialsInner::Key(account.into(), key.into()))
     }
@@ -86,7 +86,7 @@ impl StorageCredentials {
     /// ref: <https://docs.microsoft.com/rest/api/storageservices/authorize-with-azure-active-directory>
     pub fn bearer_token<T>(token: T) -> Self
     where
-        T: Into<String>,
+        T: Into<Secret>,
     {
         Self::wrap(StorageCredentialsInner::BearerToken(token.into()))
     }
@@ -100,11 +100,9 @@ impl StorageCredentials {
     /// `azure_identity`.
     ///
     /// ```
-    /// use azure_identity::DefaultAzureCredential;
     /// use azure_storage::prelude::*;
-    /// use std::sync::Arc;
-    /// let token_credential = Arc::new(DefaultAzureCredential::default());
-    /// let storage_credentials = StorageCredentials::token_credential(token_credential);
+    /// let credential = azure_identity::create_credential().unwrap();
+    /// let storage_credentials = StorageCredentials::token_credential(credential);
     /// ```
     ///
     /// ref: <https://docs.microsoft.com/rest/api/storageservices/authorize-with-azure-active-directory>
@@ -129,7 +127,7 @@ impl StorageCredentials {
 
     /// Create an Access Key credential for use with the Azure Storage emulator
     pub fn emulator() -> Self {
-        Self::access_key(EMULATOR_ACCOUNT, EMULATOR_ACCOUNT_KEY)
+        Self::access_key(EMULATOR_ACCOUNT, Secret::new(EMULATOR_ACCOUNT_KEY))
     }
 
     /// Replace the current credentials with new credentials
@@ -141,8 +139,8 @@ impl StorageCredentials {
             return Ok(());
         }
 
-        let mut creds = self.0.lock().await;
-        let other = other.0.lock().await;
+        let mut creds = self.0.write().await;
+        let other = other.0.write().await;
         let creds = creds.deref_mut();
         let other = other.deref().clone();
         let _old_creds = replace(creds, other);
@@ -153,7 +151,7 @@ impl StorageCredentials {
 
 impl std::fmt::Debug for StorageCredentials {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let creds = self.0.try_lock();
+        let creds = self.0.try_read();
 
         match creds.as_deref() {
             None => f
@@ -205,9 +203,9 @@ impl TryFrom<&Url> for StorageCredentials {
 fn get_sas_token_parms(sas_token: &str) -> azure_core::Result<Vec<(String, String)>> {
     // Any base url will do: we just need to parse the SAS token
     // to get its query pairs.
-    let base_url = url::Url::parse("https://blob.core.windows.net").unwrap();
+    let base_url = Url::parse("https://blob.core.windows.net").unwrap();
 
-    let url = url::Url::options().base_url(Some(&base_url));
+    let url = Url::options().base_url(Some(&base_url));
 
     // this code handles the leading ?
     // we support both with or without
@@ -233,16 +231,16 @@ mod tests {
     #[tokio::test]
     async fn test_replacement() -> azure_core::Result<()> {
         let base = StorageCredentials::anonymous();
-        let other = StorageCredentials::bearer_token("foo");
+        let other = StorageCredentials::bearer_token(Secret::new("foo"));
 
         base.replace(other).await?;
 
         // check that the value was updated
         {
-            let inner = base.0.lock().await;
+            let inner = base.0.read().await;
             let inner_locked = inner.deref();
             assert!(
-                matches!(&inner_locked, &StorageCredentialsInner::BearerToken(value) if value == "foo")
+                matches!(&inner_locked, &StorageCredentialsInner::BearerToken(value) if value.secret() == "foo")
             );
         }
 

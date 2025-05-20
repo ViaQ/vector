@@ -7,15 +7,18 @@ pub struct CreateSecretInput {
     /// <p>The secret name can contain ASCII letters, numbers, and the following characters: /_+=.@-</p>
     /// <p>Do not end your secret name with a hyphen followed by six characters. If you do so, you risk confusion and unexpected results when searching for a secret by partial ARN. Secrets Manager automatically adds a hyphen and six random characters after the secret name at the end of the ARN.</p>
     pub name: ::std::option::Option<::std::string::String>,
-    /// <p>If you include <code>SecretString</code> or <code>SecretBinary</code>, then Secrets Manager creates an initial version for the secret, and this parameter specifies the unique identifier for the new version. </p> <note>
-    /// <p>If you use the Amazon Web Services CLI or one of the Amazon Web Services SDKs to call this operation, then you can leave this parameter empty. The CLI or SDK generates a random UUID for you and includes it as the value for this parameter in the request. </p>
+    /// <p>If you include <code>SecretString</code> or <code>SecretBinary</code>, then Secrets Manager creates an initial version for the secret, and this parameter specifies the unique identifier for the new version.</p><note>
+    /// <p>If you use the Amazon Web Services CLI or one of the Amazon Web Services SDKs to call this operation, then you can leave this parameter empty. The CLI or SDK generates a random UUID for you and includes it as the value for this parameter in the request.</p>
     /// </note>
     /// <p>If you generate a raw HTTP request to the Secrets Manager service endpoint, then you must generate a <code>ClientRequestToken</code> and include it in the request.</p>
-    /// <p>This value helps ensure idempotency. Secrets Manager uses this value to prevent the accidental creation of duplicate versions if there are failures and retries during a rotation. We recommend that you generate a <a href="https://wikipedia.org/wiki/Universally_unique_identifier">UUID-type</a> value to ensure uniqueness of your versions within the specified secret. </p>
+    /// <p>This value helps ensure idempotency. Secrets Manager uses this value to prevent the accidental creation of duplicate versions if there are failures and retries during a rotation. We recommend that you generate a <a href="https://wikipedia.org/wiki/Universally_unique_identifier">UUID-type</a> value to ensure uniqueness of your versions within the specified secret.</p>
     /// <ul>
-    /// <li> <p>If the <code>ClientRequestToken</code> value isn't already associated with a version of the secret then a new version of the secret is created. </p> </li>
-    /// <li> <p>If a version with this value already exists and the version <code>SecretString</code> and <code>SecretBinary</code> values are the same as those in the request, then the request is ignored.</p> </li>
-    /// <li> <p>If a version with this value already exists and that version's <code>SecretString</code> and <code>SecretBinary</code> values are different from those in the request, then the request fails because you cannot modify an existing version. Instead, use <code>PutSecretValue</code> to create a new version.</p> </li>
+    /// <li>
+    /// <p>If the <code>ClientRequestToken</code> value isn't already associated with a version of the secret then a new version of the secret is created.</p></li>
+    /// <li>
+    /// <p>If a version with this value already exists and the version <code>SecretString</code> and <code>SecretBinary</code> values are the same as those in the request, then the request is ignored.</p></li>
+    /// <li>
+    /// <p>If a version with this value already exists and that version's <code>SecretString</code> and <code>SecretBinary</code> values are different from those in the request, then the request fails because you cannot modify an existing version. Instead, use <code>PutSecretValue</code> to create a new version.</p></li>
     /// </ul>
     /// <p>This value becomes the <code>VersionId</code> of the new version.</p>
     pub client_request_token: ::std::option::Option<::std::string::String>,
@@ -24,18 +27,20 @@ pub struct CreateSecretInput {
     /// <p>The ARN, key ID, or alias of the KMS key that Secrets Manager uses to encrypt the secret value in the secret. An alias is always prefixed by <code>alias/</code>, for example <code>alias/aws/secretsmanager</code>. For more information, see <a href="https://docs.aws.amazon.com/kms/latest/developerguide/alias-about.html">About aliases</a>.</p>
     /// <p>To use a KMS key in a different account, use the key ARN or the alias ARN.</p>
     /// <p>If you don't specify this value, then Secrets Manager uses the key <code>aws/secretsmanager</code>. If that key doesn't yet exist, then Secrets Manager creates it for you automatically the first time it encrypts the secret value.</p>
-    /// <p>If the secret is in a different Amazon Web Services account from the credentials calling the API, then you can't use <code>aws/secretsmanager</code> to encrypt the secret, and you must create and use a customer managed KMS key. </p>
+    /// <p>If the secret is in a different Amazon Web Services account from the credentials calling the API, then you can't use <code>aws/secretsmanager</code> to encrypt the secret, and you must create and use a customer managed KMS key.</p>
     pub kms_key_id: ::std::option::Option<::std::string::String>,
     /// <p>The binary data to encrypt and store in the new version of the secret. We recommend that you store your binary data in a file and then pass the contents of the file as a parameter.</p>
     /// <p>Either <code>SecretString</code> or <code>SecretBinary</code> must have a value, but not both.</p>
     /// <p>This parameter is not available in the Secrets Manager console.</p>
+    /// <p>Sensitive: This field contains sensitive information, so the service does not include it in CloudTrail log entries. If you create your own log entries, you must also avoid logging the information in this field.</p>
     pub secret_binary: ::std::option::Option<::aws_smithy_types::Blob>,
     /// <p>The text data to encrypt and store in this new version of the secret. We recommend you use a JSON structure of key/value pairs for your secret value.</p>
     /// <p>Either <code>SecretString</code> or <code>SecretBinary</code> must have a value, but not both.</p>
     /// <p>If you create a secret by using the Secrets Manager console then Secrets Manager puts the protected secret text in only the <code>SecretString</code> parameter. The Secrets Manager console stores the information as a JSON structure of key/value pairs that a Lambda rotation function can parse.</p>
+    /// <p>Sensitive: This field contains sensitive information, so the service does not include it in CloudTrail log entries. If you create your own log entries, you must also avoid logging the information in this field.</p>
     pub secret_string: ::std::option::Option<::std::string::String>,
     /// <p>A list of tags to attach to the secret. Each tag is a key and value pair of strings in a JSON text string, for example:</p>
-    /// <p> <code>[{"Key":"CostCenter","Value":"12345"},{"Key":"environment","Value":"production"}]</code> </p>
+    /// <p><code>\[{"Key":"CostCenter","Value":"12345"},{"Key":"environment","Value":"production"}\]</code></p>
     /// <p>Secrets Manager tag key names are case sensitive. A tag with the key "ABC" is a different tag from one with key "abc".</p>
     /// <p>If you check tags in permissions policies as part of your security strategy, then adding or removing a tag can change permissions. If the completion of this operation would result in you losing your permissions for this secret, then Secrets Manager blocks the operation and returns an <code>Access Denied</code> error. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access_examples.html#tag-secrets-abac">Control access to secrets using tags</a> and <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access_examples.html#auth-and-access_tags2">Limit access to identities with tags that match secrets' tags</a>.</p>
     /// <p>For information about how to format a JSON parameter for the various command line tool environments, see <a href="https://docs.aws.amazon.com/cli/latest/userguide/cli-using-param.html#cli-using-param-json">Using JSON for Parameters</a>. If your command-line tool or SDK requires quotation marks around the parameter, you should use single quotes to avoid confusion with the double quotes required in the JSON text.</p>
@@ -53,15 +58,18 @@ impl CreateSecretInput {
     pub fn name(&self) -> ::std::option::Option<&str> {
         self.name.as_deref()
     }
-    /// <p>If you include <code>SecretString</code> or <code>SecretBinary</code>, then Secrets Manager creates an initial version for the secret, and this parameter specifies the unique identifier for the new version. </p> <note>
-    /// <p>If you use the Amazon Web Services CLI or one of the Amazon Web Services SDKs to call this operation, then you can leave this parameter empty. The CLI or SDK generates a random UUID for you and includes it as the value for this parameter in the request. </p>
+    /// <p>If you include <code>SecretString</code> or <code>SecretBinary</code>, then Secrets Manager creates an initial version for the secret, and this parameter specifies the unique identifier for the new version.</p><note>
+    /// <p>If you use the Amazon Web Services CLI or one of the Amazon Web Services SDKs to call this operation, then you can leave this parameter empty. The CLI or SDK generates a random UUID for you and includes it as the value for this parameter in the request.</p>
     /// </note>
     /// <p>If you generate a raw HTTP request to the Secrets Manager service endpoint, then you must generate a <code>ClientRequestToken</code> and include it in the request.</p>
-    /// <p>This value helps ensure idempotency. Secrets Manager uses this value to prevent the accidental creation of duplicate versions if there are failures and retries during a rotation. We recommend that you generate a <a href="https://wikipedia.org/wiki/Universally_unique_identifier">UUID-type</a> value to ensure uniqueness of your versions within the specified secret. </p>
+    /// <p>This value helps ensure idempotency. Secrets Manager uses this value to prevent the accidental creation of duplicate versions if there are failures and retries during a rotation. We recommend that you generate a <a href="https://wikipedia.org/wiki/Universally_unique_identifier">UUID-type</a> value to ensure uniqueness of your versions within the specified secret.</p>
     /// <ul>
-    /// <li> <p>If the <code>ClientRequestToken</code> value isn't already associated with a version of the secret then a new version of the secret is created. </p> </li>
-    /// <li> <p>If a version with this value already exists and the version <code>SecretString</code> and <code>SecretBinary</code> values are the same as those in the request, then the request is ignored.</p> </li>
-    /// <li> <p>If a version with this value already exists and that version's <code>SecretString</code> and <code>SecretBinary</code> values are different from those in the request, then the request fails because you cannot modify an existing version. Instead, use <code>PutSecretValue</code> to create a new version.</p> </li>
+    /// <li>
+    /// <p>If the <code>ClientRequestToken</code> value isn't already associated with a version of the secret then a new version of the secret is created.</p></li>
+    /// <li>
+    /// <p>If a version with this value already exists and the version <code>SecretString</code> and <code>SecretBinary</code> values are the same as those in the request, then the request is ignored.</p></li>
+    /// <li>
+    /// <p>If a version with this value already exists and that version's <code>SecretString</code> and <code>SecretBinary</code> values are different from those in the request, then the request fails because you cannot modify an existing version. Instead, use <code>PutSecretValue</code> to create a new version.</p></li>
     /// </ul>
     /// <p>This value becomes the <code>VersionId</code> of the new version.</p>
     pub fn client_request_token(&self) -> ::std::option::Option<&str> {
@@ -74,24 +82,26 @@ impl CreateSecretInput {
     /// <p>The ARN, key ID, or alias of the KMS key that Secrets Manager uses to encrypt the secret value in the secret. An alias is always prefixed by <code>alias/</code>, for example <code>alias/aws/secretsmanager</code>. For more information, see <a href="https://docs.aws.amazon.com/kms/latest/developerguide/alias-about.html">About aliases</a>.</p>
     /// <p>To use a KMS key in a different account, use the key ARN or the alias ARN.</p>
     /// <p>If you don't specify this value, then Secrets Manager uses the key <code>aws/secretsmanager</code>. If that key doesn't yet exist, then Secrets Manager creates it for you automatically the first time it encrypts the secret value.</p>
-    /// <p>If the secret is in a different Amazon Web Services account from the credentials calling the API, then you can't use <code>aws/secretsmanager</code> to encrypt the secret, and you must create and use a customer managed KMS key. </p>
+    /// <p>If the secret is in a different Amazon Web Services account from the credentials calling the API, then you can't use <code>aws/secretsmanager</code> to encrypt the secret, and you must create and use a customer managed KMS key.</p>
     pub fn kms_key_id(&self) -> ::std::option::Option<&str> {
         self.kms_key_id.as_deref()
     }
     /// <p>The binary data to encrypt and store in the new version of the secret. We recommend that you store your binary data in a file and then pass the contents of the file as a parameter.</p>
     /// <p>Either <code>SecretString</code> or <code>SecretBinary</code> must have a value, but not both.</p>
     /// <p>This parameter is not available in the Secrets Manager console.</p>
+    /// <p>Sensitive: This field contains sensitive information, so the service does not include it in CloudTrail log entries. If you create your own log entries, you must also avoid logging the information in this field.</p>
     pub fn secret_binary(&self) -> ::std::option::Option<&::aws_smithy_types::Blob> {
         self.secret_binary.as_ref()
     }
     /// <p>The text data to encrypt and store in this new version of the secret. We recommend you use a JSON structure of key/value pairs for your secret value.</p>
     /// <p>Either <code>SecretString</code> or <code>SecretBinary</code> must have a value, but not both.</p>
     /// <p>If you create a secret by using the Secrets Manager console then Secrets Manager puts the protected secret text in only the <code>SecretString</code> parameter. The Secrets Manager console stores the information as a JSON structure of key/value pairs that a Lambda rotation function can parse.</p>
+    /// <p>Sensitive: This field contains sensitive information, so the service does not include it in CloudTrail log entries. If you create your own log entries, you must also avoid logging the information in this field.</p>
     pub fn secret_string(&self) -> ::std::option::Option<&str> {
         self.secret_string.as_deref()
     }
     /// <p>A list of tags to attach to the secret. Each tag is a key and value pair of strings in a JSON text string, for example:</p>
-    /// <p> <code>[{"Key":"CostCenter","Value":"12345"},{"Key":"environment","Value":"production"}]</code> </p>
+    /// <p><code>\[{"Key":"CostCenter","Value":"12345"},{"Key":"environment","Value":"production"}\]</code></p>
     /// <p>Secrets Manager tag key names are case sensitive. A tag with the key "ABC" is a different tag from one with key "abc".</p>
     /// <p>If you check tags in permissions policies as part of your security strategy, then adding or removing a tag can change permissions. If the completion of this operation would result in you losing your permissions for this secret, then Secrets Manager blocks the operation and returns an <code>Access Denied</code> error. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access_examples.html#tag-secrets-abac">Control access to secrets using tags</a> and <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access_examples.html#auth-and-access_tags2">Limit access to identities with tags that match secrets' tags</a>.</p>
     /// <p>For information about how to format a JSON parameter for the various command line tool environments, see <a href="https://docs.aws.amazon.com/cli/latest/userguide/cli-using-param.html#cli-using-param-json">Using JSON for Parameters</a>. If your command-line tool or SDK requires quotation marks around the parameter, you should use single quotes to avoid confusion with the double quotes required in the JSON text.</p>
@@ -135,8 +145,8 @@ impl CreateSecretInput {
 }
 
 /// A builder for [`CreateSecretInput`](crate::operation::create_secret::CreateSecretInput).
-#[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::default::Default)]
+#[non_exhaustive]
 pub struct CreateSecretInputBuilder {
     pub(crate) name: ::std::option::Option<::std::string::String>,
     pub(crate) client_request_token: ::std::option::Option<::std::string::String>,
@@ -170,45 +180,54 @@ impl CreateSecretInputBuilder {
     pub fn get_name(&self) -> &::std::option::Option<::std::string::String> {
         &self.name
     }
-    /// <p>If you include <code>SecretString</code> or <code>SecretBinary</code>, then Secrets Manager creates an initial version for the secret, and this parameter specifies the unique identifier for the new version. </p> <note>
-    /// <p>If you use the Amazon Web Services CLI or one of the Amazon Web Services SDKs to call this operation, then you can leave this parameter empty. The CLI or SDK generates a random UUID for you and includes it as the value for this parameter in the request. </p>
+    /// <p>If you include <code>SecretString</code> or <code>SecretBinary</code>, then Secrets Manager creates an initial version for the secret, and this parameter specifies the unique identifier for the new version.</p><note>
+    /// <p>If you use the Amazon Web Services CLI or one of the Amazon Web Services SDKs to call this operation, then you can leave this parameter empty. The CLI or SDK generates a random UUID for you and includes it as the value for this parameter in the request.</p>
     /// </note>
     /// <p>If you generate a raw HTTP request to the Secrets Manager service endpoint, then you must generate a <code>ClientRequestToken</code> and include it in the request.</p>
-    /// <p>This value helps ensure idempotency. Secrets Manager uses this value to prevent the accidental creation of duplicate versions if there are failures and retries during a rotation. We recommend that you generate a <a href="https://wikipedia.org/wiki/Universally_unique_identifier">UUID-type</a> value to ensure uniqueness of your versions within the specified secret. </p>
+    /// <p>This value helps ensure idempotency. Secrets Manager uses this value to prevent the accidental creation of duplicate versions if there are failures and retries during a rotation. We recommend that you generate a <a href="https://wikipedia.org/wiki/Universally_unique_identifier">UUID-type</a> value to ensure uniqueness of your versions within the specified secret.</p>
     /// <ul>
-    /// <li> <p>If the <code>ClientRequestToken</code> value isn't already associated with a version of the secret then a new version of the secret is created. </p> </li>
-    /// <li> <p>If a version with this value already exists and the version <code>SecretString</code> and <code>SecretBinary</code> values are the same as those in the request, then the request is ignored.</p> </li>
-    /// <li> <p>If a version with this value already exists and that version's <code>SecretString</code> and <code>SecretBinary</code> values are different from those in the request, then the request fails because you cannot modify an existing version. Instead, use <code>PutSecretValue</code> to create a new version.</p> </li>
+    /// <li>
+    /// <p>If the <code>ClientRequestToken</code> value isn't already associated with a version of the secret then a new version of the secret is created.</p></li>
+    /// <li>
+    /// <p>If a version with this value already exists and the version <code>SecretString</code> and <code>SecretBinary</code> values are the same as those in the request, then the request is ignored.</p></li>
+    /// <li>
+    /// <p>If a version with this value already exists and that version's <code>SecretString</code> and <code>SecretBinary</code> values are different from those in the request, then the request fails because you cannot modify an existing version. Instead, use <code>PutSecretValue</code> to create a new version.</p></li>
     /// </ul>
     /// <p>This value becomes the <code>VersionId</code> of the new version.</p>
     pub fn client_request_token(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.client_request_token = ::std::option::Option::Some(input.into());
         self
     }
-    /// <p>If you include <code>SecretString</code> or <code>SecretBinary</code>, then Secrets Manager creates an initial version for the secret, and this parameter specifies the unique identifier for the new version. </p> <note>
-    /// <p>If you use the Amazon Web Services CLI or one of the Amazon Web Services SDKs to call this operation, then you can leave this parameter empty. The CLI or SDK generates a random UUID for you and includes it as the value for this parameter in the request. </p>
+    /// <p>If you include <code>SecretString</code> or <code>SecretBinary</code>, then Secrets Manager creates an initial version for the secret, and this parameter specifies the unique identifier for the new version.</p><note>
+    /// <p>If you use the Amazon Web Services CLI or one of the Amazon Web Services SDKs to call this operation, then you can leave this parameter empty. The CLI or SDK generates a random UUID for you and includes it as the value for this parameter in the request.</p>
     /// </note>
     /// <p>If you generate a raw HTTP request to the Secrets Manager service endpoint, then you must generate a <code>ClientRequestToken</code> and include it in the request.</p>
-    /// <p>This value helps ensure idempotency. Secrets Manager uses this value to prevent the accidental creation of duplicate versions if there are failures and retries during a rotation. We recommend that you generate a <a href="https://wikipedia.org/wiki/Universally_unique_identifier">UUID-type</a> value to ensure uniqueness of your versions within the specified secret. </p>
+    /// <p>This value helps ensure idempotency. Secrets Manager uses this value to prevent the accidental creation of duplicate versions if there are failures and retries during a rotation. We recommend that you generate a <a href="https://wikipedia.org/wiki/Universally_unique_identifier">UUID-type</a> value to ensure uniqueness of your versions within the specified secret.</p>
     /// <ul>
-    /// <li> <p>If the <code>ClientRequestToken</code> value isn't already associated with a version of the secret then a new version of the secret is created. </p> </li>
-    /// <li> <p>If a version with this value already exists and the version <code>SecretString</code> and <code>SecretBinary</code> values are the same as those in the request, then the request is ignored.</p> </li>
-    /// <li> <p>If a version with this value already exists and that version's <code>SecretString</code> and <code>SecretBinary</code> values are different from those in the request, then the request fails because you cannot modify an existing version. Instead, use <code>PutSecretValue</code> to create a new version.</p> </li>
+    /// <li>
+    /// <p>If the <code>ClientRequestToken</code> value isn't already associated with a version of the secret then a new version of the secret is created.</p></li>
+    /// <li>
+    /// <p>If a version with this value already exists and the version <code>SecretString</code> and <code>SecretBinary</code> values are the same as those in the request, then the request is ignored.</p></li>
+    /// <li>
+    /// <p>If a version with this value already exists and that version's <code>SecretString</code> and <code>SecretBinary</code> values are different from those in the request, then the request fails because you cannot modify an existing version. Instead, use <code>PutSecretValue</code> to create a new version.</p></li>
     /// </ul>
     /// <p>This value becomes the <code>VersionId</code> of the new version.</p>
     pub fn set_client_request_token(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.client_request_token = input;
         self
     }
-    /// <p>If you include <code>SecretString</code> or <code>SecretBinary</code>, then Secrets Manager creates an initial version for the secret, and this parameter specifies the unique identifier for the new version. </p> <note>
-    /// <p>If you use the Amazon Web Services CLI or one of the Amazon Web Services SDKs to call this operation, then you can leave this parameter empty. The CLI or SDK generates a random UUID for you and includes it as the value for this parameter in the request. </p>
+    /// <p>If you include <code>SecretString</code> or <code>SecretBinary</code>, then Secrets Manager creates an initial version for the secret, and this parameter specifies the unique identifier for the new version.</p><note>
+    /// <p>If you use the Amazon Web Services CLI or one of the Amazon Web Services SDKs to call this operation, then you can leave this parameter empty. The CLI or SDK generates a random UUID for you and includes it as the value for this parameter in the request.</p>
     /// </note>
     /// <p>If you generate a raw HTTP request to the Secrets Manager service endpoint, then you must generate a <code>ClientRequestToken</code> and include it in the request.</p>
-    /// <p>This value helps ensure idempotency. Secrets Manager uses this value to prevent the accidental creation of duplicate versions if there are failures and retries during a rotation. We recommend that you generate a <a href="https://wikipedia.org/wiki/Universally_unique_identifier">UUID-type</a> value to ensure uniqueness of your versions within the specified secret. </p>
+    /// <p>This value helps ensure idempotency. Secrets Manager uses this value to prevent the accidental creation of duplicate versions if there are failures and retries during a rotation. We recommend that you generate a <a href="https://wikipedia.org/wiki/Universally_unique_identifier">UUID-type</a> value to ensure uniqueness of your versions within the specified secret.</p>
     /// <ul>
-    /// <li> <p>If the <code>ClientRequestToken</code> value isn't already associated with a version of the secret then a new version of the secret is created. </p> </li>
-    /// <li> <p>If a version with this value already exists and the version <code>SecretString</code> and <code>SecretBinary</code> values are the same as those in the request, then the request is ignored.</p> </li>
-    /// <li> <p>If a version with this value already exists and that version's <code>SecretString</code> and <code>SecretBinary</code> values are different from those in the request, then the request fails because you cannot modify an existing version. Instead, use <code>PutSecretValue</code> to create a new version.</p> </li>
+    /// <li>
+    /// <p>If the <code>ClientRequestToken</code> value isn't already associated with a version of the secret then a new version of the secret is created.</p></li>
+    /// <li>
+    /// <p>If a version with this value already exists and the version <code>SecretString</code> and <code>SecretBinary</code> values are the same as those in the request, then the request is ignored.</p></li>
+    /// <li>
+    /// <p>If a version with this value already exists and that version's <code>SecretString</code> and <code>SecretBinary</code> values are different from those in the request, then the request fails because you cannot modify an existing version. Instead, use <code>PutSecretValue</code> to create a new version.</p></li>
     /// </ul>
     /// <p>This value becomes the <code>VersionId</code> of the new version.</p>
     pub fn get_client_request_token(&self) -> &::std::option::Option<::std::string::String> {
@@ -231,7 +250,7 @@ impl CreateSecretInputBuilder {
     /// <p>The ARN, key ID, or alias of the KMS key that Secrets Manager uses to encrypt the secret value in the secret. An alias is always prefixed by <code>alias/</code>, for example <code>alias/aws/secretsmanager</code>. For more information, see <a href="https://docs.aws.amazon.com/kms/latest/developerguide/alias-about.html">About aliases</a>.</p>
     /// <p>To use a KMS key in a different account, use the key ARN or the alias ARN.</p>
     /// <p>If you don't specify this value, then Secrets Manager uses the key <code>aws/secretsmanager</code>. If that key doesn't yet exist, then Secrets Manager creates it for you automatically the first time it encrypts the secret value.</p>
-    /// <p>If the secret is in a different Amazon Web Services account from the credentials calling the API, then you can't use <code>aws/secretsmanager</code> to encrypt the secret, and you must create and use a customer managed KMS key. </p>
+    /// <p>If the secret is in a different Amazon Web Services account from the credentials calling the API, then you can't use <code>aws/secretsmanager</code> to encrypt the secret, and you must create and use a customer managed KMS key.</p>
     pub fn kms_key_id(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.kms_key_id = ::std::option::Option::Some(input.into());
         self
@@ -239,7 +258,7 @@ impl CreateSecretInputBuilder {
     /// <p>The ARN, key ID, or alias of the KMS key that Secrets Manager uses to encrypt the secret value in the secret. An alias is always prefixed by <code>alias/</code>, for example <code>alias/aws/secretsmanager</code>. For more information, see <a href="https://docs.aws.amazon.com/kms/latest/developerguide/alias-about.html">About aliases</a>.</p>
     /// <p>To use a KMS key in a different account, use the key ARN or the alias ARN.</p>
     /// <p>If you don't specify this value, then Secrets Manager uses the key <code>aws/secretsmanager</code>. If that key doesn't yet exist, then Secrets Manager creates it for you automatically the first time it encrypts the secret value.</p>
-    /// <p>If the secret is in a different Amazon Web Services account from the credentials calling the API, then you can't use <code>aws/secretsmanager</code> to encrypt the secret, and you must create and use a customer managed KMS key. </p>
+    /// <p>If the secret is in a different Amazon Web Services account from the credentials calling the API, then you can't use <code>aws/secretsmanager</code> to encrypt the secret, and you must create and use a customer managed KMS key.</p>
     pub fn set_kms_key_id(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.kms_key_id = input;
         self
@@ -247,13 +266,14 @@ impl CreateSecretInputBuilder {
     /// <p>The ARN, key ID, or alias of the KMS key that Secrets Manager uses to encrypt the secret value in the secret. An alias is always prefixed by <code>alias/</code>, for example <code>alias/aws/secretsmanager</code>. For more information, see <a href="https://docs.aws.amazon.com/kms/latest/developerguide/alias-about.html">About aliases</a>.</p>
     /// <p>To use a KMS key in a different account, use the key ARN or the alias ARN.</p>
     /// <p>If you don't specify this value, then Secrets Manager uses the key <code>aws/secretsmanager</code>. If that key doesn't yet exist, then Secrets Manager creates it for you automatically the first time it encrypts the secret value.</p>
-    /// <p>If the secret is in a different Amazon Web Services account from the credentials calling the API, then you can't use <code>aws/secretsmanager</code> to encrypt the secret, and you must create and use a customer managed KMS key. </p>
+    /// <p>If the secret is in a different Amazon Web Services account from the credentials calling the API, then you can't use <code>aws/secretsmanager</code> to encrypt the secret, and you must create and use a customer managed KMS key.</p>
     pub fn get_kms_key_id(&self) -> &::std::option::Option<::std::string::String> {
         &self.kms_key_id
     }
     /// <p>The binary data to encrypt and store in the new version of the secret. We recommend that you store your binary data in a file and then pass the contents of the file as a parameter.</p>
     /// <p>Either <code>SecretString</code> or <code>SecretBinary</code> must have a value, but not both.</p>
     /// <p>This parameter is not available in the Secrets Manager console.</p>
+    /// <p>Sensitive: This field contains sensitive information, so the service does not include it in CloudTrail log entries. If you create your own log entries, you must also avoid logging the information in this field.</p>
     pub fn secret_binary(mut self, input: ::aws_smithy_types::Blob) -> Self {
         self.secret_binary = ::std::option::Option::Some(input);
         self
@@ -261,6 +281,7 @@ impl CreateSecretInputBuilder {
     /// <p>The binary data to encrypt and store in the new version of the secret. We recommend that you store your binary data in a file and then pass the contents of the file as a parameter.</p>
     /// <p>Either <code>SecretString</code> or <code>SecretBinary</code> must have a value, but not both.</p>
     /// <p>This parameter is not available in the Secrets Manager console.</p>
+    /// <p>Sensitive: This field contains sensitive information, so the service does not include it in CloudTrail log entries. If you create your own log entries, you must also avoid logging the information in this field.</p>
     pub fn set_secret_binary(mut self, input: ::std::option::Option<::aws_smithy_types::Blob>) -> Self {
         self.secret_binary = input;
         self
@@ -268,12 +289,14 @@ impl CreateSecretInputBuilder {
     /// <p>The binary data to encrypt and store in the new version of the secret. We recommend that you store your binary data in a file and then pass the contents of the file as a parameter.</p>
     /// <p>Either <code>SecretString</code> or <code>SecretBinary</code> must have a value, but not both.</p>
     /// <p>This parameter is not available in the Secrets Manager console.</p>
+    /// <p>Sensitive: This field contains sensitive information, so the service does not include it in CloudTrail log entries. If you create your own log entries, you must also avoid logging the information in this field.</p>
     pub fn get_secret_binary(&self) -> &::std::option::Option<::aws_smithy_types::Blob> {
         &self.secret_binary
     }
     /// <p>The text data to encrypt and store in this new version of the secret. We recommend you use a JSON structure of key/value pairs for your secret value.</p>
     /// <p>Either <code>SecretString</code> or <code>SecretBinary</code> must have a value, but not both.</p>
     /// <p>If you create a secret by using the Secrets Manager console then Secrets Manager puts the protected secret text in only the <code>SecretString</code> parameter. The Secrets Manager console stores the information as a JSON structure of key/value pairs that a Lambda rotation function can parse.</p>
+    /// <p>Sensitive: This field contains sensitive information, so the service does not include it in CloudTrail log entries. If you create your own log entries, you must also avoid logging the information in this field.</p>
     pub fn secret_string(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.secret_string = ::std::option::Option::Some(input.into());
         self
@@ -281,6 +304,7 @@ impl CreateSecretInputBuilder {
     /// <p>The text data to encrypt and store in this new version of the secret. We recommend you use a JSON structure of key/value pairs for your secret value.</p>
     /// <p>Either <code>SecretString</code> or <code>SecretBinary</code> must have a value, but not both.</p>
     /// <p>If you create a secret by using the Secrets Manager console then Secrets Manager puts the protected secret text in only the <code>SecretString</code> parameter. The Secrets Manager console stores the information as a JSON structure of key/value pairs that a Lambda rotation function can parse.</p>
+    /// <p>Sensitive: This field contains sensitive information, so the service does not include it in CloudTrail log entries. If you create your own log entries, you must also avoid logging the information in this field.</p>
     pub fn set_secret_string(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.secret_string = input;
         self
@@ -288,6 +312,7 @@ impl CreateSecretInputBuilder {
     /// <p>The text data to encrypt and store in this new version of the secret. We recommend you use a JSON structure of key/value pairs for your secret value.</p>
     /// <p>Either <code>SecretString</code> or <code>SecretBinary</code> must have a value, but not both.</p>
     /// <p>If you create a secret by using the Secrets Manager console then Secrets Manager puts the protected secret text in only the <code>SecretString</code> parameter. The Secrets Manager console stores the information as a JSON structure of key/value pairs that a Lambda rotation function can parse.</p>
+    /// <p>Sensitive: This field contains sensitive information, so the service does not include it in CloudTrail log entries. If you create your own log entries, you must also avoid logging the information in this field.</p>
     pub fn get_secret_string(&self) -> &::std::option::Option<::std::string::String> {
         &self.secret_string
     }
@@ -296,7 +321,7 @@ impl CreateSecretInputBuilder {
     /// To override the contents of this collection use [`set_tags`](Self::set_tags).
     ///
     /// <p>A list of tags to attach to the secret. Each tag is a key and value pair of strings in a JSON text string, for example:</p>
-    /// <p> <code>[{"Key":"CostCenter","Value":"12345"},{"Key":"environment","Value":"production"}]</code> </p>
+    /// <p><code>\[{"Key":"CostCenter","Value":"12345"},{"Key":"environment","Value":"production"}\]</code></p>
     /// <p>Secrets Manager tag key names are case sensitive. A tag with the key "ABC" is a different tag from one with key "abc".</p>
     /// <p>If you check tags in permissions policies as part of your security strategy, then adding or removing a tag can change permissions. If the completion of this operation would result in you losing your permissions for this secret, then Secrets Manager blocks the operation and returns an <code>Access Denied</code> error. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access_examples.html#tag-secrets-abac">Control access to secrets using tags</a> and <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access_examples.html#auth-and-access_tags2">Limit access to identities with tags that match secrets' tags</a>.</p>
     /// <p>For information about how to format a JSON parameter for the various command line tool environments, see <a href="https://docs.aws.amazon.com/cli/latest/userguide/cli-using-param.html#cli-using-param-json">Using JSON for Parameters</a>. If your command-line tool or SDK requires quotation marks around the parameter, you should use single quotes to avoid confusion with the double quotes required in the JSON text.</p>
@@ -308,7 +333,7 @@ impl CreateSecretInputBuilder {
         self
     }
     /// <p>A list of tags to attach to the secret. Each tag is a key and value pair of strings in a JSON text string, for example:</p>
-    /// <p> <code>[{"Key":"CostCenter","Value":"12345"},{"Key":"environment","Value":"production"}]</code> </p>
+    /// <p><code>\[{"Key":"CostCenter","Value":"12345"},{"Key":"environment","Value":"production"}\]</code></p>
     /// <p>Secrets Manager tag key names are case sensitive. A tag with the key "ABC" is a different tag from one with key "abc".</p>
     /// <p>If you check tags in permissions policies as part of your security strategy, then adding or removing a tag can change permissions. If the completion of this operation would result in you losing your permissions for this secret, then Secrets Manager blocks the operation and returns an <code>Access Denied</code> error. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access_examples.html#tag-secrets-abac">Control access to secrets using tags</a> and <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access_examples.html#auth-and-access_tags2">Limit access to identities with tags that match secrets' tags</a>.</p>
     /// <p>For information about how to format a JSON parameter for the various command line tool environments, see <a href="https://docs.aws.amazon.com/cli/latest/userguide/cli-using-param.html#cli-using-param-json">Using JSON for Parameters</a>. If your command-line tool or SDK requires quotation marks around the parameter, you should use single quotes to avoid confusion with the double quotes required in the JSON text.</p>
@@ -318,7 +343,7 @@ impl CreateSecretInputBuilder {
         self
     }
     /// <p>A list of tags to attach to the secret. Each tag is a key and value pair of strings in a JSON text string, for example:</p>
-    /// <p> <code>[{"Key":"CostCenter","Value":"12345"},{"Key":"environment","Value":"production"}]</code> </p>
+    /// <p><code>\[{"Key":"CostCenter","Value":"12345"},{"Key":"environment","Value":"production"}\]</code></p>
     /// <p>Secrets Manager tag key names are case sensitive. A tag with the key "ABC" is a different tag from one with key "abc".</p>
     /// <p>If you check tags in permissions policies as part of your security strategy, then adding or removing a tag can change permissions. If the completion of this operation would result in you losing your permissions for this secret, then Secrets Manager blocks the operation and returns an <code>Access Denied</code> error. For more information, see <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access_examples.html#tag-secrets-abac">Control access to secrets using tags</a> and <a href="https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access_examples.html#auth-and-access_tags2">Limit access to identities with tags that match secrets' tags</a>.</p>
     /// <p>For information about how to format a JSON parameter for the various command line tool environments, see <a href="https://docs.aws.amazon.com/cli/latest/userguide/cli-using-param.html#cli-using-param-json">Using JSON for Parameters</a>. If your command-line tool or SDK requires quotation marks around the parameter, you should use single quotes to avoid confusion with the double quotes required in the JSON text.</p>

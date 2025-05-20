@@ -3,7 +3,7 @@ pub use crate::operation::delete_endpoint::_delete_endpoint_output::DeleteEndpoi
 
 pub use crate::operation::delete_endpoint::_delete_endpoint_input::DeleteEndpointInputBuilder;
 
-impl DeleteEndpointInputBuilder {
+impl crate::operation::delete_endpoint::builders::DeleteEndpointInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,7 +22,7 @@ impl DeleteEndpointInputBuilder {
 }
 /// Fluent builder constructing a request to `DeleteEndpoint`.
 ///
-/// <p>Deletes the endpoint for a device and mobile app from Amazon SNS. This action is idempotent. For more information, see <a href="https://docs.aws.amazon.com/sns/latest/dg/SNSMobilePush.html">Using Amazon SNS Mobile Push Notifications</a>. </p>
+/// <p>Deletes the endpoint for a device and mobile app from Amazon SNS. This action is idempotent. For more information, see <a href="https://docs.aws.amazon.com/sns/latest/dg/SNSMobilePush.html">Using Amazon SNS Mobile Push Notifications</a>.</p>
 /// <p>When you delete an endpoint that is also subscribed to a topic, then you must also unsubscribe the endpoint from the topic.</p>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct DeleteEndpointFluentBuilder {
@@ -49,7 +49,7 @@ impl
     }
 }
 impl DeleteEndpointFluentBuilder {
-    /// Creates a new `DeleteEndpoint`.
+    /// Creates a new `DeleteEndpointFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -100,26 +100,26 @@ impl DeleteEndpointFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
-    /// <p>EndpointArn of endpoint to delete.</p>
+    /// <p><code>EndpointArn</code> of endpoint to delete.</p>
     pub fn endpoint_arn(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.endpoint_arn(input.into());
         self
     }
-    /// <p>EndpointArn of endpoint to delete.</p>
+    /// <p><code>EndpointArn</code> of endpoint to delete.</p>
     pub fn set_endpoint_arn(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_endpoint_arn(input);
         self
     }
-    /// <p>EndpointArn of endpoint to delete.</p>
+    /// <p><code>EndpointArn</code> of endpoint to delete.</p>
     pub fn get_endpoint_arn(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_endpoint_arn()
     }

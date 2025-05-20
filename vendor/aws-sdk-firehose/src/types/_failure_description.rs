@@ -28,8 +28,8 @@ impl FailureDescription {
 }
 
 /// A builder for [`FailureDescription`](crate::types::FailureDescription).
-#[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::default::Default, ::std::fmt::Debug)]
+#[non_exhaustive]
 pub struct FailureDescriptionBuilder {
     pub(crate) r#type: ::std::option::Option<crate::types::DeliveryStreamFailureType>,
     pub(crate) details: ::std::option::Option<::std::string::String>,
@@ -67,7 +67,7 @@ impl FailureDescriptionBuilder {
     }
     /// Consumes the builder and constructs a [`FailureDescription`](crate::types::FailureDescription).
     /// This method will fail if any of the following fields are not set:
-    /// - [`r#type`](crate::types::builders::FailureDescriptionBuilder::r#type)
+    /// - [`r#type`](crate::types::builders::FailureDescriptionBuilder::type)
     /// - [`details`](crate::types::builders::FailureDescriptionBuilder::details)
     pub fn build(self) -> ::std::result::Result<crate::types::FailureDescription, ::aws_smithy_types::error::operation::BuildError> {
         ::std::result::Result::Ok(crate::types::FailureDescription {

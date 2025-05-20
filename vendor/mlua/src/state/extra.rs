@@ -13,6 +13,7 @@ use crate::error::Result;
 use crate::state::RawLua;
 use crate::stdlib::StdLib;
 use crate::types::{AppData, ReentrantMutex, XRc};
+use crate::userdata::RawUserDataRegistry;
 use crate::util::{get_internal_metatable, push_internal_userdata, TypeKey, WrappedFailure};
 
 #[cfg(any(feature = "luau", doc))]
@@ -26,7 +27,7 @@ use super::{Lua, WeakLua};
 // Unique key to store `ExtraData` in the registry
 static EXTRA_REGISTRY_KEY: u8 = 0;
 
-const WRAPPED_FAILURE_POOL_SIZE: usize = 64;
+const WRAPPED_FAILURE_POOL_DEFAULT_CAPACITY: usize = 64;
 const REF_STACK_RESERVE: c_int = 1;
 
 /// Data associated with the Lua state.
@@ -35,6 +36,7 @@ pub(crate) struct ExtraData {
     pub(super) weak: MaybeUninit<WeakLua>,
     pub(super) owned: bool,
 
+    pub(super) pending_userdata_reg: FxHashMap<TypeId, RawUserDataRegistry>,
     pub(super) registered_userdata_t: FxHashMap<TypeId, c_int>,
     pub(super) registered_userdata_mt: FxHashMap<*const c_void, Option<TypeId>>,
     pub(super) last_checked_userdata_mt: (*const c_void, Option<TypeId>),
@@ -58,6 +60,7 @@ pub(crate) struct ExtraData {
 
     // Pool of `WrappedFailure` enums in the ref thread (as userdata)
     pub(super) wrapped_failure_pool: Vec<c_int>,
+    pub(super) wrapped_failure_top: usize,
     // Pool of `Thread`s (coroutines) for async execution
     #[cfg(feature = "async")]
     pub(super) thread_pool: Vec<c_int>,
@@ -144,6 +147,7 @@ impl ExtraData {
             lua: MaybeUninit::uninit(),
             weak: MaybeUninit::uninit(),
             owned,
+            pending_userdata_reg: FxHashMap::default(),
             registered_userdata_t: FxHashMap::default(),
             registered_userdata_mt: FxHashMap::default(),
             last_checked_userdata_mt: (ptr::null(), None),
@@ -157,7 +161,8 @@ impl ExtraData {
             ref_stack_size: ffi::LUA_MINSTACK - REF_STACK_RESERVE,
             ref_stack_top: ffi::lua_gettop(ref_thread),
             ref_free: Vec::new(),
-            wrapped_failure_pool: Vec::with_capacity(WRAPPED_FAILURE_POOL_SIZE),
+            wrapped_failure_pool: Vec::with_capacity(WRAPPED_FAILURE_POOL_DEFAULT_CAPACITY),
+            wrapped_failure_top: 0,
             #[cfg(feature = "async")]
             thread_pool: Vec::new(),
             wrapped_failure_mt_ptr,

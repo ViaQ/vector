@@ -7,16 +7,17 @@
 
 //! naptr records DDDS, RFC 3403
 
-use std::str::FromStr;
+use alloc::string::ToString;
+use core::str::FromStr;
 
-use crate::rr::rdata::naptr::{verify_flags, NAPTR};
 use crate::rr::Name;
+use crate::rr::rdata::naptr::{NAPTR, verify_flags};
 use crate::serialize::txt::errors::{ParseError, ParseErrorKind, ParseResult};
 
 /// Parse the RData from a set of Tokens
 ///
 /// ```text
-/// ;;      order pref flags service           regexp replacement
+/// ;;      order pflags service           regexp replacement
 /// IN NAPTR 100  50  "a"    "z3950+N2L+N2C"     ""   cidserver.example.com.
 /// IN NAPTR 100  50  "a"    "rcds+N2C"          ""   cidserver.example.com.
 /// IN NAPTR 100  50  "s"    "http+N2L+N2C+N2R"  ""   www.example.com.
@@ -100,9 +101,11 @@ fn test_parsing_fails() {
     // IN NAPTR 100  50  "a"    "rcds+N2C"          ""   cidserver.example.com.
     // IN NAPTR 100  50  "s"    "http+N2L+N2C+N2R"  ""   www.example.com.
 
-    assert!(parse(
-        vec!["100", "50", "-", "z3950+N2L+N2C", "", "cidserver"].into_iter(),
-        Some(&Name::from_str("example.com.").unwrap())
-    )
-    .is_err());
+    assert!(
+        parse(
+            vec!["100", "50", "-", "z3950+N2L+N2C", "", "cidserver"].into_iter(),
+            Some(&Name::from_str("example.com.").unwrap())
+        )
+        .is_err()
+    );
 }

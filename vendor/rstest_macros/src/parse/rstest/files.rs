@@ -13,7 +13,10 @@ use glob::glob;
 use quote::ToTokens;
 use regex::Regex;
 use relative_path::RelativePath;
-use syn::{parse_quote, visit_mut::VisitMut, Attribute, Expr, FnArg, Ident, ItemFn, LitStr};
+use syn::{
+    parse::Parse, parse_quote, visit_mut::VisitMut, Attribute, Expr, FnArg, Ident, ItemFn, LitStr,
+    MetaNameValue,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) struct FilesGlobReferences {
@@ -22,6 +25,7 @@ pub(crate) struct FilesGlobReferences {
     exclude: Vec<Exclude>,
     ignore_dot_files: bool,
     ignore_missing_env_vars: bool,
+    files_mode: FilesMode,
 }
 
 impl FilesGlobReferences {
@@ -122,6 +126,34 @@ impl FilesGlobReferences {
     }
 }
 
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum FilesMode {
+    #[default]
+    Path,
+    IncludeStr,
+    IncludeBytes,
+}
+
+pub(crate) mod files_mode_keywords {
+    syn::custom_keyword!(path);
+    syn::custom_keyword!(str);
+    syn::custom_keyword!(bytes);
+}
+
+impl Parse for FilesMode {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        if Option::<files_mode_keywords::path>::parse(input)?.is_some() {
+            Ok(Self::Path)
+        } else if Option::<files_mode_keywords::str>::parse(input)?.is_some() {
+            Ok(Self::IncludeStr)
+        } else if Option::<files_mode_keywords::bytes>::parse(input)?.is_some() {
+            Ok(Self::IncludeBytes)
+        } else {
+            Err(input.error("Expected one of the following keywords: path, str or bytes"))
+        }
+    }
+}
+
 trait RaiseError: ToTokens {
     fn error(&self, msg: &str) -> syn::Error {
         syn::Error::new_spanned(self, msg)
@@ -142,6 +174,7 @@ impl FilesGlobReferences {
         exclude: Vec<Exclude>,
         ignore_dot_files: bool,
         ignore_missing_env_vars: bool,
+        files_mode: FilesMode,
     ) -> Self {
         Self {
             glob,
@@ -149,6 +182,7 @@ impl FilesGlobReferences {
             exclude,
             ignore_dot_files,
             ignore_missing_env_vars,
+            files_mode,
         }
     }
 
@@ -237,7 +271,7 @@ impl TryFrom<Attribute> for Exclude {
 
 impl From<Vec<LitStrAttr>> for FilesGlobReferences {
     fn from(value: Vec<LitStrAttr>) -> Self {
-        Self::new(value, Default::default(), true, false)
+        Self::new(value, Default::default(), true, false, Default::default())
     }
 }
 
@@ -337,6 +371,24 @@ impl ValueFilesExtractor {
             },
         )
     }
+
+    fn extract_mode(&mut self, node: &mut FnArg) -> Vec<(MetaNameValue, FilesMode)> {
+        self.extract_argument_attrs(
+            node,
+            |a| attr_is(a, "mode"),
+            |attr| {
+                attr.meta
+                    .require_name_value()
+                    .map_err(|_| {
+                        attr.error("Use #[mode = ...] to define the argument of the file input")
+                    })
+                    .and_then(|attr| {
+                        syn::parse2(attr.value.to_token_stream())
+                            .map(|file_mode| (attr.clone(), file_mode))
+                    })
+            },
+        )
+    }
 }
 
 impl VisitMut for ValueFilesExtractor {
@@ -369,6 +421,18 @@ impl VisitMut for ValueFilesExtractor {
                     .push(attr.error(r#"Cannot use #[base_dir = "..."] more than once"#))
             })
         }
+        let mode_attr = self.extract_mode(node);
+        let mode = if let Some(value) = mode_attr.first() {
+            mode_attr.iter().skip(1).for_each(|attr| {
+                self.errors.push(syn::Error::new_spanned(
+                    &attr.0,
+                    r#"Cannot use #[mode = ...] more than once"#,
+                ))
+            });
+            value.1
+        } else {
+            Default::default()
+        };
         if !files.is_empty() {
             self.files.push((
                 name,
@@ -377,6 +441,7 @@ impl VisitMut for ValueFilesExtractor {
                     excludes,
                     include_dot_files.is_empty(),
                     !ignore_missing_env_vars.is_empty(),
+                    mode,
                 )
                 .with_base_dir_opt(base_dir.into_iter().next()),
             ))
@@ -458,7 +523,7 @@ pub(crate) struct ValueListFromFiles<'a> {
     g_resolver: Box<dyn GlobResolver + 'a>,
 }
 
-impl<'a> Default for ValueListFromFiles<'a> {
+impl Default for ValueListFromFiles<'_> {
     fn default() -> Self {
         Self {
             g_resolver: Box::new(DefaultGlobResolver),
@@ -467,7 +532,7 @@ impl<'a> Default for ValueListFromFiles<'a> {
     }
 }
 
-impl<'a> ValueListFromFiles<'a> {
+impl ValueListFromFiles<'_> {
     pub fn to_value_list(
         &self,
         files: Vec<(Ident, FilesGlobReferences)>,
@@ -523,12 +588,18 @@ impl<'a> ValueListFromFiles<'a> {
             }
 
             let path_str = abs_path.to_string_lossy();
-            values.push((
-                parse_quote! {
+            let value = match refs.files_mode {
+                FilesMode::Path => parse_quote! {
                     <::std::path::PathBuf as std::str::FromStr>::from_str(#path_str).unwrap()
                 },
-                render_file_description(&relative_path),
-            ));
+                FilesMode::IncludeStr => parse_quote! {
+                    include_str!(#path_str)
+                },
+                FilesMode::IncludeBytes => parse_quote! {
+                    include_bytes!(#path_str)
+                },
+            };
+            values.push((value, render_file_description(&relative_path)));
         }
 
         if values.is_empty() {
@@ -688,6 +759,7 @@ mod should {
                             ex.as_ref().iter().map(|&ex| ex.into()).collect(),
                             *ignore,
                             *ignore_envvars,
+                            Default::default(),
                         )
                         .with_base_dir_opt(base_dir.map(base_dir_attr)),
                     )
@@ -742,6 +814,18 @@ mod should {
     #[case::invalid_base_dir(
         r#"fn f(#[files("some")] #[base_dir = 123] a: PathBuf) {}"#,
         "base directory for the glob path"
+    )]
+    #[case::multiple_file_modes(
+        r#"fn f(#[files("some")] #[mode = str] #[mode = str] a: PathBuf) {}"#,
+        r#"Cannot use #[mode = ...] more than once"#
+    )]
+    #[case::unknown_file_mode(
+        r#"fn f(#[files("some")] #[mode = blabla] a: PathBuf) {}"#,
+        r#"Expected one of the following keywords: path, str or bytes"#
+    )]
+    #[case::wrong_attr_file_mode(
+        r#"fn f(#[files("some")] #[mode(blabla)] a: PathBuf) {}"#,
+        "Use #[mode = ...] to define the argument of the file input"
     )]
     fn raise_error(#[case] item_fn: &str, #[case] message: &str) {
         let mut item_fn: ItemFn = item_fn.ast();
@@ -896,7 +980,13 @@ mod should {
         let values = ValueListFromFiles::new(FakeBaseDir::from(bdir), resolver)
             .to_value_list(vec![(
                 ident("a"),
-                FilesGlobReferences::new(paths, exclude, ignore_dot_files, false),
+                FilesGlobReferences::new(
+                    paths,
+                    exclude,
+                    ignore_dot_files,
+                    false,
+                    Default::default(),
+                ),
             )])
             .unwrap();
 
@@ -958,6 +1048,7 @@ mod should {
                     Default::default(),
                     true,
                     false,
+                    Default::default(),
                 ),
             )])
             .unwrap();
@@ -974,6 +1065,7 @@ mod should {
                     Default::default(),
                     true,
                     false,
+                    Default::default(),
                 ),
             )])
             .unwrap();
@@ -1013,8 +1105,13 @@ mod should {
                 .map(|(k, v)| (k.to_string(), v.to_string()))
                 .collect(),
         );
-        let refs =
-            FilesGlobReferences::new(vec![], Default::default(), true, ignore_missing_env_vars);
+        let refs = FilesGlobReferences::new(
+            vec![],
+            Default::default(),
+            true,
+            ignore_missing_env_vars,
+            Default::default(),
+        );
 
         let result = refs.replace_env_vars(&files_attr(glob), resolver);
         match (&result, expected) {

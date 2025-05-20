@@ -7,16 +7,26 @@
 
 #![allow(clippy::print_stdout)] // this is a test module
 
-use std::{env, net::SocketAddr, path::Path, str::FromStr, sync::Arc};
+use alloc::{borrow::ToOwned, string::ToString, sync::Arc, vec::Vec};
+use core::str::FromStr;
+use std::{env, net::SocketAddr, path::Path, println};
 
 use futures_util::StreamExt;
-use rustls::{ClientConfig, KeyLogFile};
+use rustls::{
+    ClientConfig, KeyLogFile,
+    pki_types::{
+        CertificateDer, PrivateKeyDer,
+        pem::{self, PemObject},
+    },
+    sign::{CertifiedKey, SingleCertAndKey},
+};
+use test_support::subscribe;
 
 use crate::{
     op::{Message, Query},
     quic::QuicClientStreamBuilder,
     rr::{Name, RecordType},
-    rustls::tls_server,
+    rustls::default_provider,
     xfer::DnsRequestSender,
 };
 
@@ -46,28 +56,30 @@ async fn server_responder(mut server: QuicServer) {
 
 #[tokio::test]
 async fn test_quic_stream() {
+    subscribe();
+
     let dns_name = "ns.example.com";
 
     let server_path = env::var("TDNS_WORKSPACE_ROOT").unwrap_or_else(|_| "../..".to_owned());
     println!("using server src path: {server_path}");
 
-    let ca = tls_server::read_cert(Path::new(&format!("{server_path}/tests/test-data/ca.pem")))
-        .map_err(|e| format!("error reading cert: {e}"))
-        .unwrap();
-    let cert = tls_server::read_cert(Path::new(&format!(
-        "{server_path}/tests/test-data/cert.pem"
-    )))
-    .map_err(|e| format!("error reading cert: {e}"))
-    .unwrap();
-    let key = tls_server::read_key_from_pem(Path::new(&format!(
-        "{server_path}/tests/test-data/cert.key"
-    )))
-    .unwrap();
+    let ca = read_certs(format!("{server_path}/tests/test-data/ca.pem")).unwrap();
+    let cert_chain = read_certs(format!("{server_path}/tests/test-data/cert.pem")).unwrap();
+
+    let key =
+        PrivateKeyDer::from_pem_file(format!("{server_path}/tests/test-data/cert.key")).unwrap();
+
+    let certificate_and_key = SingleCertAndKey::from(
+        CertifiedKey::from_der(cert_chain, key, &default_provider()).unwrap(),
+    );
 
     // All testing is only done on local addresses, construct the server
-    let quic_ns = QuicServer::new(SocketAddr::from(([127, 0, 0, 1], 0)), cert, key)
-        .await
-        .expect("failed to initialize QuicServer");
+    let quic_ns = QuicServer::new(
+        SocketAddr::from(([127, 0, 0, 1], 0)),
+        Arc::new(certificate_and_key),
+    )
+    .await
+    .expect("failed to initialize QuicServer");
 
     // kick off the server
     let server_addr = quic_ns.local_addr().expect("no address");
@@ -76,11 +88,12 @@ async fn test_quic_stream() {
 
     // now construct the client
     let mut roots = rustls::RootCertStore::empty();
-    ca.iter()
-        .try_for_each(|ca| roots.add(ca))
-        .expect("failed to build roots");
-    let mut client_config = ClientConfig::builder()
-        .with_safe_defaults()
+    let (_, ignored) = roots.add_parsable_certificates(ca.into_iter());
+    assert_eq!(ignored, 0);
+
+    let mut client_config = ClientConfig::builder_with_provider(Arc::new(default_provider()))
+        .with_safe_default_protocol_versions()
+        .unwrap()
         .with_root_certificates(roots)
         .with_no_client_auth();
 
@@ -119,4 +132,8 @@ async fn test_quic_stream() {
 
     // and finally kill the server
     server_join.abort();
+}
+
+fn read_certs(cert_path: impl AsRef<Path>) -> Result<Vec<CertificateDer<'static>>, pem::Error> {
+    CertificateDer::pem_file_iter(cert_path)?.collect::<Result<Vec<_>, _>>()
 }

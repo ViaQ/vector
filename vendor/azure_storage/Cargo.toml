@@ -12,10 +12,10 @@
 [package]
 edition = "2021"
 name = "azure_storage"
-version = "0.17.0"
+version = "0.21.0"
 authors = ["Microsoft Corp."]
 description = "Azure Storage crate from the Azure SDK for Rust"
-homepage = "https://github.com/azure/azure-sdk-for-rust"
+homepage = "https://github.com/azure/azure-sdk-for-rust/tree/legacy"
 documentation = "https://docs.rs/azure_storage"
 readme = "README.md"
 keywords = [
@@ -27,27 +27,29 @@ categories = ["api-bindings"]
 license = "MIT"
 repository = "https://github.com/azure/azure-sdk-for-rust"
 
+[package.metadata.docs.rs]
+features = [
+    "enable_reqwest",
+    "enable_reqwest_rustls",
+    "hmac_rust",
+    "hmac_openssl",
+]
+
 [dependencies.RustyXML]
 version = "0.3"
+
+[dependencies.async-lock]
+version = "3.1"
 
 [dependencies.async-trait]
 version = "0.1"
 
 [dependencies.azure_core]
-version = "0.17"
+version = "0.21"
 features = ["xml"]
 
 [dependencies.bytes]
 version = "1.0"
-
-[dependencies.futures]
-version = "0.3"
-
-[dependencies.hmac]
-version = "0.12"
-
-[dependencies.log]
-version = "0.4"
 
 [dependencies.serde]
 version = "1.0"
@@ -55,27 +57,24 @@ version = "1.0"
 [dependencies.serde_derive]
 version = "1.0"
 
-[dependencies.serde_json]
-version = "1.0"
-
-[dependencies.sha2]
-version = "0.10"
-
 [dependencies.time]
 version = "0.3.10"
+
+[dependencies.tracing]
+version = "0.1.40"
 
 [dependencies.url]
 version = "2.2"
 
 [dependencies.uuid]
 version = "1.0"
-features = ["v4"]
-
-[dev-dependencies.env_logger]
-version = "0.10"
+features = [
+    "v4",
+    "serde",
+]
 
 [dev-dependencies.reqwest]
-version = "0.11"
+version = "0.12"
 
 [dev-dependencies.tokio]
 version = "1.0"
@@ -84,9 +83,17 @@ features = [
     "rt-multi-thread",
 ]
 
+[dev-dependencies.tracing-subscriber]
+version = "0.3"
+
 [features]
-default = ["enable_reqwest"]
+default = [
+    "enable_reqwest",
+    "hmac_rust",
+]
 enable_reqwest = ["azure_core/enable_reqwest"]
 enable_reqwest_rustls = ["azure_core/enable_reqwest_rustls"]
+hmac_openssl = ["azure_core/hmac_openssl"]
+hmac_rust = ["azure_core/hmac_rust"]
 test_e2e = []
 test_integration = []

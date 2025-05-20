@@ -6,21 +6,31 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use num_traits::Float;
 use crate::{uniform::SampleUniform, Distribution, Uniform};
+use num_traits::Float;
 use rand::Rng;
 
-/// Samples uniformly from the edge of the unit circle in two dimensions.
+/// Samples uniformly from the circumference of the unit circle in two dimensions.
 ///
 /// Implemented via a method by von Neumann[^1].
 ///
+/// For a distribution that also samples from the interior of the unit circle,
+/// see [`UnitDisc`](crate::UnitDisc).
+///
+/// For a similar distribution in three dimensions, see [`UnitSphere`](crate::UnitSphere).
+///
+/// # Plot
+///
+/// The following plot shows the unit circle.
+///
+/// ![Unit circle](https://raw.githubusercontent.com/rust-random/charts/main/charts/unit_circle.svg)
 ///
 /// # Example
 ///
 /// ```
 /// use rand_distr::{UnitCircle, Distribution};
 ///
-/// let v: [f64; 2] = UnitCircle.sample(&mut rand::thread_rng());
+/// let v: [f64; 2] = UnitCircle.sample(&mut rand::rng());
 /// println!("{:?} is from the unit circle.", v)
 /// ```
 ///
@@ -29,13 +39,13 @@ use rand::Rng;
 ///       NBS Appl. Math. Ser., No. 12. Washington, DC: U.S. Government Printing
 ///       Office, pp. 36-38.
 #[derive(Clone, Copy, Debug)]
-#[cfg_attr(feature = "serde1", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct UnitCircle;
 
 impl<F: Float + SampleUniform> Distribution<[F; 2]> for UnitCircle {
     #[inline]
     fn sample<R: Rng + ?Sized>(&self, rng: &mut R) -> [F; 2] {
-        let uniform = Uniform::new(F::from(-1.).unwrap(), F::from(1.).unwrap());
+        let uniform = Uniform::new(F::from(-1.).unwrap(), F::from(1.).unwrap()).unwrap();
         let mut x1;
         let mut x2;
         let mut sum;

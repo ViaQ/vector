@@ -4,13 +4,14 @@
 //!
 //! ```
 //! use http::{Request, Response, Method, header};
-//! use hyper::Body;
+//! use http_body_util::Full;
+//! use bytes::Bytes;
 //! use tower::{ServiceBuilder, ServiceExt, Service};
 //! use tower_http::cors::{Any, CorsLayer};
 //! use std::convert::Infallible;
 //!
-//! async fn handle(request: Request<Body>) -> Result<Response<Body>, Infallible> {
-//!     Ok(Response::new(Body::empty()))
+//! async fn handle(request: Request<Full<Bytes>>) -> Result<Response<Full<Bytes>>, Infallible> {
+//!     Ok(Response::new(Full::default()))
 //! }
 //!
 //! # #[tokio::main]
@@ -27,7 +28,7 @@
 //!
 //! let request = Request::builder()
 //!     .header(header::ORIGIN, "https://example.com")
-//!     .body(Body::empty())
+//!     .body(Full::default())
 //!     .unwrap();
 //!
 //! let response = service
@@ -49,7 +50,6 @@
 #![allow(clippy::enum_variant_names)]
 
 use bytes::{BufMut, BytesMut};
-use futures_core::ready;
 use http::{
     header::{self, HeaderName},
     HeaderMap, HeaderValue, Method, Request, Response,
@@ -60,7 +60,7 @@ use std::{
     future::Future,
     mem,
     pin::Pin,
-    task::{Context, Poll},
+    task::{ready, Context, Poll},
 };
 use tower_layer::Layer;
 use tower_service::Service;
@@ -73,6 +73,9 @@ mod allow_private_network;
 mod expose_headers;
 mod max_age;
 mod vary;
+
+#[cfg(test)]
+mod tests;
 
 pub use self::{
     allow_credentials::AllowCredentials, allow_headers::AllowHeaders, allow_methods::AllowMethods,
@@ -618,24 +621,10 @@ where
 
         // These headers are applied to both preflight and subsequent regular CORS requests:
         // https://fetch.spec.whatwg.org/#http-responses
-
         headers.extend(self.layer.allow_origin.to_header(origin, &parts));
         headers.extend(self.layer.allow_credentials.to_header(origin, &parts));
         headers.extend(self.layer.allow_private_network.to_header(origin, &parts));
-
-        let mut vary_headers = self.layer.vary.values();
-        if let Some(first) = vary_headers.next() {
-            let mut header = match headers.entry(header::VARY) {
-                header::Entry::Occupied(_) => {
-                    unreachable!("no vary header inserted up to this point")
-                }
-                header::Entry::Vacant(v) => v.insert_entry(first),
-            };
-
-            for val in vary_headers {
-                header.append(val);
-            }
-        }
+        headers.extend(self.layer.vary.to_header());
 
         // Return results immediately upon preflight request
         if parts.method == Method::OPTIONS {
@@ -695,7 +684,16 @@ where
         match self.project().inner.project() {
             KindProj::CorsCall { future, headers } => {
                 let mut response: Response<B> = ready!(future.poll(cx))?;
-                response.headers_mut().extend(headers.drain());
+
+                let response_headers = response.headers_mut();
+
+                // vary header can have multiple values, don't overwrite
+                // previously-set value(s).
+                if let Some(vary) = headers.remove(header::VARY) {
+                    response_headers.append(header::VARY, vary);
+                }
+                // extend will overwrite previous headers of remaining names
+                response_headers.extend(headers.drain());
 
                 Poll::Ready(Ok(response))
             }

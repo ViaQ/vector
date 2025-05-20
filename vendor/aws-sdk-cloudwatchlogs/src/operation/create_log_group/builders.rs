@@ -3,7 +3,7 @@ pub use crate::operation::create_log_group::_create_log_group_output::CreateLogG
 
 pub use crate::operation::create_log_group::_create_log_group_input::CreateLogGroupInputBuilder;
 
-impl CreateLogGroupInputBuilder {
+impl crate::operation::create_log_group::builders::CreateLogGroupInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -25,13 +25,18 @@ impl CreateLogGroupInputBuilder {
 /// <p>Creates a log group with the specified name. You can create up to 1,000,000 log groups per Region per account.</p>
 /// <p>You must use the following guidelines when naming a log group:</p>
 /// <ul>
-/// <li> <p>Log group names must be unique within a Region for an Amazon Web Services account.</p> </li>
-/// <li> <p>Log group names can be between 1 and 512 characters long.</p> </li>
-/// <li> <p>Log group names consist of the following characters: a-z, A-Z, 0-9, '_' (underscore), '-' (hyphen), '/' (forward slash), '.' (period), and '#' (number sign)</p> </li>
+/// <li>
+/// <p>Log group names must be unique within a Region for an Amazon Web Services account.</p></li>
+/// <li>
+/// <p>Log group names can be between 1 and 512 characters long.</p></li>
+/// <li>
+/// <p>Log group names consist of the following characters: a-z, A-Z, 0-9, '_' (underscore), '-' (hyphen), '/' (forward slash), '.' (period), and '#' (number sign)</p></li>
+/// <li>
+/// <p>Log group names can't start with the string <code>aws/</code></p></li>
 /// </ul>
 /// <p>When you create a log group, by default the log events in the log group do not expire. To set a retention policy so that events expire and are deleted after a specified time, use <a href="https://docs.aws.amazon.com/AmazonCloudWatchLogs/latest/APIReference/API_PutRetentionPolicy.html">PutRetentionPolicy</a>.</p>
 /// <p>If you associate an KMS key with the log group, ingested data is encrypted using the KMS key. This association is stored as long as the data encrypted with the KMS key is still within CloudWatch Logs. This enables CloudWatch Logs to decrypt this data whenever it is requested.</p>
-/// <p>If you attempt to associate a KMS key with the log group but the KMS key does not exist or the KMS key is disabled, you receive an <code>InvalidParameterException</code> error. </p> <important>
+/// <p>If you attempt to associate a KMS key with the log group but the KMS key does not exist or the KMS key is disabled, you receive an <code>InvalidParameterException</code> error.</p><important>
 /// <p>CloudWatch Logs supports only symmetric KMS keys. Do not associate an asymmetric KMS key with your log group. For more information, see <a href="https://docs.aws.amazon.com/kms/latest/developerguide/symmetric-asymmetric.html">Using Symmetric and Asymmetric Keys</a>.</p>
 /// </important>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
@@ -59,7 +64,7 @@ impl
     }
 }
 impl CreateLogGroupFluentBuilder {
-    /// Creates a new `CreateLogGroup`.
+    /// Creates a new `CreateLogGroupFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -110,26 +115,26 @@ impl CreateLogGroupFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
-    /// <p>The name of the log group.</p>
+    /// <p>A name for the log group.</p>
     pub fn log_group_name(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.log_group_name(input.into());
         self
     }
-    /// <p>The name of the log group.</p>
+    /// <p>A name for the log group.</p>
     pub fn set_log_group_name(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_log_group_name(input);
         self
     }
-    /// <p>The name of the log group.</p>
+    /// <p>A name for the log group.</p>
     pub fn get_log_group_name(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_log_group_name()
     }
@@ -147,6 +152,7 @@ impl CreateLogGroupFluentBuilder {
     pub fn get_kms_key_id(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_kms_key_id()
     }
+    ///
     /// Adds a key-value pair to `tags`.
     ///
     /// To override the contents of this collection use [`set_tags`](Self::set_tags).
@@ -167,5 +173,55 @@ impl CreateLogGroupFluentBuilder {
     /// <p>You can grant users access to certain log groups while preventing them from accessing other log groups. To do so, tag your groups and use IAM policies that refer to those tags. To assign tags when you create a log group, you must have either the <code>logs:TagResource</code> or <code>logs:TagLogGroup</code> permission. For more information about tagging, see <a href="https://docs.aws.amazon.com/general/latest/gr/aws_tagging.html">Tagging Amazon Web Services resources</a>. For more information about using tags to control access, see <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_tags.html">Controlling access to Amazon Web Services resources using tags</a>.</p>
     pub fn get_tags(&self) -> &::std::option::Option<::std::collections::HashMap<::std::string::String, ::std::string::String>> {
         self.inner.get_tags()
+    }
+    /// <p>Use this parameter to specify the log group class for this log group. There are three classes:</p>
+    /// <ul>
+    /// <li>
+    /// <p>The <code>Standard</code> log class supports all CloudWatch Logs features.</p></li>
+    /// <li>
+    /// <p>The <code>Infrequent Access</code> log class supports a subset of CloudWatch Logs features and incurs lower costs.</p></li>
+    /// <li>
+    /// <p>Use the <code>Delivery</code> log class only for delivering Lambda logs to store in Amazon S3 or Amazon Data Firehose. Log events in log groups in the Delivery class are kept in CloudWatch Logs for only one day. This log class doesn't offer rich CloudWatch Logs capabilities such as CloudWatch Logs Insights queries.</p></li>
+    /// </ul>
+    /// <p>If you omit this parameter, the default of <code>STANDARD</code> is used.</p><important>
+    /// <p>The value of <code>logGroupClass</code> can't be changed after a log group is created.</p>
+    /// </important>
+    /// <p>For details about the features supported by each class, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CloudWatch_Logs_Log_Classes.html">Log classes</a></p>
+    pub fn log_group_class(mut self, input: crate::types::LogGroupClass) -> Self {
+        self.inner = self.inner.log_group_class(input);
+        self
+    }
+    /// <p>Use this parameter to specify the log group class for this log group. There are three classes:</p>
+    /// <ul>
+    /// <li>
+    /// <p>The <code>Standard</code> log class supports all CloudWatch Logs features.</p></li>
+    /// <li>
+    /// <p>The <code>Infrequent Access</code> log class supports a subset of CloudWatch Logs features and incurs lower costs.</p></li>
+    /// <li>
+    /// <p>Use the <code>Delivery</code> log class only for delivering Lambda logs to store in Amazon S3 or Amazon Data Firehose. Log events in log groups in the Delivery class are kept in CloudWatch Logs for only one day. This log class doesn't offer rich CloudWatch Logs capabilities such as CloudWatch Logs Insights queries.</p></li>
+    /// </ul>
+    /// <p>If you omit this parameter, the default of <code>STANDARD</code> is used.</p><important>
+    /// <p>The value of <code>logGroupClass</code> can't be changed after a log group is created.</p>
+    /// </important>
+    /// <p>For details about the features supported by each class, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CloudWatch_Logs_Log_Classes.html">Log classes</a></p>
+    pub fn set_log_group_class(mut self, input: ::std::option::Option<crate::types::LogGroupClass>) -> Self {
+        self.inner = self.inner.set_log_group_class(input);
+        self
+    }
+    /// <p>Use this parameter to specify the log group class for this log group. There are three classes:</p>
+    /// <ul>
+    /// <li>
+    /// <p>The <code>Standard</code> log class supports all CloudWatch Logs features.</p></li>
+    /// <li>
+    /// <p>The <code>Infrequent Access</code> log class supports a subset of CloudWatch Logs features and incurs lower costs.</p></li>
+    /// <li>
+    /// <p>Use the <code>Delivery</code> log class only for delivering Lambda logs to store in Amazon S3 or Amazon Data Firehose. Log events in log groups in the Delivery class are kept in CloudWatch Logs for only one day. This log class doesn't offer rich CloudWatch Logs capabilities such as CloudWatch Logs Insights queries.</p></li>
+    /// </ul>
+    /// <p>If you omit this parameter, the default of <code>STANDARD</code> is used.</p><important>
+    /// <p>The value of <code>logGroupClass</code> can't be changed after a log group is created.</p>
+    /// </important>
+    /// <p>For details about the features supported by each class, see <a href="https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/CloudWatch_Logs_Log_Classes.html">Log classes</a></p>
+    pub fn get_log_group_class(&self) -> &::std::option::Option<crate::types::LogGroupClass> {
+        self.inner.get_log_group_class()
     }
 }

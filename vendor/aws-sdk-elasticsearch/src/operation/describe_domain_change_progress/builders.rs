@@ -3,7 +3,7 @@ pub use crate::operation::describe_domain_change_progress::_describe_domain_chan
 
 pub use crate::operation::describe_domain_change_progress::_describe_domain_change_progress_input::DescribeDomainChangeProgressInputBuilder;
 
-impl DescribeDomainChangeProgressInputBuilder {
+impl crate::operation::describe_domain_change_progress::builders::DescribeDomainChangeProgressInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -48,7 +48,7 @@ impl
     }
 }
 impl DescribeDomainChangeProgressFluentBuilder {
-    /// Creates a new `DescribeDomainChangeProgress`.
+    /// Creates a new `DescribeDomainChangeProgressFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -99,12 +99,12 @@ impl DescribeDomainChangeProgressFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -122,17 +122,17 @@ impl DescribeDomainChangeProgressFluentBuilder {
     pub fn get_domain_name(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_domain_name()
     }
-    /// <p>The specific change ID for which you want to get progress information. This is an optional parameter. If omitted, the service returns information about the most recent configuration change. </p>
+    /// <p>The specific change ID for which you want to get progress information. This is an optional parameter. If omitted, the service returns information about the most recent configuration change.</p>
     pub fn change_id(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.change_id(input.into());
         self
     }
-    /// <p>The specific change ID for which you want to get progress information. This is an optional parameter. If omitted, the service returns information about the most recent configuration change. </p>
+    /// <p>The specific change ID for which you want to get progress information. This is an optional parameter. If omitted, the service returns information about the most recent configuration change.</p>
     pub fn set_change_id(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_change_id(input);
         self
     }
-    /// <p>The specific change ID for which you want to get progress information. This is an optional parameter. If omitted, the service returns information about the most recent configuration change. </p>
+    /// <p>The specific change ID for which you want to get progress information. This is an optional parameter. If omitted, the service returns information about the most recent configuration change.</p>
     pub fn get_change_id(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_change_id()
     }

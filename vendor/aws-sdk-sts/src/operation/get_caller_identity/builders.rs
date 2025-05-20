@@ -3,7 +3,7 @@ pub use crate::operation::get_caller_identity::_get_caller_identity_output::GetC
 
 pub use crate::operation::get_caller_identity::_get_caller_identity_input::GetCallerIdentityInputBuilder;
 
-impl GetCallerIdentityInputBuilder {
+impl crate::operation::get_caller_identity::builders::GetCallerIdentityInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -22,7 +22,7 @@ impl GetCallerIdentityInputBuilder {
 }
 /// Fluent builder constructing a request to `GetCallerIdentity`.
 ///
-/// <p>Returns details about the IAM user or role whose credentials are used to call the operation.</p> <note>
+/// <p>Returns details about the IAM user or role whose credentials are used to call the operation.</p><note>
 /// <p>No permissions are required to perform this operation. If an administrator attaches a policy to your identity that explicitly denies access to the <code>sts:GetCallerIdentity</code> action, you can still perform this operation. Permissions are not required because the same information is returned when access is denied. To view an example response, see <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/troubleshoot_general.html#troubleshoot_general_access-denied-delete-mfa">I Am Not Authorized to Perform: iam:DeleteVirtualMFADevice</a> in the <i>IAM User Guide</i>.</p>
 /// </note>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
@@ -50,7 +50,7 @@ impl
     }
 }
 impl GetCallerIdentityFluentBuilder {
-    /// Creates a new `GetCallerIdentity`.
+    /// Creates a new `GetCallerIdentityFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -101,12 +101,12 @@ impl GetCallerIdentityFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

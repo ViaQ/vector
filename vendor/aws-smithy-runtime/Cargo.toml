@@ -12,11 +12,16 @@
 [package]
 edition = "2021"
 name = "aws-smithy-runtime"
-version = "1.7.3"
+version = "1.8.3"
 authors = [
     "AWS Rust SDK Team <aws-sdk-rust@amazon.com>",
     "Zelda Hessler <zhessler@amazon.com>",
 ]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "The new smithy runtime crate"
 readme = "README.md"
 license = "Apache-2.0"
@@ -40,97 +45,88 @@ targets = ["x86_64-unknown-linux-gnu"]
 [package.metadata.smithy-rs-release-tooling]
 stable = true
 
+[lib]
+name = "aws_smithy_runtime"
+path = "src/lib.rs"
+
+[[test]]
+name = "reconnect_on_transient_error"
+path = "tests/reconnect_on_transient_error.rs"
+
+[[test]]
+name = "retries"
+path = "tests/retries.rs"
+
+[[test]]
+name = "stalled_stream_common"
+path = "tests/stalled_stream_common.rs"
+
+[[test]]
+name = "stalled_stream_download"
+path = "tests/stalled_stream_download.rs"
+
+[[test]]
+name = "stalled_stream_performance"
+path = "tests/stalled_stream_performance.rs"
+
+[[test]]
+name = "stalled_stream_upload"
+path = "tests/stalled_stream_upload.rs"
+
 [dependencies.aws-smithy-async]
-version = "1.2.1"
+version = "1.2.5"
 
 [dependencies.aws-smithy-http]
-version = "0.60.11"
+version = "0.62.1"
 
-[dependencies.aws-smithy-protocol-test]
-version = "0.63.0"
+[dependencies.aws-smithy-http-client]
+version = "1.0.1"
 optional = true
 
+[dependencies.aws-smithy-observability]
+version = "0.1.3"
+
 [dependencies.aws-smithy-runtime-api]
-version = "1.7.2"
+version = "1.8.0"
 
 [dependencies.aws-smithy-types]
-version = "1.2.8"
+version = "1.3.1"
 features = ["http-body-0-4-x"]
 
 [dependencies.bytes]
-version = "1"
+version = "1.10.0"
 
 [dependencies.fastrand]
-version = "2.0.0"
-
-[dependencies.h2]
-version = "0.3"
-optional = true
-default-features = false
+version = "2.3.0"
 
 [dependencies.http-02x]
-version = "0.2.8"
+version = "0.2.9"
+package = "http"
+
+[dependencies.http-1x]
+version = "1"
 package = "http"
 
 [dependencies.http-body-04x]
-version = "0.4.4"
+version = "0.4.5"
 package = "http-body"
 
 [dependencies.http-body-1x]
 version = "1"
 package = "http-body"
 
-[dependencies.httparse]
-version = "1.8.0"
-
-[dependencies.hyper-0-14]
-version = "0.14.26"
-optional = true
-default-features = false
-package = "hyper"
-
-[dependencies.hyper-rustls]
-version = "0.24"
-features = [
-    "rustls-native-certs",
-    "http2",
-]
-optional = true
-
-[dependencies.indexmap]
-version = "2"
-features = ["serde"]
-optional = true
-
-[dependencies.once_cell]
-version = "1.18.0"
-
 [dependencies.pin-project-lite]
-version = "0.2.7"
+version = "0.2.14"
 
 [dependencies.pin-utils]
 version = "0.1.0"
 
-[dependencies.rustls]
-version = "0.21.8"
-optional = true
-
-[dependencies.serde]
-version = "1"
-features = ["derive"]
-optional = true
-
-[dependencies.serde_json]
-version = "1"
-features = ["preserve_order"]
-optional = true
-
 [dependencies.tokio]
-version = "1.25"
+version = "1.40.0"
 features = []
 
 [dependencies.tracing]
-version = "0.1.37"
+version = "0.1.40"
 
 [dependencies.tracing-subscriber]
 version = "0.3.16"
@@ -145,29 +141,25 @@ optional = true
 version = "0.5.1"
 
 [dev-dependencies.aws-smithy-async]
-version = "1.2.1"
+version = "1.2.5"
 features = [
     "rt-tokio",
     "test-util",
 ]
 
 [dev-dependencies.aws-smithy-runtime-api]
-version = "1.7.2"
+version = "1.8.0"
 features = ["test-util"]
 
 [dev-dependencies.aws-smithy-types]
-version = "1.2.8"
+version = "1.3.1"
 features = ["test-util"]
 
 [dev-dependencies.fastrand]
-version = "~2.0.0"
+version = "2.3.0"
 
 [dev-dependencies.futures-util]
 version = "0.3.29"
-
-[dev-dependencies.http1]
-version = "1"
-package = "http"
 
 [dev-dependencies.hyper_0_14]
 version = "0.14.27"
@@ -206,31 +198,34 @@ client = [
     "aws-smithy-types/http-body-1-x",
 ]
 connector-hyper-0-14-x = [
-    "dep:hyper-0-14",
-    "hyper-0-14?/client",
-    "hyper-0-14?/http2",
-    "hyper-0-14?/http1",
-    "hyper-0-14?/tcp",
-    "hyper-0-14?/stream",
-    "dep:h2",
+    "dep:aws-smithy-http-client",
+    "aws-smithy-http-client?/hyper-014",
+]
+default-https-client = [
+    "dep:aws-smithy-http-client",
+    "aws-smithy-http-client?/rustls-aws-lc",
 ]
 http-auth = ["aws-smithy-runtime-api/http-auth"]
+legacy-test-util = [
+    "aws-smithy-runtime-api/test-util",
+    "dep:tracing-subscriber",
+    "aws-smithy-http-client/test-util",
+    "connector-hyper-0-14-x",
+    "aws-smithy-http-client/legacy-test-util",
+]
 rt-tokio = ["tokio/rt"]
 test-util = [
     "aws-smithy-runtime-api/test-util",
-    "dep:aws-smithy-protocol-test",
     "dep:tracing-subscriber",
-    "dep:serde",
-    "dep:serde_json",
-    "dep:indexmap",
+    "aws-smithy-http-client/test-util",
+    "legacy-test-util",
 ]
 tls-rustls = [
-    "dep:hyper-rustls",
-    "dep:rustls",
+    "dep:aws-smithy-http-client",
+    "aws-smithy-http-client?/legacy-rustls-ring",
     "connector-hyper-0-14-x",
 ]
 wire-mock = [
-    "test-util",
-    "connector-hyper-0-14-x",
-    "hyper-0-14?/server",
+    "legacy-test-util",
+    "aws-smithy-http-client/wire-mock",
 ]

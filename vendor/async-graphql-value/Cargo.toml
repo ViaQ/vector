@@ -12,14 +12,21 @@
 [package]
 edition = "2021"
 name = "async-graphql-value"
-version = "7.0.7"
+version = "7.0.16"
 authors = [
     "sunli <scott_s829@163.com>",
     "Koxiaet",
 ]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "GraphQL value for async-graphql"
 homepage = "https://github.com/async-graphql/async-graphql"
 documentation = "https://docs.rs/async-graphql/"
+readme = false
 keywords = [
     "futures",
     "async",
@@ -31,6 +38,17 @@ categories = [
 ]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/async-graphql/async-graphql"
+
+[features]
+raw_value = ["serde_json/raw_value"]
+
+[lib]
+name = "async_graphql_value"
+path = "src/lib.rs"
+
+[[test]]
+name = "test_serde"
+path = "tests/test_serde.rs"
 
 [dependencies.bytes]
 version = "1.6.0"
@@ -46,6 +64,3 @@ features = ["derive"]
 
 [dependencies.serde_json]
 version = "1.0.115"
-
-[features]
-raw_value = ["serde_json/raw_value"]

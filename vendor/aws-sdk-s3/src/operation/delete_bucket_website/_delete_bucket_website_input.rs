@@ -3,13 +3,13 @@
 #[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::fmt::Debug)]
 pub struct DeleteBucketWebsiteInput {
-    /// <p>The bucket name for which you want to remove the website configuration. </p>
+    /// <p>The bucket name for which you want to remove the website configuration.</p>
     pub bucket: ::std::option::Option<::std::string::String>,
     /// <p>The account ID of the expected bucket owner. If the account ID that you provide does not match the actual owner of the bucket, the request fails with the HTTP status code <code>403 Forbidden</code> (access denied).</p>
     pub expected_bucket_owner: ::std::option::Option<::std::string::String>,
 }
 impl DeleteBucketWebsiteInput {
-    /// <p>The bucket name for which you want to remove the website configuration. </p>
+    /// <p>The bucket name for which you want to remove the website configuration.</p>
     pub fn bucket(&self) -> ::std::option::Option<&str> {
         self.bucket.as_deref()
     }
@@ -26,25 +26,25 @@ impl DeleteBucketWebsiteInput {
 }
 
 /// A builder for [`DeleteBucketWebsiteInput`](crate::operation::delete_bucket_website::DeleteBucketWebsiteInput).
-#[non_exhaustive]
 #[derive(::std::clone::Clone, ::std::cmp::PartialEq, ::std::default::Default, ::std::fmt::Debug)]
+#[non_exhaustive]
 pub struct DeleteBucketWebsiteInputBuilder {
     pub(crate) bucket: ::std::option::Option<::std::string::String>,
     pub(crate) expected_bucket_owner: ::std::option::Option<::std::string::String>,
 }
 impl DeleteBucketWebsiteInputBuilder {
-    /// <p>The bucket name for which you want to remove the website configuration. </p>
+    /// <p>The bucket name for which you want to remove the website configuration.</p>
     /// This field is required.
     pub fn bucket(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.bucket = ::std::option::Option::Some(input.into());
         self
     }
-    /// <p>The bucket name for which you want to remove the website configuration. </p>
+    /// <p>The bucket name for which you want to remove the website configuration.</p>
     pub fn set_bucket(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.bucket = input;
         self
     }
-    /// <p>The bucket name for which you want to remove the website configuration. </p>
+    /// <p>The bucket name for which you want to remove the website configuration.</p>
     pub fn get_bucket(&self) -> &::std::option::Option<::std::string::String> {
         &self.bucket
     }

@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.67"
+rust-version = "1.70"
 name = "serde_with_macros"
-version = "3.11.0"
+version = "3.12.0"
 authors = ["Jonas Bushart"]
 build = false
 include = [
@@ -24,6 +24,7 @@ include = [
     "README.md",
     "CHANGELOG.md",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false

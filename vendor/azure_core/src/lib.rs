@@ -1,13 +1,4 @@
-//! Core types and traits for the Rust Azure SDK.
-//!
-//! This crate is part of the unofficial Azure SDK effort in Rust. For more
-//! information on the project and an overview of other crates, please refer to
-//! [our GitHub repository](https://github.com/azure/azure-sdk-for-rust).
-//!
-//! It is a library that provides cross-cutting services to other client
-//! libraries.  Please see the [general
-//! guidelines](https://azure.github.io/azure-sdk/general_azurecore.html).
-
+#![doc = include_str!("../README.md")]
 #![forbid(unsafe_code)]
 #![deny(missing_debug_implementations, nonstandard_style)]
 // #![warn(missing_docs, future_incompatible, unreachable_pub)]
@@ -20,6 +11,7 @@ mod constants;
 mod context;
 pub mod date;
 pub mod error;
+pub mod hmac;
 mod http_client;
 mod models;
 mod options;
@@ -44,7 +36,6 @@ use uuid::Uuid;
 #[cfg(feature = "xml")]
 pub mod xml;
 
-#[cfg(feature = "tokio")]
 pub mod tokio;
 
 pub mod base64;
@@ -54,7 +45,7 @@ pub use context::Context;
 pub use error::{Error, Result};
 #[doc(inline)]
 pub use headers::Header;
-pub use http_client::{new_http_client, to_json, HttpClient};
+pub use http_client::{from_json, new_http_client, to_json, HttpClient};
 pub use models::*;
 pub use options::*;
 pub use pageable::*;
@@ -84,14 +75,14 @@ pub const EMPTY_BODY: bytes::Bytes = bytes::Bytes::new();
 
 /// Add a new query pair into the target URL's query string.
 pub trait AppendToUrlQuery {
-    fn append_to_url_query(&self, url: &mut url::Url);
+    fn append_to_url_query(&self, url: &mut crate::Url);
 }
 
 impl<T> AppendToUrlQuery for &T
 where
     T: AppendToUrlQuery,
 {
-    fn append_to_url_query(&self, url: &mut url::Url) {
+    fn append_to_url_query(&self, url: &mut crate::Url) {
         (*self).append_to_url_query(url);
     }
 }
@@ -100,7 +91,7 @@ impl<T> AppendToUrlQuery for Option<T>
 where
     T: AppendToUrlQuery,
 {
-    fn append_to_url_query(&self, url: &mut url::Url) {
+    fn append_to_url_query(&self, url: &mut crate::Url) {
         if let Some(i) = self {
             i.append_to_url_query(url);
         }

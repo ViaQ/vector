@@ -11,7 +11,7 @@ use core::slice;
 pub use self::bitmap_store::BITMAP_LENGTH;
 use self::Store::{Array, Bitmap};
 
-pub use self::array_store::ArrayStore;
+pub(crate) use self::array_store::ArrayStore;
 pub use self::bitmap_store::{BitmapIter, BitmapStore};
 
 use crate::bitmap::container::ARRAY_LIMIT;
@@ -20,12 +20,13 @@ use crate::bitmap::container::ARRAY_LIMIT;
 use alloc::boxed::Box;
 
 #[derive(Clone)]
-pub enum Store {
+pub(crate) enum Store {
     Array(ArrayStore),
     Bitmap(BitmapStore),
 }
 
-pub enum Iter<'a> {
+#[derive(Clone)]
+pub(crate) enum Iter<'a> {
     Array(slice::Iter<'a, u16>),
     Vec(vec::IntoIter<u16>),
     BitmapBorrowed(BitmapIter<&'a [u64; BITMAP_LENGTH]>),
@@ -37,6 +38,7 @@ impl Store {
         Store::Array(ArrayStore::new())
     }
 
+    #[cfg(feature = "std")]
     pub fn with_capacity(capacity: usize) -> Store {
         if capacity <= ARRAY_LIMIT as usize {
             Store::Array(ArrayStore::with_capacity(capacity))
@@ -49,6 +51,36 @@ impl Store {
         Store::Bitmap(BitmapStore::full())
     }
 
+    pub fn from_lsb0_bytes(bytes: &[u8], byte_offset: usize) -> Option<Self> {
+        assert!(byte_offset + bytes.len() <= BITMAP_LENGTH * mem::size_of::<u64>());
+
+        // It seems to be pretty considerably faster to count the bits
+        // using u64s than for each byte
+        let bits_set = {
+            let mut bits_set = 0;
+            let chunks = bytes.chunks_exact(mem::size_of::<u64>());
+            let remainder = chunks.remainder();
+            for chunk in chunks {
+                let chunk = u64::from_ne_bytes(chunk.try_into().unwrap());
+                bits_set += u64::from(chunk.count_ones());
+            }
+            for byte in remainder {
+                bits_set += u64::from(byte.count_ones());
+            }
+            bits_set
+        };
+        if bits_set == 0 {
+            return None;
+        }
+
+        Some(if bits_set < ARRAY_LIMIT {
+            Array(ArrayStore::from_lsb0_bytes(bytes, byte_offset, bits_set))
+        } else {
+            Bitmap(BitmapStore::from_lsb0_bytes_unchecked(bytes, byte_offset, bits_set))
+        })
+    }
+
+    #[inline]
     pub fn insert(&mut self, index: u16) -> bool {
         match self {
             Array(vec) => vec.insert(index),
@@ -191,6 +223,7 @@ impl Store {
         }
     }
 
+    #[inline]
     pub fn max(&self) -> Option<u16> {
         match self {
             Array(vec) => vec.max(),
@@ -497,7 +530,52 @@ impl PartialEq for Store {
     }
 }
 
-impl<'a> Iterator for Iter<'a> {
+impl Iter<'_> {
+    /// Advance the iterator to the first value greater than or equal to `n`.
+    pub(crate) fn advance_to(&mut self, n: u16) {
+        match self {
+            Iter::Array(inner) => {
+                let skip = inner.as_slice().partition_point(|&i| i < n);
+                if let Some(nth) = skip.checked_sub(1) {
+                    inner.nth(nth);
+                }
+            }
+            Iter::Vec(inner) => {
+                let skip = inner.as_slice().partition_point(|&i| i < n);
+                if let Some(nth) = skip.checked_sub(1) {
+                    inner.nth(nth);
+                }
+            }
+            Iter::BitmapBorrowed(inner) => inner.advance_to(n),
+            Iter::BitmapOwned(inner) => inner.advance_to(n),
+        }
+    }
+
+    pub(crate) fn advance_back_to(&mut self, n: u16) {
+        match self {
+            Iter::Array(inner) => {
+                let slice = inner.as_slice();
+                let from_front = slice.partition_point(|&i| i <= n);
+                let skip = slice.len() - from_front;
+                if let Some(nth) = skip.checked_sub(1) {
+                    inner.nth_back(nth);
+                }
+            }
+            Iter::Vec(inner) => {
+                let slice = inner.as_slice();
+                let from_front = slice.partition_point(|&i| i <= n);
+                let skip = slice.len() - from_front;
+                if let Some(nth) = skip.checked_sub(1) {
+                    inner.nth_back(nth);
+                }
+            }
+            Iter::BitmapBorrowed(inner) => inner.advance_back_to(n),
+            Iter::BitmapOwned(inner) => inner.advance_back_to(n),
+        }
+    }
+}
+
+impl Iterator for Iter<'_> {
     type Item = u16;
 
     fn next(&mut self) -> Option<u16> {
@@ -506,6 +584,36 @@ impl<'a> Iterator for Iter<'a> {
             Iter::Vec(inner) => inner.next(),
             Iter::BitmapBorrowed(inner) => inner.next(),
             Iter::BitmapOwned(inner) => inner.next(),
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        match self {
+            Iter::Array(inner) => inner.size_hint(),
+            Iter::Vec(inner) => inner.size_hint(),
+            Iter::BitmapBorrowed(inner) => inner.size_hint(),
+            Iter::BitmapOwned(inner) => inner.size_hint(),
+        }
+    }
+
+    fn count(self) -> usize
+    where
+        Self: Sized,
+    {
+        match self {
+            Iter::Array(inner) => inner.count(),
+            Iter::Vec(inner) => inner.count(),
+            Iter::BitmapBorrowed(inner) => inner.count(),
+            Iter::BitmapOwned(inner) => inner.count(),
+        }
+    }
+
+    fn nth(&mut self, n: usize) -> Option<Self::Item> {
+        match self {
+            Iter::Array(inner) => inner.nth(n).copied(),
+            Iter::Vec(inner) => inner.nth(n),
+            Iter::BitmapBorrowed(inner) => inner.nth(n),
+            Iter::BitmapOwned(inner) => inner.nth(n),
         }
     }
 }
@@ -520,3 +628,5 @@ impl DoubleEndedIterator for Iter<'_> {
         }
     }
 }
+
+impl ExactSizeIterator for Iter<'_> {}

@@ -3,7 +3,7 @@ pub use crate::operation::describe_stream_consumer::_describe_stream_consumer_ou
 
 pub use crate::operation::describe_stream_consumer::_describe_stream_consumer_input::DescribeStreamConsumerInputBuilder;
 
-impl DescribeStreamConsumerInputBuilder {
+impl crate::operation::describe_stream_consumer::builders::DescribeStreamConsumerInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -23,8 +23,8 @@ impl DescribeStreamConsumerInputBuilder {
 /// Fluent builder constructing a request to `DescribeStreamConsumer`.
 ///
 /// <p>To get the description of a registered consumer, provide the ARN of the consumer. Alternatively, you can provide the ARN of the data stream and the name you gave the consumer when you registered it. You may also provide all three parameters, as long as they don't conflict with each other. If you don't know the name or ARN of the consumer that you want to describe, you can use the <code>ListStreamConsumers</code> operation to get a list of the descriptions of all the consumers that are currently registered with a given data stream.</p>
-/// <p>This operation has a limit of 20 transactions per second per stream.</p> <note>
-/// <p>When making a cross-account call with <code>DescribeStreamConsumer</code>, make sure to provide the ARN of the consumer. </p>
+/// <p>This operation has a limit of 20 transactions per second per stream.</p><note>
+/// <p>When making a cross-account call with <code>DescribeStreamConsumer</code>, make sure to provide the ARN of the consumer.</p>
 /// </note>
 #[derive(::std::clone::Clone, ::std::fmt::Debug)]
 pub struct DescribeStreamConsumerFluentBuilder {
@@ -51,7 +51,7 @@ impl
     }
 }
 impl DescribeStreamConsumerFluentBuilder {
-    /// Creates a new `DescribeStreamConsumer`.
+    /// Creates a new `DescribeStreamConsumerFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -102,12 +102,12 @@ impl DescribeStreamConsumerFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }

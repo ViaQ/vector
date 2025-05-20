@@ -37,6 +37,7 @@
 /// be avoided for two reasons:
 /// - The inner data `UnknownVariantValue` is opaque, and no further information can be extracted.
 /// - It might inadvertently shadow other intended match arms.
+///
 #[allow(missing_docs)] // documentation missing in model
 #[non_exhaustive]
 #[derive(
@@ -103,6 +104,17 @@ impl DataProtectionStatus {
             #[allow(deprecated)]
             Self::Unknown(_) => ::std::result::Result::Err(crate::error::UnknownVariantError::new(value)),
             known => Ok(known),
+        }
+    }
+}
+impl ::std::fmt::Display for DataProtectionStatus {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+        match self {
+            DataProtectionStatus::Activated => write!(f, "ACTIVATED"),
+            DataProtectionStatus::Archived => write!(f, "ARCHIVED"),
+            DataProtectionStatus::Deleted => write!(f, "DELETED"),
+            DataProtectionStatus::Disabled => write!(f, "DISABLED"),
+            DataProtectionStatus::Unknown(value) => write!(f, "{}", value),
         }
     }
 }

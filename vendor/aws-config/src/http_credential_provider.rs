@@ -10,8 +10,10 @@
 
 use crate::json_credentials::{parse_json_credentials, JsonCredentials, RefreshableCredentials};
 use crate::provider_config::ProviderConfig;
+use aws_credential_types::attributes::AccountId;
 use aws_credential_types::provider::{self, error::CredentialsError};
 use aws_credential_types::Credentials;
+use aws_smithy_runtime::client::metrics::MetricsRuntimePlugin;
 use aws_smithy_runtime::client::orchestrator::operation::Operation;
 use aws_smithy_runtime::client::retries::classifiers::{
     HttpStatusCodeClassifier, TransientErrorClassifier,
@@ -19,7 +21,7 @@ use aws_smithy_runtime::client::retries::classifiers::{
 use aws_smithy_runtime_api::client::http::HttpConnectorSettings;
 use aws_smithy_runtime_api::client::interceptors::context::{Error, InterceptorContext};
 use aws_smithy_runtime_api::client::orchestrator::{
-    HttpResponse, OrchestratorError, SensitiveOutput,
+    HttpResponse, Metadata, OrchestratorError, SensitiveOutput,
 };
 use aws_smithy_runtime_api::client::result::SdkError;
 use aws_smithy_runtime_api::client::retries::classifiers::ClassifyRetry;
@@ -88,6 +90,7 @@ impl Builder {
         path: impl Into<String>,
     ) -> HttpCredentialProvider {
         let provider_config = self.provider_config.unwrap_or_default();
+        let path = path.into();
 
         let mut builder = Operation::builder()
             .service_name("HttpCredentialProvider")
@@ -105,7 +108,15 @@ impl Builder {
                 let mut layer = Layer::new("SensitiveOutput");
                 layer.store_put(SensitiveOutput);
                 layer.freeze()
-            }));
+            }))
+            .runtime_plugin(
+                MetricsRuntimePlugin::builder()
+                    .with_scope("aws_config::http_credential_provider")
+                    .with_time_source(provider_config.time_source())
+                    .with_metadata(Metadata::new(path.clone(), provider_name))
+                    .build()
+                    .expect("All required fields have been set"),
+            );
         if let Some(http_client) = provider_config.http_client() {
             builder = builder.http_client(http_client);
         }
@@ -126,7 +137,6 @@ impl Builder {
         } else {
             builder = builder.no_retry();
         }
-        let path = path.into();
         let operation = builder
             .serializer(move |input: HttpProviderAuth| {
                 let mut http_req = http::Request::builder()
@@ -169,14 +179,18 @@ fn parse_response(
             access_key_id,
             secret_access_key,
             session_token,
+            account_id,
             expiration,
-        }) => Ok(Credentials::new(
-            access_key_id,
-            secret_access_key,
-            Some(session_token.to_string()),
-            Some(expiration),
-            provider_name,
-        )),
+        }) => {
+            let mut builder = Credentials::builder()
+                .access_key_id(access_key_id)
+                .secret_access_key(secret_access_key)
+                .session_token(session_token)
+                .expiry(expiration)
+                .provider_name(provider_name);
+            builder.set_account_id(account_id.map(AccountId::from));
+            Ok(builder.build())
+        }
         JsonCredentials::Error { code, message } => Err(OrchestratorError::operation(
             CredentialsError::provider_error(format!(
                 "failed to load credentials [{}]: {}",
@@ -220,7 +234,7 @@ impl ClassifyRetry for HttpCredentialRetryClassifier {
 mod test {
     use super::*;
     use aws_credential_types::provider::error::CredentialsError;
-    use aws_smithy_runtime::client::http::test_util::{ReplayEvent, StaticReplayClient};
+    use aws_smithy_http_client::test_util::{ReplayEvent, StaticReplayClient};
     use aws_smithy_types::body::SdkBody;
     use http::{Request, Response, Uri};
     use std::time::SystemTime;

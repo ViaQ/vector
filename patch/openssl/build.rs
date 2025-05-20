@@ -7,10 +7,11 @@
 use std::env;
 
 fn main() {
-    println!("cargo:rustc-check-cfg=cfg(osslconf, values(\"OPENSSL_NO_OCB\", \"OPENSSL_NO_SM4\", \"OPENSSL_NO_SEED\", \"OPENSSL_NO_CHACHA\", \"OPENSSL_NO_CAST\", \"OPENSSL_NO_IDEA\", \"OPENSSL_NO_CAMELLIA\", \"OPENSSL_NO_RC4\", \"OPENSSL_NO_BF\", \"OPENSSL_NO_PSK\", \"OPENSSL_NO_DEPRECATED_3_0\", \"OPENSSL_NO_SCRYPT\", \"OPENSSL_NO_SM3\", \"OPENSSL_NO_RMD160\", \"OPENSSL_NO_EC2M\", \"OPENSSL_NO_OCSP\", \"OPENSSL_NO_CMS\", \"OPENSSL_NO_EC\", \"OPENSSL_NO_ARGON2\"))");
+    println!("cargo:rustc-check-cfg=cfg(osslconf, values(\"OPENSSL_NO_OCB\", \"OPENSSL_NO_SM4\", \"OPENSSL_NO_SEED\", \"OPENSSL_NO_CHACHA\", \"OPENSSL_NO_CAST\", \"OPENSSL_NO_IDEA\", \"OPENSSL_NO_CAMELLIA\", \"OPENSSL_NO_RC4\", \"OPENSSL_NO_BF\", \"OPENSSL_NO_PSK\", \"OPENSSL_NO_DEPRECATED_3_0\", \"OPENSSL_NO_SCRYPT\", \"OPENSSL_NO_SM3\", \"OPENSSL_NO_RMD160\", \"OPENSSL_NO_EC2M\", \"OPENSSL_NO_OCSP\", \"OPENSSL_NO_CMS\", \"OPENSSL_NO_EC\", \"OPENSSL_NO_ARGON2\", \"OPENSSL_NO_RC2\"))");
 
     println!("cargo:rustc-check-cfg=cfg(libressl)");
     println!("cargo:rustc-check-cfg=cfg(boringssl)");
+    println!("cargo:rustc-check-cfg=cfg(awslc)");
 
     println!("cargo:rustc-check-cfg=cfg(libressl250)");
     println!("cargo:rustc-check-cfg=cfg(libressl251)");
@@ -32,6 +33,7 @@ fn main() {
     println!("cargo:rustc-check-cfg=cfg(libressl382)");
     println!("cargo:rustc-check-cfg=cfg(libressl390)");
     println!("cargo:rustc-check-cfg=cfg(libressl400)");
+    println!("cargo:rustc-check-cfg=cfg(libressl410)");
 
     println!("cargo:rustc-check-cfg=cfg(ossl101)");
     println!("cargo:rustc-check-cfg=cfg(ossl102)");
@@ -51,6 +53,10 @@ fn main() {
 
     if env::var("DEP_OPENSSL_BORINGSSL").is_ok() {
         println!("cargo:rustc-cfg=boringssl");
+    }
+
+    if env::var("DEP_OPENSSL_AWSLC").is_ok() {
+        println!("cargo:rustc-cfg=awslc");
     }
 
     if let Ok(v) = env::var("DEP_OPENSSL_LIBRESSL_VERSION_NUMBER") {
@@ -115,6 +121,9 @@ fn main() {
         }
         if version >= 0x4_00_00_00_0 {
             println!("cargo:rustc-cfg=libressl400");
+        }
+        if version >= 0x4_01_00_00_0 {
+            println!("cargo:rustc-cfg=libressl410");
         }
     }
 

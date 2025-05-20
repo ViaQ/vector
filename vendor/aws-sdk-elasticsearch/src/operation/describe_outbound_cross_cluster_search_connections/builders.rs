@@ -3,7 +3,7 @@ pub use crate::operation::describe_outbound_cross_cluster_search_connections::_d
 
 pub use crate::operation::describe_outbound_cross_cluster_search_connections::_describe_outbound_cross_cluster_search_connections_input::DescribeOutboundCrossClusterSearchConnectionsInputBuilder;
 
-impl DescribeOutboundCrossClusterSearchConnectionsInputBuilder {
+impl crate::operation::describe_outbound_cross_cluster_search_connections::builders::DescribeOutboundCrossClusterSearchConnectionsInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -48,7 +48,7 @@ impl
     }
 }
 impl DescribeOutboundCrossClusterSearchConnectionsFluentBuilder {
-    /// Creates a new `DescribeOutboundCrossClusterSearchConnections`.
+    /// Creates a new `DescribeOutboundCrossClusterSearchConnectionsFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -106,12 +106,12 @@ impl DescribeOutboundCrossClusterSearchConnectionsFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -126,11 +126,12 @@ impl DescribeOutboundCrossClusterSearchConnectionsFluentBuilder {
             self.inner,
         )
     }
+    ///
     /// Appends an item to `Filters`.
     ///
     /// To override the contents of this collection use [`set_filters`](Self::set_filters).
     ///
-    /// <p> A list of filters used to match properties for outbound cross-cluster search connection. Available <code><code>Filter</code></code> names for this operation are: </p>
+    /// <p>A list of filters used to match properties for outbound cross-cluster search connection. Available <code><code>Filter</code></code> names for this operation are:</p>
     /// <ul>
     /// <li>cross-cluster-search-connection-id</li>
     /// <li>destination-domain-info.domain-name</li>
@@ -143,7 +144,7 @@ impl DescribeOutboundCrossClusterSearchConnectionsFluentBuilder {
         self.inner = self.inner.filters(input);
         self
     }
-    /// <p> A list of filters used to match properties for outbound cross-cluster search connection. Available <code><code>Filter</code></code> names for this operation are: </p>
+    /// <p>A list of filters used to match properties for outbound cross-cluster search connection. Available <code><code>Filter</code></code> names for this operation are:</p>
     /// <ul>
     /// <li>cross-cluster-search-connection-id</li>
     /// <li>destination-domain-info.domain-name</li>
@@ -156,7 +157,7 @@ impl DescribeOutboundCrossClusterSearchConnectionsFluentBuilder {
         self.inner = self.inner.set_filters(input);
         self
     }
-    /// <p> A list of filters used to match properties for outbound cross-cluster search connection. Available <code><code>Filter</code></code> names for this operation are: </p>
+    /// <p>A list of filters used to match properties for outbound cross-cluster search connection. Available <code><code>Filter</code></code> names for this operation are:</p>
     /// <ul>
     /// <li>cross-cluster-search-connection-id</li>
     /// <li>destination-domain-info.domain-name</li>
@@ -182,17 +183,17 @@ impl DescribeOutboundCrossClusterSearchConnectionsFluentBuilder {
     pub fn get_max_results(&self) -> &::std::option::Option<i32> {
         self.inner.get_max_results()
     }
-    /// <p> NextToken is sent in case the earlier API call results contain the NextToken. It is used for pagination.</p>
+    /// <p>NextToken is sent in case the earlier API call results contain the NextToken. It is used for pagination.</p>
     pub fn next_token(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.next_token(input.into());
         self
     }
-    /// <p> NextToken is sent in case the earlier API call results contain the NextToken. It is used for pagination.</p>
+    /// <p>NextToken is sent in case the earlier API call results contain the NextToken. It is used for pagination.</p>
     pub fn set_next_token(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_next_token(input);
         self
     }
-    /// <p> NextToken is sent in case the earlier API call results contain the NextToken. It is used for pagination.</p>
+    /// <p>NextToken is sent in case the earlier API call results contain the NextToken. It is used for pagination.</p>
     pub fn get_next_token(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_next_token()
     }

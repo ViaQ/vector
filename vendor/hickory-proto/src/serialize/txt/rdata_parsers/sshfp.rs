@@ -7,7 +7,10 @@
 
 //! SSHFP records for SSH public key fingerprints
 
-use crate::rr::rdata::{sshfp, SSHFP};
+#[cfg(test)]
+use alloc::vec::Vec;
+
+use crate::rr::rdata::{SSHFP, sshfp};
 use crate::serialize::txt::errors::{ParseError, ParseErrorKind, ParseResult};
 
 /// Parse the RData from a set of Tokens
@@ -55,7 +58,7 @@ pub(crate) fn parse<'i, I: Iterator<Item = &'i str>>(mut tokens: I) -> ParseResu
 
 #[test]
 fn test_parsing() {
-    assert!(parse(::std::iter::empty()).is_err());
+    assert!(parse(core::iter::empty()).is_err());
     assert!(parse(vec!["51", "13"].into_iter()).is_err());
     assert!(parse(vec!["1", "-1"].into_iter()).is_err());
     assert!(parse(vec!["1", "1", "abcd", "foo"].into_iter()).is_err());
@@ -65,9 +68,11 @@ fn test_parsing() {
     use crate::rr::rdata::sshfp::{Algorithm, FingerprintType};
 
     fn test_parsing(input: Vec<&str>, a: Algorithm, ft: FingerprintType, f: &[u8]) {
-        assert!(parse(input.into_iter())
-            .map(|rd| rd == SSHFP::new(a, ft, f.to_vec()))
-            .unwrap_or(false));
+        assert!(
+            parse(input.into_iter())
+                .map(|rd| rd == SSHFP::new(a, ft, f.to_vec()))
+                .unwrap_or(false)
+        );
     }
 
     test_parsing(

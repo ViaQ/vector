@@ -47,14 +47,7 @@ pub trait Resource {
     fn version(dt: &Self::DynamicType) -> Cow<'_, str>;
     /// Returns apiVersion of this object
     fn api_version(dt: &Self::DynamicType) -> Cow<'_, str> {
-        let group = Self::group(dt);
-        if group.is_empty() {
-            return Self::version(dt);
-        }
-        let mut group = group.into_owned();
-        group.push('/');
-        group.push_str(&Self::version(dt));
-        group.into()
+        api_version_from_group_version(Self::group(dt), Self::version(dt))
     }
     /// Returns the plural name of the kind
     ///
@@ -102,17 +95,75 @@ pub trait Resource {
     ///
     /// Note: this returns an `Option`, but for objects populated from the apiserver,
     /// this Option can be safely unwrapped.
+    ///
+    /// ```
+    /// use k8s_openapi::api::core::v1::ConfigMap;
+    /// use k8s_openapi::api::core::v1::Pod;
+    /// use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
+    /// use kube_core::Resource;
+    ///
+    /// let p = Pod::default();
+    /// let controller_ref = p.controller_owner_ref(&());
+    /// let cm = ConfigMap {
+    ///     metadata: ObjectMeta {
+    ///         name: Some("pod-configmap".to_string()),
+    ///         owner_references: Some(controller_ref.into_iter().collect()),
+    ///         ..ObjectMeta::default()
+    ///     },
+    ///     ..Default::default()
+    /// };
+    /// ```
     fn controller_owner_ref(&self, dt: &Self::DynamicType) -> Option<OwnerReference> {
+        Some(OwnerReference {
+            controller: Some(true),
+            ..self.owner_ref(dt)?
+        })
+    }
+
+    /// Generates an owner reference pointing to this resource
+    ///
+    /// Note: this returns an `Option`, but for objects populated from the apiserver,
+    /// this Option can be safely unwrapped.
+    ///
+    /// ```
+    /// use k8s_openapi::api::core::v1::ConfigMap;
+    /// use k8s_openapi::api::core::v1::Pod;
+    /// use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
+    /// use kube_core::Resource;
+    ///
+    /// let p = Pod::default();
+    /// let owner_ref = p.owner_ref(&());
+    /// let cm = ConfigMap {
+    ///     metadata: ObjectMeta {
+    ///         name: Some("pod-configmap".to_string()),
+    ///         owner_references: Some(owner_ref.into_iter().collect()),
+    ///         ..ObjectMeta::default()
+    ///     },
+    ///     ..Default::default()
+    /// };
+    /// ```
+    fn owner_ref(&self, dt: &Self::DynamicType) -> Option<OwnerReference> {
         let meta = self.meta();
         Some(OwnerReference {
             api_version: Self::api_version(dt).to_string(),
             kind: Self::kind(dt).to_string(),
             name: meta.name.clone()?,
             uid: meta.uid.clone()?,
-            controller: Some(true),
             ..OwnerReference::default()
         })
     }
+}
+
+/// Helper function that creates the `apiVersion` field from the group and version strings.
+pub fn api_version_from_group_version<'a>(group: Cow<'a, str>, version: Cow<'a, str>) -> Cow<'a, str> {
+    if group.is_empty() {
+        return version;
+    }
+
+    let mut output = group;
+    output.to_mut().push('/');
+    output.to_mut().push_str(&version);
+    output
 }
 
 /// Implement accessor trait for any ObjectMeta-using Kubernetes Resource
@@ -211,10 +262,7 @@ pub trait ResourceExt: Resource {
     fn managed_fields_mut(&mut self) -> &mut Vec<ManagedFieldsEntry>;
 }
 
-// TODO: replace with ordinary static when BTreeMap::new() is no longer
-// const-unstable.
-use once_cell::sync::Lazy;
-static EMPTY_MAP: Lazy<BTreeMap<String, String>> = Lazy::new(BTreeMap::new);
+static EMPTY_MAP: BTreeMap<String, String> = BTreeMap::new();
 
 impl<K: Resource> ResourceExt for K {
     fn name_unchecked(&self) -> String {
@@ -246,7 +294,7 @@ impl<K: Resource> ResourceExt for K {
     }
 
     fn labels(&self) -> &BTreeMap<String, String> {
-        self.meta().labels.as_ref().unwrap_or(&*EMPTY_MAP)
+        self.meta().labels.as_ref().unwrap_or(&EMPTY_MAP)
     }
 
     fn labels_mut(&mut self) -> &mut BTreeMap<String, String> {
@@ -254,7 +302,7 @@ impl<K: Resource> ResourceExt for K {
     }
 
     fn annotations(&self) -> &BTreeMap<String, String> {
-        self.meta().annotations.as_ref().unwrap_or(&*EMPTY_MAP)
+        self.meta().annotations.as_ref().unwrap_or(&EMPTY_MAP)
     }
 
     fn annotations_mut(&mut self) -> &mut BTreeMap<String, String> {

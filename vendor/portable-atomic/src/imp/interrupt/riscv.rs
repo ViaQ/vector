@@ -1,11 +1,18 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-// Refs:
-// - https://five-embeddev.com/riscv-isa-manual/latest/machine.html#machine-status-registers-mstatus-and-mstatush
-// - https://five-embeddev.com/riscv-isa-manual/latest/supervisor.html#sstatus
-//
-// Generated asm:
-// - riscv64gc https://godbolt.org/z/osbzsT679
+/*
+Refs:
+- RISC-V Instruction Set Manual
+  Machine Status (mstatus and mstatush) Registers
+  https://github.com/riscv/riscv-isa-manual/blob/riscv-isa-release-8b9dc50-2024-08-30/src/machine.adoc#machine-status-mstatus-and-mstatush-registers
+  Supervisor Status (sstatus) Register
+  https://github.com/riscv/riscv-isa-manual/blob/riscv-isa-release-8b9dc50-2024-08-30/src/supervisor.adoc#supervisor-status-sstatus-register
+
+See also src/imp/riscv.rs.
+
+Generated asm:
+- riscv64gc https://godbolt.org/z/zTrzT1Ee7
+*/
 
 #[cfg(not(portable_atomic_no_asm))]
 use core::arch::asm;
@@ -51,16 +58,20 @@ pub(super) type State = u32;
 pub(super) type State = u64;
 
 /// Disables interrupts and returns the previous interrupt state.
-#[inline]
+#[inline(always)]
 pub(super) fn disable() -> State {
-    let r: State;
-    // SAFETY: reading mstatus and disabling interrupts is safe.
+    let status: State;
+    // SAFETY: reading mstatus/sstatus and disabling interrupts is safe.
     // (see module-level comments of interrupt/mod.rs on the safety of using privileged instructions)
     unsafe {
         // Do not use `nomem` and `readonly` because prevent subsequent memory accesses from being reordered before interrupts are disabled.
-        asm!(concat!("csrrci {0}, ", status!(), ", ", mask!()), out(reg) r, options(nostack, preserves_flags));
+        asm!(
+            concat!("csrrci {status}, ", status!(), ", ", mask!()), // atomic { status = status!(); status!() &= !mask!() }
+            status = out(reg) status,
+            options(nostack, preserves_flags),
+        );
     }
-    r
+    status
 }
 
 /// Restores the previous interrupt state.
@@ -68,14 +79,17 @@ pub(super) fn disable() -> State {
 /// # Safety
 ///
 /// The state must be the one retrieved by the previous `disable`.
-#[inline]
-pub(super) unsafe fn restore(r: State) {
-    if r & MASK != 0 {
+#[inline(always)]
+pub(super) unsafe fn restore(status: State) {
+    if status & MASK != 0 {
         // SAFETY: the caller must guarantee that the state was retrieved by the previous `disable`,
         // and we've checked that interrupts were enabled before disabling interrupts.
         unsafe {
             // Do not use `nomem` and `readonly` because prevent preceding memory accesses from being reordered after interrupts are enabled.
-            asm!(concat!("csrsi ", status!(), ", ", mask!()), options(nostack, preserves_flags));
+            asm!(
+                concat!("csrsi ", status!(), ", ", mask!()), // atomic { status!() |= mask!() }
+                options(nostack, preserves_flags),
+            );
         }
     }
 }

@@ -3,7 +3,7 @@ pub use crate::operation::set_subscription_attributes::_set_subscription_attribu
 
 pub use crate::operation::set_subscription_attributes::_set_subscription_attributes_input::SetSubscriptionAttributesInputBuilder;
 
-impl SetSubscriptionAttributesInputBuilder {
+impl crate::operation::set_subscription_attributes::builders::SetSubscriptionAttributesInputBuilder {
     /// Sends a request with this input using the given client.
     pub async fn send_with(
         self,
@@ -48,7 +48,7 @@ impl
     }
 }
 impl SetSubscriptionAttributesFluentBuilder {
-    /// Creates a new `SetSubscriptionAttributes`.
+    /// Creates a new `SetSubscriptionAttributesFluentBuilder`.
     pub(crate) fn new(handle: ::std::sync::Arc<crate::client::Handle>) -> Self {
         Self {
             handle,
@@ -99,12 +99,12 @@ impl SetSubscriptionAttributesFluentBuilder {
     > {
         crate::client::customize::CustomizableOperation::new(self)
     }
-    pub(crate) fn config_override(mut self, config_override: impl Into<crate::config::Builder>) -> Self {
-        self.set_config_override(Some(config_override.into()));
+    pub(crate) fn config_override(mut self, config_override: impl ::std::convert::Into<crate::config::Builder>) -> Self {
+        self.set_config_override(::std::option::Option::Some(config_override.into()));
         self
     }
 
-    pub(crate) fn set_config_override(&mut self, config_override: Option<crate::config::Builder>) -> &mut Self {
+    pub(crate) fn set_config_override(&mut self, config_override: ::std::option::Option<crate::config::Builder>) -> &mut Self {
         self.config_override = config_override;
         self
     }
@@ -125,23 +125,34 @@ impl SetSubscriptionAttributesFluentBuilder {
     /// <p>A map of attributes with their corresponding values.</p>
     /// <p>The following lists the names, descriptions, and values of the special request parameters that this action uses:</p>
     /// <ul>
-    /// <li> <p> <code>DeliveryPolicy</code> – The policy that defines how Amazon SNS retries failed deliveries to HTTP/S endpoints.</p> </li>
-    /// <li> <p> <code>FilterPolicy</code> – The simple JSON object that lets your subscriber receive only a subset of messages, rather than receiving every message published to the topic.</p> </li>
-    /// <li> <p> <code>FilterPolicyScope</code> – This attribute lets you choose the filtering scope by using one of the following string value types:</p>
+    /// <li>
+    /// <p><code>DeliveryPolicy</code> – The policy that defines how Amazon SNS retries failed deliveries to HTTP/S endpoints.</p></li>
+    /// <li>
+    /// <p><code>FilterPolicy</code> – The simple JSON object that lets your subscriber receive only a subset of messages, rather than receiving every message published to the topic.</p></li>
+    /// <li>
+    /// <p><code>FilterPolicyScope</code> – This attribute lets you choose the filtering scope by using one of the following string value types:</p>
     /// <ul>
-    /// <li> <p> <code>MessageAttributes</code> (default) – The filter is applied on the message attributes.</p> </li>
-    /// <li> <p> <code>MessageBody</code> – The filter is applied on the message body.</p> </li>
-    /// </ul> </li>
-    /// <li> <p> <code>RawMessageDelivery</code> – When set to <code>true</code>, enables raw message delivery to Amazon SQS or HTTP/S endpoints. This eliminates the need for the endpoints to process JSON formatting, which is otherwise created for Amazon SNS metadata.</p> </li>
-    /// <li> <p> <code>RedrivePolicy</code> – When specified, sends undeliverable messages to the specified Amazon SQS dead-letter queue. Messages that can't be delivered due to client errors (for example, when the subscribed endpoint is unreachable) or server errors (for example, when the service that powers the subscribed endpoint becomes unavailable) are held in the dead-letter queue for further analysis or reprocessing.</p> </li>
+    /// <li>
+    /// <p><code>MessageAttributes</code> (default) – The filter is applied on the message attributes.</p></li>
+    /// <li>
+    /// <p><code>MessageBody</code> – The filter is applied on the message body.</p></li>
+    /// </ul></li>
+    /// <li>
+    /// <p><code>RawMessageDelivery</code> – When set to <code>true</code>, enables raw message delivery to Amazon SQS or HTTP/S endpoints. This eliminates the need for the endpoints to process JSON formatting, which is otherwise created for Amazon SNS metadata.</p></li>
+    /// <li>
+    /// <p><code>RedrivePolicy</code> – When specified, sends undeliverable messages to the specified Amazon SQS dead-letter queue. Messages that can't be delivered due to client errors (for example, when the subscribed endpoint is unreachable) or server errors (for example, when the service that powers the subscribed endpoint becomes unavailable) are held in the dead-letter queue for further analysis or reprocessing.</p></li>
     /// </ul>
-    /// <p>The following attribute applies only to Amazon Kinesis Data Firehose delivery stream subscriptions:</p>
+    /// <p>The following attribute applies only to Amazon Data Firehose delivery stream subscriptions:</p>
     /// <ul>
-    /// <li> <p> <code>SubscriptionRoleArn</code> – The ARN of the IAM role that has the following:</p>
+    /// <li>
+    /// <p><code>SubscriptionRoleArn</code> – The ARN of the IAM role that has the following:</p>
     /// <ul>
-    /// <li> <p>Permission to write to the Kinesis Data Firehose delivery stream</p> </li>
-    /// <li> <p>Amazon SNS listed as a trusted entity</p> </li>
-    /// </ul> <p>Specifying a valid ARN for this attribute is required for Kinesis Data Firehose delivery stream subscriptions. For more information, see <a href="https://docs.aws.amazon.com/sns/latest/dg/sns-firehose-as-subscriber.html">Fanout to Kinesis Data Firehose delivery streams</a> in the <i>Amazon SNS Developer Guide</i>.</p> </li>
+    /// <li>
+    /// <p>Permission to write to the Firehose delivery stream</p></li>
+    /// <li>
+    /// <p>Amazon SNS listed as a trusted entity</p></li>
+    /// </ul>
+    /// <p>Specifying a valid ARN for this attribute is required for Firehose delivery stream subscriptions. For more information, see <a href="https://docs.aws.amazon.com/sns/latest/dg/sns-firehose-as-subscriber.html">Fanout to Firehose delivery streams</a> in the <i>Amazon SNS Developer Guide</i>.</p></li>
     /// </ul>
     pub fn attribute_name(mut self, input: impl ::std::convert::Into<::std::string::String>) -> Self {
         self.inner = self.inner.attribute_name(input.into());
@@ -150,23 +161,34 @@ impl SetSubscriptionAttributesFluentBuilder {
     /// <p>A map of attributes with their corresponding values.</p>
     /// <p>The following lists the names, descriptions, and values of the special request parameters that this action uses:</p>
     /// <ul>
-    /// <li> <p> <code>DeliveryPolicy</code> – The policy that defines how Amazon SNS retries failed deliveries to HTTP/S endpoints.</p> </li>
-    /// <li> <p> <code>FilterPolicy</code> – The simple JSON object that lets your subscriber receive only a subset of messages, rather than receiving every message published to the topic.</p> </li>
-    /// <li> <p> <code>FilterPolicyScope</code> – This attribute lets you choose the filtering scope by using one of the following string value types:</p>
+    /// <li>
+    /// <p><code>DeliveryPolicy</code> – The policy that defines how Amazon SNS retries failed deliveries to HTTP/S endpoints.</p></li>
+    /// <li>
+    /// <p><code>FilterPolicy</code> – The simple JSON object that lets your subscriber receive only a subset of messages, rather than receiving every message published to the topic.</p></li>
+    /// <li>
+    /// <p><code>FilterPolicyScope</code> – This attribute lets you choose the filtering scope by using one of the following string value types:</p>
     /// <ul>
-    /// <li> <p> <code>MessageAttributes</code> (default) – The filter is applied on the message attributes.</p> </li>
-    /// <li> <p> <code>MessageBody</code> – The filter is applied on the message body.</p> </li>
-    /// </ul> </li>
-    /// <li> <p> <code>RawMessageDelivery</code> – When set to <code>true</code>, enables raw message delivery to Amazon SQS or HTTP/S endpoints. This eliminates the need for the endpoints to process JSON formatting, which is otherwise created for Amazon SNS metadata.</p> </li>
-    /// <li> <p> <code>RedrivePolicy</code> – When specified, sends undeliverable messages to the specified Amazon SQS dead-letter queue. Messages that can't be delivered due to client errors (for example, when the subscribed endpoint is unreachable) or server errors (for example, when the service that powers the subscribed endpoint becomes unavailable) are held in the dead-letter queue for further analysis or reprocessing.</p> </li>
+    /// <li>
+    /// <p><code>MessageAttributes</code> (default) – The filter is applied on the message attributes.</p></li>
+    /// <li>
+    /// <p><code>MessageBody</code> – The filter is applied on the message body.</p></li>
+    /// </ul></li>
+    /// <li>
+    /// <p><code>RawMessageDelivery</code> – When set to <code>true</code>, enables raw message delivery to Amazon SQS or HTTP/S endpoints. This eliminates the need for the endpoints to process JSON formatting, which is otherwise created for Amazon SNS metadata.</p></li>
+    /// <li>
+    /// <p><code>RedrivePolicy</code> – When specified, sends undeliverable messages to the specified Amazon SQS dead-letter queue. Messages that can't be delivered due to client errors (for example, when the subscribed endpoint is unreachable) or server errors (for example, when the service that powers the subscribed endpoint becomes unavailable) are held in the dead-letter queue for further analysis or reprocessing.</p></li>
     /// </ul>
-    /// <p>The following attribute applies only to Amazon Kinesis Data Firehose delivery stream subscriptions:</p>
+    /// <p>The following attribute applies only to Amazon Data Firehose delivery stream subscriptions:</p>
     /// <ul>
-    /// <li> <p> <code>SubscriptionRoleArn</code> – The ARN of the IAM role that has the following:</p>
+    /// <li>
+    /// <p><code>SubscriptionRoleArn</code> – The ARN of the IAM role that has the following:</p>
     /// <ul>
-    /// <li> <p>Permission to write to the Kinesis Data Firehose delivery stream</p> </li>
-    /// <li> <p>Amazon SNS listed as a trusted entity</p> </li>
-    /// </ul> <p>Specifying a valid ARN for this attribute is required for Kinesis Data Firehose delivery stream subscriptions. For more information, see <a href="https://docs.aws.amazon.com/sns/latest/dg/sns-firehose-as-subscriber.html">Fanout to Kinesis Data Firehose delivery streams</a> in the <i>Amazon SNS Developer Guide</i>.</p> </li>
+    /// <li>
+    /// <p>Permission to write to the Firehose delivery stream</p></li>
+    /// <li>
+    /// <p>Amazon SNS listed as a trusted entity</p></li>
+    /// </ul>
+    /// <p>Specifying a valid ARN for this attribute is required for Firehose delivery stream subscriptions. For more information, see <a href="https://docs.aws.amazon.com/sns/latest/dg/sns-firehose-as-subscriber.html">Fanout to Firehose delivery streams</a> in the <i>Amazon SNS Developer Guide</i>.</p></li>
     /// </ul>
     pub fn set_attribute_name(mut self, input: ::std::option::Option<::std::string::String>) -> Self {
         self.inner = self.inner.set_attribute_name(input);
@@ -175,23 +197,34 @@ impl SetSubscriptionAttributesFluentBuilder {
     /// <p>A map of attributes with their corresponding values.</p>
     /// <p>The following lists the names, descriptions, and values of the special request parameters that this action uses:</p>
     /// <ul>
-    /// <li> <p> <code>DeliveryPolicy</code> – The policy that defines how Amazon SNS retries failed deliveries to HTTP/S endpoints.</p> </li>
-    /// <li> <p> <code>FilterPolicy</code> – The simple JSON object that lets your subscriber receive only a subset of messages, rather than receiving every message published to the topic.</p> </li>
-    /// <li> <p> <code>FilterPolicyScope</code> – This attribute lets you choose the filtering scope by using one of the following string value types:</p>
+    /// <li>
+    /// <p><code>DeliveryPolicy</code> – The policy that defines how Amazon SNS retries failed deliveries to HTTP/S endpoints.</p></li>
+    /// <li>
+    /// <p><code>FilterPolicy</code> – The simple JSON object that lets your subscriber receive only a subset of messages, rather than receiving every message published to the topic.</p></li>
+    /// <li>
+    /// <p><code>FilterPolicyScope</code> – This attribute lets you choose the filtering scope by using one of the following string value types:</p>
     /// <ul>
-    /// <li> <p> <code>MessageAttributes</code> (default) – The filter is applied on the message attributes.</p> </li>
-    /// <li> <p> <code>MessageBody</code> – The filter is applied on the message body.</p> </li>
-    /// </ul> </li>
-    /// <li> <p> <code>RawMessageDelivery</code> – When set to <code>true</code>, enables raw message delivery to Amazon SQS or HTTP/S endpoints. This eliminates the need for the endpoints to process JSON formatting, which is otherwise created for Amazon SNS metadata.</p> </li>
-    /// <li> <p> <code>RedrivePolicy</code> – When specified, sends undeliverable messages to the specified Amazon SQS dead-letter queue. Messages that can't be delivered due to client errors (for example, when the subscribed endpoint is unreachable) or server errors (for example, when the service that powers the subscribed endpoint becomes unavailable) are held in the dead-letter queue for further analysis or reprocessing.</p> </li>
+    /// <li>
+    /// <p><code>MessageAttributes</code> (default) – The filter is applied on the message attributes.</p></li>
+    /// <li>
+    /// <p><code>MessageBody</code> – The filter is applied on the message body.</p></li>
+    /// </ul></li>
+    /// <li>
+    /// <p><code>RawMessageDelivery</code> – When set to <code>true</code>, enables raw message delivery to Amazon SQS or HTTP/S endpoints. This eliminates the need for the endpoints to process JSON formatting, which is otherwise created for Amazon SNS metadata.</p></li>
+    /// <li>
+    /// <p><code>RedrivePolicy</code> – When specified, sends undeliverable messages to the specified Amazon SQS dead-letter queue. Messages that can't be delivered due to client errors (for example, when the subscribed endpoint is unreachable) or server errors (for example, when the service that powers the subscribed endpoint becomes unavailable) are held in the dead-letter queue for further analysis or reprocessing.</p></li>
     /// </ul>
-    /// <p>The following attribute applies only to Amazon Kinesis Data Firehose delivery stream subscriptions:</p>
+    /// <p>The following attribute applies only to Amazon Data Firehose delivery stream subscriptions:</p>
     /// <ul>
-    /// <li> <p> <code>SubscriptionRoleArn</code> – The ARN of the IAM role that has the following:</p>
+    /// <li>
+    /// <p><code>SubscriptionRoleArn</code> – The ARN of the IAM role that has the following:</p>
     /// <ul>
-    /// <li> <p>Permission to write to the Kinesis Data Firehose delivery stream</p> </li>
-    /// <li> <p>Amazon SNS listed as a trusted entity</p> </li>
-    /// </ul> <p>Specifying a valid ARN for this attribute is required for Kinesis Data Firehose delivery stream subscriptions. For more information, see <a href="https://docs.aws.amazon.com/sns/latest/dg/sns-firehose-as-subscriber.html">Fanout to Kinesis Data Firehose delivery streams</a> in the <i>Amazon SNS Developer Guide</i>.</p> </li>
+    /// <li>
+    /// <p>Permission to write to the Firehose delivery stream</p></li>
+    /// <li>
+    /// <p>Amazon SNS listed as a trusted entity</p></li>
+    /// </ul>
+    /// <p>Specifying a valid ARN for this attribute is required for Firehose delivery stream subscriptions. For more information, see <a href="https://docs.aws.amazon.com/sns/latest/dg/sns-firehose-as-subscriber.html">Fanout to Firehose delivery streams</a> in the <i>Amazon SNS Developer Guide</i>.</p></li>
     /// </ul>
     pub fn get_attribute_name(&self) -> &::std::option::Option<::std::string::String> {
         self.inner.get_attribute_name()

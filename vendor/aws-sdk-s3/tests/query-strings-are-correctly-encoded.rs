@@ -9,7 +9,7 @@ use aws_credential_types::provider::SharedCredentialsProvider;
 use aws_sdk_s3::config::{Credentials, Region};
 use aws_sdk_s3::operation::list_objects_v2::ListObjectsV2Error;
 use aws_sdk_s3::{Client, Config};
-use aws_smithy_runtime::client::http::test_util::capture_request;
+use aws_smithy_http_client::test_util::capture_request;
 
 #[tokio::test]
 async fn test_s3_signer_query_string_with_all_valid_chars() {
@@ -36,23 +36,12 @@ async fn test_s3_signer_query_string_with_all_valid_chars() {
         .send()
         .await;
 
+    // As long as a request can be extracted and the `Authorization` header exits, we're good.
+    // We cannot compare a signature in the `Authorization` header between expected and actual
+    // because the signature is subject to change as we update the `x-amz-user-agent` header, e.g.
+    // due to the introduction of a new metric.
     let expected_req = rcvr.expect_request();
-    let auth_header = expected_req
-        .headers()
-        .get("Authorization")
-        .unwrap()
-        .to_owned();
-
-    // This is a snapshot test taken from a known working test result
-    let snapshot_signature =
-        "Signature=740feb1de3968a643e68fb1a17c415d98dd6a1cc28782fb1ef6157586548c747";
-    assert!(
-        auth_header
-            .contains(snapshot_signature),
-        "authorization header signature did not match expected signature: got {}, expected it to contain {}",
-        auth_header,
-        snapshot_signature
-    );
+    let _ = expected_req.headers().get("Authorization").unwrap();
 }
 
 // This test can help identify individual characters that break the signing of query strings. This

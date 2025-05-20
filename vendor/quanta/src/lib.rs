@@ -71,7 +71,7 @@
 //!
 //! This library can be built for WASM targets, but in this case the resolution and accuracy of
 //! measurements can be limited by the WASM environment. In particular, when running on the
-//! `wasm32-unknown-unknown` target in browsers, `quanta` will use [windows.performance.now] as a
+//! `wasm32-unknown-unknown` target in browsers, `quanta` will use [window.performance.now] as a
 //! clock. This mean the accuracy is limited to milliseconds instead of the usual nanoseconds on
 //! other targets. When running within a WASI environment (target `wasm32-wasi`), the accuracy of
 //! the clock depends on the VM implementation.
@@ -135,7 +135,7 @@
 //! [mach_absolute_time]: https://developer.apple.com/documentation/kernel/1462446-mach_absolute_time
 //! [clock_gettime]: https://linux.die.net/man/3/clock_gettime
 //! [prost_types_timestamp]: https://docs.rs/prost-types/0.7.0/prost_types/struct.Timestamp.html
-//! [windows.performance.now]: https://developer.mozilla.org/en-US/docs/Web/API/Performance/now
+//! [window.performance.now]: https://developer.mozilla.org/en-US/docs/Web/API/Performance/now
 #![deny(missing_docs)]
 #![deny(clippy::all)]
 #![allow(clippy::must_use_candidate)]
@@ -452,6 +452,7 @@ impl Clock {
     }
 
     #[cfg(test)]
+    #[allow(dead_code)]
     fn reset_timebase(&mut self) -> bool {
         match &mut self.inner {
             ClockType::Counter(reference, source, calibration) => {
@@ -540,16 +541,17 @@ fn mul_div_po2_u64(value: u64, numer: u64, denom: u32) -> u64 {
 }
 
 #[cfg(test)]
-pub mod tests {
-    use super::{Clock, Counter, Monotonic};
-    use average::{Merge, Variance};
-    use std::time::{Duration, Instant};
+mod tests {
+    use super::Clock;
 
-    #[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
-    mod configure_wasm_tests {
-        // Until https://github.com/rustwasm/wasm-bindgen/issues/2571 is resolved, these tests will only run in browsers.
-        wasm_bindgen_test::wasm_bindgen_test_configure!(run_in_browser);
-    }
+    #[cfg(not(target_arch = "wasm32"))]
+    use super::{Counter, Monotonic};
+
+    #[cfg(not(target_arch = "wasm32"))]
+    use average::{Merge as _, Variance};
+
+    #[cfg(not(target_arch = "wasm32"))]
+    use std::time::{Duration, Instant};
 
     #[test]
     #[cfg_attr(
@@ -595,13 +597,9 @@ pub mod tests {
         assert!(scaled.0 > 0);
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     #[test]
     #[cfg_attr(not(feature = "flaky_tests"), ignore)]
-    #[cfg_attr(
-        all(target_arch = "wasm32", target_os = "unknown"),
-        wasm_bindgen_test::wasm_bindgen_test
-    )]
-
     fn test_reference_source_calibration() {
         let mut clock = Clock::new();
         let reference = Monotonic::default();
@@ -619,10 +617,10 @@ pub mod tests {
             // not matching our calculation of wall-clock time to the system's calculation of wall-clock time, in terms
             // of their absolute values.
             //
-            // As the system adjusts its clocks over time, whether due to NTP skew, or delays in updating the derived monotonic
-            // time, and so on, our original measurement base from the reference source -- which we use to anchor how we
-            // convert our scaled source measurement into the same reference timebase -- can skew further away from the
-            // current reference time in terms of the rate at which it ticks forward.
+            // As the system adjusts its clocks over time, whether due to NTP skew, or delays in updating the derived
+            // monotonic time, and so on, our original measurement base from the reference source -- which we use to
+            // anchor how we convert our scaled source measurement into the same reference timebase -- can skew further
+            // away from the current reference time in terms of the rate at which it ticks forward.
             //
             // Essentially, what we're saying here is that we want to test the scaling ratio that we generated in
             // calibration, but not necessarily that the resulting value -- which is meant to be in the same timebase as
@@ -682,12 +680,9 @@ pub mod tests {
         assert!(overall.mean() < 1000.0);
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     #[test]
     #[cfg_attr(not(feature = "flaky_tests"), ignore)]
-    #[cfg_attr(
-        all(target_arch = "wasm32", target_os = "unknown"),
-        wasm_bindgen_test::wasm_bindgen_test
-    )]
     fn measure_source_reference_self_timing() {
         let source = Counter::default();
         let reference = Monotonic::default();

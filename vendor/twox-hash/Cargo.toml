@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.81"
 name = "twox-hash"
-version = "2.0.1"
+version = "2.1.0"
 authors = ["Jake Goulding <jake.goulding@gmail.com>"]
 build = false
 autolib = false
@@ -66,12 +66,14 @@ default = [
     "xxhash32",
     "xxhash64",
     "xxhash3_64",
+    "xxhash3_128",
     "std",
 ]
 random = ["dep:rand"]
 serialize = ["dep:serde"]
 std = ["alloc"]
 xxhash32 = []
+xxhash3_128 = []
 xxhash3_64 = []
 xxhash64 = []
 

@@ -1,9 +1,9 @@
-//! Error handling in [`kube`][crate]
+//! Error handling and error types
 use thiserror::Error;
 
 pub use kube_core::ErrorResponse;
 
-/// Possible errors when working with [`kube`][crate]
+/// Possible errors from the [`Client`](crate::Client)
 #[cfg_attr(docsrs, doc(cfg(any(feature = "config", feature = "client"))))]
 #[derive(Error, Debug)]
 pub enum Error {
@@ -44,7 +44,7 @@ pub enum Error {
     HttpError(#[source] http::Error),
 
     /// Common error case when requesting parsing into own structs
-    #[error("Error deserializing response")]
+    #[error("Error deserializing response: {0}")]
     SerdeError(#[source] serde_json::Error),
 
     /// Failed to build request
@@ -71,6 +71,10 @@ pub enum Error {
     #[error("rustls tls error: {0}")]
     RustlsTls(#[source] crate::client::RustlsTlsError),
 
+    /// Missing TLS stacks when TLS is required
+    #[error("TLS required but no TLS stack selected")]
+    TlsRequired,
+
     /// Failed to upgrade to a WebSocket connection
     #[cfg(feature = "ws")]
     #[cfg_attr(docsrs, doc(cfg(feature = "ws")))]
@@ -82,10 +86,16 @@ pub enum Error {
     #[cfg_attr(docsrs, doc(cfg(feature = "client")))]
     #[error("auth error: {0}")]
     Auth(#[source] crate::client::AuthError),
+
+    /// Error resolving resource reference
+    #[cfg(feature = "unstable-client")]
+    #[cfg_attr(docsrs, doc(cfg(feature = "unstable-client")))]
+    #[error("Reference resolve error: {0}")]
+    RefResolve(String),
 }
 
 #[derive(Error, Debug)]
-/// Possible errors when using API discovery
+/// Possible errors when using API [discovery](crate::discovery)
 pub enum DiscoveryError {
     /// Invalid GroupVersion
     #[error("Invalid GroupVersion: {0}")]

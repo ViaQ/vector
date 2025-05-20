@@ -16,6 +16,7 @@ use tokio::io::{AsyncBufRead, AsyncRead, AsyncWrite, ReadBuf};
 #[derive(Debug)]
 enum State {
     Encoding,
+    Flushing,
     Finishing,
     Done,
 }
@@ -34,6 +35,14 @@ impl<W: AsyncWrite, E: Encode> Encoder<W, E> {
     pub fn new(writer: W, encoder: E) -> Self {
         Self {
             writer: BufWriter::new(writer),
+            encoder,
+            state: State::Encoding,
+        }
+    }
+
+    pub fn with_capacity(writer: W, encoder: E, cap: usize) -> Self {
+        Self {
+            writer: BufWriter::with_capacity(cap, writer),
             encoder,
             state: State::Encoding,
         }
@@ -80,6 +89,12 @@ impl<W: AsyncWrite, E: Encode> Encoder<W, E> {
                     State::Encoding
                 }
 
+                // Once a flush has been started, it must be completed.
+                State::Flushing => match this.encoder.flush(&mut output)? {
+                    true => State::Encoding,
+                    false => State::Flushing,
+                },
+
                 State::Finishing | State::Done => {
                     return Poll::Ready(Err(io::Error::new(
                         io::ErrorKind::Other,
@@ -105,7 +120,7 @@ impl<W: AsyncWrite, E: Encode> Encoder<W, E> {
             let mut output = PartialBuffer::new(output);
 
             let done = match this.state {
-                State::Encoding => this.encoder.flush(&mut output)?,
+                State::Encoding | State::Flushing => this.encoder.flush(&mut output)?,
 
                 State::Finishing | State::Done => {
                     return Poll::Ready(Err(io::Error::new(
@@ -114,11 +129,13 @@ impl<W: AsyncWrite, E: Encode> Encoder<W, E> {
                     )))
                 }
             };
+            *this.state = State::Flushing;
 
             let produced = output.written().len();
             this.writer.as_mut().produce(produced);
 
             if done {
+                *this.state = State::Encoding;
                 return Poll::Ready(Ok(()));
             }
         }
@@ -139,6 +156,12 @@ impl<W: AsyncWrite, E: Encode> Encoder<W, E> {
                         State::Finishing
                     }
                 }
+
+                // Once a flush has been started, it must be completed.
+                State::Flushing => match this.encoder.flush(&mut output)? {
+                    true => State::Finishing,
+                    false => State::Flushing,
+                },
 
                 State::Done => State::Done,
             };

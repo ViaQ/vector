@@ -1,227 +1,259 @@
-//! ByteSize is an utility that easily makes bytes size representation
-//! and helps its arithmetic operations.
+//! `ByteSize` is a semantic wrapper for byte count representations.
 //!
-//! ## Example
+//! Features:
 //!
-//! ```ignore
-//! extern crate bytesize;
+//! - Pre-defined constants for various size units (e.g., B, Kb, Kib, Mb, Mib, Gb, Gib, ... PB).
+//! - `ByteSize` type which presents size units convertible to different size units.
+//! - Arithmetic operations for `ByteSize`.
+//! - `FromStr` impl for `ByteSize`, allowing for parsing string size representations like "1.5KiB"
+//!   and "521TiB".
+//! - Serde support for binary and human-readable deserializers like JSON.
 //!
+//! # Examples
+//!
+//! Construction using SI or IEC helpers.
+//!
+//! ```
 //! use bytesize::ByteSize;
 //!
-//! fn byte_arithmetic_operator() {
-//!   let x = ByteSize::mb(1);
-//!   let y = ByteSize::kb(100);
-//!
-//!   let plus = x + y;
-//!   print!("{} bytes", plus.as_u64());
-//!
-//!   let minus = ByteSize::tb(100) - ByteSize::gb(4);
-//!   print!("{} bytes", minus.as_u64());
-//! }
+//! assert!(ByteSize::kib(4) > ByteSize::kb(4));
 //! ```
 //!
-//! It also provides its human readable string as follows:
+//! Display as human-readable string.
 //!
-//! ```ignore=
-//!  assert_eq!("482 GiB".to_string(), ByteSize::gb(518).to_string(true));
-//!  assert_eq!("518 GB".to_string(), ByteSize::gb(518).to_string(false));
+//! ```
+//! use bytesize::ByteSize;
+//!
+//! assert_eq!("518.0 GiB", ByteSize::gib(518).display().iec().to_string());
+//! assert_eq!("556.2 GB", ByteSize::gib(518).display().si().to_string());
+//! assert_eq!("518.0G", ByteSize::gib(518).display().iec_short().to_string());
+//! ```
+//!
+//! Arithmetic operations are supported.
+//!
+//! ```
+//! use bytesize::ByteSize;
+//!
+//! let plus = ByteSize::mb(1) + ByteSize::kb(100);
+//! println!("{plus}");
+//!
+//! let minus = ByteSize::tb(1) - ByteSize::gb(4);
+//! assert_eq!(ByteSize::gb(996), minus);
 //! ```
 
+#![cfg_attr(not(feature = "std"), no_std)]
+
+extern crate alloc;
+
+use alloc::string::ToString as _;
+use core::{fmt, ops};
+
+#[cfg(feature = "arbitrary")]
+mod arbitrary;
+mod display;
 mod parse;
-
 #[cfg(feature = "serde")]
-extern crate serde;
-#[cfg(feature = "serde")]
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
-#[cfg(feature = "serde")]
-use std::convert::TryFrom;
+mod serde;
 
-use std::fmt::{self, Debug, Display, Formatter};
-use std::ops::{Add, AddAssign, Mul, MulAssign};
+pub use crate::display::Display;
+use crate::display::Format;
 
-/// byte size for 1 byte
-pub const B: u64 = 1;
-/// bytes size for 1 kilobyte
+/// Number of bytes in 1 kilobyte.
 pub const KB: u64 = 1_000;
-/// bytes size for 1 megabyte
+/// Number of bytes in 1 megabyte.
 pub const MB: u64 = 1_000_000;
-/// bytes size for 1 gigabyte
+/// Number of bytes in 1 gigabyte.
 pub const GB: u64 = 1_000_000_000;
-/// bytes size for 1 terabyte
+/// Number of bytes in 1 terabyte.
 pub const TB: u64 = 1_000_000_000_000;
-/// bytes size for 1 petabyte
+/// Number of bytes in 1 petabyte.
 pub const PB: u64 = 1_000_000_000_000_000;
 
-/// bytes size for 1 kibibyte
+/// Number of bytes in 1 kibibyte.
 pub const KIB: u64 = 1_024;
-/// bytes size for 1 mebibyte
+/// Number of bytes in 1 mebibyte.
 pub const MIB: u64 = 1_048_576;
-/// bytes size for 1 gibibyte
+/// Number of bytes in 1 gibibyte.
 pub const GIB: u64 = 1_073_741_824;
-/// bytes size for 1 tebibyte
+/// Number of bytes in 1 tebibyte.
 pub const TIB: u64 = 1_099_511_627_776;
-/// bytes size for 1 pebibyte
+/// Number of bytes in 1 pebibyte.
 pub const PIB: u64 = 1_125_899_906_842_624;
 
-static UNITS: &str = "KMGTPE";
-static UNITS_SI: &str = "kMGTPE";
-static LN_KB: f64 = 6.931471806; // ln 1024
-static LN_KIB: f64 = 6.907755279; // ln 1000
+/// IEC (binary) units.
+///
+/// See <https://en.wikipedia.org/wiki/Kilobyte>.
+const UNITS_IEC: &str = "KMGTPE";
 
-pub fn kb<V: Into<u64>>(size: V) -> u64 {
+/// SI (decimal) units.
+///
+/// See <https://en.wikipedia.org/wiki/Kilobyte>.
+const UNITS_SI: &str = "kMGTPE";
+
+/// `ln(1024) ~= 6.931`
+const LN_KIB: f64 = 6.931_471_805_599_453;
+
+/// `ln(1000) ~= 6.908`
+const LN_KB: f64 = 6.907_755_278_982_137;
+
+/// Converts a quantity of kilobytes to bytes.
+pub fn kb(size: impl Into<u64>) -> u64 {
     size.into() * KB
 }
 
+/// Converts a quantity of kibibytes to bytes.
 pub fn kib<V: Into<u64>>(size: V) -> u64 {
     size.into() * KIB
 }
 
+/// Converts a quantity of megabytes to bytes.
 pub fn mb<V: Into<u64>>(size: V) -> u64 {
     size.into() * MB
 }
 
+/// Converts a quantity of mebibytes to bytes.
 pub fn mib<V: Into<u64>>(size: V) -> u64 {
     size.into() * MIB
 }
 
+/// Converts a quantity of gigabytes to bytes.
 pub fn gb<V: Into<u64>>(size: V) -> u64 {
     size.into() * GB
 }
 
+/// Converts a quantity of gibibytes to bytes.
 pub fn gib<V: Into<u64>>(size: V) -> u64 {
     size.into() * GIB
 }
 
+/// Converts a quantity of terabytes to bytes.
 pub fn tb<V: Into<u64>>(size: V) -> u64 {
     size.into() * TB
 }
 
+/// Converts a quantity of tebibytes to bytes.
 pub fn tib<V: Into<u64>>(size: V) -> u64 {
     size.into() * TIB
 }
 
+/// Converts a quantity of petabytes to bytes.
 pub fn pb<V: Into<u64>>(size: V) -> u64 {
     size.into() * PB
 }
 
+/// Converts a quantity of pebibytes to bytes.
 pub fn pib<V: Into<u64>>(size: V) -> u64 {
     size.into() * PIB
 }
 
-/// Byte size representation
+/// Byte size representation.
 #[derive(Copy, Clone, PartialEq, PartialOrd, Eq, Ord, Hash, Default)]
 pub struct ByteSize(pub u64);
 
 impl ByteSize {
+    /// Constructs a byte size wrapper from a quantity of bytes.
     #[inline(always)]
     pub const fn b(size: u64) -> ByteSize {
         ByteSize(size)
     }
 
+    /// Constructs a byte size wrapper from a quantity of kilobytes.
     #[inline(always)]
     pub const fn kb(size: u64) -> ByteSize {
         ByteSize(size * KB)
     }
 
+    /// Constructs a byte size wrapper from a quantity of kibibytes.
     #[inline(always)]
     pub const fn kib(size: u64) -> ByteSize {
         ByteSize(size * KIB)
     }
 
+    /// Constructs a byte size wrapper from a quantity of megabytes.
     #[inline(always)]
     pub const fn mb(size: u64) -> ByteSize {
         ByteSize(size * MB)
     }
 
+    /// Constructs a byte size wrapper from a quantity of mebibytes.
     #[inline(always)]
     pub const fn mib(size: u64) -> ByteSize {
         ByteSize(size * MIB)
     }
 
+    /// Constructs a byte size wrapper from a quantity of gigabytes.
     #[inline(always)]
     pub const fn gb(size: u64) -> ByteSize {
         ByteSize(size * GB)
     }
 
+    /// Constructs a byte size wrapper from a quantity of gibibytes.
     #[inline(always)]
     pub const fn gib(size: u64) -> ByteSize {
         ByteSize(size * GIB)
     }
 
+    /// Constructs a byte size wrapper from a quantity of terabytes.
     #[inline(always)]
     pub const fn tb(size: u64) -> ByteSize {
         ByteSize(size * TB)
     }
 
+    /// Constructs a byte size wrapper from a quantity of tebibytes.
     #[inline(always)]
     pub const fn tib(size: u64) -> ByteSize {
         ByteSize(size * TIB)
     }
 
+    /// Constructs a byte size wrapper from a quantity of petabytes.
     #[inline(always)]
     pub const fn pb(size: u64) -> ByteSize {
         ByteSize(size * PB)
     }
 
+    /// Constructs a byte size wrapper from a quantity of pebibytes.
     #[inline(always)]
     pub const fn pib(size: u64) -> ByteSize {
         ByteSize(size * PIB)
     }
 
+    /// Returns byte count.
     #[inline(always)]
     pub const fn as_u64(&self) -> u64 {
         self.0
     }
 
-    #[inline(always)]
-    pub fn to_string_as(&self, si_unit: bool) -> String {
-        to_string(self.0, si_unit)
+    /// Returns a formatting display wrapper.
+    pub fn display(&self) -> Display {
+        Display {
+            byte_size: *self,
+            format: Format::Iec,
+        }
     }
 }
 
-pub fn to_string(bytes: u64, si_prefix: bool) -> String {
-    let unit = if si_prefix { KIB } else { KB };
-    let unit_base = if si_prefix { LN_KIB } else { LN_KB };
-    let unit_prefix = if si_prefix {
-        UNITS_SI.as_bytes()
-    } else {
-        UNITS.as_bytes()
-    };
-    let unit_suffix = if si_prefix { "iB" } else { "B" };
+impl fmt::Display for ByteSize {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let display = self.display();
 
-    if bytes < unit {
-        format!("{} B", bytes)
-    } else {
-        let size = bytes as f64;
-        let exp = match (size.ln() / unit_base) as usize {
-            e if e == 0 => 1,
-            e => e,
-        };
-
-        format!(
-            "{:.1} {}{}",
-            (size / unit.pow(exp as u32) as f64),
-            unit_prefix[exp - 1] as char,
-            unit_suffix
-        )
+        if f.width().is_none() {
+            // allocation-free fast path for when no formatting options are specified
+            fmt::Display::fmt(&display, f)
+        } else {
+            f.pad(&display.to_string())
+        }
     }
 }
 
-impl Display for ByteSize {
-    fn fmt(&self, f: &mut Formatter) ->fmt::Result {
-        f.pad(&to_string(self.0, false))
-    }
-}
-
-impl Debug for ByteSize {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "{}", self)
+impl fmt::Debug for ByteSize {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{} ({} bytes)", self, self.0)
     }
 }
 
 macro_rules! commutative_op {
     ($t:ty) => {
-        impl Add<ByteSize> for $t {
+        impl ops::Add<ByteSize> for $t {
             type Output = ByteSize;
             #[inline(always)]
             fn add(self, rhs: ByteSize) -> ByteSize {
@@ -229,7 +261,7 @@ macro_rules! commutative_op {
             }
         }
 
-        impl Mul<ByteSize> for $t {
+        impl ops::Mul<ByteSize> for $t {
             type Output = ByteSize;
             #[inline(always)]
             fn mul(self, rhs: ByteSize) -> ByteSize {
@@ -244,7 +276,7 @@ commutative_op!(u32);
 commutative_op!(u16);
 commutative_op!(u8);
 
-impl Add<ByteSize> for ByteSize {
+impl ops::Add<ByteSize> for ByteSize {
     type Output = ByteSize;
 
     #[inline(always)]
@@ -253,113 +285,133 @@ impl Add<ByteSize> for ByteSize {
     }
 }
 
-impl AddAssign<ByteSize> for ByteSize {
+impl ops::AddAssign<ByteSize> for ByteSize {
     #[inline(always)]
     fn add_assign(&mut self, rhs: ByteSize) {
         self.0 += rhs.0
     }
 }
 
-impl<T> Add<T> for ByteSize
-    where T: Into<u64> {
+impl<T> ops::Add<T> for ByteSize
+where
+    T: Into<u64>,
+{
     type Output = ByteSize;
     #[inline(always)]
     fn add(self, rhs: T) -> ByteSize {
-        ByteSize(self.0 + (rhs.into() as u64))
+        ByteSize(self.0 + (rhs.into()))
     }
 }
 
-impl<T> AddAssign<T> for ByteSize
-    where T: Into<u64> {
+impl<T> ops::AddAssign<T> for ByteSize
+where
+    T: Into<u64>,
+{
     #[inline(always)]
     fn add_assign(&mut self, rhs: T) {
-        self.0 += rhs.into() as u64;
+        self.0 += rhs.into();
     }
 }
 
-impl<T> Mul<T> for ByteSize
-    where T: Into<u64> {
+impl ops::Sub<ByteSize> for ByteSize {
+    type Output = ByteSize;
+
+    #[inline(always)]
+    fn sub(self, rhs: ByteSize) -> ByteSize {
+        ByteSize(self.0 - rhs.0)
+    }
+}
+
+impl ops::SubAssign<ByteSize> for ByteSize {
+    #[inline(always)]
+    fn sub_assign(&mut self, rhs: ByteSize) {
+        self.0 -= rhs.0
+    }
+}
+
+impl<T> ops::Sub<T> for ByteSize
+where
+    T: Into<u64>,
+{
+    type Output = ByteSize;
+    #[inline(always)]
+    fn sub(self, rhs: T) -> ByteSize {
+        ByteSize(self.0 - (rhs.into()))
+    }
+}
+
+impl<T> ops::SubAssign<T> for ByteSize
+where
+    T: Into<u64>,
+{
+    #[inline(always)]
+    fn sub_assign(&mut self, rhs: T) {
+        self.0 -= rhs.into();
+    }
+}
+
+impl<T> ops::Mul<T> for ByteSize
+where
+    T: Into<u64>,
+{
     type Output = ByteSize;
     #[inline(always)]
     fn mul(self, rhs: T) -> ByteSize {
-        ByteSize(self.0 * (rhs.into() as u64))
+        ByteSize(self.0 * rhs.into())
     }
 }
 
-impl<T> MulAssign<T> for ByteSize
-    where T: Into<u64> {
+impl<T> ops::MulAssign<T> for ByteSize
+where
+    T: Into<u64>,
+{
     #[inline(always)]
     fn mul_assign(&mut self, rhs: T) {
-        self.0 *= rhs.into() as u64;
+        self.0 *= rhs.into();
     }
 }
 
-#[cfg(feature = "serde")]
-impl<'de> Deserialize<'de> for ByteSize {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        struct ByteSizeVistor;
+#[cfg(test)]
+mod property_tests {
+    use alloc::string::{String, ToString as _};
 
-        impl<'de> de::Visitor<'de> for ByteSizeVistor {
-            type Value = ByteSize;
+    use super::*;
 
-            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-                formatter.write_str("an integer or string")
-            }
-
-            fn visit_i64<E: de::Error>(self, value: i64) -> Result<Self::Value, E> {
-                if let Ok(val) = u64::try_from(value) {
-                    Ok(ByteSize(val))
-                } else {
-                    Err(E::invalid_value(
-                        de::Unexpected::Signed(value),
-                        &"integer overflow",
-                    ))
-                }
-            }
-
-            fn visit_u64<E: de::Error>(self, value: u64) -> Result<Self::Value, E> {
-                Ok(ByteSize(value))
-            }
-
-            fn visit_str<E: de::Error>(self, value: &str) -> Result<Self::Value, E> {
-                if let Ok(val) = value.parse() {
-                    Ok(val)
-                } else {
-                    Err(E::invalid_value(
-                        de::Unexpected::Str(value),
-                        &"parsable string",
-                    ))
-                }
-            }
-        }
-
-        if deserializer.is_human_readable() {
-            deserializer.deserialize_any(ByteSizeVistor)
-        } else {
-            deserializer.deserialize_u64(ByteSizeVistor)
+    impl quickcheck::Arbitrary for ByteSize {
+        fn arbitrary(g: &mut quickcheck::Gen) -> Self {
+            Self(u64::arbitrary(g))
         }
     }
-}
 
-#[cfg(feature = "serde")]
-impl Serialize for ByteSize {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        if serializer.is_human_readable() {
-            <str>::serialize(self.to_string().as_str(), serializer)
-        } else {
-            self.0.serialize(serializer)
+    quickcheck::quickcheck! {
+        fn parsing_never_panics(size: String) -> bool {
+            let _ = size.parse::<ByteSize>();
+            true
+        }
+
+        fn to_string_never_blank(size: ByteSize) -> bool {
+            !size.to_string().is_empty()
+        }
+
+        fn to_string_never_large(size: ByteSize) -> bool {
+            size.to_string().len() < 11
+        }
+
+        fn string_round_trip(size: ByteSize) -> bool {
+            // currently fails on many inputs above the pebibyte level
+            if size > ByteSize::pib(1) {
+                return true;
+            }
+
+            size.to_string().parse::<ByteSize>().unwrap() == size
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use alloc::format;
+
     use super::*;
 
     #[test]
@@ -368,6 +420,8 @@ mod tests {
         let y = ByteSize::kb(100);
 
         assert_eq!((x + y).as_u64(), 1_100_000u64);
+
+        assert_eq!((x - y).as_u64(), 900_000u64);
 
         assert_eq!((x + (100 * 1000) as u64).as_u64(), 1_100_000);
 
@@ -379,17 +433,17 @@ mod tests {
         assert_eq!(x.as_u64(), 2_200_000);
     }
 
+    #[allow(clippy::unnecessary_cast)]
     #[test]
     fn test_arithmetic_primitives() {
         let mut x = ByteSize::mb(1);
 
         assert_eq!((x + MB as u64).as_u64(), 2_000_000);
-
         assert_eq!((x + MB as u32).as_u64(), 2_000_000);
-
         assert_eq!((x + KB as u16).as_u64(), 1_001_000);
-
-        assert_eq!((x + B as u8).as_u64(), 1_000_001);
+        assert_eq!((x - MB as u64).as_u64(), 0);
+        assert_eq!((x - MB as u32).as_u64(), 0);
+        assert_eq!((x - KB as u32).as_u64(), 999_000);
 
         x += MB as u64;
         x += MB as u32;
@@ -407,6 +461,7 @@ mod tests {
         assert!(ByteSize::b(0) < ByteSize::tib(1));
     }
 
+    #[track_caller]
     fn assert_display(expected: &str, b: ByteSize) {
         assert_eq!(expected, format!("{}", b));
     }
@@ -414,12 +469,12 @@ mod tests {
     #[test]
     fn test_display() {
         assert_display("215 B", ByteSize::b(215));
-        assert_display("1.0 KB", ByteSize::kb(1));
-        assert_display("301.0 KB", ByteSize::kb(301));
-        assert_display("419.0 MB", ByteSize::mb(419));
-        assert_display("518.0 GB", ByteSize::gb(518));
-        assert_display("815.0 TB", ByteSize::tb(815));
-        assert_display("609.0 PB", ByteSize::pb(609));
+        assert_display("1.0 KiB", ByteSize::kib(1));
+        assert_display("301.0 KiB", ByteSize::kib(301));
+        assert_display("419.0 MiB", ByteSize::mib(419));
+        assert_display("518.0 GiB", ByteSize::gib(518));
+        assert_display("815.0 TiB", ByteSize::tib(815));
+        assert_display("609.0 PiB", ByteSize::pib(609));
     }
 
     #[test]
@@ -434,70 +489,8 @@ mod tests {
         assert_eq!("|--357 B---|", format!("|{:-^10}|", ByteSize(357)));
     }
 
-    fn assert_to_string(expected: &str, b: ByteSize, si: bool) {
-        assert_eq!(expected.to_string(), b.to_string_as(si));
-    }
-
-    #[test]
-    fn test_to_string_as() {
-        assert_to_string("215 B", ByteSize::b(215), true);
-        assert_to_string("215 B", ByteSize::b(215), false);
-
-        assert_to_string("1.0 kiB", ByteSize::kib(1), true);
-        assert_to_string("1.0 KB", ByteSize::kib(1), false);
-
-        assert_to_string("293.9 kiB", ByteSize::kb(301), true);
-        assert_to_string("301.0 KB", ByteSize::kb(301), false);
-
-        assert_to_string("1.0 MiB", ByteSize::mib(1), true);
-        assert_to_string("1048.6 KB", ByteSize::mib(1), false);
-
-        // a bug case: https://github.com/flang-project/bytesize/issues/8
-        assert_to_string("1.9 GiB", ByteSize::mib(1907), true);
-        assert_to_string("2.0 GB", ByteSize::mib(1908), false);
-
-        assert_to_string("399.6 MiB", ByteSize::mb(419), true);
-        assert_to_string("419.0 MB", ByteSize::mb(419), false);
-
-        assert_to_string("482.4 GiB", ByteSize::gb(518), true);
-        assert_to_string("518.0 GB", ByteSize::gb(518), false);
-
-        assert_to_string("741.2 TiB", ByteSize::tb(815), true);
-        assert_to_string("815.0 TB", ByteSize::tb(815), false);
-
-        assert_to_string("540.9 PiB", ByteSize::pb(609), true);
-        assert_to_string("609.0 PB", ByteSize::pb(609), false);
-    }
-
     #[test]
     fn test_default() {
         assert_eq!(ByteSize::b(0), ByteSize::default());
-    }
-
-    #[test]
-    fn test_to_string() {
-        assert_to_string("609.0 PB", ByteSize::pb(609), false);
-    }
-
-    #[cfg(feature = "serde")]
-    #[test]
-    fn test_serde() {
-        #[derive(Serialize, Deserialize)]
-        struct S {
-            x: ByteSize,
-        }
-
-        let s: S = serde_json::from_str(r#"{ "x": "5 B" }"#).unwrap();
-        assert_eq!(s.x, ByteSize(5));
-
-        let s: S = serde_json::from_str(r#"{ "x": 1048576 }"#).unwrap();
-        assert_eq!(s.x, "1 MiB".parse::<ByteSize>().unwrap());
-
-        let s: S = toml::from_str(r#"x = "2.5 MiB""#).unwrap();
-        assert_eq!(s.x, "2.5 MiB".parse::<ByteSize>().unwrap());
-
-        // i64 MAX
-        let s: S = toml::from_str(r#"x = "9223372036854775807""#).unwrap();
-        assert_eq!(s.x, "9223372036854775807".parse::<ByteSize>().unwrap());
     }
 }

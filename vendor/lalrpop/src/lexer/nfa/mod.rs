@@ -9,7 +9,6 @@ use regex_syntax::hir::{
 use std::char;
 use std::fmt::{Debug, Error as FmtError, Formatter};
 use std::ops::RangeInclusive;
-use std::usize;
 
 #[cfg(test)]
 mod interpret;
@@ -37,16 +36,16 @@ pub struct Test {
 
 impl PartialOrd for Test {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        match self.start().cmp(&other.start()) {
-            std::cmp::Ordering::Equal => Some(self.end().cmp(&other.end())),
-            ord => Some(ord),
-        }
+        Some(self.cmp(other))
     }
 }
 
 impl Ord for Test {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.partial_cmp(other).unwrap()
+        match self.start().cmp(&other.start()) {
+            std::cmp::Ordering::Equal => self.end().cmp(&other.end()),
+            ord => ord,
+        }
     }
 }
 
@@ -134,7 +133,7 @@ impl Nfa {
     ///////////////////////////////////////////////////////////////////////////
     // Public methods for querying an Nfa
 
-    pub fn edges<L: EdgeLabel>(&self, from: NfaStateIndex) -> EdgeIterator<L> {
+    pub fn edges<L: EdgeLabel>(&self, from: NfaStateIndex) -> EdgeIterator<'_, L> {
         let vec = L::vec(&self.edges);
         let first = *L::first(&self.states[from.0]);
         EdgeIterator {
@@ -338,7 +337,7 @@ impl Nfa {
                     .collect::<Result<Vec<_>, _>>()?;
 
                 // push edges from s0 all together so they are
-                // adjacant in the edge array
+                // adjacent in the edge array
                 for target in targets {
                     self.push_edge(s0, Noop, target);
                 }
@@ -475,7 +474,7 @@ impl EdgeLabel for Test {
     }
 }
 
-pub struct EdgeIterator<'nfa, L: EdgeLabel + 'nfa> {
+pub struct EdgeIterator<'nfa, L: EdgeLabel> {
     edges: &'nfa [Edge<L>],
     from: NfaStateIndex,
     index: usize,
@@ -589,7 +588,7 @@ impl From<ClassBytesRange> for Test {
 }
 
 impl Debug for Test {
-    fn fmt(&self, fmt: &mut Formatter) -> Result<(), FmtError> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> Result<(), FmtError> {
         match (char::from_u32(self.start()), char::from_u32(self.end())) {
             (Some(start), Some(end)) => {
                 if self.is_char() {
@@ -608,13 +607,13 @@ impl Debug for Test {
 }
 
 impl Debug for NfaStateIndex {
-    fn fmt(&self, fmt: &mut Formatter) -> Result<(), FmtError> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> Result<(), FmtError> {
         write!(fmt, "Nfa{}", self.0)
     }
 }
 
 impl<L: Debug> Debug for Edge<L> {
-    fn fmt(&self, fmt: &mut Formatter) -> Result<(), FmtError> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> Result<(), FmtError> {
         write!(fmt, "{:?} -{:?}-> {:?}", self.from, self.label, self.to)
     }
 }

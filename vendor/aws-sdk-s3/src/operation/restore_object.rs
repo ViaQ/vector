@@ -50,7 +50,18 @@ impl RestoreObject {
         >,
     > {
         let input = ::aws_smithy_runtime_api::client::interceptors::context::Input::erase(input);
-        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("s3", "RestoreObject", input, runtime_plugins, stop_point).await
+        use ::tracing::Instrument;
+        ::aws_smithy_runtime::client::orchestrator::invoke_with_stop_point("S3", "RestoreObject", input, runtime_plugins, stop_point)
+            // Create a parent span for the entire operation. Includes a random, internal-only,
+            // seven-digit ID for the operation orchestration so that it can be correlated in the logs.
+            .instrument(::tracing::debug_span!(
+                "S3.RestoreObject",
+                "rpc.service" = "S3",
+                "rpc.method" = "RestoreObject",
+                "sdk_invocation_id" = ::fastrand::u32(1_000_000..10_000_000),
+                "rpc.system" = "aws-api",
+            ))
+            .await
     }
 
     pub(crate) fn operation_runtime_plugins(
@@ -59,7 +70,7 @@ impl RestoreObject {
         config_override: ::std::option::Option<crate::config::Builder>,
     ) -> ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugins {
         let mut runtime_plugins = client_runtime_plugins.with_operation_plugin(Self::new());
-        runtime_plugins = runtime_plugins.with_client_plugin(crate::auth_plugin::DefaultAuthOptionsPlugin::new(vec![
+        runtime_plugins = runtime_plugins.with_client_plugin(crate::endpoint_auth_plugin::EndpointBasedAuthOptionsPlugin::new(vec![
             ::aws_runtime::auth::sigv4::SCHEME_ID,
             #[cfg(feature = "sigv4a")]
             {
@@ -95,7 +106,7 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for Restore
             ::aws_smithy_runtime_api::client::auth::static_resolver::StaticAuthSchemeOptionResolverParams::new(),
         ));
 
-        cfg.store_put(::aws_smithy_http::operation::Metadata::new("RestoreObject", "s3"));
+        cfg.store_put(::aws_smithy_runtime_api::client::orchestrator::Metadata::new("RestoreObject", "S3"));
         let mut signing_options = ::aws_runtime::auth::SigningOptions::default();
         signing_options.double_uri_encode = false;
         signing_options.content_sha256_header = true;
@@ -116,25 +127,64 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for Restore
     ) -> ::std::borrow::Cow<'_, ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder> {
         #[allow(unused_mut)]
         let mut rcb = ::aws_smithy_runtime_api::client::runtime_components::RuntimeComponentsBuilder::new("RestoreObject")
-            .with_interceptor(
-                ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::new(
-                    ::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptorKind::ResponseBody,
-                ),
-            )
+            .with_interceptor(::aws_smithy_runtime::client::stalled_stream_protection::StalledStreamProtectionInterceptor::default())
             .with_interceptor(RestoreObjectEndpointParamsInterceptor)
             .with_interceptor(crate::http_request_checksum::RequestChecksumInterceptor::new(
                 |input: &::aws_smithy_runtime_api::client::interceptors::context::Input| {
                     let input: &crate::operation::restore_object::RestoreObjectInput = input.downcast_ref().expect("correct type");
                     let checksum_algorithm = input.checksum_algorithm();
                     let checksum_algorithm = checksum_algorithm.map(|algorithm| algorithm.as_str());
-                    let checksum_algorithm = match checksum_algorithm {
-                        Some(algo) => Some(
-                            algo.parse::<::aws_smithy_checksums::ChecksumAlgorithm>()
-                                .map_err(::aws_smithy_types::error::operation::BuildError::other)?,
-                        ),
-                        None => None,
-                    };
-                    ::std::result::Result::<_, ::aws_smithy_runtime_api::box_error::BoxError>::Ok(checksum_algorithm)
+                    (checksum_algorithm.map(|s| s.to_string()), false)
+                },
+                |request: &mut ::aws_smithy_runtime_api::http::Request, cfg: &::aws_smithy_types::config_bag::ConfigBag| {
+                    // We check if the user has set any of the checksum values manually
+                    let mut user_set_checksum_value = false;
+                    let headers_to_check =
+                        request
+                            .headers()
+                            .iter()
+                            .filter_map(|(name, _val)| if name.starts_with("x-amz-checksum-") { Some(name) } else { None });
+                    for algo_header in headers_to_check {
+                        if request.headers().get(algo_header).is_some() {
+                            user_set_checksum_value = true;
+                        }
+                    }
+
+                    // We check if the user set the checksum algo manually
+                    let user_set_checksum_algo = request.headers().get("x-amz-sdk-checksum-algorithm").is_some();
+
+                    // This value is set by the user on the SdkConfig to indicate their preference
+                    let request_checksum_calculation = cfg
+                        .load::<::aws_smithy_types::checksum_config::RequestChecksumCalculation>()
+                        .unwrap_or(&::aws_smithy_types::checksum_config::RequestChecksumCalculation::WhenSupported);
+
+                    // From the httpChecksum trait
+                    let http_checksum_required = false;
+
+                    let is_presigned_req = cfg.load::<crate::presigning::PresigningMarker>().is_some();
+
+                    // If the request is presigned we do not set a default.
+                    // If the RequestChecksumCalculation is WhenSupported and the user has not set a checksum value or algo
+                    // we default to Crc32. If it is WhenRequired and a checksum is required by the trait and the user has not
+                    // set a checksum value or algo we also set the default. In all other cases we do nothing.
+                    match (
+                        request_checksum_calculation,
+                        http_checksum_required,
+                        user_set_checksum_value,
+                        user_set_checksum_algo,
+                        is_presigned_req,
+                    ) {
+                        (_, _, _, _, true) => {}
+                        (::aws_smithy_types::checksum_config::RequestChecksumCalculation::WhenSupported, _, false, false, _)
+                        | (::aws_smithy_types::checksum_config::RequestChecksumCalculation::WhenRequired, true, false, false, _) => {
+                            request.headers_mut().insert("x-amz-sdk-checksum-algorithm", "CRC32");
+                        }
+                        _ => {}
+                    }
+
+                    // We return a bool indicating if the user did set the checksum value, if they did
+                    // we can short circuit and exit the interceptor early.
+                    Ok(user_set_checksum_value)
                 },
             ))
             .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::TransientErrorClassifier::<
@@ -143,9 +193,15 @@ impl ::aws_smithy_runtime_api::client::runtime_plugin::RuntimePlugin for Restore
             .with_retry_classifier(::aws_smithy_runtime::client::retries::classifiers::ModeledAsRetryableClassifier::<
                 crate::operation::restore_object::RestoreObjectError,
             >::new())
-            .with_retry_classifier(::aws_runtime::retries::classifiers::AwsErrorCodeClassifier::<
-                crate::operation::restore_object::RestoreObjectError,
-            >::new());
+            .with_retry_classifier(
+                ::aws_runtime::retries::classifiers::AwsErrorCodeClassifier::<crate::operation::restore_object::RestoreObjectError>::builder()
+                    .transient_errors({
+                        let mut transient_errors: Vec<&'static str> = ::aws_runtime::retries::classifiers::TRANSIENT_ERRORS.into();
+                        transient_errors.push("InternalError");
+                        ::std::borrow::Cow::Owned(transient_errors)
+                    })
+                    .build(),
+            );
 
         ::std::borrow::Cow::Owned(rcb)
     }
@@ -218,10 +274,9 @@ impl ::aws_smithy_runtime_api::client::ser_de::SerializeRequest for RestoreObjec
             ) -> ::std::result::Result<(), ::aws_smithy_types::error::operation::BuildError> {
                 let mut query = ::aws_smithy_http::query::Writer::new(output);
                 query.push_v("restore");
-                query.push_kv("x-id", "RestoreObject");
                 if let ::std::option::Option::Some(inner_2) = &_input.version_id {
                     {
-                        query.push_kv("versionId", &::aws_smithy_http::query::fmt_string(&inner_2));
+                        query.push_kv("versionId", &::aws_smithy_http::query::fmt_string(inner_2));
                     }
                 }
                 ::std::result::Result::Ok(())
@@ -300,6 +355,9 @@ impl ::aws_smithy_runtime_api::client::interceptors::Intercept for RestoreObject
         ::std::result::Result::Ok(())
     }
 }
+
+// The get_* functions below are generated from JMESPath expressions in the
+// operationContextParams trait. They target the operation's input shape.
 
 /// Error type for the `RestoreObjectError` operation.
 #[non_exhaustive]

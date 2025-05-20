@@ -70,7 +70,7 @@ Include it in your `Cargo.toml`:
 
 ```toml
 [dependencies]
-inotify = "0.10"
+inotify = "0.11"
 ```
 
 Please refer to the [documentation] and the example above, for information on how to use it in your code.
@@ -112,5 +112,5 @@ THIS SOFTWARE.
 [notify]: https://crates.io/crates/notify
 [inotify-sys]: https://crates.io/crates/inotify-sys
 [API reference]: https://docs.rs/inotify
-[examples directory]: https://github.com/inotify-rs/inotify/tree/master/examples
+[examples directory]: https://github.com/inotify-rs/inotify/tree/main/examples
 [inotify man page]: http://man7.org/linux/man-pages/man7/inotify.7.html

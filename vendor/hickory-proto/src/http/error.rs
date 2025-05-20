@@ -5,18 +5,19 @@
 // https://opensource.org/licenses/MIT>, at your option. This file may not be
 // copied, modified, or distributed except according to those terms.
 
-use std::num::ParseIntError;
-use std::{fmt, io};
+use alloc::{fmt, string::String};
+use core::num::ParseIntError;
+use std::io;
 
 use crate::error::ProtoError;
 use http::header::ToStrError;
 use thiserror::Error;
 
 #[cfg(feature = "backtrace")]
-use crate::{trace, ExtBacktrace};
+use crate::{ExtBacktrace, trace};
 
 /// An alias for results returned by functions of this crate
-pub type Result<T> = ::std::result::Result<T, Error>;
+pub type Result<T> = ::core::result::Result<T, Error>;
 
 // TODO: remove this and put in ProtoError
 #[derive(Debug, Error)]
@@ -42,11 +43,11 @@ pub enum ErrorKind {
     ProtoError(#[from] ProtoError),
 
     #[error("h2: {0}")]
-    #[cfg(feature = "dns-over-https")]
+    #[cfg(feature = "__https")]
     H2(#[from] h2::Error),
 
     #[error("h3: {0}")]
-    #[cfg(feature = "dns-over-h3")]
+    #[cfg(feature = "__h3")]
     H3(#[from] h3::Error),
 }
 
@@ -69,7 +70,7 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         cfg_if::cfg_if! {
             if #[cfg(feature = "backtrace")] {
-                if let Some(ref backtrace) = self.backtrack {
+                if let Some(backtrace) = &self.backtrack {
                     fmt::Display::fmt(&self.kind, f)?;
                     fmt::Debug::fmt(backtrace, f)
                 } else {
@@ -122,14 +123,14 @@ impl From<ProtoError> for Error {
     }
 }
 
-#[cfg(feature = "dns-over-https")]
+#[cfg(feature = "__https")]
 impl From<h2::Error> for Error {
     fn from(msg: h2::Error) -> Self {
         ErrorKind::H2(msg).into()
     }
 }
 
-#[cfg(feature = "dns-over-h3")]
+#[cfg(feature = "__h3")]
 impl From<h3::Error> for Error {
     fn from(msg: h3::Error) -> Self {
         ErrorKind::H3(msg).into()

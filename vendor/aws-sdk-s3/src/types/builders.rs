@@ -115,6 +115,8 @@ pub use crate::types::_replica_modifications::ReplicaModificationsBuilder;
 
 pub use crate::types::_sse_kms_encrypted_objects::SseKmsEncryptedObjectsBuilder;
 
+pub use crate::types::_replication_rule_filter::ReplicationRuleFilterBuilder;
+
 pub use crate::types::_replication_rule_and_operator::ReplicationRuleAndOperatorBuilder;
 
 pub use crate::types::_ownership_controls::OwnershipControlsBuilder;
@@ -164,6 +166,8 @@ pub use crate::types::_noncurrent_version_expiration::NoncurrentVersionExpiratio
 pub use crate::types::_noncurrent_version_transition::NoncurrentVersionTransitionBuilder;
 
 pub use crate::types::_transition::TransitionBuilder;
+
+pub use crate::types::_lifecycle_rule_filter::LifecycleRuleFilterBuilder;
 
 pub use crate::types::_lifecycle_rule_and_operator::LifecycleRuleAndOperatorBuilder;
 
@@ -243,6 +247,14 @@ pub use crate::types::_checksum::ChecksumBuilder;
 
 pub use crate::types::_policy_status::PolicyStatusBuilder;
 
+pub use crate::types::_get_bucket_metadata_table_configuration_result::GetBucketMetadataTableConfigurationResultBuilder;
+
+pub use crate::types::_error_details::ErrorDetailsBuilder;
+
+pub use crate::types::_metadata_table_configuration_result::MetadataTableConfigurationResultBuilder;
+
+pub use crate::types::_s3_tables_destination_result::S3TablesDestinationResultBuilder;
+
 pub use crate::types::_error::ErrorBuilder;
 
 pub use crate::types::_deleted_object::DeletedObjectBuilder;
@@ -252,6 +264,10 @@ pub use crate::types::_delete::DeleteBuilder;
 pub use crate::types::_object_identifier::ObjectIdentifierBuilder;
 
 pub use crate::types::_session_credentials::SessionCredentialsBuilder;
+
+pub use crate::types::_metadata_table_configuration::MetadataTableConfigurationBuilder;
+
+pub use crate::types::_s3_tables_destination::S3TablesDestinationBuilder;
 
 pub use crate::types::_create_bucket_configuration::CreateBucketConfigurationBuilder;
 

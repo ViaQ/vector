@@ -69,8 +69,14 @@ pub trait History {
     // reedline: fn append(&mut self, entry: &str);
 
     /// Add a new entry in the history.
+    ///
+    /// Return false if the `line` has been ignored (blank line / duplicate /
+    /// ...).
     fn add(&mut self, line: &str) -> Result<bool>;
     /// Add a new entry in the history.
+    ///
+    /// Return false if the `line` has been ignored (blank line / duplicate /
+    /// ...).
     fn add_owned(&mut self, line: String) -> Result<bool>; // TODO check AsRef<str> + Into<String> vs object safe
 
     /// Return the number of entries in the history.
@@ -587,7 +593,7 @@ impl FileHistory {
         )) = self.path_info
         {
             if previous_path.as_path() != path {
-                *previous_path = path.to_owned();
+                path.clone_into(previous_path);
             }
             *previous_modified = modified;
             *previous_size = size;
