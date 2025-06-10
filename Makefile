@@ -67,7 +67,7 @@ export AWS_ACCESS_KEY_ID ?= "dummy"
 export AWS_SECRET_ACCESS_KEY ?= "dummy"
 
 # Set version
-export VERSION ?= "v0.43.1-rh"
+export VERSION ?= "v0.46.1-rh"
 
 # Set if you are on the CI and actually want the things to happen. (Non-CI users should never set this.)
 export CI ?= false

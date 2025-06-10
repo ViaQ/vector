@@ -76,6 +76,44 @@ pub struct Message {
     edns: Option<Edns>,
 }
 
+/// Returns a new Header with accurate counts for each Message section
+pub fn update_header_counts(
+    current_header: &Header,
+    is_truncated: bool,
+    counts: HeaderCounts,
+) -> Header {
+    assert!(counts.query_count <= u16::MAX as usize);
+    assert!(counts.answer_count <= u16::MAX as usize);
+    assert!(counts.nameserver_count <= u16::MAX as usize);
+    assert!(counts.additional_count <= u16::MAX as usize);
+
+    // TODO: should the function just take by value?
+    let mut header = *current_header;
+    header
+        .set_query_count(counts.query_count as u16)
+        .set_answer_count(counts.answer_count as u16)
+        .set_name_server_count(counts.nameserver_count as u16)
+        .set_additional_count(counts.additional_count as u16)
+        .set_truncated(is_truncated);
+
+    header
+}
+
+/// Tracks the counts of the records in the Message.
+///
+/// This is only used internally during serialization.
+#[derive(Clone, Copy, Debug)]
+pub struct HeaderCounts {
+    /// The number of queries in the Message
+    pub query_count: usize,
+    /// The number of answers in the Message
+    pub answer_count: usize,
+    /// The number of nameservers or authorities in the Message
+    pub nameserver_count: usize,
+    /// The number of additional records in the Message
+    pub additional_count: usize,
+}
+
 impl Message {
     /// Returns a new "empty" Message
     pub fn new() -> Self {
@@ -771,37 +809,6 @@ impl Message {
     }
 }
 
-impl From<MessageParts> for Message {
-    fn from(msg: MessageParts) -> Self {
-        let MessageParts {
-            header,
-            queries,
-            answers,
-            name_servers,
-            additionals,
-            sig0,
-            edns,
-        } = msg;
-        Self {
-            header,
-            queries,
-            answers,
-            name_servers,
-            additionals,
-            signature: sig0,
-            edns,
-        }
-    }
-}
-
-impl Deref for Message {
-    type Target = Header;
-
-    fn deref(&self) -> &Self::Target {
-        &self.header
-    }
-}
-
 /// Consumes `Message` giving public access to fields in `Message` so they can be
 /// destructured and taken by value
 /// ```rust
@@ -853,42 +860,35 @@ impl From<Message> for MessageParts {
     }
 }
 
-/// Tracks the counts of the records in the Message.
-///
-/// This is only used internally during serialization.
-#[derive(Clone, Copy, Debug)]
-pub struct HeaderCounts {
-    /// The number of queries in the Message
-    pub query_count: usize,
-    /// The number of answers in the Message
-    pub answer_count: usize,
-    /// The number of nameservers or authorities in the Message
-    pub nameserver_count: usize,
-    /// The number of additional records in the Message
-    pub additional_count: usize,
+impl From<MessageParts> for Message {
+    fn from(msg: MessageParts) -> Self {
+        let MessageParts {
+            header,
+            queries,
+            answers,
+            name_servers,
+            additionals,
+            sig0,
+            edns,
+        } = msg;
+        Self {
+            header,
+            queries,
+            answers,
+            name_servers,
+            additionals,
+            signature: sig0,
+            edns,
+        }
+    }
 }
 
-/// Returns a new Header with accurate counts for each Message section
-pub fn update_header_counts(
-    current_header: &Header,
-    is_truncated: bool,
-    counts: HeaderCounts,
-) -> Header {
-    assert!(counts.query_count <= u16::MAX as usize);
-    assert!(counts.answer_count <= u16::MAX as usize);
-    assert!(counts.nameserver_count <= u16::MAX as usize);
-    assert!(counts.additional_count <= u16::MAX as usize);
+impl Deref for Message {
+    type Target = Header;
 
-    // TODO: should the function just take by value?
-    let mut header = *current_header;
-    header
-        .set_query_count(counts.query_count as u16)
-        .set_answer_count(counts.answer_count as u16)
-        .set_name_server_count(counts.nameserver_count as u16)
-        .set_additional_count(counts.additional_count as u16)
-        .set_truncated(is_truncated);
-
-    header
+    fn deref(&self) -> &Self::Target {
+        &self.header
+    }
 }
 
 /// Alias for a function verifying if a message is properly signed
@@ -929,13 +929,13 @@ pub trait MessageFinalizer: Send + Sync + 'static {
 
 /// Returns the count written and a boolean if it was truncated
 pub fn count_was_truncated(result: ProtoResult<usize>) -> ProtoResult<(usize, bool)> {
-    match result {
-        Ok(count) => Ok((count, false)),
-        Err(e) => match e.kind() {
-            ProtoErrorKind::NotAllRecordsWritten { count } => Ok((*count, true)),
-            _ => Err(e),
-        },
-    }
+    result.map(|count| (count, false)).or_else(|e| {
+        if let ProtoErrorKind::NotAllRecordsWritten { count } = e.kind() {
+            return Ok((*count, true));
+        }
+
+        Err(e)
+    })
 }
 
 /// A trait that defines types which can be emitted as a set, with the associated count returned.
@@ -972,7 +972,7 @@ where
     N: EmitAndCount,
     D: EmitAndCount,
 {
-    let include_signature = encoder.mode() != EncodeMode::Signing;
+    let include_signature: bool = encoder.mode() != EncodeMode::Signing;
     let place = encoder.place::<Header>()?;
 
     let query_count = queries.emit(encoder)?;
@@ -1304,13 +1304,5 @@ mod tests {
         ];
 
         Message::from_vec(CRASHING_MESSAGE).expect("failed to parse message");
-    }
-
-    #[test]
-    fn prior_to_pointer() {
-        const MESSAGE: &[u8] = include_bytes!("../../tests/test-data/fuzz-prior-to-pointer.rdata");
-        let message = Message::from_bytes(MESSAGE).expect("failed to parse message");
-        let encoded = message.to_bytes().unwrap();
-        Message::from_bytes(&encoded).expect("failed to parse encoded message");
     }
 }

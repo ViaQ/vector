@@ -11,7 +11,7 @@ miniodat
 bench_output.txt
 sample.log
 scripts/package-lock.json
-target
+/target
 node_modules
 tests/data/wasm/*/target
 heaptrack.*

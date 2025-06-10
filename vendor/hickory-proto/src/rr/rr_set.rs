@@ -31,9 +31,9 @@ impl RecordSet {
     ///
     /// * `name` - The label for the `RecordSet`
     /// * `record_type` - `RecordType` of this `RecordSet`, all records in the `RecordSet` must be of the
-    ///   specified `RecordType`.
+    ///                   specified `RecordType`.
     /// * `serial` - current serial number of the `SOA` record, this is to be used for `IXFR` and
-    ///   signing for DNSSEC after updates.
+    ///              signing for DNSSEC after updates.
     ///
     /// # Return value
     ///
@@ -57,7 +57,7 @@ impl RecordSet {
     ///
     /// * `name` - The label for the `RecordSet`
     /// * `record_type` - `RecordType` of this `RecordSet`, all records in the `RecordSet` must be of the
-    ///   specified `RecordType`.
+    ///                   specified `RecordType`.
     /// * `ttl` - time-to-live for the `RecordSet` in seconds.
     ///
     /// # Return value
@@ -247,8 +247,8 @@ impl RecordSet {
     ///
     /// * `record` - `Record` asserts that the `name` and `record_type` match the `RecordSet`.
     /// * `serial` - current serial number of the `SOA` record, this is to be used for `IXFR` and
-    ///   signing for DNSSEC after updates. The serial will only be updated if the
-    ///   record was added.
+    ///              signing for DNSSEC after updates. The serial will only be updated if the
+    ///              record was added.
     ///
     /// # Return value
     ///
@@ -303,27 +303,23 @@ impl RecordSet {
             //         to have more than one CNAME RR, even if their data fields
             //         differ.
             //
-            // ANAME https://tools.ietf.org/html/draft-ietf-dnsop-aname-04
+            // ANAME https://tools.ietf.org/html/draft-ietf-dnsop-aname-02
             //    2.2.  Coexistence with other types
             //
             //   Only one ANAME <target> can be defined per <owner>.  An ANAME RRset
             //   MUST NOT contain more than one resource record.
             //
             //   An ANAME's sibling address records are under the control of ANAME
-            //   processing (see Section 4) and are not first-class records in their
+            //   processing (see Section 5) and are not first-class records in their
             //   own right.  They MAY exist in zone files, but they can subsequently
             //   be altered by ANAME processing.
             //
-            //   An ANAME record MAY freely coexist at the same owner name with other
-            //   RR types, except they MUST NOT coexist with CNAME or any other RR
-            //   type that restricts the types with which it can itself coexist. That
-            //   means An ANAME record can coexist at the same owner name with A and
-            //   AAAA records.  These are the sibling address records that are updated
-            //   with the target addresses that are retrieved through the ANAME
-            //   substitution process Section 3.
+            //   ANAME records MAY freely coexist at the same owner name with other RR
+            //   types, except they MUST NOT coexist with CNAME or any other RR type
+            //   that restricts the types with which it can itself coexist.
             //
-            //   Like other types, An ANAME record can coexist with DNAME records at
-            //   the same owner name; in fact, the two can be used cooperatively to
+            //   Like other types, ANAME records can coexist with DNAME records at the
+            //   same owner name; in fact, the two can be used cooperatively to
             //   redirect both the owner name address records (via ANAME) and
             //   everything under it (via DNAME).
             RecordType::CNAME | RecordType::ANAME => {
@@ -372,10 +368,10 @@ impl RecordSet {
     /// # Arguments
     ///
     /// * `record` - `Record` asserts that the `name` and `record_type` match the `RecordSet`. Removes
-    ///   any `record` if the record data, `RData`, match.
+    ///              any `record` if the record data, `RData`, match.
     /// * `serial` - current serial number of the `SOA` record, this is to be used for `IXFR` and
-    ///   signing for DNSSEC after updates. The serial will only be updated if the
-    ///   record was added.
+    ///              signing for DNSSEC after updates. The serial will only be updated if the
+    ///              record was added.
     ///
     /// # Return value
     ///

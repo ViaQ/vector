@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.71.1"
 name = "hickory-proto"
-version = "0.25.2"
+version = "0.25.1"
 authors = ["The contributors to Hickory DNS"]
 build = false
 autolib = false
@@ -131,10 +131,7 @@ mdns = [
     "socket2/all",
     "std",
 ]
-no-std-rand = [
-    "once_cell/critical-section",
-    "dep:critical-section",
-]
+no-std-rand = ["dep:critical-section"]
 quic-aws-lc-rs = [
     "quinn/rustls-aws-lc-rs",
     "tls-aws-lc-rs",
@@ -155,6 +152,7 @@ serde = [
     "url/serde",
 ]
 std = [
+    "critical-section/std",
     "data-encoding/std",
     "futures-channel/std",
     "futures-io/std",
@@ -162,7 +160,7 @@ std = [
     "ipnet/std",
     "rand/std",
     "rand/thread_rng",
-    "ring?/std",
+    "ring/std",
     "thiserror/std",
     "tracing-subscriber/env-filter",
     "tracing-subscriber/fmt",
@@ -212,6 +210,9 @@ path = "benches/lower_name_benches.rs"
 [[bench]]
 name = "name_benches"
 path = "benches/name_benches.rs"
+
+[dependencies.async-recursion]
+version = "1.0.0"
 
 [dependencies.async-trait]
 version = "0.1.43"
@@ -299,11 +300,18 @@ optional = true
 
 [dependencies.once_cell]
 version = "1.20.0"
-features = ["critical-section"]
+features = [
+    "critical-section",
+    "critical-section",
+]
 default-features = false
 
 [dependencies.pin-project-lite]
 version = "0.2"
+optional = true
+
+[dependencies.pin-utils]
+version = "0.1.0"
 optional = true
 
 [dependencies.quinn]

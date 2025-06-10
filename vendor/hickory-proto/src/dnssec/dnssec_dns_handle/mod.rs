@@ -14,11 +14,12 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+use async_recursion::async_recursion;
 use futures_util::{
     future::{self, TryFutureExt},
     stream::{self, Stream, TryStreamExt},
 };
-use tracing::{debug, error, trace, warn};
+use tracing::{debug, trace, warn};
 
 use crate::{
     dnssec::{
@@ -118,7 +119,6 @@ where
 
         // backstop
         if self.request_depth > request.options().max_request_depth {
-            error!("exceeded max validation depth");
             return Box::pin(stream::once(future::err(ProtoError::from(
                 "exceeded max validation depth",
             ))));
@@ -207,11 +207,10 @@ fn check_nsec(verified_message: DnsResponse, query: &Query) -> Result<DnsRespons
         return Ok(verified_message);
     }
 
-    if !verified_message.name_servers().is_empty()
-        && verified_message
-            .name_servers()
-            .iter()
-            .all(|x| x.proof() == Proof::Insecure)
+    if verified_message
+        .name_servers()
+        .iter()
+        .all(|x| x.proof() == Proof::Insecure)
     {
         return Ok(verified_message);
     }
@@ -404,7 +403,7 @@ where
         );
 
         // verify this rrset
-        let proof = verify_rrset(handle.clone(), &rrset, rrsigs, options).await;
+        let proof = verify_rrset(handle.clone_with_context(), &rrset, rrsigs, options).await;
 
         let proof = match proof {
             Ok(proof) => {
@@ -490,12 +489,26 @@ where
 
     // DNSKEYS have different logic for their verification
     if matches!(rrset.record_type(), RecordType::DNSKEY) {
-        let proof = verify_dnskey_rrset(handle, rrset, &rrsigs, current_time, options).await?;
+        let proof = verify_dnskey_rrset(
+            handle.clone_with_context(),
+            rrset,
+            &rrsigs,
+            current_time,
+            options,
+        )
+        .await?;
 
         return Ok(proof);
     }
 
-    verify_default_rrset(&handle, rrset, &rrsigs, current_time, options).await
+    verify_default_rrset(
+        &handle.clone_with_context(),
+        rrset,
+        &rrsigs,
+        current_time,
+        options,
+    )
+    .await
 }
 
 /// DNSKEY-specific verification
@@ -551,9 +564,9 @@ where
 
     // if not all of the DNSKEYs are in the root store, then we need to look for DS records to verify
     let ds_records = if !dnskey_proofs.iter().all(|p| p.0.is_secure()) && !rrset.name().is_root() {
-        // Need to get DS records for each DNSKEY.
-        // Every DNSKEY other than the root zone's keys may have a corresponding DS record.
-        fetch_ds_records(&handle, rrset.name().clone(), options).await?
+        // need to get DS records for each DNSKEY
+        //   there will be a DS record for everything under the root keys
+        find_ds_records(&handle, rrset.name().clone(), options).await?
     } else {
         debug!("ignoring DS lookup for root zone or registered keys");
         Vec::default()
@@ -761,8 +774,8 @@ fn verify_dnskey(
     ))
 }
 
-/// Retrieves DS records for the given zone.
-async fn fetch_ds_records<H>(
+#[async_recursion]
+async fn find_ds_records<H>(
     handle: &DnssecDnsHandle<H>,
     zone: Name,
     options: DnsRequestOptions,
@@ -770,12 +783,14 @@ async fn fetch_ds_records<H>(
 where
     H: DnsHandle + Sync + Unpin,
 {
+    // need to get DS records for each DNSKEY
+    //   there will be a DS record for everything under the root keys
     let ds_message = handle
         .lookup(Query::query(zone.clone(), RecordType::DS), options)
         .first_answer()
         .await;
 
-    let error = match ds_message {
+    let error: ProtoError = match ds_message {
         Ok(mut ds_message)
             if ds_message
                 .answers()
@@ -783,7 +798,7 @@ where
                 .filter(|r| r.record_type() == RecordType::DS)
                 .any(|r| r.proof().is_secure()) =>
         {
-            // This is a secure DS RRset.
+            // this is a secure DS record, perfect
 
             let all_records = ds_message
                 .take_answers()
@@ -793,8 +808,7 @@ where
             let mut supported_records = vec![];
             let mut all_unknown = None;
             for record in all_records {
-                // A chain can be either SECURE or INSECURE, but we should not trust BOGUS or other
-                // records.
+                // A chain can be either SECURE or INSECURE, but we should not trust BOGUS or other records
                 if (!record.data().algorithm().is_supported()
                     || !record.data().digest_type().is_supported())
                     && (record.proof().is_secure() || record.proof().is_insecure())
@@ -818,34 +832,18 @@ where
                 ProtoError::from(ProtoErrorKind::NoError)
             }
         }
-        Ok(response) => {
-            let any_ds_rr = response
-                .answers()
-                .iter()
-                .any(|r| r.record_type() == RecordType::DS);
-            if any_ds_rr {
-                ProtoError::from(ProtoErrorKind::NoError)
-            } else {
-                // If the response was an authenticated proof of nonexistence, then we have an
-                // insecure zone.
-                debug!("marking {zone} as insecure based on secure NSEC/NSEC3 proof");
-                return Err(ProofError::new(
-                    Proof::Insecure,
-                    ProofErrorKind::DsResponseNsec { name: zone },
-                ));
-            }
-        }
+        Ok(_) => ProtoError::from(ProtoErrorKind::NoError),
         Err(error) => error,
     };
 
-    // If the response was an empty DS RRset that was itself insecure, then we have another insecure zone.
+    // if the DS record was an NSEC then we have an insecure zone
     if let Some((query, _proof)) = error
         .kind()
         .as_nsec()
         .filter(|(_query, proof)| proof.is_insecure())
     {
         debug!(
-            "marking {} as insecure based on insecure NSEC/NSEC3 proof",
+            "marking {} as insecure based on NSEC/NSEC3 proof",
             query.name()
         );
         return Err(ProofError::new(
@@ -856,45 +854,26 @@ where
         ));
     }
 
-    Err(ProofError::ds_should_exist(zone))
-}
+    // otherwise we need to recursively discover the status of DS up the chain,
+    //   if we find a valid DS, then we're in a Bogus state,
+    //   if we get ProofError, our result is the same
 
-/// Checks whether a DS RRset exists for the given name or an ancestor of it.
-async fn find_ds_records<H>(
-    handle: &DnssecDnsHandle<H>,
-    zone: Name,
-    options: DnsRequestOptions,
-) -> Result<(), ProofError>
-where
-    H: DnsHandle + Sync + Unpin,
-{
-    match fetch_ds_records(handle, zone.clone(), options).await {
-        Ok(_) => return Ok(()),
-        Err(ProofError {
-            proof: _,
-            kind: ProofErrorKind::DsRecordShouldExist { .. },
-        }) => {}
-        Err(err) => return Err(err),
+    let parent = zone.base_name();
+    if zone == parent {
+        // zone is `.`. do not call `find_ds_records(.., parent, ..)` or that will lead to infinite
+        // recursion
+        return Err(ProofError::new(
+            Proof::Bogus,
+            ProofErrorKind::DsRecordShouldExist { name: zone },
+        ));
     }
 
-    // Otherwise, we need to discover the status of DS RRsets up the chain. If we find a valid DS
-    // RRset, then we're in a Bogus state. If we get a ProofError, our result is the same.
-    let mut parent = zone.base_name();
-    loop {
-        match fetch_ds_records(handle, parent.clone(), options).await {
-            Ok(_) => {
-                return Err(ProofError::ds_should_exist(zone));
-            }
-            Err(ProofError {
-                proof: _,
-                kind: ProofErrorKind::DsRecordShouldExist { .. },
-            }) => {}
-            Err(err) => return Err(err),
-        }
-        parent = match parent.is_root() {
-            true => return Err(ProofError::ds_should_exist(zone)),
-            false => parent.base_name(),
-        };
+    match find_ds_records(handle, parent, options).await {
+        Ok(ds_records) if !ds_records.is_empty() => Err(ProofError::new(
+            Proof::Bogus,
+            ProofErrorKind::DsRecordShouldExist { name: zone },
+        )),
+        result => result,
     }
 }
 
@@ -964,6 +943,7 @@ where
         .iter()
         .enumerate()
         .filter_map(|(i, rrsig)| {
+            let handle = handle.clone_with_context();
             let query = Query::query(rrsig.data().signer_name().clone(), RecordType::DNSKEY);
 
             if i > MAX_RRSIGS_PER_RRSET {
@@ -1296,13 +1276,21 @@ enum RrsigValidity {
 pub fn verify_nsec(query: &Query, soa_name: &Name, nsecs: &[(&Name, &NSEC)]) -> Proof {
     // TODO: consider converting this to Result, and giving explicit reason for the failure
 
+    // DS queries resulting in NoData responses with accompanying NSEC records can prove that an
+    // insecure delegation exists; this is used to return Proof::Insecure instead of Proof::Secure
+    // in those situations.
+    let ds_proof_override = match query.query_type() {
+        RecordType::DS => Proof::Insecure,
+        _ => Proof::Secure,
+    };
+
     // first look for a record with the same name
     //  if they are, then the query_type should not exist in the NSEC record.
     //  if we got an NSEC record of the same name, but it is listed in the NSEC types,
     //    WTF? is that bad server, bad record
     if let Some((_, nsec_data)) = nsecs.iter().find(|(name, _)| query.name() == *name) {
         if !nsec_data.type_set().contains(query.query_type()) {
-            return proof_log_yield(Proof::Secure, query.name(), "nsec1", "direct match");
+            return proof_log_yield(ds_proof_override, query.name(), "nsec1", "direct match");
         } else {
             return proof_log_yield(Proof::Bogus, query.name(), "nsec1", "direct match");
         }
@@ -1339,7 +1327,7 @@ pub fn verify_nsec(query: &Query, soa_name: &Name, nsecs: &[(&Name, &NSEC)]) -> 
     if wildcard == *query.name() {
         // this was validated by the nsec coverage over the query.name()
         proof_log_yield(
-            Proof::Secure,
+            ds_proof_override,
             query.name(),
             "nsec1",
             "direct wildcard match",
@@ -1349,7 +1337,7 @@ pub fn verify_nsec(query: &Query, soa_name: &Name, nsecs: &[(&Name, &NSEC)]) -> 
         //  if there is wildcard coverage, we're good.
         if verify_nsec_coverage(&wildcard) {
             proof_log_yield(
-                Proof::Secure,
+                ds_proof_override,
                 query.name(),
                 "nsec1",
                 "covering wildcard match",

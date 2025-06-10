@@ -32,7 +32,7 @@ use vector_lib::{
     tls::{MaybeTlsIncomingStream, MaybeTlsListener, MaybeTlsSettings},
     EstimatedJsonEncodedSizeOf,
 };
-
+use vector_lib::codecs::encoding::Serializer::Syslog;
 use crate::{
     codecs::{Encoder, Transformer},
     common::http::server_auth::HttpServerAuthMatcher,
@@ -91,7 +91,7 @@ impl WebSocketListenerSink {
 
         match self.encoder.serializer() {
             RawMessage(_) | Avro(_) | Native(_) | Protobuf(_) => true,
-            Cef(_) | Csv(_) | Logfmt(_) | Gelf(_) | Json(_) | Text(_) | NativeJson(_) => false,
+            Cef(_) | Csv(_) | Logfmt(_) | Gelf(_) | Json(_) | Text(_) | NativeJson(_) | Syslog(_)=> false,
         }
     }
 
@@ -759,3 +759,4 @@ mod tests {
         (tx, rx)
     }
 }
+
