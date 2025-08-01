@@ -30,6 +30,7 @@ mod internal_events;
 pub mod test;
 pub mod topology;
 
+mod cast_utils;
 pub(crate) mod variants;
 
 use std::fmt::Debug;
