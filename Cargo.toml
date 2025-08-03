@@ -487,6 +487,7 @@ ocp-logging = [
   "transforms-detect_exceptions",
 
   "sinks-aws_cloudwatch_logs",
+  "sinks-aws_s3",
   "sinks-azure_monitor_logs",
   "sinks-elasticsearch",
   "sinks-file",
