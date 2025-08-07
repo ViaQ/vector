@@ -6,11 +6,15 @@ The `main` branch is empty except for this file.  The branches used by various R
 
 | Release | Branch | Vector Version | Status |
 | --------|--------|-----------------|--------|
-| 6.0 | Pending | Pending|  Pending |
-| 5.9 | release-5.9|v0.33.0|  Current |
-| 5.8 | release-5.8| v0.28.1|  Current |
-| 5.7 | release-5.7|v0.20.1| Current |
-| 5.6 | release-5.6|v1.20.1| Current |
+| 6.4 | v0.40.0-rh | v0.40.0 | Pending |
+| 6.3 | v0.37.1-rh | v0.37.1 | Current |
+| 6.2 | v0.37.1-rh | v0.37.1 | Current |
+| 6.1 | v0.37.1-rh | v0.37.1 | Current |
+| 6.0 | v0.37.1-rh | v0.37.1 | Current |
+| 5.9 | release-5.9| v0.33.0 | Current |
+| 5.8 | release-5.8| v0.28.1 | Current |
+| 5.7 | release-5.7| v0.20.1 | EOL     |
+| 5.6 | release-5.6| v1.20.1 | EOL     |
 
 
 ## Issues
