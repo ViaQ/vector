@@ -22,19 +22,18 @@ RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.83.0 -y
 ENV CARGO_HOME=$HOME/.cargo
 ENV PATH=$CARGO_HOME/bin:$PATH
 
-RUN mkdir -p /src
-
 WORKDIR /src
 COPY . /src
 
-RUN PROTOC=/src/thirdparty/protoc/protoc-linux-$(arch) make build
+RUN PROTOC=/src/thirdparty/protoc/protoc-linux-$(arch) make build-dev && \
+    mv /src/target/debug/vector /src/vector && \
+    rm -rf /src/target/debug
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal
 
 RUN microdnf install -y systemd tar && \
     microdnf clean all
 
-COPY --from=builder /src/target/release/vector /usr/bin
+COPY --from=builder /src/vector /usr/bin/vector
 WORKDIR /usr/bin
 CMD ["/usr/bin/vector"]
-
