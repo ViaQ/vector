@@ -13,10 +13,10 @@ mod structured_data;
 mod timestamp;
 
 use chrono::prelude::*;
-use nom::{branch::alt, IResult};
+use nom::{IResult, Parser as _, branch::alt};
 
 pub use message::{Message, Protocol};
-pub use pri::{decompose_pri, SyslogFacility, SyslogSeverity};
+pub use pri::{SyslogFacility, SyslogSeverity, decompose_pri};
 pub use procid::ProcId;
 pub use structured_data::StructuredElement;
 pub use timestamp::IncompleteDate;
@@ -44,7 +44,7 @@ where
 {
     match variant {
         Variant::Either => {
-            alt((rfc5424::parse, |input| rfc3164::parse(input, get_year, tz)))(input.trim())
+            alt((rfc5424::parse, |input| rfc3164::parse(input, get_year, tz))).parse(input.trim())
         }
         Variant::RFC3164 => rfc3164::parse(input.trim(), get_year, tz),
         Variant::RFC5424 => rfc5424::parse(input.trim()),
@@ -59,7 +59,7 @@ where
 /// * input - the string containing the message.
 /// * tz - a default timezone to use if the parsed timestamp does not specify one
 /// * get_year - a function that is called if the parsed message contains a date with no year.
-///              the function takes a (month, date, hour, minute, second) tuple and should return the year to use.
+///   the function takes a (month, date, hour, minute, second) tuple and should return the year to use.
 /// * variant - the variant of message we are expecting to receive.
 ///
 pub fn parse_message_with_year_tz<F, Tz: TimeZone + Copy>(
@@ -99,7 +99,7 @@ where
 ///
 /// * input - the string containing the message.
 /// * get_year - a function that is called if the parsed message contains a date with no year.
-///              the function takes a (month, date, hour, minute, second) tuple and should return the year to use.
+///   the function takes a (month, date, hour, minute, second) tuple and should return the year to use.
 /// * variant - the variant of message we are expecting to receive.
 ///
 pub fn parse_message_with_year<F>(input: &str, get_year: F, variant: Variant) -> Message<&str>
@@ -131,7 +131,7 @@ pub fn parse_message(input: &str, variant: Variant) -> Message<&str> {
 ///
 /// * input - the string containing the message.
 /// * get_year - a function that is called if the parsed message contains a date with no year.
-///              the function takes a (month, date, hour, minute, second) tuple and should return the year to use.
+///   the function takes a (month, date, hour, minute, second) tuple and should return the year to use.
 /// * variant - the variant of message we are expecting to receive.
 ///
 pub fn parse_message_with_year_exact<F>(
@@ -157,7 +157,7 @@ where
 /// * input - the string containing the message.
 /// * tz - a default timezone to use if the parsed timestamp does not specify one
 /// * get_year - a function that is called if the parsed message contains a date with no year.
-///              the function takes a (month, date, hour, minute, second) tuple and should return the year to use.
+///   the function takes a (month, date, hour, minute, second) tuple and should return the year to use.
 /// * variant - the variant of message we are expecting to receive.
 ///
 pub fn parse_message_with_year_exact_tz<F, Tz: TimeZone + Copy>(

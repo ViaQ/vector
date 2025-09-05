@@ -17,10 +17,6 @@ use ::schemars_0_8::{
     },
     JsonSchema,
 };
-use core::{
-    mem::ManuallyDrop,
-    ops::{Deref, DerefMut},
-};
 
 //===================================================================
 // Trait Definition
@@ -276,6 +272,42 @@ where
     forward_schema!(HashSet<WrapSchema<T, TA>, S>);
 }
 
+impl<T, TA> JsonSchemaAs<Bound<T>> for Bound<TA>
+where
+    TA: JsonSchemaAs<T>,
+{
+    forward_schema!(Bound<WrapSchema<T, TA>>);
+}
+
+impl<T, TA> JsonSchemaAs<Range<T>> for Range<TA>
+where
+    TA: JsonSchemaAs<T>,
+{
+    forward_schema!(Range<WrapSchema<T, TA>>);
+}
+
+// Note: Not included in `schemars`
+// impl<T, TA> JsonSchemaAs<RangeFrom<T>> for RangeFrom<TA>
+// where
+//     TA: JsonSchemaAs<T>,
+// {
+//     forward_schema!(RangeFrom<WrapSchema<T, TA>>);
+// }
+
+// impl<T, TA> JsonSchemaAs<RangeTo<T>> for RangeTo<TA>
+// where
+//     TA: JsonSchemaAs<T>,
+// {
+//     forward_schema!(RangeTo<WrapSchema<T, TA>>);
+// }
+
+impl<T, TA> JsonSchemaAs<RangeInclusive<T>> for RangeInclusive<TA>
+where
+    TA: JsonSchemaAs<T>,
+{
+    forward_schema!(RangeInclusive<WrapSchema<T, TA>>);
+}
+
 impl<T, TA, const N: usize> JsonSchemaAs<[T; N]> for [TA; N]
 where
     TA: JsonSchemaAs<T>,
@@ -442,11 +474,11 @@ impl JsonSchemaAs<Vec<u8>> for BytesOrString {
         "serde_with::BytesOrString".into()
     }
 
-    fn json_schema(gen: &mut SchemaGenerator) -> Schema {
+    fn json_schema(generator: &mut SchemaGenerator) -> Schema {
         SchemaObject {
             subschemas: Some(Box::new(SubschemaValidation {
                 any_of: Some(std::vec![
-                    gen.subschema_for::<Vec<u8>>(),
+                    generator.subschema_for::<Vec<u8>>(),
                     SchemaObject {
                         instance_type: Some(InstanceType::String.into()),
                         metadata: Some(Box::new(Metadata {
@@ -607,13 +639,13 @@ where
     ///
     /// Unfortunately for us, we need to handle all of these options by recursing
     /// into the subschemas and applying the same transformations as above.
-    fn kvmap_transform_schema(gen: &mut SchemaGenerator, schema: &mut Schema) {
+    fn kvmap_transform_schema_0_8(gen: &mut SchemaGenerator, schema: &mut Schema) {
         let mut parents = Vec::new();
 
-        Self::kvmap_transform_schema_impl(gen, schema, &mut parents, 0);
+        Self::kvmap_transform_schema_impl_0_8(gen, schema, &mut parents, 0);
     }
 
-    fn kvmap_transform_schema_impl(
+    fn kvmap_transform_schema_impl_0_8(
         gen: &mut SchemaGenerator,
         schema: &mut Schema,
         parents: &mut Vec<String>,
@@ -652,9 +684,9 @@ where
             };
 
             parents.push(name);
-            DropGuard::new(parents, |parents| drop(parents.pop()))
+            utils::DropGuard::new(parents, |parents| drop(parents.pop()))
         } else {
-            DropGuard::unguarded(parents)
+            utils::DropGuard::unguarded(parents)
         };
 
         if let Some(object) = &mut schema.object {
@@ -668,7 +700,7 @@ where
                 *max = max.saturating_sub(1);
             }
 
-            if let Some(min) = &mut object.max_properties {
+            if let Some(min) = &mut object.min_properties {
                 *min = min.saturating_sub(1);
             }
         }
@@ -707,19 +739,19 @@ where
 
         if let Some(one_of) = &mut subschemas.one_of {
             for subschema in one_of {
-                Self::kvmap_transform_schema_impl(gen, subschema, &mut parents, depth + 1);
+                Self::kvmap_transform_schema_impl_0_8(gen, subschema, &mut parents, depth + 1);
             }
         }
 
         if let Some(any_of) = &mut subschemas.any_of {
             for subschema in any_of {
-                Self::kvmap_transform_schema_impl(gen, subschema, &mut parents, depth + 1);
+                Self::kvmap_transform_schema_impl_0_8(gen, subschema, &mut parents, depth + 1);
             }
         }
 
         if let Some(all_of) = &mut subschemas.all_of {
             for subschema in all_of {
-                Self::kvmap_transform_schema_impl(gen, subschema, &mut parents, depth + 1);
+                Self::kvmap_transform_schema_impl_0_8(gen, subschema, &mut parents, depth + 1);
             }
         }
     }
@@ -743,7 +775,7 @@ where
 
     fn json_schema(gen: &mut SchemaGenerator) -> Schema {
         let mut value = <WrapSchema<T, TA>>::json_schema(gen);
-        <WrapSchema<Vec<T>, KeyValueMap<TA>>>::kvmap_transform_schema(gen, &mut value);
+        <WrapSchema<Vec<T>, KeyValueMap<TA>>>::kvmap_transform_schema_0_8(gen, &mut value);
 
         SchemaObject {
             instance_type: Some(InstanceType::Object.into()),
@@ -919,12 +951,12 @@ macro_rules! schema_for_pickfirst {
                 .into()
             }
 
-            fn json_schema(gen: &mut SchemaGenerator) -> Schema {
+            fn json_schema(g: &mut SchemaGenerator) -> Schema {
                 let mut first = true;
                 let subschemas = std::vec![$(
                     {
                         let is_first = std::mem::replace(&mut first, false);
-                        let schema = gen.subschema_for::<WrapSchema<T, $param>>();
+                        let schema = g.subschema_for::<WrapSchema<T, $param>>();
 
                         if !is_first {
                             SchemaObject {
@@ -1027,18 +1059,11 @@ mod timespan {
     // #[non_exhaustive] is not actually necessary here but it should
     // help avoid warnings about semver breakage if this ever changes.
     #[non_exhaustive]
-    #[derive(Copy, Clone, Debug, Eq, PartialEq)]
     pub enum TimespanTargetType {
         String,
         F64,
         U64,
         I64,
-    }
-
-    impl TimespanTargetType {
-        pub const fn is_signed(self) -> bool {
-            !matches!(self, Self::U64)
-        }
     }
 
     /// Internal helper trait used to constrain which types we implement
@@ -1132,7 +1157,7 @@ where
 }
 
 impl TimespanTargetType {
-    pub(crate) fn to_flexible_schema(self, signed: bool) -> Schema {
+    pub(crate) fn into_flexible_schema(self, signed: bool) -> Schema {
         use ::schemars_0_8::schema::StringValidation;
 
         let mut number = SchemaObject {
@@ -1162,7 +1187,7 @@ impl TimespanTargetType {
             ..Default::default()
         };
 
-        if self == Self::String {
+        if matches!(self, Self::String) {
             number.metadata().write_only = true;
         } else {
             string.metadata().write_only = true;
@@ -1207,7 +1232,7 @@ where
 
     fn json_schema(_: &mut SchemaGenerator) -> Schema {
         <T as TimespanSchemaTarget<F>>::TYPE
-            .to_flexible_schema(<T as TimespanSchemaTarget<F>>::SIGNED)
+            .into_flexible_schema(<T as TimespanSchemaTarget<F>>::SIGNED)
     }
 
     fn is_referenceable() -> bool {
@@ -1254,52 +1279,3 @@ forward_duration_schema!(TimestampSecondsWithFrac);
 forward_duration_schema!(TimestampMilliSecondsWithFrac);
 forward_duration_schema!(TimestampMicroSecondsWithFrac);
 forward_duration_schema!(TimestampNanoSecondsWithFrac);
-
-//===================================================================
-// Extra internal helper structs
-
-struct DropGuard<T, F: FnOnce(T)> {
-    value: ManuallyDrop<T>,
-    guard: Option<F>,
-}
-
-impl<T, F: FnOnce(T)> DropGuard<T, F> {
-    pub fn new(value: T, guard: F) -> Self {
-        Self {
-            value: ManuallyDrop::new(value),
-            guard: Some(guard),
-        }
-    }
-
-    pub fn unguarded(value: T) -> Self {
-        Self {
-            value: ManuallyDrop::new(value),
-            guard: None,
-        }
-    }
-}
-
-impl<T, F: FnOnce(T)> Deref for DropGuard<T, F> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.value
-    }
-}
-
-impl<T, F: FnOnce(T)> DerefMut for DropGuard<T, F> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.value
-    }
-}
-
-impl<T, F: FnOnce(T)> Drop for DropGuard<T, F> {
-    fn drop(&mut self) {
-        // SAFETY: value is known to be initialized since we only ever remove it here.
-        let value = unsafe { ManuallyDrop::take(&mut self.value) };
-
-        if let Some(guard) = self.guard.take() {
-            guard(value);
-        }
-    }
-}

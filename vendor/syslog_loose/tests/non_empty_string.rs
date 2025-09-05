@@ -1,10 +1,6 @@
 use quickcheck::{Arbitrary, Gen};
 use std::num::NonZeroU8;
 
-trait FilterChars {
-    fn valid(c: char) -> bool;
-}
-
 fn gen_string<F>(g: &mut Gen, valid_char: F) -> String
 where
     F: Fn(char) -> bool,
@@ -36,6 +32,12 @@ macro_rules! arbitrary_string {
     ($name: ident, $filter: expr) => {
         #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
         pub struct $name(pub String);
+
+	impl From<&str> for $name {
+	    fn from(s: &str) -> Self {
+		$name(s.to_string())
+	    }
+	}
 
         impl ArbitraryString for $name {
             fn get_str(self) -> String {

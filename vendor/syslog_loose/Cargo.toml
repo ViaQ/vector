@@ -12,8 +12,14 @@
 [package]
 edition = "2018"
 name = "syslog_loose"
-version = "0.21.0"
+version = "0.22.0"
 authors = ["Stephen Wakely <fungus.humungus@gmail.com>"]
+build = false
+autolib = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "A loose parser for syslog messages."
 documentation = "https://docs.rs/syslog_loose/"
 readme = "README.md"
@@ -26,14 +32,32 @@ categories = ["parser-implementations"]
 license = "MIT"
 repository = "https://github.com/FungusHumungus/syslog-loose"
 
-[profile.release]
-debug = 2
+[features]
+quickcheck = []
 
-[[example]]
-name = "server"
+[lib]
+name = "syslog_loose"
+path = "src/lib.rs"
 
 [[example]]
 name = "parser"
+path = "examples/parser/main.rs"
+
+[[example]]
+name = "server"
+path = "examples/server/main.rs"
+
+[[test]]
+name = "non_empty_string"
+path = "tests/non_empty_string.rs"
+
+[[test]]
+name = "quickcheck"
+path = "tests/quickcheck.rs"
+
+[[test]]
+name = "tests"
+path = "tests/tests.rs"
 
 [[bench]]
 name = "bench"
@@ -49,16 +73,16 @@ features = [
 default-features = false
 
 [dependencies.nom]
-version = "7.1"
+version = "8.0"
 
 [dev-dependencies.chrono-tz]
-version = "0.8"
+version = "0.10"
 
 [dev-dependencies.criterion]
 version = "0.5.1"
 
 [dev-dependencies.criterion-cycles-per-byte]
-version = "0.5.0"
+version = "0.6.0"
 
 [dev-dependencies.quickcheck]
 version = "1.0.3"
@@ -66,5 +90,5 @@ version = "1.0.3"
 [dev-dependencies.quickcheck_macros]
 version = "1.0.0"
 
-[features]
-quickcheck = []
+[profile.release]
+debug = 2

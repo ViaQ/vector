@@ -45,6 +45,19 @@ rustdoc-args = [
     "docsrs",
 ]
 
+[badges.maintenance]
+status = "experimental"
+
+[features]
+default = [
+    "tower-layer",
+    "tower-make",
+]
+tower-make = [
+    "tower_make",
+    "pin-project-lite",
+]
+
 [lib]
 name = "tracing_tower"
 path = "src/lib.rs"
@@ -80,16 +93,3 @@ default-features = false
 version = "0.3"
 path = "../tracing-futures"
 features = ["std-future"]
-
-[features]
-default = [
-    "tower-layer",
-    "tower-make",
-]
-tower-make = [
-    "tower_make",
-    "pin-project-lite",
-]
-
-[badges.maintenance]
-status = "experimental"

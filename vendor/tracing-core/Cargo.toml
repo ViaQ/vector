@@ -46,6 +46,17 @@ rustdoc-args = [
     "docsrs",
 ]
 
+[badges.maintenance]
+status = "actively-developed"
+
+[features]
+alloc = []
+default = ["std"]
+std = [
+    "lazy_static",
+    "alloc",
+]
+
 [lib]
 name = "tracing_core"
 path = "src/lib.rs"
@@ -65,14 +76,3 @@ path = "tests/macros.rs"
 [dependencies.lazy_static]
 version = "1.0.2"
 optional = true
-
-[features]
-alloc = []
-default = ["std"]
-std = [
-    "lazy_static",
-    "alloc",
-]
-
-[badges.maintenance]
-status = "actively-developed"

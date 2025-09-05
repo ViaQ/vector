@@ -55,6 +55,15 @@ targets = [
     "x86_64-pc-windows-msvc",
 ]
 
+[features]
+beta = []
+default = ["user"]
+func-types = []
+impl-default = ["winapi/impl-default"]
+kernel = []
+nightly = ["beta"]
+user = []
+
 [lib]
 name = "ntapi"
 path = "src/lib.rs"
@@ -71,12 +80,3 @@ features = [
     "windef",
     "winioctl",
 ]
-
-[features]
-beta = []
-default = ["user"]
-func-types = []
-impl-default = ["winapi/impl-default"]
-kernel = []
-nightly = ["beta"]
-user = []

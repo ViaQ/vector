@@ -1,5 +1,5 @@
-use std::cmp::Ordering;
-use std::hash::{Hash, Hasher};
+use core::cmp::Ordering;
+use core::hash::{Hash, Hasher};
 
 // Currently serde itself doesn't have a spanned type, so we map our `Spanned`
 // to a special value in the serde data model. Namely one with these special
@@ -7,29 +7,24 @@ use std::hash::{Hash, Hasher};
 //
 // In general, supported deserializers should catch this and not literally emit
 // these strings but rather emit `Spanned` as they're intended.
-#[doc(hidden)]
 #[cfg(feature = "serde")]
-pub const NAME: &str = "$__serde_spanned_private_Spanned";
-#[doc(hidden)]
+pub(crate) const NAME: &str = "$__serde_spanned_private_Spanned";
 #[cfg(feature = "serde")]
-pub const START_FIELD: &str = "$__serde_spanned_private_start";
-#[doc(hidden)]
+pub(crate) const START_FIELD: &str = "$__serde_spanned_private_start";
 #[cfg(feature = "serde")]
-pub const END_FIELD: &str = "$__serde_spanned_private_end";
-#[doc(hidden)]
+pub(crate) const END_FIELD: &str = "$__serde_spanned_private_end";
 #[cfg(feature = "serde")]
-pub const VALUE_FIELD: &str = "$__serde_spanned_private_value";
-#[doc(hidden)]
+pub(crate) const VALUE_FIELD: &str = "$__serde_spanned_private_value";
 #[cfg(feature = "serde")]
-pub fn is_spanned(name: &'static str, fields: &'static [&'static str]) -> bool {
-    name == NAME && fields == [START_FIELD, END_FIELD, VALUE_FIELD]
+pub(crate) fn is_spanned(name: &'static str) -> bool {
+    name == NAME
 }
 
 /// A spanned value, indicating the range at which it is defined in the source.
 #[derive(Clone, Debug)]
 pub struct Spanned<T> {
     /// Byte range
-    span: std::ops::Range<usize>,
+    span: core::ops::Range<usize>,
     /// The spanned value.
     value: T,
 }
@@ -88,12 +83,12 @@ impl<T> Spanned<T> {
     /// #
     /// # type DetailedDependency = std::collections::BTreeMap<String, String>;
     /// ```
-    pub fn new(range: std::ops::Range<usize>, value: T) -> Self {
-        Spanned { span: range, value }
+    pub fn new(range: core::ops::Range<usize>, value: T) -> Self {
+        Self { span: range, value }
     }
 
     /// Byte range
-    pub fn span(&self) -> std::ops::Range<usize> {
+    pub fn span(&self) -> core::ops::Range<usize> {
         self.span.clone()
     }
 
@@ -113,7 +108,29 @@ impl<T> Spanned<T> {
     }
 }
 
-impl std::borrow::Borrow<str> for Spanned<String> {
+#[cfg(feature = "serde")]
+impl<T> Spanned<T> {
+    pub(crate) const START_FIELD: &str = START_FIELD;
+    pub(crate) const END_FIELD: &str = END_FIELD;
+    pub(crate) const VALUE_FIELD: &str = VALUE_FIELD;
+}
+
+impl<T: core::fmt::Display> core::fmt::Display for Spanned<T> {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        self.get_ref().fmt(fmt)
+    }
+}
+
+#[cfg(feature = "alloc")]
+#[allow(unused_qualifications)]
+impl core::borrow::Borrow<str> for Spanned<alloc::string::String> {
+    fn borrow(&self) -> &str {
+        self.get_ref()
+    }
+}
+
+#[cfg(feature = "alloc")]
+impl core::borrow::Borrow<str> for Spanned<alloc::borrow::Cow<'_, str>> {
     fn borrow(&self) -> &str {
         self.get_ref()
     }
@@ -162,11 +179,11 @@ impl<'de, T> serde::de::Deserialize<'de> for Spanned<T>
 where
     T: serde::de::Deserialize<'de>,
 {
-    fn deserialize<D>(deserializer: D) -> Result<Spanned<T>, D::Error>
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::de::Deserializer<'de>,
     {
-        struct SpannedVisitor<T>(::std::marker::PhantomData<T>);
+        struct SpannedVisitor<T>(::core::marker::PhantomData<T>);
 
         impl<'de, T> serde::de::Visitor<'de> for SpannedVisitor<T>
         where
@@ -174,7 +191,7 @@ where
         {
             type Value = Spanned<T>;
 
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            fn expecting(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
                 formatter.write_str("a spanned value")
             }
 
@@ -227,7 +244,7 @@ where
 
         static FIELDS: [&str; 3] = [START_FIELD, END_FIELD, VALUE_FIELD];
 
-        let visitor = SpannedVisitor(::std::marker::PhantomData);
+        let visitor = SpannedVisitor(::core::marker::PhantomData);
 
         deserializer.deserialize_struct(NAME, &FIELDS, visitor)
     }

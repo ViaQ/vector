@@ -182,8 +182,8 @@ where
     {
         match source {
             Bound::Unbounded => Bound::Unbounded,
-            Bound::Included(ref v) => Bound::Included(SerializeAsWrap::<T, U>::new(v)),
-            Bound::Excluded(ref v) => Bound::Excluded(SerializeAsWrap::<T, U>::new(v)),
+            Bound::Included(v) => Bound::Included(SerializeAsWrap::<T, U>::new(v)),
+            Bound::Excluded(v) => Bound::Excluded(SerializeAsWrap::<T, U>::new(v)),
         }
         .serialize(serializer)
     }
@@ -339,6 +339,72 @@ where
             arr.serialize_element(&SerializeAsWrap::<T, As>::new(elem))?;
         }
         arr.end()
+    }
+}
+
+// endregion
+///////////////////////////////////////////////////////////////////////////////
+// region: More complex wrappers that are not just a single value
+
+impl<Idx, IdxAs> SerializeAs<Range<Idx>> for Range<IdxAs>
+where
+    IdxAs: SerializeAs<Idx>,
+{
+    fn serialize_as<S>(value: &Range<Idx>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        Range {
+            start: SerializeAsWrap::<Idx, IdxAs>::new(&value.start),
+            end: SerializeAsWrap::<Idx, IdxAs>::new(&value.end),
+        }
+        .serialize(serializer)
+    }
+}
+
+impl<Idx, IdxAs> SerializeAs<RangeFrom<Idx>> for RangeFrom<IdxAs>
+where
+    IdxAs: SerializeAs<Idx>,
+{
+    fn serialize_as<S>(value: &RangeFrom<Idx>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        RangeFrom {
+            start: SerializeAsWrap::<Idx, IdxAs>::new(&value.start),
+        }
+        .serialize(serializer)
+    }
+}
+
+impl<Idx, IdxAs> SerializeAs<RangeInclusive<Idx>> for RangeInclusive<IdxAs>
+where
+    IdxAs: SerializeAs<Idx>,
+{
+    fn serialize_as<S>(value: &RangeInclusive<Idx>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        RangeInclusive::new(
+            SerializeAsWrap::<Idx, IdxAs>::new(value.start()),
+            SerializeAsWrap::<Idx, IdxAs>::new(value.end()),
+        )
+        .serialize(serializer)
+    }
+}
+
+impl<Idx, IdxAs> SerializeAs<RangeTo<Idx>> for RangeTo<IdxAs>
+where
+    IdxAs: SerializeAs<Idx>,
+{
+    fn serialize_as<S>(value: &RangeTo<Idx>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        RangeTo {
+            end: SerializeAsWrap::<Idx, IdxAs>::new(&value.end),
+        }
+        .serialize(serializer)
     }
 }
 

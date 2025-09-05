@@ -11,9 +11,9 @@
 
 [package]
 edition = "2021"
-rust-version = "1.65"
+rust-version = "1.66"
 name = "serde_spanned"
-version = "0.6.8"
+version = "1.0.0"
 build = false
 include = [
     "build.rs",
@@ -22,16 +22,14 @@ include = [
     "Cargo.lock",
     "LICENSE*",
     "README.md",
-    "benches/**/*",
     "examples/**/*",
-    "tests/**/*",
 ]
+autolib = false
 autobins = false
 autoexamples = false
 autotests = false
 autobenches = false
 description = "Serde-compatible spanned Value"
-homepage = "https://github.com/toml-rs/toml"
 readme = "README.md"
 keywords = [
     "serde",
@@ -51,6 +49,7 @@ all-features = true
 rustdoc-args = [
     "--cfg",
     "docsrs",
+    "--generate-link-to-definition",
 ]
 
 [[package.metadata.release.pre-release-replacements]]
@@ -88,6 +87,18 @@ replace = """
 [Unreleased]: https://github.com/toml-rs/toml/compare/{{tag_name}}...HEAD"""
 search = "<!-- next-url -->"
 
+[features]
+alloc = ["serde?/alloc"]
+default = [
+    "std",
+    "serde",
+]
+serde = ["dep:serde"]
+std = [
+    "alloc",
+    "serde?/std",
+]
+
 [lib]
 name = "serde_spanned"
 path = "src/lib.rs"
@@ -95,6 +106,7 @@ path = "src/lib.rs"
 [dependencies.serde]
 version = "1.0.145"
 optional = true
+default-features = false
 
 [dev-dependencies.serde]
 version = "1"
@@ -125,6 +137,7 @@ flat_map_option = "warn"
 float_cmp_const = "warn"
 fn_params_excessive_bools = "warn"
 from_iter_instead_of_collect = "warn"
+get_first = "allow"
 if_same_then_else = "allow"
 implicit_clone = "warn"
 imprecise_flops = "warn"
@@ -141,7 +154,8 @@ lossy_float_literal = "warn"
 macro_use_imports = "warn"
 mem_forget = "warn"
 mutex_integer = "warn"
-needless_continue = "warn"
+needless_bool = "allow"
+needless_continue = "allow"
 needless_for_each = "warn"
 negative_feature_names = "warn"
 path_buf_push_overwrite = "warn"
@@ -150,6 +164,7 @@ rc_mutex = "warn"
 redundant_feature_names = "warn"
 ref_option_ref = "warn"
 rest_pat_in_fully_bound_structs = "warn"
+result_large_err = "allow"
 same_functions_in_if_condition = "warn"
 self_named_module_files = "warn"
 semicolon_if_nothing_returned = "warn"
@@ -160,11 +175,14 @@ string_lit_as_bytes = "warn"
 string_to_string = "warn"
 todo = "warn"
 trait_duplication_in_bounds = "warn"
+uninlined_format_args = "warn"
+use_self = "warn"
 verbose_file_reads = "warn"
 wildcard_imports = "warn"
 zero_sized_map_values = "warn"
 
 [lints.rust]
+unnameable_types = "allow"
 unreachable_pub = "warn"
 unsafe_op_in_unsafe_fn = "warn"
 unused_lifetimes = "warn"

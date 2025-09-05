@@ -1,19 +1,17 @@
 use crate::parsers::digits;
 use chrono::prelude::*;
 use nom::{
+    IResult, Parser as _,
     branch::alt,
-    bytes::complete::take_until,
-    bytes::complete::{tag, take},
+    bytes::complete::{tag, take, take_until},
     character::complete::space1,
     combinator::{map, map_res, opt},
     error::{self, ErrorKind},
-    sequence::tuple,
-    IResult,
 };
 
 /// The timestamp for 5424 messages yyyy-mm-ddThh:mm:ss.mmmmZ
 pub(crate) fn timestamp_3339(input: &str) -> IResult<&str, DateTime<FixedOffset>> {
-    map_res(take_until(" "), chrono::DateTime::parse_from_rfc3339)(input)
+    map_res(take_until(" "), chrono::DateTime::parse_from_rfc3339).parse(input)
 }
 
 /// An incomplete date is a tuple of (month, date, hour, minutes, seconds)
@@ -41,7 +39,7 @@ fn parse_month(s: &str) -> Result<u32, String> {
 /// The timestamp for 3164 messages. MMM DD HH:MM:SS
 fn timestamp_3164_no_year(input: &str) -> IResult<&str, IncompleteDate> {
     map(
-        tuple((
+        (
             map_res(take(3_usize), parse_month),
             space1,
             digits,
@@ -52,15 +50,16 @@ fn timestamp_3164_no_year(input: &str) -> IResult<&str, IncompleteDate> {
             tag(":"),
             digits,
             opt(tag(":")),
-        )),
+        ),
         |(month, _, date, _, hour, _, minute, _, seconds, _)| (month, date, hour, minute, seconds),
-    )(input)
+    )
+    .parse(input)
 }
 
 /// Timestamp including year. MMM DD YYYY HH:MM:SS
 fn timestamp_3164_with_year(input: &str) -> IResult<&str, NaiveDateTime> {
     map_res(
-        tuple((
+        (
             map_res(take(3_usize), parse_month),
             space1,
             digits,
@@ -73,14 +72,15 @@ fn timestamp_3164_with_year(input: &str) -> IResult<&str, NaiveDateTime> {
             tag(":"),
             digits,
             opt(tag(":")),
-        )),
+        ),
         |(month, _, date, _, year, _, hour, _, minute, _, seconds, _)| {
             NaiveDate::from_ymd_opt(year, month, date)
                 .ok_or_else(|| error::Error::new(input, ErrorKind::Fail))?
                 .and_hms_opt(hour, minute, seconds)
                 .ok_or_else(|| error::Error::new(input, ErrorKind::Fail))
         },
-    )(input)
+    )
+    .parse(input)
 }
 
 /// Makes a timestamp given all the fields of the date less the year
@@ -117,9 +117,9 @@ where
 /// # Arguments
 ///
 /// * get_year - a function that is called if the parsed message contains a date with no year.
-///              the function takes a (month, date, hour, minute, second) tuple and should return the year to use.
+///   the function takes a (month, date, hour, minute, second) tuple and should return the year to use.
 /// * tz - An optional timezone.
-///        If None is specified and the parsed date doesn't specify a timezone the date is parsed in time local time.
+///   If None is specified and the parsed date doesn't specify a timezone the date is parsed in time local time.
 ///
 pub(crate) fn timestamp_3164<F, Tz: TimeZone + Copy>(
     get_year: F,
@@ -136,7 +136,7 @@ where
             map(timestamp_3164_with_year, |naive_date| match tz {
                 Some(tz) => {
                     let offset = tz.offset_from_utc_datetime(&naive_date).fix();
-                    DateTime::<FixedOffset>::from_utc(naive_date, offset)
+                    DateTime::<FixedOffset>::from_naive_utc_and_offset(naive_date, offset)
                 }
                 None => match Local.from_local_datetime(&naive_date).earliest() {
                     Some(timestamp) => timestamp.into(),
@@ -144,7 +144,8 @@ where
                 },
             }),
             timestamp_3339,
-        ))(input)
+        ))
+        .parse(input)
     }
 }
 

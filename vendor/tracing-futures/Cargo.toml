@@ -51,6 +51,27 @@ rustdoc-args = [
     "docsrs",
 ]
 
+[badges.maintenance]
+status = "actively-developed"
+
+[features]
+default = [
+    "std-future",
+    "std",
+]
+futures-01 = [
+    "futures_01",
+    "std",
+]
+futures-03 = [
+    "std-future",
+    "futures",
+    "futures-task",
+    "std",
+]
+std = ["tracing/std"]
+std-future = ["pin-project-lite"]
+
 [lib]
 name = "tracing_futures"
 path = "src/lib.rs"
@@ -99,24 +120,3 @@ path = "../tracing-core"
 
 [dev-dependencies.tracing-mock]
 path = "../tracing-mock"
-
-[features]
-default = [
-    "std-future",
-    "std",
-]
-futures-01 = [
-    "futures_01",
-    "std",
-]
-futures-03 = [
-    "std-future",
-    "futures",
-    "futures-task",
-    "std",
-]
-std = ["tracing/std"]
-std-future = ["pin-project-lite"]
-
-[badges.maintenance]
-status = "actively-developed"

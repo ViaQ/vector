@@ -105,7 +105,7 @@ fn ron_serialize() {
         ],
     };
 
-    let pretty_config = ron::ser::PrettyConfig::new().new_line("\n".into());
+    let pretty_config = ron::ser::PrettyConfig::new().new_line("\n");
     let ron = ron::ser::to_string_pretty(&values, pretty_config).unwrap();
     expect_test::expect![[r#"
             (
@@ -127,78 +127,78 @@ fn ron_serialize() {
     // TODO deserializing a Strings as an Identifier seems unsupported
     let deser_values: ron::Value = ron::de::from_str(&ron).unwrap();
     expect_test::expect![[r#"
+        Map(
             Map(
-                Map(
-                    {
-                        String(
-                            "vec",
-                        ): Map(
-                            Map(
-                                {
-                                    String(
-                                        "Int",
-                                    ): Number(
-                                        Integer(
-                                            456,
-                                        ),
+                {
+                    String(
+                        "vec",
+                    ): Map(
+                        Map(
+                            {
+                                String(
+                                    "Int",
+                                ): Number(
+                                    U16(
+                                        456,
                                     ),
-                                    String(
-                                        "String",
-                                    ): String(
-                                        "XXX",
-                                    ),
-                                    String(
-                                        "Struct",
-                                    ): Map(
-                                        Map(
-                                            {
-                                                String(
-                                                    "a",
-                                                ): Number(
-                                                    Integer(
-                                                        666,
-                                                    ),
-                                                ),
-                                                String(
-                                                    "b",
-                                                ): String(
-                                                    "BBB",
-                                                ),
-                                                String(
-                                                    "c",
-                                                ): Bool(
-                                                    true,
-                                                ),
-                                            },
-                                        ),
-                                    ),
-                                    String(
-                                        "Tuple",
-                                    ): Seq(
-                                        [
-                                            Number(
-                                                Integer(
-                                                    1,
+                                ),
+                                String(
+                                    "String",
+                                ): String(
+                                    "XXX",
+                                ),
+                                String(
+                                    "Struct",
+                                ): Map(
+                                    Map(
+                                        {
+                                            String(
+                                                "a",
+                                            ): Number(
+                                                U16(
+                                                    666,
                                                 ),
                                             ),
                                             String(
-                                                "Middle",
+                                                "b",
+                                            ): String(
+                                                "BBB",
                                             ),
-                                            Bool(
-                                                false,
+                                            String(
+                                                "c",
+                                            ): Bool(
+                                                true,
                                             ),
-                                        ],
+                                        },
                                     ),
-                                    String(
-                                        "Unit",
-                                    ): Unit,
-                                },
-                            ),
+                                ),
+                                String(
+                                    "Tuple",
+                                ): Seq(
+                                    [
+                                        Number(
+                                            U8(
+                                                1,
+                                            ),
+                                        ),
+                                        String(
+                                            "Middle",
+                                        ),
+                                        Bool(
+                                            false,
+                                        ),
+                                    ],
+                                ),
+                                String(
+                                    "Unit",
+                                ): Unit,
+                            },
                         ),
-                    },
-                ),
-            )
-        "#]]
+                    ),
+                },
+            ),
+        )
+    "#]]
     .assert_debug_eq(&deser_values);
 }
 
@@ -224,7 +224,7 @@ fn xml_round_trip() {
     };
 
     let xml = serde_xml_rs::to_string(&values).unwrap();
-    expect_test::expect![[r#"<?xml version="1.0" encoding="UTF-8"?><VecEnumValues><vec><Int>123</Int><String>FooBar</String><Int>456</Int><String>XXX</String><Unit /></vec></VecEnumValues>"#]]
+    expect_test::expect![[r#"<?xml version="1.0" encoding="utf-8"?><VecEnumValues><vec><Int>123</Int><String>FooBar</String><Int>456</Int><String>XXX</String><Unit /></vec></VecEnumValues>"#]]
         .assert_eq(&xml);
     let deser_values: VecEnumValues = serde_xml_rs::from_str(&xml).unwrap();
     assert_eq!(values, deser_values);

@@ -1,16 +1,12 @@
-use chrono::{prelude::*, Duration};
+use chrono::{Duration, prelude::*};
 use syslog_loose::{
-    parse_message, parse_message_with_year, parse_message_with_year_exact,
-    parse_message_with_year_exact_tz, IncompleteDate, Message, ProcId, Protocol, StructuredElement,
-    SyslogFacility, SyslogSeverity, Variant,
+    IncompleteDate, Message, ProcId, Protocol, StructuredElement, SyslogFacility, SyslogSeverity,
+    Variant, parse_message, parse_message_with_year, parse_message_with_year_exact,
+    parse_message_with_year_exact_tz,
 };
 
 fn with_year((month, _date, _hour, _min, _sec): IncompleteDate) -> i32 {
-    if month == 12 {
-        2019
-    } else {
-        2020
-    }
+    if month == 12 { 2019 } else { 2020 }
 }
 
 #[test]
@@ -23,7 +19,12 @@ fn parse_nginx() {
         Message {
             facility: Some(SyslogFacility::LOG_LOCAL7),
             severity: Some(SyslogSeverity::SEV_INFO),
-            timestamp: Some(Local.with_ymd_and_hms(2019, 12, 28,16, 49, 7).unwrap().into()),
+            timestamp: Some(
+                Local
+                    .with_ymd_and_hms(2019, 12, 28, 16, 49, 7)
+                    .unwrap()
+                    .into()
+            ),
             hostname: Some("plertrood-thinkpad-x220"),
             appname: Some("nginx"),
             procid: None,
@@ -270,7 +271,12 @@ fn parse_3164_invalid_structured_data() {
         Message {
             facility: Some(SyslogFacility::LOG_SYSLOG),
             severity: Some(SyslogSeverity::SEV_INFO),
-            timestamp: Some(Local.with_ymd_and_hms(2020, 1, 5, 15, 33, 3).unwrap().into()),
+            timestamp: Some(
+                Local
+                    .with_ymd_and_hms(2020, 1, 5, 15, 33, 3)
+                    .unwrap()
+                    .into()
+            ),
             hostname: Some("plertrood-ThinkPad-X220"),
             appname: Some("rsyslogd"),
             procid: None,
@@ -291,7 +297,12 @@ fn parse_3164_no_tag() {
         Message {
             facility: Some(SyslogFacility::LOG_SYSLOG),
             severity: Some(SyslogSeverity::SEV_INFO),
-            timestamp: Some(Local.with_ymd_and_hms(2020, 1, 5,15, 33, 3).unwrap().into()),
+            timestamp: Some(
+                Local
+                    .with_ymd_and_hms(2020, 1, 5, 15, 33, 3)
+                    .unwrap()
+                    .into()
+            ),
             hostname: Some("plertrood-ThinkPad-X220"),
             appname: None,
             procid: None,
@@ -723,8 +734,11 @@ fn logical_system_juniper_routers() {
             facility: Some(SyslogFacility::LOG_DAEMON),
             severity: Some(SyslogSeverity::SEV_WARNING),
             timestamp: Some(
-                FixedOffset::west_opt(1800 * 6).unwrap()
-                    .with_ymd_and_hms(2020, 5, 22,14, 59, 9).unwrap() + Duration::microseconds(250000)
+                FixedOffset::west_opt(1800 * 6)
+                    .unwrap()
+                    .with_ymd_and_hms(2020, 5, 22, 14, 59, 9)
+                    .unwrap()
+                    + Duration::microseconds(250000)
             ),
             hostname: Some("OX-XXX-MX204"),
             appname: Some("OX-XXX-CONTEUDO:rpd"),
@@ -746,7 +760,12 @@ fn parse_missing_pri() {
         Message {
             facility: None,
             severity: None,
-            timestamp: Some(Local.with_ymd_and_hms(2019, 12, 28,16, 49, 7).unwrap().into()),
+            timestamp: Some(
+                Local
+                    .with_ymd_and_hms(2019, 12, 28, 16, 49, 7)
+                    .unwrap()
+                    .into()
+            ),
             hostname: Some("plertrood-thinkpad-x220"),
             appname: Some("nginx"),
             procid: None,
@@ -768,8 +787,11 @@ fn parse_missing_pri_5424() {
             facility: None,
             severity: None,
             timestamp: Some(
-                FixedOffset::west_opt(1800 * 6).unwrap()
-                    .with_ymd_and_hms(2020, 5, 22,14, 59, 9).unwrap() + Duration::microseconds(250000)
+                FixedOffset::west_opt(1800 * 6)
+                    .unwrap()
+                    .with_ymd_and_hms(2020, 5, 22, 14, 59, 9)
+                    .unwrap()
+                    + Duration::microseconds(250000)
             ),
             hostname: Some("OX-XXX-MX204"),
             appname: Some("OX-XXX-CONTEUDO:rpd"),
@@ -899,4 +921,64 @@ fn parse_ipv6_hostname() {
         },
         parse_message(msg, Variant::RFC5424)
     )
+}
+
+#[test]
+fn parse_3164_ubnt_iptables() {
+    // Can 3164 parse ok when there is something looking similar to structured data - but not quite.
+    let msg = "<4>Jan 26 05:59:54 ubnt kernel: [WAN_LOCAL-default-D]IN=eth0 OUT= MAC=b4:fb:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:08:00 SRC=135.148.25.121 DST=xxx.xxx.xxx.xxx LEN=60 TOS=0x00 PREC=0x00 TTL=46 ID=59401 DF PROTO=TCP SPT=46146 DPT=4433 WINDOW=5840 RES=0x00 SYN URGP=0";
+
+    assert_eq!(
+        parse_message_with_year(msg, with_year, Variant::Either),
+        Message {
+            facility: Some(SyslogFacility::LOG_KERN),
+            severity: Some(SyslogSeverity::SEV_WARNING),
+            timestamp: Some(
+                Local
+                    .with_ymd_and_hms(2020, 1, 26, 5, 59, 54)
+                    .unwrap()
+                    .into()
+            ),
+            hostname: Some("ubnt"),
+            appname: Some("kernel"),
+            procid: None,
+            msgid: None,
+            protocol: Protocol::RFC3164,
+            structured_data: vec![],
+            msg: "[WAN_LOCAL-default-D]IN=eth0 OUT= MAC=b4:fb:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:08:00 SRC=135.148.25.121 DST=xxx.xxx.xxx.xxx LEN=60 TOS=0x00 PREC=0x00 TTL=46 ID=59401 DF PROTO=TCP SPT=46146 DPT=4433 WINDOW=5840 RES=0x00 SYN URGP=0",
+        }
+    );
+}
+
+#[test]
+fn parse_5424_f5_logs() {
+    let msg = r#"<131>1 2025-05-09T09:56:18.906539+02:00 Host-Name.network.example appname 1234 01230456:1: [F5@1234 hostname="Host-Name.network.example" errdefs_msgno="01230456:1:"] RST sent from 192.0.2.1:443 to 192.0.2.2:1176, [0xdeadbef:1010] RST from BIG-IP internal Linux host"#;
+
+    assert_eq!(
+        parse_message_with_year(msg, with_year, Variant::Either),
+        Message {
+            facility: Some(SyslogFacility::LOG_LOCAL0),
+            severity: Some(SyslogSeverity::SEV_ERR),
+            timestamp: Some(
+                FixedOffset::east_opt(2 * 3600)
+		    .unwrap()
+                    .with_ymd_and_hms(2025, 5, 9, 9, 56, 18)
+                    .unwrap()
+		    + Duration::microseconds(906539)
+            ),
+            hostname: Some("Host-Name.network.example"),
+            appname: Some("appname"),
+            procid: Some(ProcId::PID(1234)),
+            msgid: Some("01230456:1:"),
+            protocol: Protocol::RFC5424(1),
+            structured_data: vec![StructuredElement {
+                id: "F5@1234",
+                params: vec![
+                    ("hostname", "Host-Name.network.example"),
+                    ("errdefs_msgno", "01230456:1:"),
+                ]
+            }],
+            msg: "RST sent from 192.0.2.1:443 to 192.0.2.2:1176, [0xdeadbef:1010] RST from BIG-IP internal Linux host",
+        }
+    );
 }

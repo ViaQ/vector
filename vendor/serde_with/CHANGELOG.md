@@ -7,11 +7,50 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [3.14.0] - 2025-06-30
+
+### Added
+
+* Add support for `Range`, `RangeFrom`, `RangeTo`, `RangeInclusive` (#851)
+    `RangeToInclusive` is currently unsupported by serde.
+* Add `schemars` implementations for `Bound`, `Range`, `RangeFrom`, `RangeTo`, `RangeInclusive`.
+* Added support for `schemars` v1 under the `schemars_1` feature flag
+
+## [3.13.0] - 2025-06-14
+
+### Added
+
+* Added support for `schemars` v0.9.0 under the `schemars_0_9` feature flag by @swlynch99 (#849)
+* Introduce `SerializeDisplayAlt` derive macro (#833)
+    An alternative to the `SerializeDisplay` macro except instead of using the
+    plain formatting like `format!("{}", ...)`, it serializes with the
+    `Formatter::alternate` flag set to true, like `format!("{:#}", ...)`
+
+### Changed
+
+* Generalize `serde_with::rust::unwrap_or_skip` to support deserializing references by @beroal (#832)
+* Bump MSRV to 1.71, since that is required for the `jsonschema` dev-dependency.
+* Make `serde_conv` available without the `std` feature by @arilou (#839)
+* Bump MSRV to 1.74, since that is required for `schemars` v0.9.0 by @swlynch99 (#849)
+
+### Fixed
+
+* Make the `DurationSeconds` types and other variants more accessible even without `std` (#845)
+
 ## [3.12.0] - 2024-12-25
 
 ### Added
 
-* Add `with_suffix!` macro, which puts a suffix on every struct field
+* Add `with_suffix!` macro, which puts a suffix on every struct field by @fgardt (#381/#797)
+
+### Changed
+
+* Reformat all `Cargo.toml` files by @nyurik (#803)
+* Better handle internal arithmetic and improve error messages (#809/#810/#811)
+
+### Fixed
+
+* Generated schemas are not valid when using rust style names in ref by @waltronix (#798/#799)
 
 ## [3.11.0] - 2024-10-05
 

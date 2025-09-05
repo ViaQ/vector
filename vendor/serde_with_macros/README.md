@@ -1,10 +1,9 @@
 # Custom de/serialization functions for Rust's [serde](https://serde.rs)
 
 [![crates.io badge](https://img.shields.io/crates/v/serde_with.svg)](https://crates.io/crates/serde_with/)
-[![Build Status](https://github.com/jonasbb/serde_with/workflows/Rust%20CI/badge.svg)](https://github.com/jonasbb/serde_with)
+[![Build Status](https://github.com/jonasbb/serde_with/actions/workflows/ci.yaml/badge.svg)](https://github.com/jonasbb/serde_with)
 [![codecov](https://codecov.io/gh/jonasbb/serde_with/branch/master/graph/badge.svg)](https://codecov.io/gh/jonasbb/serde_with)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4322/badge)](https://bestpractices.coreinfrastructure.org/projects/4322)
-[![Rustexplorer](https://img.shields.io/badge/Try%20on-rustexplorer-lightgrey?logo=rust&logoColor=orange)](https://www.rustexplorer.com/b/py7ida)
 
 ---
 
@@ -50,7 +49,6 @@ The default de/serialization behavior can be restored by using `_` as a placehol
 
 ### `DisplayFromStr`
 
-[![Rustexplorer](https://img.shields.io/badge/Try%20on-rustexplorer-lightgrey?logo=rust&logoColor=orange)](https://www.rustexplorer.com/b/py7ida)
 ```rust
 #[serde_as]
 #[derive(Deserialize, Serialize)]
@@ -74,7 +72,6 @@ The `serde_as` attribute allows circumventing this restriction, even for nested 
 
 On top of it, `[u8; N]` (aka, bytes) can use the specialized `"Bytes"` for efficiency much like the `serde_bytes` crate.
 
-[![Rustexplorer](https://img.shields.io/badge/Try%20on-rustexplorer-lightgrey?logo=rust&logoColor=orange)](https://www.rustexplorer.com/b/um0xyi)
 ```rust
 #[serde_as]
 #[derive(Deserialize, Serialize)]
@@ -108,7 +105,6 @@ This situation often occurs with JSON, but other formats also support optional f
 If many fields are optional, putting the annotations on the structs can become tedious.
 The `#[skip_serializing_none]` attribute must be placed *before* the `#[derive]`.
 
-[![Rustexplorer](https://img.shields.io/badge/Try%20on-rustexplorer-lightgrey?logo=rust&logoColor=orange)](https://www.rustexplorer.com/b/xr1tm0)
 ```rust
 #[skip_serializing_none]
 #[derive(Deserialize, Serialize)]
@@ -183,15 +179,15 @@ Foo::Bytes {
 }
 ```
 
-[`DisplayFromStr`]: https://docs.rs/serde_with/3.12.0/serde_with/struct.DisplayFromStr.html
-[`with_prefix!`]: https://docs.rs/serde_with/3.12.0/serde_with/macro.with_prefix.html
-[`with_suffix!`]: https://docs.rs/serde_with/3.12.0/serde_with/macro.with_suffix.html
-[feature flags]: https://docs.rs/serde_with/3.12.0/serde_with/guide/feature_flags/index.html
-[skip_serializing_none]: https://docs.rs/serde_with/3.12.0/serde_with/attr.skip_serializing_none.html
-[StringWithSeparator]: https://docs.rs/serde_with/3.12.0/serde_with/struct.StringWithSeparator.html
-[user guide]: https://docs.rs/serde_with/3.12.0/serde_with/guide/index.html
+[`DisplayFromStr`]: https://docs.rs/serde_with/3.14.0/serde_with/struct.DisplayFromStr.html
+[`with_prefix!`]: https://docs.rs/serde_with/3.14.0/serde_with/macro.with_prefix.html
+[`with_suffix!`]: https://docs.rs/serde_with/3.14.0/serde_with/macro.with_suffix.html
+[feature flags]: https://docs.rs/serde_with/3.14.0/serde_with/guide/feature_flags/index.html
+[skip_serializing_none]: https://docs.rs/serde_with/3.14.0/serde_with/attr.skip_serializing_none.html
+[StringWithSeparator]: https://docs.rs/serde_with/3.14.0/serde_with/struct.StringWithSeparator.html
+[user guide]: https://docs.rs/serde_with/3.14.0/serde_with/guide/index.html
 [with-annotation]: https://serde.rs/field-attrs.html#with
-[as-annotation]: https://docs.rs/serde_with/3.12.0/serde_with/guide/serde_as/index.html
+[as-annotation]: https://docs.rs/serde_with/3.14.0/serde_with/guide/serde_as/index.html
 
 ## License
 

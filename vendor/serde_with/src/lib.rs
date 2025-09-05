@@ -21,15 +21,14 @@
 )))]
 // Not needed for 2018 edition and conflicts with `rust_2018_idioms`
 #![doc(test(no_crate_inject))]
-#![doc(html_root_url = "https://docs.rs/serde_with/3.12.0/")]
+#![doc(html_root_url = "https://docs.rs/serde_with/3.14.0/")]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![no_std]
 
 //! [![crates.io badge](https://img.shields.io/crates/v/serde_with.svg)](https://crates.io/crates/serde_with/)
-//! [![Build Status](https://github.com/jonasbb/serde_with/workflows/Rust%20CI/badge.svg)](https://github.com/jonasbb/serde_with)
+//! [![Build Status](https://github.com/jonasbb/serde_with/actions/workflows/ci.yaml/badge.svg)](https://github.com/jonasbb/serde_with)
 //! [![codecov](https://codecov.io/gh/jonasbb/serde_with/branch/master/graph/badge.svg)](https://codecov.io/gh/jonasbb/serde_with)
 //! [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4322/badge)](https://bestpractices.coreinfrastructure.org/projects/4322)
-//! [![Rustexplorer](https://img.shields.io/badge/Try%20on-rustexplorer-lightgrey?logo=rust&logoColor=orange)](https://www.rustexplorer.com/b/py7ida)
 //!
 //! ---
 //!
@@ -37,14 +36,14 @@
 //! Some common use cases are:
 //!
 //! * De/Serializing a type using the `Display` and `FromStr` traits, e.g., for `u8`, `url::Url`, or `mime::Mime`.
-//!      Check [`DisplayFromStr`] for details.
+//!   Check [`DisplayFromStr`] for details.
 //! * Support for arrays larger than 32 elements or using const generics.
-//!     With `serde_as` large arrays are supported, even if they are nested in other types.
-//!     `[bool; 64]`, `Option<[u8; M]>`, and `Box<[[u8; 64]; N]>` are all supported, as [this examples shows](#large-and-const-generic-arrays).
+//!   With `serde_as` large arrays are supported, even if they are nested in other types.
+//!   `[bool; 64]`, `Option<[u8; M]>`, and `Box<[[u8; 64]; N]>` are all supported, as [this examples shows](#large-and-const-generic-arrays).
 //! * Skip serializing all empty `Option` types with [`#[skip_serializing_none]`][skip_serializing_none].
 //! * Apply a prefix / suffix to each field name of a struct, without changing the de/serialize implementations of the struct using [`with_prefix!`][] / [`with_suffix!`][].
 //! * Deserialize a comma separated list like `#hash,#tags,#are,#great` into a `Vec<String>`.
-//!      Check the documentation for [`serde_with::StringWithSeparator::<CommaSeparator, T>`][StringWithSeparator].
+//!   Check the documentation for [`serde_with::StringWithSeparator::<CommaSeparator, T>`][StringWithSeparator].
 //!
 //! ## Getting Help
 //!
@@ -75,7 +74,6 @@
 //!
 //! ## `DisplayFromStr`
 //!
-//! [![Rustexplorer](https://img.shields.io/badge/Try%20on-rustexplorer-lightgrey?logo=rust&logoColor=orange)](https://www.rustexplorer.com/b/py7ida)
 //! ```rust
 //! # #[cfg(all(feature = "macros", feature = "json"))] {
 //! # use serde::{Deserialize, Serialize};
@@ -110,7 +108,6 @@
 //!
 //! On top of it, `[u8; N]` (aka, bytes) can use the specialized `"Bytes"` for efficiency much like the `serde_bytes` crate.
 //!
-//! [![Rustexplorer](https://img.shields.io/badge/Try%20on-rustexplorer-lightgrey?logo=rust&logoColor=orange)](https://www.rustexplorer.com/b/um0xyi)
 //! ```rust
 //! # #[cfg(all(feature = "macros", feature = "json"))] {
 //! # use serde::{Deserialize, Serialize};
@@ -149,7 +146,6 @@
 //! If many fields are optional, putting the annotations on the structs can become tedious.
 //! The `#[skip_serializing_none]` attribute must be placed *before* the `#[derive]`.
 //!
-//! [![Rustexplorer](https://img.shields.io/badge/Try%20on-rustexplorer-lightgrey?logo=rust&logoColor=orange)](https://www.rustexplorer.com/b/xr1tm0)
 //! ```rust
 //! # #[cfg(all(feature = "macros", feature = "json"))] {
 //! # use serde::{Deserialize, Serialize};
@@ -257,15 +253,15 @@
 //! # }
 //! ```
 //!
-//! [`DisplayFromStr`]: https://docs.rs/serde_with/3.12.0/serde_with/struct.DisplayFromStr.html
-//! [`with_prefix!`]: https://docs.rs/serde_with/3.12.0/serde_with/macro.with_prefix.html
-//! [`with_suffix!`]: https://docs.rs/serde_with/3.12.0/serde_with/macro.with_suffix.html
-//! [feature flags]: https://docs.rs/serde_with/3.12.0/serde_with/guide/feature_flags/index.html
-//! [skip_serializing_none]: https://docs.rs/serde_with/3.12.0/serde_with/attr.skip_serializing_none.html
-//! [StringWithSeparator]: https://docs.rs/serde_with/3.12.0/serde_with/struct.StringWithSeparator.html
-//! [user guide]: https://docs.rs/serde_with/3.12.0/serde_with/guide/index.html
+//! [`DisplayFromStr`]: https://docs.rs/serde_with/3.14.0/serde_with/struct.DisplayFromStr.html
+//! [`with_prefix!`]: https://docs.rs/serde_with/3.14.0/serde_with/macro.with_prefix.html
+//! [`with_suffix!`]: https://docs.rs/serde_with/3.14.0/serde_with/macro.with_suffix.html
+//! [feature flags]: https://docs.rs/serde_with/3.14.0/serde_with/guide/feature_flags/index.html
+//! [skip_serializing_none]: https://docs.rs/serde_with/3.14.0/serde_with/attr.skip_serializing_none.html
+//! [StringWithSeparator]: https://docs.rs/serde_with/3.14.0/serde_with/struct.StringWithSeparator.html
+//! [user guide]: https://docs.rs/serde_with/3.14.0/serde_with/guide/index.html
 //! [with-annotation]: https://serde.rs/field-attrs.html#with
-//! [as-annotation]: https://docs.rs/serde_with/3.12.0/serde_with/guide/serde_as/index.html
+//! [as-annotation]: https://docs.rs/serde_with/3.14.0/serde_with/guide/serde_as/index.html
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
@@ -288,6 +284,7 @@ pub mod chrono_0_4;
 #[cfg(feature = "chrono")]
 #[cfg_attr(docsrs, doc(cfg(feature = "chrono")))]
 pub mod chrono {
+    pub use crate::chrono_0_4::*;
     pub use chrono_0_4::*;
 }
 #[cfg(feature = "alloc")]
@@ -312,8 +309,13 @@ pub mod rust;
 #[cfg(feature = "schemars_0_8")]
 #[cfg_attr(docsrs, doc(cfg(feature = "schemars_0_8")))]
 pub mod schemars_0_8;
+#[cfg(feature = "schemars_0_9")]
+#[cfg_attr(docsrs, doc(cfg(feature = "schemars_0_9")))]
+pub mod schemars_0_9;
+#[cfg(feature = "schemars_1")]
+#[cfg_attr(docsrs, doc(cfg(feature = "schemars_1")))]
+pub mod schemars_1;
 pub mod ser;
-#[cfg(feature = "std")]
 mod serde_conv;
 #[cfg(feature = "time_0_3")]
 #[cfg_attr(docsrs, doc(cfg(feature = "time_0_3")))]
@@ -328,13 +330,10 @@ pub mod with_suffix;
 
 // Taken from shepmaster/snafu
 // Originally licensed as MIT+Apache 2
-// https://github.com/shepmaster/snafu/blob/fd37d79d4531ed1d3eebffad0d658928eb860cfe/src/lib.rs#L121-L165
+// https://github.com/shepmaster/snafu/blob/90991b609e8928ceebf7df1b040408539d21adda/src/lib.rs#L343-L376
 #[cfg(feature = "guide")]
 #[allow(unused_macro_rules)]
 macro_rules! generate_guide {
-    (pub mod $name:ident; $($rest:tt)*) => {
-        generate_guide!(@gen ".", pub mod $name { } $($rest)*);
-    };
     (pub mod $name:ident { $($children:tt)* } $($rest:tt)*) => {
         generate_guide!(@gen ".", pub mod $name { $($children)* } $($rest)*);
     };
@@ -343,16 +342,27 @@ macro_rules! generate_guide {
         generate_guide!(@gen $prefix, pub mod $name { } $($rest)*);
     };
     (@gen $prefix:expr, @code pub mod $name:ident; $($rest:tt)*) => {
+        #[cfg(feature = "guide")]
         pub mod $name;
+
+        #[cfg(not(feature = "guide"))]
+        /// Not currently built; please add the `guide` feature flag.
+        pub mod $name {}
+
         generate_guide!(@gen $prefix, $($rest)*);
     };
     (@gen $prefix:expr, pub mod $name:ident { $($children:tt)* } $($rest:tt)*) => {
-        doc_comment::doc_comment! {
-            include_str!(concat!($prefix, "/", stringify!($name), ".md")),
-            pub mod $name {
-                generate_guide!(@gen concat!($prefix, "/", stringify!($name)), $($children)*);
-            }
+        #[cfg(feature = "guide")]
+        #[doc = include_str!(concat!($prefix, "/", stringify!($name), ".md"))]
+        pub mod $name {
+            generate_guide!(@gen concat!($prefix, "/", stringify!($name)), $($children)*);
         }
+        #[cfg(not(feature = "guide"))]
+        /// Not currently built; please add the `guide` feature flag.
+        pub mod $name {
+            generate_guide!(@gen concat!($prefix, "/", stringify!($name)), $($children)*);
+        }
+
         generate_guide!(@gen $prefix, $($rest)*);
     };
 }
@@ -388,7 +398,7 @@ pub(crate) mod prelude {
         fmt::{self, Display},
         hash::{BuildHasher, Hash},
         marker::PhantomData,
-        ops::Bound,
+        ops::{Bound, Range, RangeFrom, RangeInclusive, RangeTo},
         option::Option,
         pin::Pin,
         result::Result,
@@ -484,7 +494,7 @@ pub use serde_with_macros::*;
 /// # }
 /// ```
 ///
-/// [serde_as]: https://docs.rs/serde_with/3.12.0/serde_with/attr.serde_as.html
+/// [serde_as]: https://docs.rs/serde_with/3.14.0/serde_with/attr.serde_as.html
 pub struct As<T: ?Sized>(PhantomData<T>);
 
 /// Adapter to convert from `serde_as` to the serde traits.
@@ -959,7 +969,7 @@ pub struct BytesOrString;
 /// ```
 ///
 /// [`chrono::Duration`]: ::chrono_0_4::Duration
-/// [feature flag]: https://docs.rs/serde_with/3.12.0/serde_with/guide/feature_flags/index.html
+/// [feature flag]: https://docs.rs/serde_with/3.14.0/serde_with/guide/feature_flags/index.html
 pub struct DurationSeconds<
     FORMAT: formats::Format = u64,
     STRICTNESS: formats::Strictness = formats::Strict,
@@ -1091,7 +1101,7 @@ pub struct DurationSeconds<
 /// ```
 ///
 /// [`chrono::Duration`]: ::chrono_0_4::Duration
-/// [feature flag]: https://docs.rs/serde_with/3.12.0/serde_with/guide/feature_flags/index.html
+/// [feature flag]: https://docs.rs/serde_with/3.14.0/serde_with/guide/feature_flags/index.html
 pub struct DurationSecondsWithFrac<
     FORMAT: formats::Format = f64,
     STRICTNESS: formats::Strictness = formats::Strict,
@@ -1293,7 +1303,7 @@ pub struct DurationNanoSecondsWithFrac<
 /// [`SystemTime`]: std::time::SystemTime
 /// [`chrono::DateTime<Local>`]: ::chrono_0_4::DateTime
 /// [`chrono::DateTime<Utc>`]: ::chrono_0_4::DateTime
-/// [feature flag]: https://docs.rs/serde_with/3.12.0/serde_with/guide/feature_flags/index.html
+/// [feature flag]: https://docs.rs/serde_with/3.14.0/serde_with/guide/feature_flags/index.html
 pub struct TimestampSeconds<
     FORMAT: formats::Format = i64,
     STRICTNESS: formats::Strictness = formats::Strict,
@@ -1435,7 +1445,7 @@ pub struct TimestampSeconds<
 /// [`chrono::DateTime<Local>`]: ::chrono_0_4::DateTime
 /// [`chrono::DateTime<Utc>`]: ::chrono_0_4::DateTime
 /// [NaiveDateTime]: ::chrono_0_4::NaiveDateTime
-/// [feature flag]: https://docs.rs/serde_with/3.12.0/serde_with/guide/feature_flags/index.html
+/// [feature flag]: https://docs.rs/serde_with/3.14.0/serde_with/guide/feature_flags/index.html
 pub struct TimestampSecondsWithFrac<
     FORMAT: formats::Format = f64,
     STRICTNESS: formats::Strictness = formats::Strict,
@@ -1543,15 +1553,14 @@ pub struct TimestampNanoSecondsWithFrac<
 ///     vec: vec![0x41, 0x61, 0x21],
 /// };
 /// let expected = r#"(
-///     array: "MDEyMzQ1Njc4OUFCQ0RF",
-///     boxed: "Li4u",
-///     cow: "Rm9vQmFy",
-///     cow_array: "KioqKioqKioqKioqKioq",
-///     vec: "QWEh",
+///     array: b"0123456789ABCDE",
+///     boxed: b"...",
+///     cow: b"FooBar",
+///     cow_array: b"***************",
+///     vec: b"Aa!",
 /// )"#;
 ///
-/// # let pretty_config = ron::ser::PrettyConfig::new()
-/// #     .new_line("\n".into());
+/// # let pretty_config = ron::ser::PrettyConfig::new().new_line("\n");
 /// assert_eq!(expected, ron::ser::to_string_pretty(&value, pretty_config).unwrap());
 /// assert_eq!(value, ron::from_str(expected).unwrap());
 /// # }
@@ -1582,12 +1591,11 @@ pub struct TimestampNanoSecondsWithFrac<
 ///     buf: &[20u8, 21u8, 22u8],
 /// };
 /// let expected = r#"(
-///     array_buf: "CgoKCgoKCgoKCgoKCgoK",
-///     buf: "FBUW",
+///     array_buf: b"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n",
+///     buf: b"\x14\x15\x16",
 /// )"#;
 ///
-/// # let pretty_config = ron::ser::PrettyConfig::new()
-/// #     .new_line("\n".into());
+/// # let pretty_config = ron::ser::PrettyConfig::new().new_line("\n");
 /// assert_eq!(expected, ron::ser::to_string_pretty(&value, pretty_config).unwrap());
 /// // RON doesn't support borrowed deserialization of byte arrays
 /// # }
@@ -2589,6 +2597,10 @@ pub struct SetLastValueWins<T>(PhantomData<T>);
 /// It is added implicitly by the [`#[serde_as]`](crate::serde_as) macro when any `schemars`
 /// feature is enabled.
 ///
-/// [`JsonSchema`]: ::schemars_0_8::JsonSchema
-#[cfg(feature = "schemars_0_8")]
+/// [`JsonSchema`]: ::schemars_1::JsonSchema
+#[cfg(any(
+    feature = "schemars_0_8",
+    feature = "schemars_0_9",
+    feature = "schemars_1"
+))]
 pub struct Schema<T: ?Sized, TA>(PhantomData<T>, PhantomData<TA>);

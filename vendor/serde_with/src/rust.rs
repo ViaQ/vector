@@ -115,8 +115,7 @@ pub mod double_option {
 /// }
 ///
 /// // Transparently add/remove Some() wrapper
-/// # let pretty_config = ron::ser::PrettyConfig::new()
-/// #     .new_line("\n".into());
+/// # let pretty_config = ron::ser::PrettyConfig::new().new_line("\n");
 /// let s = r#"(
 ///     mandatory: 1,
 ///     optional: 2,
@@ -130,8 +129,7 @@ pub mod double_option {
 ///
 /// // Missing values are deserialized as `None`
 /// // while `None` values are skipped during serialization.
-/// # let pretty_config = ron::ser::PrettyConfig::new()
-/// #     .new_line("\n".into());
+/// # let pretty_config = ron::ser::PrettyConfig::new().new_line("\n");
 /// let s = r#"(
 ///     mandatory: 1,
 /// )"#;
@@ -149,7 +147,7 @@ pub mod unwrap_or_skip {
     pub fn deserialize<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
     where
         D: Deserializer<'de>,
-        T: DeserializeOwned,
+        T: Deserialize<'de>,
     {
         T::deserialize(deserializer).map(Some)
     }
@@ -620,7 +618,7 @@ pub mod maps_first_key_wins {
 ///
 /// 1. It is useful for instance to create an enum with a catch-all variant that will accept any incoming data.
 /// 2. [`untagged`] enum representations do not allow the `other` annotation as the fallback enum variant.
-///     With this function you can emulate an `other` variant, which can deserialize any data carrying enum.
+///    With this function you can emulate an `other` variant, which can deserialize any data carrying enum.
 ///
 /// **Note:** Using this function will prevent deserializing data-less enum variants.
 /// If this is a problem depends on the data format.
@@ -642,6 +640,12 @@ pub mod maps_first_key_wins {
 ///
 /// # #[derive(Debug, PartialEq)]
 /// #[derive(Deserialize)]
+/// struct Root {
+///     values: Vec<Item>,
+/// }
+///
+/// # #[derive(Debug, PartialEq)]
+/// #[derive(Deserialize)]
 /// #[serde(rename_all = "lowercase")]
 /// enum Item {
 ///     Foo(String),
@@ -651,23 +655,34 @@ pub mod maps_first_key_wins {
 /// }
 ///
 /// // Deserialize this XML
-/// # let items: Vec<Item> = serde_xml_rs::from_str(
-/// r"
-/// <foo>a</foo>
-/// <bar>b</bar>
-/// <foo>c</foo>
-/// <unknown>d</unknown>
-/// "
+/// # let items: Root = serde_xml_rs::from_str(
+/// r#"<?xml version="1.0" encoding="UTF-8"?>
+/// <Root>
+///     <values>
+///         <foo>a</foo>
+///     </values>
+///     <values>
+///         <bar>b</bar>
+///     </values>
+///     <values>
+///         <foo>c</foo>
+///     </values>
+///     <values>
+///         <unknown>d</unknown>
+///     </values>
+/// </Root>"#
 /// # ).unwrap();
 ///
 /// // into these Items
 /// # let expected =
-/// vec![
-///     Item::Foo(String::from("a")),
-///     Item::Bar(String::from("b")),
-///     Item::Foo(String::from("c")),
-///     Item::Other,
-/// ]
+/// Root {
+///     values: vec![
+///         Item::Foo(String::from("a")),
+///         Item::Bar(String::from("b")),
+///         Item::Foo(String::from("c")),
+///         Item::Other,
+///     ]
+/// }
 /// # ;
 /// # assert_eq!(expected, items);
 /// ```

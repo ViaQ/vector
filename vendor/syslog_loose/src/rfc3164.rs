@@ -4,23 +4,24 @@ use crate::{
     parsers::{hostname, tagname},
     pri::pri,
     structured_data::structured_data_optional,
-    timestamp::{timestamp_3164, IncompleteDate},
+    timestamp::{IncompleteDate, timestamp_3164},
 };
 use chrono::prelude::*;
 use nom::{
+    IResult, Parser as _,
     bytes::complete::{is_not, tag, take_while},
     character::complete::space0,
     combinator::{map, opt, rest},
-    sequence::{delimited, preceded, tuple},
-    IResult,
+    sequence::{delimited, preceded},
 };
 
 // Parse the tag - a process name followed by a pid in [].
 pub(crate) fn systag(input: &str) -> IResult<&str, (&str, &str)> {
-    tuple((
+    (
         take_while(|c: char| !c.is_whitespace() && c != ':' && c != '['),
         delimited(tag("["), is_not("]"), tag("]")),
-    ))(input)
+    )
+        .parse(input)
 }
 
 /// Resolves the final two potential fields in the header.
@@ -69,7 +70,7 @@ where
     F: FnOnce(IncompleteDate) -> i32 + Copy,
 {
     map(
-        tuple((
+        (
             pri,
             opt(space0),
             timestamp_3164(get_year, tz),
@@ -78,10 +79,10 @@ where
             opt(space0),
             opt(tag(":")),
             opt(space0),
-            opt(structured_data_optional(false)),
+            opt(structured_data_optional),
             opt(space0),
             rest,
-        )),
+        ),
         |(pri, _, timestamp, field1, field2, _, _, _, structured_data, _, msg)| {
             let (host, appname, pid) = resolve_host_and_tag(field1, field2);
 
@@ -98,7 +99,8 @@ where
                 msg,
             }
         },
-    )(input)
+    )
+    .parse(input)
 }
 
 #[test]

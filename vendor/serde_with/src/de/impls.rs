@@ -410,6 +410,78 @@ where
 
 // endregion
 ///////////////////////////////////////////////////////////////////////////////
+// region: More complex wrappers that are not just a single value
+
+impl<'de, Idx, IdxAs> DeserializeAs<'de, Range<Idx>> for Range<IdxAs>
+where
+    IdxAs: DeserializeAs<'de, Idx>,
+{
+    fn deserialize_as<D>(deserializer: D) -> Result<Range<Idx>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let Range::<DeserializeAsWrap<Idx, IdxAs>> { start, end } =
+            Deserialize::deserialize(deserializer)?;
+
+        Ok(Range {
+            start: start.into_inner(),
+            end: end.into_inner(),
+        })
+    }
+}
+
+impl<'de, Idx, IdxAs> DeserializeAs<'de, RangeFrom<Idx>> for RangeFrom<IdxAs>
+where
+    IdxAs: DeserializeAs<'de, Idx>,
+{
+    fn deserialize_as<D>(deserializer: D) -> Result<RangeFrom<Idx>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let RangeFrom::<DeserializeAsWrap<Idx, IdxAs>> { start } =
+            Deserialize::deserialize(deserializer)?;
+
+        Ok(RangeFrom {
+            start: start.into_inner(),
+        })
+    }
+}
+
+impl<'de, Idx, IdxAs> DeserializeAs<'de, RangeInclusive<Idx>> for RangeInclusive<IdxAs>
+where
+    IdxAs: DeserializeAs<'de, Idx>,
+{
+    fn deserialize_as<D>(deserializer: D) -> Result<RangeInclusive<Idx>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let (start, end) =
+            RangeInclusive::<DeserializeAsWrap<Idx, IdxAs>>::deserialize(deserializer)?
+                .into_inner();
+
+        Ok(RangeInclusive::new(start.into_inner(), end.into_inner()))
+    }
+}
+
+impl<'de, Idx, IdxAs> DeserializeAs<'de, RangeTo<Idx>> for RangeTo<IdxAs>
+where
+    IdxAs: DeserializeAs<'de, Idx>,
+{
+    fn deserialize_as<D>(deserializer: D) -> Result<RangeTo<Idx>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let RangeTo::<DeserializeAsWrap<Idx, IdxAs>> { end } =
+            Deserialize::deserialize(deserializer)?;
+
+        Ok(RangeTo {
+            end: end.into_inner(),
+        })
+    }
+}
+
+// endregion
+///////////////////////////////////////////////////////////////////////////////
 // region: Collection Types (e.g., Maps, Sets, Vec)
 
 #[cfg(feature = "alloc")]
@@ -1082,7 +1154,6 @@ where
     }
 }
 
-#[cfg(feature = "std")]
 macro_rules! use_signed_duration {
     (
         $main_trait:ident $internal_trait:ident =>
@@ -1116,7 +1187,6 @@ macro_rules! use_signed_duration {
     };
 }
 
-#[cfg(feature = "std")]
 use_signed_duration!(
     DurationSeconds DurationSeconds,
     DurationMilliSeconds DurationMilliSeconds,
@@ -1125,12 +1195,32 @@ use_signed_duration!(
     => {
         Duration; to_std_duration =>
         {u64, Strict =>}
-        {f64, Strict =>}
-        {String, Strict =>}
         {FORMAT, Flexible => FORMAT: Format}
     }
 );
+#[cfg(feature = "alloc")]
+use_signed_duration!(
+    DurationSeconds DurationSeconds,
+    DurationMilliSeconds DurationMilliSeconds,
+    DurationMicroSeconds DurationMicroSeconds,
+    DurationNanoSeconds DurationNanoSeconds,
+    => {
+        Duration; to_std_duration =>
+        {String, Strict =>}
+    }
+);
 #[cfg(feature = "std")]
+use_signed_duration!(
+    DurationSeconds DurationSeconds,
+    DurationMilliSeconds DurationMilliSeconds,
+    DurationMicroSeconds DurationMicroSeconds,
+    DurationNanoSeconds DurationNanoSeconds,
+    => {
+        Duration; to_std_duration =>
+        // round() only works on std
+        {f64, Strict =>}
+    }
+);
 use_signed_duration!(
     DurationSecondsWithFrac DurationSecondsWithFrac,
     DurationMilliSecondsWithFrac DurationMilliSecondsWithFrac,
@@ -1139,8 +1229,18 @@ use_signed_duration!(
     => {
         Duration; to_std_duration =>
         {f64, Strict =>}
-        {String, Strict =>}
         {FORMAT, Flexible => FORMAT: Format}
+    }
+);
+#[cfg(feature = "alloc")]
+use_signed_duration!(
+    DurationSecondsWithFrac DurationSecondsWithFrac,
+    DurationMilliSecondsWithFrac DurationMilliSecondsWithFrac,
+    DurationMicroSecondsWithFrac DurationMicroSecondsWithFrac,
+    DurationNanoSecondsWithFrac DurationNanoSecondsWithFrac,
+    => {
+        Duration; to_std_duration =>
+        {String, Strict =>}
     }
 );
 
@@ -1563,8 +1663,7 @@ where
             Err(err) => err,
         };
         Err(DeError::custom(format_args!(
-            "OneOrMany could not deserialize any variant:\n  One: {}\n  Many: {}",
-            one_err, many_err
+            "OneOrMany could not deserialize any variant:\n  One: {one_err}\n  Many: {many_err}"
         )))
     }
 }
@@ -1608,8 +1707,7 @@ where
             Err(err) => err,
         };
         Err(DeError::custom(format_args!(
-            "PickFirst could not deserialize any variant:\n  First: {}\n  Second: {}",
-            first_err, second_err
+            "PickFirst could not deserialize any variant:\n  First: {first_err}\n  Second: {second_err}"
         )))
     }
 }
@@ -1647,8 +1745,7 @@ where
             Err(err) => err,
         };
         Err(DeError::custom(format_args!(
-            "PickFirst could not deserialize any variant:\n  First: {}\n  Second: {}\n  Third: {}",
-            first_err, second_err, third_err,
+            "PickFirst could not deserialize any variant:\n  First: {first_err}\n  Second: {second_err}\n  Third: {third_err}",
         )))
     }
 }
@@ -1693,8 +1790,7 @@ where
             Err(err) => err,
         };
         Err(DeError::custom(format_args!(
-            "PickFirst could not deserialize any variant:\n  First: {}\n  Second: {}\n  Third: {}\n  Fourth: {}",
-            first_err, second_err, third_err, fourth_err,
+            "PickFirst could not deserialize any variant:\n  First: {first_err}\n  Second: {second_err}\n  Third: {third_err}\n  Fourth: {fourth_err}",
         )))
     }
 }

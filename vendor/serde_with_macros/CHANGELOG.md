@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [Unreleased]
 
+## [3.14.0] - 2025-06-30
+
+### Added
+
+* Added support for `schemars` v1 under the `schemars_1` feature flag
+
+## [3.13.0] - 2025-06-14
+
+### Added
+
+* Introduce `SerializeDisplayAlt` derive macro (#833)
+    An alternative to the `SerializeDisplay` macro except instead of using the
+    plain formatting like `format!("{}", ...)`, it serializes with the
+    `Formatter::alternate` flag set to true, like `format!("{:#}", ...)`
+
 ## [3.12.0] - 2024-12-25
 
 No changes.

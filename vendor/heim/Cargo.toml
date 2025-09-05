@@ -44,6 +44,45 @@ rustdoc-args = [
     "docsrs",
 ]
 
+[badges.github-actions]
+repository = "heim-rs/heim"
+workflow = "Tier 1 CI"
+
+[badges.is-it-maintained-issue-resolution]
+repository = "heim-rs/heim"
+
+[badges.is-it-maintained-open-issues]
+repository = "heim-rs/heim"
+
+[badges.maintenance]
+status = "actively-developed"
+
+[features]
+backtrace = [
+    "unstable",
+    "heim-common/backtrace",
+]
+cpu = ["heim-cpu"]
+default = []
+disk = ["heim-disk"]
+full = [
+    "host",
+    "cpu",
+    "memory",
+    "disk",
+    "net",
+    "process",
+    "virt",
+    "sensors",
+]
+host = ["heim-host"]
+memory = ["heim-memory"]
+net = ["heim-net"]
+process = ["heim-process"]
+sensors = ["heim-sensors"]
+unstable = []
+virt = ["heim-virt"]
+
 [lib]
 name = "heim"
 path = "src/lib.rs"
@@ -106,42 +145,3 @@ version-sync = "0.9"
 [dev-dependencies.heim-derive]
 version = "0.1.0-rc.1"
 path = "../heim-derive"
-
-[features]
-backtrace = [
-    "unstable",
-    "heim-common/backtrace",
-]
-cpu = ["heim-cpu"]
-default = []
-disk = ["heim-disk"]
-full = [
-    "host",
-    "cpu",
-    "memory",
-    "disk",
-    "net",
-    "process",
-    "virt",
-    "sensors",
-]
-host = ["heim-host"]
-memory = ["heim-memory"]
-net = ["heim-net"]
-process = ["heim-process"]
-sensors = ["heim-sensors"]
-unstable = []
-virt = ["heim-virt"]
-
-[badges.github-actions]
-repository = "heim-rs/heim"
-workflow = "Tier 1 CI"
-
-[badges.is-it-maintained-issue-resolution]
-repository = "heim-rs/heim"
-
-[badges.is-it-maintained-open-issues]
-repository = "heim-rs/heim"
-
-[badges.maintenance]
-status = "actively-developed"

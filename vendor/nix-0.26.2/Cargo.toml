@@ -53,52 +53,6 @@ targets = [
     "x86_64-unknown-illumos",
 ]
 
-[lib]
-name = "nix"
-path = "src/lib.rs"
-
-[[test]]
-name = "test"
-path = "test/test.rs"
-
-[[test]]
-name = "test-aio-drop"
-path = "test/sys/test_aio_drop.rs"
-
-[[test]]
-name = "test-clearenv"
-path = "test/test_clearenv.rs"
-
-[[test]]
-name = "test-mount"
-path = "test/test_mount.rs"
-harness = false
-
-[[test]]
-name = "test-ptymaster-drop"
-path = "test/test_ptymaster_drop.rs"
-
-[dependencies]
-bitflags = "1.1"
-cfg-if = "1.0"
-static_assertions = "1"
-
-[dependencies.libc]
-version = "0.2.137"
-features = ["extra_traits"]
-
-[dependencies.pin-utils]
-version = "0.1.0"
-optional = true
-
-[dev-dependencies]
-assert-impl = "0.1"
-lazy_static = "1.4"
-parking_lot = "0.12"
-rand = "0.8"
-semver = "1.0.7"
-tempfile = "3.3.0"
-
 [features]
 acct = []
 aio = ["pin-utils"]
@@ -169,6 +123,52 @@ zerocopy = [
     "fs",
     "uio",
 ]
+
+[lib]
+name = "nix"
+path = "src/lib.rs"
+
+[[test]]
+name = "test"
+path = "test/test.rs"
+
+[[test]]
+name = "test-aio-drop"
+path = "test/sys/test_aio_drop.rs"
+
+[[test]]
+name = "test-clearenv"
+path = "test/test_clearenv.rs"
+
+[[test]]
+name = "test-mount"
+path = "test/test_mount.rs"
+harness = false
+
+[[test]]
+name = "test-ptymaster-drop"
+path = "test/test_ptymaster_drop.rs"
+
+[dependencies]
+bitflags = "1.1"
+cfg-if = "1.0"
+static_assertions = "1"
+
+[dependencies.libc]
+version = "0.2.137"
+features = ["extra_traits"]
+
+[dependencies.pin-utils]
+version = "0.1.0"
+optional = true
+
+[dev-dependencies]
+assert-impl = "0.1"
+lazy_static = "1.4"
+parking_lot = "0.12"
+rand = "0.8"
+semver = "1.0.7"
+tempfile = "3.3.0"
 
 [target.'cfg(any(target_os = "android", target_os = "linux"))'.dev-dependencies]
 caps = "0.5.3"
