@@ -12,7 +12,7 @@ RUN INSTALL_PKGS=" \
     dnf install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS
 
-COPY ./logging-vector /opt/app-root/src
+COPY . /opt/app-root/src
 WORKDIR /opt/app-root/src
 
 RUN PROTOC=/opt/app-root/src/thirdparty/protoc/protoc-linux-$(arch) make build
