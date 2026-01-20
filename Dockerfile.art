@@ -1,0 +1,47 @@
+FROM registry.redhat.io/rhel9-6-els/rhel:9.6@sha256:79408df6a94a716af2f2bd6aff681e33c7c91691ac128a0c5fb90b423dbd48ad AS builder
+
+RUN INSTALL_PKGS=" \
+      gcc-c++ \
+      git \
+      make \
+      openssl-devel \
+      rust-toolset-1.84.1 \
+      " && \
+    dnf install -y $INSTALL_PKGS && \
+    rpm -V $INSTALL_PKGS
+
+COPY . /opt/app-root/src
+WORKDIR /opt/app-root/src
+
+RUN PROTOC=/opt/app-root/src/thirdparty/protoc/protoc-linux-$(arch) make build-offline
+
+RUN cp /opt/app-root/src/target/release/vector /usr/bin
+
+FROM registry.redhat.io/rhel9-6-els/rhel:9.6@sha256:79408df6a94a716af2f2bd6aff681e33c7c91691ac128a0c5fb90b423dbd48ad
+
+COPY --from=builder /usr/bin/vector /usr/bin/
+
+WORKDIR /usr/bin
+CMD ["/usr/bin/vector"]
+
+ARG VECTOR_URL
+ARG VECTOR_COMMIT
+LABEL \
+        com.redhat.component="logging-vector-container" \
+        description="Vector container for collection of container logs" \
+        distribution-scope="subscription" \
+        io.k8s.description="Vector container for collection of container logs" \
+        io.k8s.display-name="Vector" \
+        io.openshift.build.commit.id=${VECTOR_COMMIT} \
+        io.openshift.build.commit.url=${VECTOR_URL}/commit/${VECTOR_COMMIT} \
+        io.openshift.build.source-location=${VECTOR_URL} \
+        io.openshift.maintainer.product="OpenShift Container Platform" \
+        io.openshift.tags="logging,vector,observability" \
+        license="Apache-2.0" \
+        maintainer="AOS Logging <team-logging@redhat.com>" \
+        name="openshift-logging/vector-rhel9" \
+        summary="Log collection agent for Red Hat Openshift Logging" \
+        url=${VECTOR_URL} \
+        vendor="Red Hat, Inc." \
+        version_minor="v0.47" \
+        version="v0.47.0"
