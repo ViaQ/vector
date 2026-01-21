@@ -20,6 +20,7 @@ RUN cp /opt/app-root/src/target/release/vector /usr/bin
 FROM registry.redhat.io/rhel9-6-els/rhel:9.6@sha256:79408df6a94a716af2f2bd6aff681e33c7c91691ac128a0c5fb90b423dbd48ad
 
 COPY --from=builder /usr/bin/vector /usr/bin/
+RUN dnf install -y systemd
 
 WORKDIR /usr/bin
 CMD ["/usr/bin/vector"]
