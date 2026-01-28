@@ -42,7 +42,6 @@ LABEL \
         maintainer="AOS Logging <team-logging@redhat.com>" \
         name="openshift-logging/vector-rhel9" \
         summary="Log collection agent for Red Hat Openshift Logging" \
-        url=${VECTOR_URL} \
         vendor="Red Hat, Inc." \
         version_minor="v0.47" \
         version="v0.47.0"
