@@ -147,6 +147,7 @@ hickory-proto = { version = "0.25.1", default-features = false, features = ["dns
 indexmap = { version = "2.9.0", default-features = false, features = ["serde", "std"] }
 inventory = { version = "0.3" }
 indoc = { version = "2.0.6" }
+lz4_flex = "0.11.6"  # Fix for LOG-8971: GHSA-vvp9-7p8x-rfvv - Memory disclosure vulnerability
 metrics = "0.24.2"
 metrics-tracing-context = { version = "0.17.0", default-features = false }
 metrics-util = { version = "0.18.0", default-features = false, features = ["registry"] }
