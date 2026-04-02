@@ -33,8 +33,34 @@ impl TlsSettings {
         if self.identity.is_none() {
             Err(TlsError::MissingRequiredIdentity)
         } else {
-            let mut acceptor =
-                SslAcceptor::mozilla_intermediate(SslMethod::tls()).context(CreateAcceptorSnafu)?;
+            // Use custom acceptor if TLS version, ciphersuites, or curves are configured
+            let mut acceptor = if self.min_tls_version.is_some()
+                || self.ciphersuites.is_some()
+                || self.curves.is_some()
+            {
+                SslAcceptor::custom(
+                    SslMethod::tls(),
+                    &self.min_tls_version,
+                    &self.ciphersuites,
+                    &self.curves,
+                )
+                .map_err(|e| match e {
+                    openssl::ssl::ErrorEx::OpenSslError { error_stack } => {
+                        TlsError::CreateAcceptor {
+                            source: error_stack,
+                        }
+                    }
+                    openssl::ssl::ErrorEx::InvalidTlsVersion
+                    | openssl::ssl::ErrorEx::InvalidCiphersuite => TlsError::SslBuildError {
+                        source: openssl::error::ErrorStack::get(),
+                    },
+                    openssl::ssl::ErrorEx::InvalidCurve { error_stack } => TlsError::SetCurves {
+                        source: error_stack,
+                    },
+                })?
+            } else {
+                SslAcceptor::mozilla_intermediate(SslMethod::tls()).context(CreateAcceptorSnafu)?
+            };
             self.apply_context_base(&mut acceptor, true)?;
             Ok(acceptor.build())
         }

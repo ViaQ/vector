@@ -317,14 +317,14 @@ impl SslAcceptor {
         Ok(SslAcceptorBuilder(ctx))
     }
 
-    /// Creates a new builder configured with a minimum supported TLS version and a set of ciphersuites
+    /// Creates a new builder configured with a minimum supported TLS version, a set of ciphersuites, and elliptic curves
     ///
-    pub fn custom(method: SslMethod, min_tls_version: &Option<String>, ciphersuites: &Option<String>) -> Result<SslAcceptorBuilder, ErrorEx> {
+    pub fn custom(method: SslMethod, min_tls_version: &Option<String>, ciphersuites: &Option<String>, curves: &Option<String>) -> Result<SslAcceptorBuilder, ErrorEx> {
         let mut ctx = ctx(method).map_err(|e| ErrorEx::OpenSslError { error_stack: e })?;
         let dh = Dh::params_from_pem(FFDHE_2048.as_bytes()).map_err(|e| ErrorEx::OpenSslError { error_stack: e })?;
         ctx.set_tmp_dh(&dh).map_err(|e| ErrorEx::OpenSslError { error_stack: e })?;
         setup_curves(&mut ctx).map_err(|e| ErrorEx::OpenSslError { error_stack: e })?;
-        ctx.set_min_tls_version_and_ciphersuites(min_tls_version, ciphersuites)?;
+        ctx.set_min_tls_version_and_ciphersuites(min_tls_version, ciphersuites, curves)?;
         Ok(SslAcceptorBuilder(ctx))
     }
 

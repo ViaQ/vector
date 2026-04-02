@@ -1,3 +1,6 @@
+.work/
+.vscode
+
 # Rust
 cargo-timing*.html
 **/*.rs.bk

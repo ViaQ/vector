@@ -1774,9 +1774,9 @@ impl SslContextBuilder {
         self.0
     }
 
-    /// Sets the context's minimal TLS version, specified as "VersionTLS1[0..3]", and a comma-separated list of ciphersuites.
+    /// Sets the context's minimal TLS version, specified as "VersionTLS1[0..3]", a comma-separated list of ciphersuites, and a colon-separated list of curves.
     ///
-    pub fn set_min_tls_version_and_ciphersuites(&mut self, min_tls_version: &Option<String>, ciphersuites: &Option<String>) -> Result<(), ErrorEx>{
+    pub fn set_min_tls_version_and_ciphersuites(&mut self, min_tls_version: &Option<String>, ciphersuites: &Option<String>, curves: &Option<String>) -> Result<(), ErrorEx>{
         let mut min_proto_version = SslVersion::TLS1;
         if let Some(min_tls_version) = min_tls_version {
             min_proto_version = match min_tls_version.as_str() {
@@ -1798,6 +1798,14 @@ impl SslContextBuilder {
                 }
             } else {
                 return Err(ErrorEx::InvalidCiphersuite);
+            }
+        }
+        if let Some(ref curves) = curves {
+            if !curves.is_empty() {
+                self.set_groups_list(curves)
+                    .map_err(|e| ErrorEx::InvalidCurve { error_stack: e })?;
+            } else {
+                return Err(ErrorEx::InvalidCurve { error_stack: crate::error::ErrorStack::get() });
             }
         }
         Ok(())

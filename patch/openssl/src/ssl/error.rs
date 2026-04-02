@@ -191,6 +191,9 @@ pub enum ErrorEx {
     },
     InvalidTlsVersion,
     InvalidCiphersuite,
+    InvalidCurve {
+        error_stack: ErrorStack
+    },
 }
 
 impl PartialEq for ErrorEx {
@@ -198,7 +201,8 @@ impl PartialEq for ErrorEx {
         match (self, other) {
             (ErrorEx::OpenSslError{..}, ErrorEx::OpenSslError{..})
             | (ErrorEx::InvalidTlsVersion, ErrorEx::InvalidTlsVersion)
-            | (ErrorEx::InvalidCiphersuite, ErrorEx::InvalidCiphersuite) => true,
+            | (ErrorEx::InvalidCiphersuite, ErrorEx::InvalidCiphersuite)
+            | (ErrorEx::InvalidCurve{..}, ErrorEx::InvalidCurve{..}) => true,
             _ => false,
         }
     }

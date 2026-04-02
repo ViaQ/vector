@@ -108,6 +108,8 @@ pub enum TlsError {
         source
     ))]
     EncodeAlpnProtocols { source: TryFromIntError },
+    #[snafu(display("Error setting TLS curves: {}", source))]
+    SetCurves { source: ErrorStack },
     #[snafu(display("PKCS#12 parse failed: {}", source))]
     ParsePkcs12 { source: ErrorStack },
     #[snafu(display("TCP bind failed: {}", source))]

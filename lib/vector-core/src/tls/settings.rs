@@ -9,7 +9,7 @@ use super::{
     AddCertToStoreSnafu, AddExtraChainCertSnafu, CaStackPushSnafu, EncodeAlpnProtocolsSnafu,
     FileOpenFailedSnafu, FileReadFailedSnafu, MaybeTls, NewCaStackSnafu, NewStoreBuilderSnafu,
     ParsePkcs12Snafu, PrivateKeyParseSnafu, Result, SetAlpnProtocolsSnafu, SetCertificateSnafu,
-    SetPrivateKeySnafu, SetVerifyCertSnafu, TlsError, X509ParseSnafu,
+    SetCurvesSnafu, SetPrivateKeySnafu, SetVerifyCertSnafu, TlsError, X509ParseSnafu,
 };
 use cfg_if::cfg_if;
 use lookup::lookup_v2::OptionalValuePath;
@@ -162,6 +162,15 @@ pub struct TlsConfig {
 
     /// TLS ciphersuites to enable.
     pub ciphersuites: Option<String>,
+
+    /// TLS elliptic curve groups (curves) to enable.
+    ///
+    /// Specifies the list of elliptic curve groups (curves) to use for TLS connections.
+    /// The curves are specified as a colon-separated list of curve names.
+    ///
+    /// Common curve names include: prime256v1, secp384r1, secp521r1, X25519, X448.
+    #[configurable(metadata(docs::examples = "prime256v1:secp384r1"))]
+    pub curves: Option<String>,
 }
 
 impl TlsConfig {
@@ -186,6 +195,7 @@ pub struct TlsSettings {
     server_name: Option<String>,
     pub min_tls_version: Option<String>,
     pub ciphersuites: Option<String>,
+    pub curves: Option<String>,
 }
 
 /// Identity store in PEM format
@@ -230,6 +240,7 @@ impl TlsSettings {
             server_name: options.server_name.clone(),
             min_tls_version: options.min_tls_version.clone(),
             ciphersuites: options.ciphersuites.clone(),
+            curves: options.curves.clone(),
         })
     }
 
@@ -345,6 +356,11 @@ impl TlsSettings {
                     .set_alpn_protos(alpn.as_slice())
                     .context(SetAlpnProtocolsSnafu)?;
             }
+        }
+
+        // Configure curves if specified
+        if let Some(ref curves) = self.curves {
+            context.set_groups_list(curves).context(SetCurvesSnafu)?;
         }
 
         Ok(())
@@ -880,7 +896,7 @@ mod test {
             },
         ];
         for t in tests {
-            match builder.set_min_tls_version_and_ciphersuites(&t.text, &None) {
+            match builder.set_min_tls_version_and_ciphersuites(&t.text, &None, &None) {
                 Ok(()) => {
                     assert!(t.want.is_ok());
                     assert_eq!(builder.min_proto_version(), t.num);
@@ -921,7 +937,11 @@ mod test {
             },
         ];
         for t in tests {
-            match builder.set_min_tls_version_and_ciphersuites(&t.min_tls_version, &t.ciphersuite) {
+            match builder.set_min_tls_version_and_ciphersuites(
+                &t.min_tls_version,
+                &t.ciphersuite,
+                &None,
+            ) {
                 Ok(()) => assert!(t.want.is_ok()),
                 Err(e) => assert_eq!(t.want.err().unwrap(), e),
             }
@@ -948,5 +968,33 @@ mod test {
                 ..Default::default()
             },
         }
+    }
+
+    #[test]
+    fn from_options_curves() {
+        let options = TlsConfig {
+            curves: Some("prime256v1:secp384r1".to_string()),
+            ..Default::default()
+        };
+        let settings = TlsSettings::from_options(Some(&options)).expect("Failed to parse curves");
+        assert_eq!(settings.curves, Some("prime256v1:secp384r1".to_string()));
+    }
+
+    #[test]
+    fn from_options_with_curves_applied() {
+        use openssl::ssl::SslConnector;
+
+        let options = TlsConfig {
+            curves: Some("prime256v1:secp384r1:secp521r1".to_string()),
+            ..Default::default()
+        };
+        let settings = TlsSettings::from_options(Some(&options)).expect("Failed to parse curves");
+
+        // Test that the context can be created with curves
+        let mut builder =
+            SslConnector::builder(SslMethod::tls()).expect("Failed to create SSL builder");
+        settings
+            .apply_context(&mut builder)
+            .expect("Failed to apply context with curves");
     }
 }
