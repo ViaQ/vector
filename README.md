@@ -8,7 +8,7 @@ The `rh-main` branch is empty except for this file.  The branches used by variou
 |---------|-------------|----------------|--------|
 | 6.5     | v0.47.0-rh  | v0.47.0        | Current |
 | 6.4     | v0.47.0-rh  | v0.47.0        | Current |
-| 6.3     | v0.37.1-rh  | v0.37.1        | EOL     |
+| 6.3     | v0.47.0-rh  | v0.47.0        | EOL     |
 | 6.2     | v0.47.0-rh  | v0.37.1        | Current |
 | 6.1     | v0.37.1-rh  | v0.37.1        | EOL     |
 | 6.0     | v0.37.1-rh  | v0.37.1        | Current |
