@@ -6,6 +6,7 @@ use crate::{
 use chrono::{DateTime, Utc};
 use regex::Regex;
 use std::collections::HashMap;
+use std::sync::Arc;
 use vector_lib::lookup::path::OwnedTargetPath;
 
 #[derive(Debug, Clone)]
@@ -13,7 +14,7 @@ pub struct RuleTarget {
     regex: Regex,
     to_state: ExceptionState,
 }
-type StateMachine = HashMap<ExceptionState, Vec<RuleTarget>>;
+pub type StateMachine = HashMap<ExceptionState, Vec<RuleTarget>>;
 
 use rules::*;
 
@@ -63,7 +64,7 @@ pub struct TraceAccumulator {
 
 impl TraceAccumulator {
     pub fn new(
-        languages: Vec<ProgrammingLanguages>,
+        state_machine: Arc<StateMachine>,
         multiline_flush_interval: Duration,
         max_bytes: usize,
         max_lines: usize,
@@ -79,7 +80,7 @@ impl TraceAccumulator {
             buffer_start_time: Utc::now(),
             accumulated_messages: vec![],
             detector: ExceptionDetector {
-                state_machine: get_state_machines(languages),
+                state_machine,
                 current_state: ExceptionState::StartState,
             },
         }
@@ -195,7 +196,7 @@ impl TraceAccumulator {
 pub struct ExceptionDetectorConfig {}
 
 pub struct ExceptionDetector {
-    pub state_machine: StateMachine,
+    pub state_machine: Arc<StateMachine>,
     pub current_state: ExceptionState,
 }
 
@@ -259,7 +260,7 @@ mod exception_detector_tests {
     fn check_exception(line: &str, detects_end: bool) {
         let lines = split(line);
         let mut detector = ExceptionDetector {
-            state_machine: get_state_machines(default_programming_languages()),
+            state_machine: Arc::new(get_state_machines(default_programming_languages())),
             current_state: ExceptionState::StartState,
         };
         let after_exc = if detects_end { EndTrace } else { InsideTrace };

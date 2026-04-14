@@ -16,7 +16,7 @@ use crate::{
 };
 use async_stream::stream;
 use futures::{stream, Stream, StreamExt};
-use std::{collections::HashMap, pin::Pin, time::Duration};
+use std::{collections::HashMap, pin::Pin, sync::Arc, time::Duration};
 use vector_lib::{
     config::{clone_input_definitions, log_schema, LogNamespace},
     configurable::configurable_component,
@@ -192,7 +192,7 @@ impl TransformConfig for DetectExceptionsConfig {
 
 pub struct DetectExceptions {
     accumulators: HashMap<Discriminant, TraceAccumulator>,
-    languages: Vec<ProgrammingLanguages>,
+    state_machine: Arc<exception_detector::StateMachine>,
     expire_after: Duration,
     flush_period: Duration,
     multiline_flush_interval: Duration,
@@ -214,9 +214,14 @@ impl DetectExceptions {
                 Ok(value) => value,
             };
 
+        // Create the state machine once and share it across all accumulators
+        let state_machine = Arc::new(exception_detector::get_state_machines(
+            config.languages.clone(),
+        ));
+
         Ok(DetectExceptions {
             accumulators: HashMap::new(),
-            languages: config.languages.clone(),
+            state_machine,
             group_by: config.group_by.clone(),
             expire_after: config.expire_after_ms,
             multiline_flush_interval: config.multiline_flush_interval_ms,
@@ -235,7 +240,7 @@ impl DetectExceptions {
             self.accumulators.insert(
                 discriminant.clone(),
                 TraceAccumulator::new(
-                    self.languages.clone(),
+                    Arc::clone(&self.state_machine),
                     self.multiline_flush_interval,
                     self.max_bytes,
                     self.max_lines,
