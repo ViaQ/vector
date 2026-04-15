@@ -28,15 +28,11 @@ rustflags = "-Lnative=/lib/native-libs"
 rustflags = "-Lnative=/lib/native-libs"
 
 [target.x86_64-unknown-linux-gnu]
-rustflags = ["-C", "link-args=-rdynamic"]
+rustflags = ["-C", "link-args=-rdynamic", "-C", "link-arg=-fuse-ld=lld"]
 
 [target.aarch64-unknown-linux-gnu]
-rustflags = ["-C", "link-args=-rdynamic"]
+rustflags = ["-C", "link-args=-rdynamic", "-C", "link-arg=-fuse-ld=lld"]
 
 [target.x86_64-pc-windows-msvc]
 # https://github.com/dtolnay/inventory/issues/58
 rustflags = ["-C", "codegen-units=1"]
-
-# Use the lld linker, which can be faster and use less memory.
-[build]
-rustflags = ["-C", "link-arg=-fuse-ld=lld"]
