@@ -60,13 +60,10 @@ COPY benches benches
 
 ENV PROTOC=/src/thirdparty/protoc/protoc-linux-x86_64
 
-RUN chmod -R 777 /src $CARGO_HOME $HOME
 RUN mkdir -p ~/.cargo/bin && \
     for plugin in nextest deny; do \
         ln -s /src/thirdparty/cargo-${plugin}/cargo-${plugin}-linux-$(arch) ~/.cargo/bin/cargo-${plugin}; \
 	done
-
-RUN chmod -R 777 /src $CARGO_HOME
 
 # Download all dependencies (cached unless Cargo.lock changes)
 RUN cargo fetch --locked
@@ -77,3 +74,5 @@ RUN cargo build --workspace --tests --no-default-features --features "ocp-loggin
 # Pre-compile nextest test binaries to avoid recompilation when running tests
 # This ensures 'make test' doesn't need to rebuild anything
 RUN cargo nextest run --no-run --workspace --no-default-features --features "ocp-logging"
+
+RUN chmod -R 777 /src $CARGO_HOME
