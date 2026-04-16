@@ -16,3 +16,4 @@
 !patch
 !.cargo
 !deny.toml
+!clippy.toml
