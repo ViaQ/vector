@@ -66,6 +66,8 @@ RUN mkdir -p ~/.cargo/bin && \
         ln -s /src/thirdparty/cargo-${plugin}/cargo-${plugin}-linux-$(arch) ~/.cargo/bin/cargo-${plugin}; \
 	done
 
+RUN chmod -R 777 /src $CARGO_HOME
+
 # Download all dependencies (cached unless Cargo.lock changes)
 RUN cargo fetch --locked
 
