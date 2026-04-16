@@ -30,7 +30,7 @@ WORKDIR /src
 # This list matches what's needed for unit tests only
 
 # Essential build files
-COPY Makefile Cargo.toml Cargo.lock rust-toolchain.toml build.rs deny.toml ./
+COPY Makefile Cargo.toml Cargo.lock rust-toolchain.toml build.rs deny.toml clippy.toml ./
 COPY .cargo .cargo
 
 # Source code (required)
