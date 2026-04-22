@@ -210,7 +210,11 @@ async fn initial_size_correct_with_multievents() {
             writer.close();
 
             // Now drop our buffer and reopen it.
+            // Yield to allow the background finalizer task to observe the closed
+            // stream and release its Arc<Ledger> (and thus the lock file) before
+            // we attempt to reopen the buffer.
             drop(writer);
+            tokio::task::yield_now().await;
             let (writer, mut reader, ledger, usage) =
                 create_default_buffer_v2_with_usage::<_, MultiEventRecord>(data_dir).await;
             drop(writer);
