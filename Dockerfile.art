@@ -3,6 +3,7 @@ FROM registry.access.redhat.com/ubi9/ubi-minimal AS builder
 RUN INSTALL_PKGS=" \
       gcc-c++ \
       git \
+      llvm-toolset-19.1.7 \
       make \
       openssl-devel \
       rust-toolset-1.84.1 \
