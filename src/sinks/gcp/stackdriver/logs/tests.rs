@@ -317,17 +317,8 @@ async fn correct_request() {
 
 #[tokio::test]
 async fn falls_back_to_adc() {
-    // When no explicit credentials are provided, Vector falls back to
-    // Application Default Credentials (ADC). This test verifies that
-    // the config can be built without explicit credentials.
-    //
-    // Note: ADC may succeed or fail depending on the environment:
-    // - In GCP environments (GCE, GKE, Cloud Run), metadata server provides credentials
-    // - In development, gcloud CLI or GOOGLE_APPLICATION_CREDENTIALS may provide credentials
-    // - In isolated test environments with no credentials, ADC will fail with a clear error
-    //
-    // This test only verifies that the fallback mechanism is attempted,
-    // not that it succeeds (which is environment-dependent).
+    // With no credentials configured, build() attempts ADC.
+    // The result is environment-dependent -- just verify no panic.
     let config: StackdriverConfig = toml::from_str(indoc! {r#"
             project_id = "project"
             log_id = "testlogs"
@@ -336,8 +327,6 @@ async fn falls_back_to_adc() {
         "#})
     .unwrap();
 
-    // The build may succeed (if ADC finds credentials) or fail (if no credentials available).
-    // Both outcomes are valid - we're just verifying the code doesn't panic and attempts ADC.
     let _ = config.build(SinkContext::default()).await;
 }
 

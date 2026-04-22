@@ -22,7 +22,7 @@ use crate::{
     codecs::{Encoder, EncodingConfigWithFraming, SinkType, Transformer},
     config::{AcknowledgementsConfig, DataType, GenerateConfig, Input, SinkConfig, SinkContext},
     event::Event,
-    gcp::{scopes, GcpAuthConfig, GcpAuthenticator},
+    gcp::{GcpAuthConfig, GcpAuthenticator, scopes},
     http::{HttpClient, get_http_scheme_from_uri},
     serde::json::to_string,
     sinks::{

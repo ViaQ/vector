@@ -13,7 +13,7 @@ use super::{
     service::StackdriverLogsServiceRequestBuilder, sink::StackdriverLogsSink,
 };
 use crate::{
-    gcp::{scopes, GcpAuthConfig, GcpAuthenticator},
+    gcp::{GcpAuthConfig, GcpAuthenticator, scopes},
     http::HttpClient,
     schema,
     sinks::{

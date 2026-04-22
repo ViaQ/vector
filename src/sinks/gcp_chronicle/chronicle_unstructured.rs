@@ -29,7 +29,7 @@ use vrl::value::Kind;
 use crate::{
     codecs::{self, EncodingConfig},
     config::{GenerateConfig, SinkConfig, SinkContext},
-    gcp::{scopes, GcpAuthConfig, GcpAuthenticator},
+    gcp::{GcpAuthConfig, GcpAuthenticator, scopes},
     http::HttpClient,
     schema,
     sinks::{

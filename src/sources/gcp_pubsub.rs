@@ -44,7 +44,7 @@ use crate::{
     codecs::{Decoder, DecodingConfig},
     config::{DataType, SourceAcknowledgementsConfig, SourceConfig, SourceContext, SourceOutput},
     event::{BatchNotifier, BatchStatus, Event, MaybeAsLogMut, Value},
-    gcp::{scopes, GcpAuthConfig, GcpAuthenticator, PUBSUB_URL},
+    gcp::{GcpAuthConfig, GcpAuthenticator, PUBSUB_URL, scopes},
     internal_events::{
         GcpPubsubConnectError, GcpPubsubReceiveError, GcpPubsubStreamingPullError,
         StreamClosedError,

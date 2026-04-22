@@ -7,7 +7,7 @@ use super::{
     sink::StackdriverMetricsSink,
 };
 use crate::{
-    gcp::{scopes, GcpAuthConfig, GcpAuthenticator},
+    gcp::{GcpAuthConfig, GcpAuthenticator, scopes},
     http::HttpClient,
     sinks::{
         HTTPRequestBuilderSnafu, gcp,

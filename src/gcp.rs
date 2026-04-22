@@ -1,8 +1,8 @@
 #![allow(missing_docs)]
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use std::time::Duration;
 
-use base64::prelude::{Engine as _, BASE64_URL_SAFE};
+use base64::prelude::{BASE64_URL_SAFE, Engine as _};
 use google_cloud_auth::credentials::{AccessTokenCredentials, Builder};
 use http::Uri;
 use hyper::header::AUTHORIZATION;
@@ -15,6 +15,10 @@ use vector_lib::sensitive_string::SensitiveString;
 const TOKEN_REFRESH_INTERVAL_SECS: u64 = 3300; // 55 minutes (tokens last 1 hour)
 
 pub const PUBSUB_URL: &str = "https://pubsub.googleapis.com";
+
+pub static PUBSUB_ADDRESS: LazyLock<String> = LazyLock::new(|| {
+    std::env::var("EMULATOR_ADDRESS").unwrap_or_else(|_| "http://localhost:8681".into())
+});
 
 #[derive(Debug, Snafu)]
 #[snafu(visibility(pub))]
@@ -41,6 +45,7 @@ pub mod scopes {
     pub const MONITORING_WRITE: &str = "https://www.googleapis.com/auth/monitoring.write";
     pub const LOGGING_WRITE: &str = "https://www.googleapis.com/auth/logging.write";
     pub const CLOUD_PLATFORM: &str = "https://www.googleapis.com/auth/cloud-platform";
+    pub const MALACHITE_INGESTION: &str = "https://www.googleapis.com/auth/malachite-ingestion";
 }
 
 /// Configuration of the authentication strategy for interacting with GCP services.
@@ -125,7 +130,10 @@ pub enum GcpAuthenticator {
 impl std::fmt::Debug for GcpAuthenticator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Credentials(_) => f.debug_tuple("Credentials").field(&"<credentials>").finish(),
+            Self::Credentials(_) => f
+                .debug_tuple("Credentials")
+                .field(&"<credentials>")
+                .finish(),
             Self::ApiKey(_) => f.debug_tuple("ApiKey").field(&"<redacted>").finish(),
             Self::None => write!(f, "None"),
         }
@@ -140,6 +148,9 @@ impl GcpAuthenticator {
             path = ?path,
         );
 
+        // The google-cloud-auth Builder has no with_credentials_file() method.
+        // The GOOGLE_APPLICATION_CREDENTIALS env var is the only way to pass
+        // a credentials path. ScopedEnv restores the original value on drop.
         let _guard = ScopedEnv::set("GOOGLE_APPLICATION_CREDENTIALS", path);
 
         let scopes_vec: Vec<String> = scopes.iter().map(|s| s.to_string()).collect();
@@ -174,9 +185,8 @@ impl GcpAuthenticator {
         match self {
             Self::Credentials(creds) => {
                 let token = tokio::task::block_in_place(|| {
-                    tokio::runtime::Handle::current().block_on(async {
-                        creds.access_token().await.ok()
-                    })
+                    tokio::runtime::Handle::current()
+                        .block_on(async { creds.access_token().await.ok() })
                 });
                 token.map(|t| format!("Bearer {}", t.token))
             }
@@ -198,26 +208,20 @@ impl GcpAuthenticator {
             Self::Credentials(_) | Self::None => (),
             Self::ApiKey(api_key) => {
                 let mut parts = uri.clone().into_parts();
-                let path = parts
-                    .path_and_query
-                    .as_ref()
-                    .map_or("/", |pq| pq.path());
+                let path = parts.path_and_query.as_ref().map_or("/", |pq| pq.path());
                 let paq = format!("{path}?key={api_key}");
                 // The API key is verified above to only contain
                 // URL-safe characters. That key is added to a path
                 // that came from a successfully parsed URI. As such,
                 // re-parsing the string cannot fail.
-                parts.path_and_query = Some(
-                    paq.parse()
-                        .expect("Could not re-parse path and query"),
-                );
+                parts.path_and_query =
+                    Some(paq.parse().expect("Could not re-parse path and query"));
                 *uri = Uri::from_parts(parts).expect("Could not re-parse URL");
             }
         }
     }
 
-    /// not sure this is necessary
-    /// spawn periodic refreshes to ensure tokens stay fresh
+    /// Spawn periodic token refresh to keep credentials fresh.
     pub fn spawn_regenerate_token(&self) -> watch::Receiver<()> {
         let (sender, receiver) = watch::channel(());
         tokio::spawn(self.clone().token_regenerator(sender));
@@ -226,29 +230,27 @@ impl GcpAuthenticator {
 
     async fn token_regenerator(self, sender: watch::Sender<()>) {
         match self {
-            Self::Credentials(creds) => {
-                loop {
-                    let deadline = Duration::from_secs(TOKEN_REFRESH_INTERVAL_SECS);
-                    debug!(
-                        deadline = deadline.as_secs(),
-                        "Sleeping before refreshing GCP authentication token.",
-                    );
-                    tokio::time::sleep(deadline).await;
+            Self::Credentials(creds) => loop {
+                let deadline = Duration::from_secs(TOKEN_REFRESH_INTERVAL_SECS);
+                debug!(
+                    deadline = deadline.as_secs(),
+                    "Sleeping before refreshing GCP authentication token.",
+                );
+                tokio::time::sleep(deadline).await;
 
-                    match creds.access_token().await {
-                        Ok(_) => {
-                            sender.send_replace(());
-                            debug!("GCP authentication token refreshed.");
-                        }
-                        Err(error) => {
-                            error!(
-                                message = "Failed to refresh GCP authentication token.",
-                                %error
-                            );
-                        }
+                match creds.access_token().await {
+                    Ok(_) => {
+                        sender.send_replace(());
+                        debug!("GCP authentication token refreshed.");
+                    }
+                    Err(error) => {
+                        error!(
+                            message = "Failed to refresh GCP authentication token.",
+                            %error
+                        );
                     }
                 }
-            }
+            },
             Self::ApiKey(_) | Self::None => {
                 // This keeps the sender end of the watch open without
                 // actually sending anything, effectively creating an
@@ -259,7 +261,10 @@ impl GcpAuthenticator {
     }
 }
 
-/// temporarily set an env var
+/// Temporarily set an environment variable, restoring the original value on drop.
+///
+/// Used to pass `credentials_path` to `google-cloud-auth` which only reads
+/// credentials via the `GOOGLE_APPLICATION_CREDENTIALS` environment variable.
 struct ScopedEnv {
     key: &'static str,
     old_value: Option<String>,
@@ -340,6 +345,13 @@ mod tests {
             error.downcast_ref::<GcpError>(),
             Some(GcpError::InvalidApiKey { .. })
         ));
+    }
+
+    #[tokio::test]
+    async fn falls_back_to_adc() {
+        // With no credentials configured, build() attempts ADC.
+        // The result is environment-dependent -- just verify no panic.
+        let _ = build_auth("").await;
     }
 
     fn apply_uri(auth: &GcpAuthenticator, uri: &str) -> String {
