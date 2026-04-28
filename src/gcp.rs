@@ -1,5 +1,5 @@
 #![allow(missing_docs)]
-use std::sync::{Arc, LazyLock};
+use std::sync::{Arc, LazyLock, Mutex};
 use std::time::Duration;
 
 use base64::prelude::{BASE64_URL_SAFE, Engine as _};
@@ -10,6 +10,8 @@ use snafu::{ResultExt, Snafu};
 use tokio::sync::watch;
 use vector_lib::configurable::configurable_component;
 use vector_lib::sensitive_string::SensitiveString;
+
+static ENV_LOCK: Mutex<()> = Mutex::new(());
 
 // See https://cloud.google.com/compute/docs/access/authenticate-workloads#applications
 const TOKEN_REFRESH_INTERVAL_SECS: u64 = 3300; // 55 minutes (tokens last 1 hour)
@@ -141,23 +143,24 @@ impl std::fmt::Debug for GcpAuthenticator {
 }
 
 impl GcpAuthenticator {
-    /// create authenticator from a credentials file.
+    /// Create authenticator from a credentials file.
     async fn from_file(path: &str, scopes: &[&str]) -> crate::Result<Self> {
-        debug!(
-            message = "Loading GCP credentials from file.",
-            path = ?path,
-        );
+        debug!(message = "Loading GCP credentials from file.", path = ?path);
 
-        // The google-cloud-auth Builder has no with_credentials_file() method.
-        // The GOOGLE_APPLICATION_CREDENTIALS env var is the only way to pass
-        // a credentials path. ScopedEnv restores the original value on drop.
-        let _guard = ScopedEnv::set("GOOGLE_APPLICATION_CREDENTIALS", path);
+        // Serialize access: google-cloud-auth Builder has no with_credentials_file()
+        // method, so we pass the path via the GOOGLE_APPLICATION_CREDENTIALS env var.
+        // The mutex prevents concurrent from_file() calls from racing on the env var.
+        let _lock = ENV_LOCK.lock().expect("ENV_LOCK poisoned");
 
-        let scopes_vec: Vec<String> = scopes.iter().map(|s| s.to_string()).collect();
-        let credentials = Builder::default()
-            .with_scopes(scopes_vec)
-            .build_access_token_credentials()
-            .context(InvalidCredentialsSnafu)?;
+        let credentials = {
+            let _guard = ScopedEnv::set("GOOGLE_APPLICATION_CREDENTIALS", path);
+            let scopes_vec: Vec<String> = scopes.iter().map(|s| s.to_string()).collect();
+
+            Builder::default()
+                .with_scopes(scopes_vec)
+                .build_access_token_credentials()
+                .context(InvalidCredentialsSnafu)?
+        };
 
         Ok(Self::Credentials(Arc::new(credentials)))
     }
@@ -184,11 +187,20 @@ impl GcpAuthenticator {
     pub fn make_token(&self) -> Option<String> {
         match self {
             Self::Credentials(creds) => {
-                let token = tokio::task::block_in_place(|| {
-                    tokio::runtime::Handle::current()
-                        .block_on(async { creds.access_token().await.ok() })
+                let result = tokio::task::block_in_place(|| {
+                    tokio::runtime::Handle::current().block_on(async { creds.access_token().await })
                 });
-                token.map(|t| format!("Bearer {}", t.token))
+                match result {
+                    Ok(token) => Some(format!("Bearer {}", token.token)),
+                    Err(error) => {
+                        error!(
+                            message = "Failed to get GCP access token.",
+                            %error,
+                            internal_log_rate_limit = true
+                        );
+                        None
+                    }
+                }
             }
             Self::ApiKey(_) | Self::None => None,
         }
