@@ -120,13 +120,21 @@ impl EstimatedJsonEncodedSizeOf for bool {
 
 impl EstimatedJsonEncodedSizeOf for f64 {
     fn estimated_json_encoded_size_of(&self) -> JsonSize {
-        ryu::Buffer::new().format_finite(*self).len().into()
+        // Use serde_json::to_string() instead of ryu::Buffer::format_finite() to match
+        // actual JSON serialization. serde_json 1.0.149+ uses scientific notation for very
+        // large floats, which differs from ryu's output. This ensures size estimation matches
+        // the actual bytes produced by serde_json.
+        serde_json::to_string(self).unwrap().len().into()
     }
 }
 
 impl EstimatedJsonEncodedSizeOf for f32 {
     fn estimated_json_encoded_size_of(&self) -> JsonSize {
-        ryu::Buffer::new().format_finite(*self).len().into()
+        // Use serde_json::to_string() instead of ryu::Buffer::format_finite() to match
+        // actual JSON serialization. serde_json 1.0.149+ uses scientific notation for very
+        // large floats, which differs from ryu's output. This ensures size estimation matches
+        // the actual bytes produced by serde_json.
+        serde_json::to_string(self).unwrap().len().into()
     }
 }
 
