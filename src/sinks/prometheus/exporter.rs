@@ -466,31 +466,37 @@ impl Hash for MetricRef {
 
 /// Validates a Bearer token using Kubernetes TokenReview and SubjectAccessReview.
 ///
+/// This function supports both resource-based and nonResourceURL-based authorization:
+/// - For resource-based: provide `resource`, `resource_group`, and optionally `namespace`
+/// - For nonResourceURL-based: provide `path`
+///
 /// This function:
 /// 1. Uses Vector's own service account to authenticate to the K8s API
 /// 2. Validates the client's token using TokenReview API
 /// 3. Extracts user identity from the TokenReview response
-/// 4. Checks permissions using SubjectAccessReview API
+/// 4. Checks permissions using SubjectAccessReview API (with ResourceAttributes or NonResourceAttributes)
 #[cfg(feature = "kubernetes")]
 async fn validate_token_with_sar(
+    client: &Client,
     token: &str,
-    resource: &str,
     verb: &str,
-    resource_group: &str,
+    path: Option<&str>,
+    resource: Option<&str>,
+    resource_group: Option<&str>,
     namespace: &Option<String>,
     user: &Option<String>,
     groups: &Option<Vec<String>>,
 ) -> crate::Result<bool> {
     use k8s_openapi::api::authentication::v1::{TokenReview, TokenReviewSpec};
     use k8s_openapi::api::authorization::v1::{
-        ResourceAttributes, SubjectAccessReview, SubjectAccessReviewSpec,
+        NonResourceAttributes, ResourceAttributes, SubjectAccessReview, SubjectAccessReviewSpec,
     };
 
-    debug!(message = "Validating bearer token");
-
-    // Create a Kubernetes client using Vector's own service account
-    // This uses the in-cluster configuration with Vector's token
-    let client = Client::try_default().await?;
+    debug!(
+        message = "Validating bearer token",
+        path = ?path,
+        resource = ?resource
+    );
 
     // Step 1: Validate the client's token using TokenReview
     let token_review = TokenReview {
@@ -529,43 +535,74 @@ async fn validate_token_with_sar(
         extra = ?user_info.extra
     );
 
-    // Step 2: Create SubjectAccessReview with the validated user info
-    let resource_attrs = ResourceAttributes {
-        group: Some(resource_group.to_string()),
-        resource: Some(resource.to_string()),
-        verb: Some(verb.to_string()),
-        namespace: namespace.clone(),
-        ..Default::default()
-    };
-
     // Determine the user and groups to check
     let check_user = user.clone().or(user_info.username);
     let check_groups = groups.clone().or(user_info.groups);
 
-    let sar = SubjectAccessReview {
-        spec: SubjectAccessReviewSpec {
-            resource_attributes: Some(resource_attrs),
-            // Use user/groups from config if specified, otherwise use from token
-            user: check_user.clone(),
-            groups: check_groups.clone(),
-            ..Default::default()
-        },
-        ..Default::default()
+    // Step 2: Create SubjectAccessReview with appropriate attributes
+    let sar = match (path, resource) {
+        (Some(p), None) => {
+            // NonResourceURL-based authorization
+            let non_resource_attrs = NonResourceAttributes {
+                path: Some(p.to_string()),
+                verb: Some(verb.to_string()),
+            };
+
+            debug!(
+                message = "Calling SubjectAccessReview API for nonResourceURL",
+                user = ?check_user,
+                groups = ?check_groups,
+                path = %p,
+                verb = %verb
+            );
+
+            SubjectAccessReview {
+                spec: SubjectAccessReviewSpec {
+                    non_resource_attributes: Some(non_resource_attrs),
+                    user: check_user.clone(),
+                    groups: check_groups.clone(),
+                    ..Default::default()
+                },
+                ..Default::default()
+            }
+        }
+        (None, Some(r)) => {
+            // Resource-based authorization
+            let resource_attrs = ResourceAttributes {
+                group: Some(resource_group.unwrap_or("").to_string()),
+                resource: Some(r.to_string()),
+                verb: Some(verb.to_string()),
+                namespace: namespace.clone(),
+                ..Default::default()
+            };
+
+            debug!(
+                message = "Calling SubjectAccessReview API for resource",
+                user = ?check_user,
+                groups = ?check_groups,
+                resource = %r,
+                verb = %verb,
+                resource_group = %resource_group.unwrap_or(""),
+                namespace = ?namespace
+            );
+
+            SubjectAccessReview {
+                spec: SubjectAccessReviewSpec {
+                    resource_attributes: Some(resource_attrs),
+                    user: check_user.clone(),
+                    groups: check_groups.clone(),
+                    ..Default::default()
+                },
+                ..Default::default()
+            }
+        }
+        _ => {
+            return Err("Must specify either 'path' or 'resource', not both or neither".into());
+        }
     };
 
-    // Log the SubjectAccessReview request
-    debug!(
-        message = "Calling SubjectAccessReview API",
-        user = ?check_user,
-        groups = ?check_groups,
-        resource = %resource,
-        verb = %verb,
-        resource_group = %resource_group,
-        namespace = ?namespace
-    );
-
     // Step 3: Check if the user has the required permissions
-    let sar_api: Api<SubjectAccessReview> = Api::all(client);
+    let sar_api: Api<SubjectAccessReview> = Api::all(client.clone());
     let sar_result = sar_api.create(&Default::default(), &sar).await?;
 
     let allowed = sar_result
@@ -579,140 +616,16 @@ async fn validate_token_with_sar(
         debug!(
             message = "SubjectAccessReview allowed access",
             user = ?check_user,
-            resource = %resource,
+            path = ?path,
+            resource = ?resource,
             verb = %verb
         );
     } else {
         warn!(
             message = "SubjectAccessReview denied access",
             user = ?check_user,
-            resource = %resource,
-            verb = %verb,
-            reason = ?sar_result.status.as_ref().and_then(|s| s.reason.as_ref()),
-            evaluation_error = ?sar_result.status.as_ref().and_then(|s| s.evaluation_error.as_ref())
-        );
-    }
-
-    Ok(allowed)
-}
-
-/// Validates a Bearer token using Kubernetes TokenReview and SubjectAccessReview for nonResourceURLs.
-///
-/// This function:
-/// 1. Uses Vector's own service account to authenticate to the K8s API
-/// 2. Validates the client's token using TokenReview API
-/// 3. Extracts user identity from the TokenReview response
-/// 4. Checks nonResourceURL permissions using SubjectAccessReview API
-#[cfg(feature = "kubernetes")]
-async fn validate_token_with_sar_nonresource(
-    token: &str,
-    path: &str,
-    verb: &str,
-    user: &Option<String>,
-    groups: &Option<Vec<String>>,
-) -> crate::Result<bool> {
-    use k8s_openapi::api::authentication::v1::{TokenReview, TokenReviewSpec};
-    use k8s_openapi::api::authorization::v1::{
-        NonResourceAttributes, SubjectAccessReview, SubjectAccessReviewSpec,
-    };
-
-    debug!(
-        message = "Validating bearer token for nonResourceURL",
-        path = %path
-    );
-
-    // Create a Kubernetes client using Vector's own service account
-    let client = Client::try_default().await?;
-
-    // Step 1: Validate the client's token using TokenReview
-    let token_review = TokenReview {
-        spec: TokenReviewSpec {
-            token: Some(token.to_string()),
-            audiences: None,
-        },
-        ..Default::default()
-    };
-
-    debug!(message = "Calling TokenReview API");
-    let token_api: Api<TokenReview> = Api::all(client.clone());
-    let token_result = token_api.create(&Default::default(), &token_review).await?;
-
-    // Check if token is valid
-    let token_status = token_result
-        .status
-        .ok_or("TokenReview returned no status")?;
-
-    if !token_status.authenticated.unwrap_or(false) {
-        warn!(message = "Token authentication failed via TokenReview");
-        return Ok(false);
-    }
-
-    // Extract user info from the validated token
-    let user_info = token_status
-        .user
-        .ok_or("TokenReview returned no user info")?;
-
-    // Log the authenticated user
-    debug!(
-        message = "Token authenticated successfully",
-        username = ?user_info.username,
-        uid = ?user_info.uid,
-        groups = ?user_info.groups,
-        extra = ?user_info.extra
-    );
-
-    // Step 2: Create SubjectAccessReview with nonResourceAttributes
-    let non_resource_attrs = NonResourceAttributes {
-        path: Some(path.to_string()),
-        verb: Some(verb.to_string()),
-    };
-
-    // Determine the user and groups to check
-    let check_user = user.clone().or(user_info.username);
-    let check_groups = groups.clone().or(user_info.groups);
-
-    let sar = SubjectAccessReview {
-        spec: SubjectAccessReviewSpec {
-            non_resource_attributes: Some(non_resource_attrs),
-            user: check_user.clone(),
-            groups: check_groups.clone(),
-            ..Default::default()
-        },
-        ..Default::default()
-    };
-
-    // Log the SubjectAccessReview request
-    debug!(
-        message = "Calling SubjectAccessReview API for nonResourceURL",
-        user = ?check_user,
-        groups = ?check_groups,
-        path = %path,
-        verb = %verb
-    );
-
-    // Step 3: Check if the user has the required permissions
-    let sar_api: Api<SubjectAccessReview> = Api::all(client);
-    let sar_result = sar_api.create(&Default::default(), &sar).await?;
-
-    let allowed = sar_result
-        .status
-        .as_ref()
-        .map(|s| s.allowed)
-        .unwrap_or(false);
-
-    // Log the SubjectAccessReview result
-    if allowed {
-        debug!(
-            message = "SubjectAccessReview allowed access to nonResourceURL",
-            user = ?check_user,
-            path = %path,
-            verb = %verb
-        );
-    } else {
-        warn!(
-            message = "SubjectAccessReview denied access to nonResourceURL",
-            user = ?check_user,
-            path = %path,
+            path = ?path,
+            resource = ?resource,
             verb = %verb,
             reason = ?sar_result.status.as_ref().and_then(|s| s.reason.as_ref()),
             evaluation_error = ?sar_result.status.as_ref().and_then(|s| s.evaluation_error.as_ref())
@@ -777,6 +690,8 @@ struct Handler {
     quantiles: Box<[f64]>,
     bytes_sent: Registered<BytesSent>,
     events_sent: Registered<EventsSent>,
+    #[cfg(feature = "kubernetes")]
+    kube_client: Option<Client>,
 }
 
 impl Handler {
@@ -856,93 +771,50 @@ impl Handler {
             groups,
         }) = &self.auth
         {
-            // Determine whether to use nonResourceURL or resource-based validation
-            match (path, resource) {
-                (Some(p), None) => {
-                    // NonResourceURL-based authorization
-                    debug!(
-                        message = "Using SubjectAccessReview authentication for nonResourceURL",
-                        path = %p,
-                        verb = %verb
-                    );
+            // Ensure we have a Kubernetes client
+            let client = match &self.kube_client {
+                Some(c) => c,
+                None => {
+                    error!(message = "SubjectAccessReview configured but Kubernetes client not initialized");
+                    return false;
+                }
+            };
 
-                    if let Some(token) = extract_bearer_token(req) {
-                        debug!(message = "Extracted Bearer token from request");
+            // Validate token with SubjectAccessReview
+            if let Some(token) = extract_bearer_token(req) {
+                debug!(message = "Extracted Bearer token from request");
 
-                        match validate_token_with_sar_nonresource(&token, p, verb, user, groups)
-                            .await
-                        {
-                            Ok(allowed) => {
-                                return allowed;
-                            }
-                            Err(e) => {
-                                error!(
-                                    message = "Failed to validate token with SubjectAccessReview for nonResourceURL",
-                                    error = %e
-                                );
-                                return false;
-                            }
-                        }
-                    } else {
-                        warn!(
-                            message = "SubjectAccessReview configured but no Bearer token provided in Authorization header"
+                match validate_token_with_sar(
+                    client,
+                    &token,
+                    verb,
+                    path.as_deref(),
+                    resource.as_deref(),
+                    resource_group.as_deref(),
+                    namespace,
+                    user,
+                    groups,
+                )
+                .await
+                {
+                    Ok(allowed) => {
+                        return allowed;
+                    }
+                    Err(e) => {
+                        error!(
+                            message = "Failed to validate token with SubjectAccessReview",
+                            error = %e,
+                            path = ?path,
+                            resource = ?resource
                         );
                         return false;
                     }
                 }
-                (None, Some(r)) => {
-                    // Resource-based authorization
-                    debug!(
-                        message = "Using SubjectAccessReview authentication for resource",
-                        resource = %r,
-                        verb = %verb,
-                        resource_group = %resource_group
-                    );
-
-                    if let Some(token) = extract_bearer_token(req) {
-                        debug!(message = "Extracted Bearer token from request");
-
-                        match validate_token_with_sar(
-                            &token,
-                            r,
-                            verb,
-                            resource_group,
-                            namespace,
-                            user,
-                            groups,
-                        )
-                        .await
-                        {
-                            Ok(allowed) => {
-                                return allowed;
-                            }
-                            Err(e) => {
-                                error!(
-                                    message = "Failed to validate token with SubjectAccessReview for resource",
-                                    error = %e
-                                );
-                                return false;
-                            }
-                        }
-                    } else {
-                        warn!(
-                            message = "SubjectAccessReview configured but no Bearer token provided in Authorization header"
-                        );
-                        return false;
-                    }
-                }
-                (Some(_), Some(_)) => {
-                    error!(
-                        message = "SubjectAccessReview configuration error: cannot specify both 'path' and 'resource'"
-                    );
-                    return false;
-                }
-                (None, None) => {
-                    error!(
-                        message = "SubjectAccessReview configuration error: must specify either 'path' or 'resource'"
-                    );
-                    return false;
-                }
+            } else {
+                warn!(
+                    message = "SubjectAccessReview configured but no Bearer token provided in Authorization header"
+                );
+                return false;
             }
         }
 
@@ -965,6 +837,26 @@ impl PrometheusExporter {
             return Ok(());
         }
 
+        // Create Kubernetes client if SAR authentication is configured
+        #[cfg(feature = "kubernetes")]
+        let kube_client = if matches!(self.config.auth, Some(PrometheusExporterAuth::Sar { .. })) {
+            match Client::try_default().await {
+                Ok(client) => {
+                    info!(message = "Kubernetes client initialized for SubjectAccessReview authentication");
+                    Some(client)
+                }
+                Err(e) => {
+                    error!(
+                        message = "Failed to initialize Kubernetes client for SubjectAccessReview authentication",
+                        error = %e
+                    );
+                    return Err(Box::new(e));
+                }
+            }
+        } else {
+            None
+        };
+
         let handler = Handler {
             bytes_sent: register!(BytesSent::from(Protocol::HTTP)),
             events_sent: register!(EventsSent::from(Output(None))),
@@ -972,6 +864,8 @@ impl PrometheusExporter {
             buckets: self.config.buckets.clone().into(),
             quantiles: self.config.quantiles.clone().into(),
             auth: self.config.auth.clone(),
+            #[cfg(feature = "kubernetes")]
+            kube_client,
         };
 
         let span = Span::current();
