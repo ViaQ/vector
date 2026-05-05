@@ -669,10 +669,10 @@ fn authorized<T: HttpBody>(req: &Request<T>, auth: &Option<PrometheusExporterAut
                 }
             };
 
-            if let Some(Ok(encoded_credentials)) = encoded_credentials
-                && auth_header == encoded_credentials
-            {
-                return true;
+            if let Some(Ok(encoded_credentials)) = encoded_credentials {
+                if auth_header == encoded_credentials {
+                    return true;
+                }
             }
         }
     } else {
@@ -775,7 +775,10 @@ impl Handler {
             let client = match &self.kube_client {
                 Some(c) => c,
                 None => {
-                    error!(message = "SubjectAccessReview configured but Kubernetes client not initialized");
+                    error!(
+                        message =
+                            "SubjectAccessReview configured but Kubernetes client not initialized"
+                    );
                     return false;
                 }
             };
@@ -842,7 +845,10 @@ impl PrometheusExporter {
         let kube_client = if matches!(self.config.auth, Some(PrometheusExporterAuth::Sar { .. })) {
             match Client::try_default().await {
                 Ok(client) => {
-                    info!(message = "Kubernetes client initialized for SubjectAccessReview authentication");
+                    info!(
+                        message =
+                            "Kubernetes client initialized for SubjectAccessReview authentication"
+                    );
                     Some(client)
                 }
                 Err(e) => {
