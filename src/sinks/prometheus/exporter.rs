@@ -790,7 +790,7 @@ impl Handler {
                     verb,
                     path.as_deref(),
                     resource.as_deref(),
-                    resource_group.as_deref(),
+                    Some(resource_group.as_str()),
                     namespace,
                     user,
                     groups,
