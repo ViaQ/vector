@@ -464,6 +464,18 @@ impl Hash for MetricRef {
     }
 }
 
+/// Parameters for SubjectAccessReview authorization check.
+#[cfg(feature = "kubernetes")]
+struct SarAuthParams<'a> {
+    verb: &'a str,
+    path: Option<&'a str>,
+    resource: Option<&'a str>,
+    resource_group: Option<&'a str>,
+    namespace: &'a Option<String>,
+    user: &'a Option<String>,
+    groups: &'a Option<Vec<String>>,
+}
+
 /// Validates a Bearer token using Kubernetes TokenReview and SubjectAccessReview.
 ///
 /// This function supports both resource-based and nonResourceURL-based authorization:
@@ -479,13 +491,7 @@ impl Hash for MetricRef {
 async fn validate_token_with_sar(
     client: &Client,
     token: &str,
-    verb: &str,
-    path: Option<&str>,
-    resource: Option<&str>,
-    resource_group: Option<&str>,
-    namespace: &Option<String>,
-    user: &Option<String>,
-    groups: &Option<Vec<String>>,
+    params: SarAuthParams<'_>,
 ) -> crate::Result<bool> {
     use k8s_openapi::api::authentication::v1::{TokenReview, TokenReviewSpec};
     use k8s_openapi::api::authorization::v1::{
@@ -494,8 +500,8 @@ async fn validate_token_with_sar(
 
     debug!(
         message = "Validating bearer token",
-        path = ?path,
-        resource = ?resource
+        path = ?params.path,
+        resource = ?params.resource
     );
 
     // Step 1: Validate the client's token using TokenReview
@@ -536,16 +542,16 @@ async fn validate_token_with_sar(
     );
 
     // Determine the user and groups to check
-    let check_user = user.clone().or(user_info.username);
-    let check_groups = groups.clone().or(user_info.groups);
+    let check_user = params.user.clone().or(user_info.username);
+    let check_groups = params.groups.clone().or(user_info.groups);
 
     // Step 2: Create SubjectAccessReview with appropriate attributes
-    let sar = match (path, resource) {
+    let sar = match (params.path, params.resource) {
         (Some(p), None) => {
             // NonResourceURL-based authorization
             let non_resource_attrs = NonResourceAttributes {
                 path: Some(p.to_string()),
-                verb: Some(verb.to_string()),
+                verb: Some(params.verb.to_string()),
             };
 
             debug!(
@@ -553,7 +559,7 @@ async fn validate_token_with_sar(
                 user = ?check_user,
                 groups = ?check_groups,
                 path = %p,
-                verb = %verb
+                verb = %params.verb
             );
 
             SubjectAccessReview {
@@ -569,10 +575,10 @@ async fn validate_token_with_sar(
         (None, Some(r)) => {
             // Resource-based authorization
             let resource_attrs = ResourceAttributes {
-                group: Some(resource_group.unwrap_or("").to_string()),
+                group: Some(params.resource_group.unwrap_or("").to_string()),
                 resource: Some(r.to_string()),
-                verb: Some(verb.to_string()),
-                namespace: namespace.clone(),
+                verb: Some(params.verb.to_string()),
+                namespace: params.namespace.clone(),
                 ..Default::default()
             };
 
@@ -581,9 +587,9 @@ async fn validate_token_with_sar(
                 user = ?check_user,
                 groups = ?check_groups,
                 resource = %r,
-                verb = %verb,
-                resource_group = %resource_group.unwrap_or(""),
-                namespace = ?namespace
+                verb = %params.verb,
+                resource_group = %params.resource_group.unwrap_or(""),
+                namespace = ?params.namespace
             );
 
             SubjectAccessReview {
@@ -616,17 +622,17 @@ async fn validate_token_with_sar(
         debug!(
             message = "SubjectAccessReview allowed access",
             user = ?check_user,
-            path = ?path,
-            resource = ?resource,
-            verb = %verb
+            path = ?params.path,
+            resource = ?params.resource,
+            verb = %params.verb
         );
     } else {
         warn!(
             message = "SubjectAccessReview denied access",
             user = ?check_user,
-            path = ?path,
-            resource = ?resource,
-            verb = %verb,
+            path = ?params.path,
+            resource = ?params.resource,
+            verb = %params.verb,
             reason = ?sar_result.status.as_ref().and_then(|s| s.reason.as_ref()),
             evaluation_error = ?sar_result.status.as_ref().and_then(|s| s.evaluation_error.as_ref())
         );
@@ -669,10 +675,8 @@ fn authorized<T: HttpBody>(req: &Request<T>, auth: &Option<PrometheusExporterAut
                 }
             };
 
-            if let Some(Ok(encoded_credentials)) = encoded_credentials {
-                if auth_header == encoded_credentials {
-                    return true;
-                }
+            if matches!(encoded_credentials, Some(Ok(ref creds)) if auth_header == creds) {
+                return true;
             }
         }
     } else {
@@ -790,13 +794,15 @@ impl Handler {
                 match validate_token_with_sar(
                     client,
                     &token,
-                    verb,
-                    path.as_deref(),
-                    resource.as_deref(),
-                    Some(resource_group.as_str()),
-                    namespace,
-                    user,
-                    groups,
+                    SarAuthParams {
+                        verb,
+                        path: path.as_deref(),
+                        resource: resource.as_deref(),
+                        resource_group: Some(resource_group.as_str()),
+                        namespace,
+                        user,
+                        groups,
+                    },
                 )
                 .await
                 {
