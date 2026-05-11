@@ -11,7 +11,4 @@ filters:
       - syedriko
       - vparfonov
       - cahartma
-  "Dockerfile(?:\\.in)?$":
-    labels:
-      - midstream/Dockerfile
 component: "Logging"

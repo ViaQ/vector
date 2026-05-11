@@ -1,211 +1,60 @@
-[![Nightly](https://github.com/vectordotdev/vector/actions/workflows/nightly.yml/badge.svg)](https://github.com/vectordotdev/vector/actions/workflows/nightly.yml)
-[![Integration/E2E Test Suite](https://github.com/vectordotdev/vector/actions/workflows/integration.yml/badge.svg)](https://github.com/vectordotdev/vector/actions/workflows/integration.yml/badge.svg?event=merge_group)
-[![Component Features](https://github.com/vectordotdev/vector/actions/workflows/component_features.yml/badge.svg)](https://github.com/vectordotdev/vector/actions/workflows/component_features.yml)
+# Vector — Red Hat OpenShift Logging
 
-<p align="center">
-  <img src="website/static/img/diagram.svg" alt="Vector">
-</p>
+This is a fork of [Vector](https://github.com/vectordotdev/vector) maintained for Red Hat OpenShift Logging. Vector is a high-performance observability data pipeline written in Rust. This fork carries patches for OpenShift integration, FIPS-compliant TLS (OpenSSL), and reliability improvements.
 
-<p align="center">
-  <strong>
-    <a href="https://vector.dev/docs/setup/quickstart/">Quickstart</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
-    <a href="https://vector.dev/docs/">Docs</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
-    <a href="https://vector.dev/guides/">Guides</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
-    <a href="https://vector.dev/components/">Integrations</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
-    <a href="https://chat.vector.dev">Chat</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
-    <a href="https://vector.dev/releases/latest/download/">Download</a>&nbsp;&nbsp;&bull;&nbsp;&nbsp;
-    <a href="https://rust-doc.vector.dev/">Rust Crate Docs</a>
-  </strong>
-</p>
-
-## What is Vector?
-
-Vector is a high-performance, end-to-end (agent & aggregator) observability data
-pipeline that puts you in control of your observability data.
-[Collect][docs.sources], [transform][docs.transforms], and [route][docs.sinks]
-all your logs and metrics to any vendors you want today and any other
-vendors you may want tomorrow. Vector enables dramatic cost reduction, novel
-data enrichment, and data security where you need it, not where it is most
-convenient for your vendors. Additionally, it is open source and up to 10x
-faster than every alternative in the space.
-
-To get started, follow our [**quickstart guide**][docs.quickstart] or [**install
-Vector**][docs.installation].
-
-Vector is maintained by Datadog's [Community Open Source Engineering team](https://opensource.datadoghq.com/about/#the-community-open-source-engineering-team).
-
-### Principles
-
-* **Reliable** - Built in [Rust][urls.rust], Vector's primary design goal is reliability.
-* **End-to-end** - Deploys as an [agent][docs.roles#agent] or [aggregator][docs.roles#aggregator]. Vector is a complete platform.
-* **Unified** - [Logs][docs.data-model.log], [metrics][docs.data-model.metric] (beta), and traces (coming soon). One tool for all of your data.
-
-### Use cases
-
-* Reduce total observability costs.
-* Transition vendors without disrupting workflows.
-* Enhance data quality and improve insights.
-* Consolidate agents and eliminate agent fatigue.
-* Improve overall observability performance and reliability.
-
-### Community
-
-* Vector is relied on by startups and enterprises like **Atlassian**, **T-Mobile**,
-  **Comcast**, **Zendesk**, **Discord**, **Fastly**, **CVS**, **Trivago**,
-  **Tuple**, **Douban**, **Visa**, **Mambu**, **Blockfi**, **Claranet**,
-  **Instacart**, **Forcepoint**, and [many more][urls.production_users].
-* Vector is **downloaded over 100,000 times per day**.
-* Vector's largest user **processes over 500TB daily**.
-* Vector has **over 500 contributors** and growing.
+Vector runs as a DaemonSet on each OpenShift node, collecting application and infrastructure logs. It is deployed and configured by the [cluster-logging-operator](https://github.com/openshift/cluster-logging-operator). This image is intended to run with the configuration and `run.sh` files provided by the operator.
 
 ## Documentation
 
-All user documentation is available at **[vector.dev/docs](https://vector.dev/docs)**.
+| Document | Purpose |
+|----------|---------|
+| [AGENTS.md](AGENTS.md) | AI agent and developer quick reference — fork-specific context, build commands, patched crates |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to submit changes — branching, PRs, code review, Jira conventions |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Fork architecture — deployment model, `ocp-logging` feature scope, build system, design decisions |
+| [Upstream AGENTS.md](https://github.com/vectordotdev/vector/blob/master/AGENTS.md) | Generic Vector development commands, project structure, Rust conventions |
 
-Other Resources:
+## Quick Start (building from source)
 
-* [**Vector Calendar**][urls.vector_calendar]
-* **Policies**:
-  * [**Code of Conduct**][urls.vector_code_of_conduct]
-  * [**Contributing**][urls.vector_contributing_policy]
-  * [**Privacy**][urls.vector_privacy_policy]
-  * [**Releases**][urls.vector_releases_policy]
-  * [**Versioning**][urls.vector_versioning_policy]
-  * [**Security**][urls.vector_security_policy]
+```bash
+git checkout v0.47.0-rh          # or v0.54.0-rh
+make build                       # builds with --features ocp-logging
+make test                        # runs tests with --test-threads 1
+```
 
-## Comparisons
+## Release Branches
 
-### Performance
+The `rh-main` branch contains only documentation. All development happens on version-specific branches:
 
-The following performance tests demonstrate baseline performance between
-common protocols with the exception of the Regex Parsing test.
+| Release | Branch      | Vector Version | Status |
+|---------|-------------|----------------|--------|
+| next    | v0.54.0-rh  | v0.54.0        | Development |
+| 6.5     | v0.47.0-rh  | v0.47.0        | Current |
+| 6.4     | v0.47.0-rh  | v0.47.0        | Current |
+| 6.3     | v0.47.0-rh  | v0.47.0        | EOL     |
+| 6.2     | v0.47.0-rh  | v0.47.0        | Current |
+| 6.1     | v0.37.1-rh  | v0.37.1        | EOL     |
+| 6.0     | v0.37.1-rh  | v0.37.1        | Current |
+| 5.9     | release-5.9 | v0.34.1        | EOL |
+| 5.8     | release-5.8 | v0.28.1        | EOL |
+| 5.7     | release-5.7 | v0.21.0        | EOL |
+| 5.6     | release-5.6 | v0.21.0        | EOL |
 
-| Test                                                                                                                   | Vector          | Filebeat | FluentBit       | FluentD   | Logstash  | SplunkUF        | SplunkHF |
-| ---------------------------------------------------------------------------------------------------------------------- | --------------- | -------- | --------------- | --------- | --------- | --------------- | -------- |
-| [TCP to Blackhole](https://github.com/vectordotdev/vector-test-harness/tree/master/cases/tcp_to_blackhole_performance) | _**86mib/s**_   | n/a      | 64.4mib/s       | 27.7mib/s | 40.6mib/s | n/a             | n/a      |
-| [File to TCP](https://github.com/vectordotdev/vector-test-harness/tree/master/cases/file_to_tcp_performance)           | _**76.7mib/s**_ | 7.8mib/s | 35mib/s         | 26.1mib/s | 3.1mib/s  | 40.1mib/s       | 39mib/s  |
-| [Regex Parsing](https://github.com/vectordotdev/vector-test-harness/tree/master/cases/regex_parsing_performance)       | 13.2mib/s       | n/a      | _**20.5mib/s**_ | 2.6mib/s  | 4.6mib/s  | n/a             | 7.8mib/s |
-| [TCP to HTTP](https://github.com/vectordotdev/vector-test-harness/tree/master/cases/tcp_to_http_performance)           | _**26.7mib/s**_ | n/a      | 19.6mib/s       | <1mib/s   | 2.7mib/s  | n/a             | n/a      |
-| [TCP to TCP](https://github.com/vectordotdev/vector-test-harness/tree/master/cases/tcp_to_tcp_performance)             | 69.9mib/s       | 5mib/s   | 67.1mib/s       | 3.9mib/s  | 10mib/s   | _**70.4mib/s**_ | 7.6mib/s |
+This project varies from the upstream with the following features:
 
-To learn more about our performance tests, please see the [Vector test harness][urls.vector_test_harness].
+| Issue    | Description  | Release Added | Upstream Contribution                                            |
+|----------|--------------|---------------|------------------------------------------------------------------|
+| LOG-2552 | [Replace Ring with OpenSSL](https://github.com/ViaQ/vector/pull/61) | 5.5           | N/A - Patch is Red Hat only                                      |
+| LOG-3398 | [Apply TLSSecurityProfile settings to TLS listeners in log collectors](https://github.com/ViaQ/vector/pull/129) | 5.6           | N/A - Relies upon OpenSSL patch                                  |
+| LOG-2288 | [Add syslog sink](https://github.com/ViaQ/vector/pull/133) | 5.7           | [Accepted](https://github.com/vectordotdev/vector/pull/23777)        |
+| LOG-3949 | [Add support for file rotate_wait_secs](https://github.com/ViaQ/vector/pull/154) | 5.8           | [Accepted](https://github.com/vectordotdev/vector/pull/18904)    |
+| LOG-4739 | [Add support for include_paths_glob_pattern](https://github.com/ViaQ/vector/pull/167) | 5.9           | [Accepted](https://github.com/vectordotdev/vector/pull/19521)    |
+| LOG-6155 | [Allow config of message_key for multiline exception transform](https://github.com/ViaQ/vector/pull/183) | 6.2           | N/A - Transform is Red Hat only                                  |
+| LOG-6789 | [Resolve error when using AWS credentials file authentication](https://github.com/ViaQ/vector/pull/197) | 6.2           | [Accepted](https://github.com/vectordotdev/vector/pull/22831)    |
+| LOG-7013 | [Update cloudwatch logs max event size to match new AWS limit](https://github.com/ViaQ/vector/pull/201) | 6.2           | [Accepted](https://github.com/vectordotdev/vector/pull/22886)    |
+| LOG-7417 | [Fix loki event timestamp out of range panic ](https://github.com/ViaQ/vector/pull/217) | 0.37.1-rh     | [Cherry-pick](https://github.com/vectordotdev/vector/pull/20780) |
 
-### Correctness
+## Issues
 
-The following correctness tests are not exhaustive, but they demonstrate
-fundamental differences in quality and attention to detail:
-
-| Test                                                                                                                                 | Vector | Filebeat | FluentBit | FluentD | Logstash | Splunk UF | Splunk HF |
-| ------------------------------------------------------------------------------------------------------------------------------------ | ------ | -------- | --------- | ------- | -------- | --------- | --------- |
-| [Disk Buffer Persistence](https://github.com/vectordotdev/vector-test-harness/tree/master/cases/disk_buffer_persistence_correctness) | **✓**  | ✓        |           |         | ⚠        | ✓         | ✓         |
-| [File Rotate (create)](https://github.com/vectordotdev/vector-test-harness/tree/master/cases/file_rotate_create_correctness)         | **✓**  | ✓        | ✓         | ✓       | ✓        | ✓         | ✓         |
-| [File Rotate (copytruncate)](https://github.com/vectordotdev/vector-test-harness/tree/master/cases/file_rotate_truncate_correctness) | **✓**  |          |           |         |          | ✓         | ✓         |
-| [File Truncation](https://github.com/vectordotdev/vector-test-harness/tree/master/cases/file_truncate_correctness)                   | **✓**  | ✓        | ✓         | ✓       | ✓        | ✓         | ✓         |
-| [Process (SIGHUP)](https://github.com/vectordotdev/vector-test-harness/tree/master/cases/sighup_correctness)                         | **✓**  |          |           |         | ⚠        | ✓         | ✓         |
-| [JSON (wrapped)](https://github.com/vectordotdev/vector-test-harness/tree/master/cases/wrapped_json_correctness)                     | **✓**  | ✓        | ✓         | ✓       | ✓        | ✓         | ✓         |
-
-To learn more about our correctness tests, please see the [Vector test harness][urls.vector_test_harness].
-
-### Features
-
-Vector is an end-to-end, unified, open data platform.
-
-|                     | **Vector** | Beats | Fluentbit | Fluentd | Logstash | Splunk UF | Splunk HF | Telegraf |
-| ------------------- | ---------- | ----- | --------- | ------- | -------- | --------- | --------- | -------- |
-| **End-to-end**      | **✓**      |       |           |         |          |           |           | ✓        |
-| Agent               | **✓**      | ✓     | ✓         |         |          | ✓         |           | ✓        |
-| Aggregator          | **✓**      |       |           | ✓       | ✓        |           | ✓         | ✓        |
-| **Unified**         | **✓**      |       |           |         |          |           |           | ✓        |
-| Logs                | **✓**      | ✓     | ✓         | ✓       | ✓        | ✓         | ✓         | ✓        |
-| Metrics             | **✓**      | ⚠     | ⚠         | ⚠       | ⚠        | ⚠         | ⚠         | ✓        |
-| Traces              | 🚧         |       |           |         |          |           |           |          |
-| **Open**            | **✓**      |       | ✓         | ✓       |          |           |           | ✓        |
-| Open-source         | **✓**      | ✓     | ✓         | ✓       | ✓        |           |           | ✓        |
-| Vendor-neutral      | **✓**      |       | ✓         | ✓       |          |           |           | ✓        |
-| **Reliability**     | **✓**      |       |           |         |          |           |           |          |
-| Memory-safe         | **✓**      |       |           |         |          |           |           | ✓        |
-| Delivery guarantees | **✓**      |       |           |         |          | ✓         | ✓         |          |
-| Multi-core          | **✓**      | ✓     | ✓         | ✓       | ✓        | ✓         | ✓         | ✓        |
-
-
-⚠ = Not interoperable, metrics are represented as structured logs
-
----
-
-<p align="center">
-  Developed with ❤️ by <strong><a href="https://datadoghq.com">Datadog</a></strong> - <a href="https://github.com/vectordotdev/vector/security/policy">Security Policy</a> - <a href="https://github.com/vectordotdev/vector/blob/master/PRIVACY.md">Privacy Policy</a>
-</p>
-
-[docs.about.concepts]: https://vector.dev/docs/introduction/concepts/
-[docs.about.introduction]: https://vector.dev/docs/introduction/
-[docs.administration.monitoring]: https://vector.dev/docs/administration/monitoring/
-[docs.administration.management]: https://vector.dev/docs/administration/management/
-[docs.administration.upgrading]: https://vector.dev/docs/administration/upgrading/
-[docs.administration.validating]: https://vector.dev/docs/administration/validating/
-[docs.architecture.concurrency-model]: https://vector.dev/docs/architecture/concurrency-model/
-[docs.architecture.data-model]: https://vector.dev/docs/architecture/data-model/
-[docs.architecture.pipeline-model]: https://vector.dev/docs/architecture/pipeline-model/
-[docs.architecture.runtime-model]: https://vector.dev/docs/architecture/runtime-model/
-[docs.configuration.sinks]: https://vector.dev/docs/reference/configuration/sinks/
-[docs.configuration.sources]: https://vector.dev/docs/reference/configuration/sources/
-[docs.configuration.tests]: https://vector.dev/docs/reference/configuration/tests/
-[docs.configuration.transforms]: https://vector.dev/docs/reference/configuration/transforms/
-[docs.configuration.enrichment_tables]: https://vector.dev/docs/reference/configuration/global-options/#enrichment_tables
-[docs.data-model.log]: https://vector.dev/docs/architecture/data-model/log/
-[docs.data-model.metric]: https://vector.dev/docs/architecture/data-model/metric/
-[docs.deployment.roles]: https://vector.dev/docs/setup/deployment/roles/
-[docs.deployment.topologies]: https://vector.dev/docs/setup/deployment/topologies/
-[docs.deployment]: https://vector.dev/docs/setup/deployment/
-[docs.installation.manual]: https://vector.dev/docs/setup/installation/manual/
-[docs.installation.operating_systems]: https://vector.dev/docs/setup/installation/operating-systems/
-[docs.installation.package_managers]: https://vector.dev/docs/setup/installation/package-managers/
-[docs.installation.platforms]: https://vector.dev/docs/setup/installation/platforms/
-[docs.installation]: https://vector.dev/docs/setup/installation/
-[docs.architecture.adaptive-request-concurrency]: https://vector.dev/docs/architecture/arc/
-[docs.platforms.kubernetes]: https://vector.dev/docs/setup/installation/platforms/kubernetes/
-[docs.quickstart]: https://vector.dev/docs/setup/quickstart/
-[docs.reference.api]: https://vector.dev/docs/reference/api/
-[docs.reference.cli]: https://vector.dev/docs/reference/cli/
-[docs.reference.vrl]: https://vector.dev/docs/reference/vrl/
-[docs.roles#agent]: https://vector.dev/docs/setup/deployment/roles/#agent
-[docs.roles#aggregator]: https://vector.dev/docs/setup/deployment/roles/#aggregator
-[docs.setup.installation]: https://vector.dev/docs/setup/installation/
-[docs.setup.quickstart]: https://vector.dev/docs/setup/quickstart/
-[docs.sinks.aws_cloudwatch_logs]: https://vector.dev/docs/reference/configuration/sinks/aws_cloudwatch_logs/
-[docs.sinks.aws_s3]: https://vector.dev/docs/reference/configuration/sinks/aws_s3/
-[docs.sinks.clickhouse]: https://vector.dev/docs/reference/configuration/sinks/clickhouse/
-[docs.sinks.elasticsearch]: https://vector.dev/docs/reference/configuration/sinks/elasticsearch/
-[docs.sinks.gcp_cloud_storage]: https://vector.dev/docs/reference/configuration/sinks/gcp_cloud_storage/
-[docs.sinks]: https://vector.dev/docs/reference/configuration/sinks/
-[docs.sources.docker_logs]: https://vector.dev/docs/reference/configuration/sources/docker_logs/
-[docs.sources.file]: https://vector.dev/docs/reference/configuration/sources/file/
-[docs.sources.http]: https://vector.dev/docs/reference/configuration/sources/http/
-[docs.sources.journald]: https://vector.dev/docs/reference/configuration/sources/journald/
-[docs.sources.kafka]: https://vector.dev/docs/reference/configuration/sources/kafka/
-[docs.sources.socket]: https://vector.dev/docs/reference/configuration/sources/socket/
-[docs.sources]: https://vector.dev/docs/reference/configuration/sources/
-[docs.transforms.dedupe]: https://vector.dev/docs/reference/configuration/transforms/dedupe/
-[docs.transforms.filter]: https://vector.dev/docs/reference/configuration/transforms/filter/
-[docs.transforms.log_to_metric]: https://vector.dev/docs/reference/configuration/transforms/log_to_metric/
-[docs.transforms.lua]: https://vector.dev/docs/reference/configuration/transforms/lua/
-[docs.transforms.remap]: https://vector.dev/docs/reference/configuration/transforms/remap/
-[docs.transforms]: https://vector.dev/docs/reference/configuration/transforms/
-[docs.introduction.architecture]: https://vector.dev/docs/architecture/
-[docs.introduction.guarantees]: https://vector.dev/docs/introduction/guarantees/
-[docs.introduction.architecture]: https://vector.dev/docs/architecture/
-[urls.production_users]: https://github.com/vectordotdev/vector/issues/790
-[urls.rust]: https://www.rust-lang.org/
-[urls.vector_calendar]: https://calendar.vector.dev
-[urls.vector_chat]: https://chat.vector.dev
-[urls.vector_code_of_conduct]: https://github.com/vectordotdev/vector/blob/master/CODE_OF_CONDUCT.md
-[urls.vector_contributing_policy]: https://github.com/vectordotdev/vector/blob/master/CONTRIBUTING.md
-[urls.vector_community]: https://vector.dev/community/
-[urls.vector_privacy_policy]: https://github.com/vectordotdev/vector/blob/master/PRIVACY.md
-[urls.vector_release_policy]: https://github.com/vectordotdev/vector/blob/master/RELEASING.md
-[urls.vector_releases]: https://vector.dev/releases/
-[urls.vector_releases_policy]: https://github.com/vectordotdev/vector/blob/master/RELEASES.md
-[urls.vector_security_policy]: https://github.com/vectordotdev/vector/security/policy
-[urls.vector_test_harness]: https://github.com/vectordotdev/vector-test-harness/
-[urls.vector_twitter]: https://twitter.com/vectordotdev
-[urls.vector_versioning_policy]: https://github.com/vectordotdev/vector/blob/master/VERSIONING.md
-[urls.vote_feature]: https://github.com/vectordotdev/vector/issues?q=is%3Aissue+is%3Aopen+sort%3Areactions-%2B1-desc+label%3A%22type%3A+feature%22
+Any issues can be filed at [Red Hat JIRA](https://issues.redhat.com). Please
+include as many details as possible in order to assist in issue resolution along with attaching the output
+from the [must gather](https://github.com/openshift/cluster-logging-operator/tree/master/must-gather) associated with the release.
