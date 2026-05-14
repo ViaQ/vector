@@ -7,9 +7,13 @@ RUN INSTALL_PKGS=" \
       openssl-devel \
       llvm-toolset \
       rust-toolset-1.88.0 \
+      crypto-policies-scripts \
       " && \
     microdnf install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS
+
+# Enable post-quantum cryptography
+RUN update-crypto-policies --set DEFAULT:PQ
 
 COPY . /opt/app-root/src
 WORKDIR /opt/app-root/src
@@ -21,7 +25,10 @@ RUN cp /opt/app-root/src/target/release/vector /usr/bin
 FROM registry.access.redhat.com/ubi9/ubi-minimal
 
 COPY --from=builder /usr/bin/vector /usr/bin/
-RUN microdnf install -y systemd
+RUN microdnf install -y systemd crypto-policies-scripts
+
+# Copy PQ crypto-policies configuration from builder
+COPY --from=builder /etc/crypto-policies/ /etc/crypto-policies/
 
 WORKDIR /usr/bin
 CMD ["/usr/bin/vector"]

@@ -12,10 +12,14 @@ RUN INSTALL_PKGS=" \
       llvm \
       cyrus-sasl-devel \
       libtool \
+      crypto-policies-scripts \
       " && \
     dnf install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
     dnf clean all
+
+# Enable post-quantum cryptography
+RUN update-crypto-policies --set DEFAULT:PQ
 
 ENV HOME=/root
 RUN curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain 1.92.0 -y
@@ -31,8 +35,11 @@ RUN PROTOC=/src/thirdparty/protoc/protoc-linux-$(arch) make build
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal
 
-RUN microdnf install -y systemd tar && \
+RUN microdnf install -y systemd tar crypto-policies-scripts && \
     microdnf clean all
+
+# Copy PQ crypto-policies configuration from builder
+COPY --from=builder /etc/crypto-policies/ /etc/crypto-policies/
 
 COPY --from=builder /src/target/release/vector /usr/bin
 WORKDIR /usr/bin
