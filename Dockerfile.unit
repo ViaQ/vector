@@ -29,6 +29,7 @@ RUN mkdir -p /src
 
 WORKDIR /src
 COPY . /src
+RUN /src/scripts/environment/install-protoc.sh
 
 # Initialize git repository for build scripts that need git metadata
 RUN cd /src && \
@@ -38,14 +39,8 @@ RUN cd /src && \
     git add . && \
     git commit --no-verify -m "CI build"
 
-# Use bundled protoc and set environment
-RUN chmod +x /src/thirdparty/protoc/protoc-linux-x86_64
-ENV PROTOC=/src/thirdparty/protoc/protoc-linux-x86_64
-ENV PATH=/src/thirdparty/protoc:$PATH
-
 RUN mkdir -p $CARGO_HOME && chmod -R 777 /src $CARGO_HOME $HOME
 RUN mkdir -p ~/.cargo/bin && \
     for plugin in nextest deny; do \
         ln -s /src/thirdparty/cargo-${plugin}/cargo-${plugin}-linux-x86_64 ~/.cargo/bin/cargo-${plugin}; \
 	done
-

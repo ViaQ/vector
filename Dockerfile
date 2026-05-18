@@ -30,8 +30,8 @@ RUN mkdir -p /src
 
 WORKDIR /src
 COPY . /src
-
-RUN PROTOC=/src/thirdparty/protoc/protoc-linux-$(arch) make build
+RUN /src/scripts/environment/install-protoc.sh
+RUN make build
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal
 
@@ -44,4 +44,3 @@ COPY --from=builder /etc/crypto-policies/ /etc/crypto-policies/
 COPY --from=builder /src/target/release/vector /usr/bin
 WORKDIR /usr/bin
 CMD ["/usr/bin/vector"]
-

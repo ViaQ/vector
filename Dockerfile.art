@@ -8,6 +8,7 @@ RUN INSTALL_PKGS=" \
       llvm-toolset \
       rust-toolset-1.88.0 \
       crypto-policies-scripts \
+      protobuf-compiler \
       " && \
     microdnf install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS
@@ -18,7 +19,7 @@ RUN update-crypto-policies --set DEFAULT:PQ
 COPY . /opt/app-root/src
 WORKDIR /opt/app-root/src
 
-RUN PROTOC=/opt/app-root/src/thirdparty/protoc/protoc-linux-$(arch) make build-offline
+RUN make build-offline
 
 RUN cp /opt/app-root/src/target/release/vector /usr/bin
 
