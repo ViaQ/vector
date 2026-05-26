@@ -21,6 +21,11 @@ WORKDIR /opt/app-root/src
 
 RUN make build-offline
 
+# Strip binary to reduce image size for DaemonSet deployment
+# Equivalent to Go's -ldflags '-s -w' for Rust binaries
+# See: https://github.com/openshift/enhancements/pull/2021
+RUN strip --strip-all /opt/app-root/src/target/release/vector
+
 RUN cp /opt/app-root/src/target/release/vector /usr/bin
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal
