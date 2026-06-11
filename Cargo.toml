@@ -641,7 +641,7 @@ aws-core = [
 # Anything that requires Protocol Buffers.
 protobuf-build = ["dep:tonic-build", "dep:prost-build"]
 
-gcp = ["dep:base64", "dep:google-cloud-auth"]
+gcp = ["dep:arc-swap", "dep:base64", "dep:google-cloud-auth"]
 
 # Enrichment Tables
 enrichment-tables = ["enrichment-tables-geoip", "enrichment-tables-mmdb", "enrichment-tables-memory"]
