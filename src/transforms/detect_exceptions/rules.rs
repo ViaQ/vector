@@ -106,6 +106,9 @@ fn java_rules() -> Vec<Rule<'static>> {
             r"^[\t ]*... \d+ (?:more|common frames omitted)",
             Java,
         ),
+        // Catch-all for non-indented continuation lines between the exception
+        // header and the stack trace (e.g. multi-line error messages).
+        rule(vec![JavaAfterException], r"^.+$", JavaAfterException),
     ]
 }
 

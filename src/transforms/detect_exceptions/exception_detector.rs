@@ -292,6 +292,7 @@ mod exception_detector_tests {
         check_exception(java_simple_exception(), false);
         check_exception(java_complex_exception(), false);
         check_exception(java_nested_exception(), false);
+        check_exception(java_exception_with_non_nested_lines(), false);
     }
 
     const fn java_simple_exception() -> &'static str {
@@ -339,6 +340,16 @@ Caused by: com.example.myproject.MyProjectServletException
             "
     }
 
+    const fn java_exception_with_non_nested_lines() -> &'static str {
+        "
+java.sql.SQLException: Listener refused the connection with the following error:
+ORA-12521, TNS:listener does not currently know of instance requested in connect descriptor
+  (CONNECTION_ID=r6n2ZPL0TqS/BLDhIydj+A==)
+    at oracle.jdbc.driver.T4CConnection.handleLogonNetException(T4CConnection.java:893)
+    at oracle.jdbc.driver.T4CConnection.logon(T4CConnection.java:698)
+            "
+    }
+
     const fn java_nested_exception() -> &'static str {
         "
 java.lang.RuntimeException: javax.mail.SendFailedException: Invalid Addresses;
@@ -366,6 +377,8 @@ com.sun.mail.smtp.SMTPAddressFailedException: 550 5.7.1 <[REDACTED_EMAIL_ADDRESS
     at com.nethunt.crm.api.server.adminsync.AutomaticEmailFacade.sendWithSmtp(AutomaticEmailFacade.java:229)
     ... 12 more
 Caused by: com.sun.mail.smtp.SMTPAddressFailedException: 550 5.7.1 <[REDACTED_EMAIL_ADDRESS]>... Relaying denied
+    at com.sun.mail.smtp.SMTPTransport.rcptTo(SMTPTransport.java:2064)
+    ... 12 more
             "
     }
 

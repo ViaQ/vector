@@ -399,4 +399,55 @@ Jul 09, 2015 3:23:29 PM com.google.devtools.search.cloud.feeder.MakeLog: Runtime
         assert_eq!(output_2["message"], java_simple_log.trim().into());
         assert_eq!(output_2["counter"], Value::from(6));
     }
+
+    #[tokio::test]
+    async fn test_exception_with_non_nested_continuation_lines() {
+        let detect_exceptions = toml::from_str::<DetectExceptionsConfig>(
+            r#"
+languages = ["Java"]
+"#,
+        )
+        .unwrap()
+        .build(&TransformContext::default())
+        .await
+        .unwrap();
+
+        let detect_exceptions = detect_exceptions.into_task();
+
+        let exception_with_continuation = "\
+java.sql.SQLException: Listener refused the connection with the following error:
+ORA-12521, TNS:listener does not currently know of instance requested in connect descriptor
+  (CONNECTION_ID=r6n2ZPL0TqS/BLDhIydj+A==)
+    at oracle.jdbc.driver.T4CConnection.handleLogonNetException(T4CConnection.java:893)
+    at oracle.jdbc.driver.T4CConnection.logon(T4CConnection.java:698)";
+        let regular_log = "2026-06-02 13:55:59.506 INFO normal log message";
+
+        let lines = format!("{}\n{}", exception_with_continuation, regular_log);
+
+        let mut counter = 0;
+        let input_events: Vec<Event> = lines
+            .split("\n")
+            .map(|line| {
+                let mut le = LogEvent::from(line);
+                le.insert("counter", counter);
+                counter += 1;
+                Event::Log(le)
+            })
+            .collect();
+
+        let in_stream = Box::pin(stream::iter(input_events));
+        let mut out_stream = detect_exceptions.transform_events(in_stream);
+
+        let output_1 = out_stream.next().await.unwrap().into_log();
+        assert_eq!(
+            output_1["message"],
+            exception_with_continuation.into(),
+            "All exception lines including non-nested continuations must be merged into one event"
+        );
+        assert_eq!(output_1["counter"], Value::from(0));
+
+        let output_2 = out_stream.next().await.unwrap().into_log();
+        assert_eq!(output_2["message"], regular_log.into());
+        assert_eq!(output_2["counter"], Value::from(5));
+    }
 }
