@@ -450,4 +450,70 @@ ORA-12521, TNS:listener does not currently know of instance requested in connect
         assert_eq!(output_2["message"], regular_log.into());
         assert_eq!(output_2["counter"], Value::from(5));
     }
+
+    #[tokio::test]
+    async fn test_catch_all_limit_prevents_unbounded_merging() {
+        let detect_exceptions = toml::from_str::<DetectExceptionsConfig>(
+            r#"
+languages = ["Java"]
+"#,
+        )
+        .unwrap()
+        .build(&TransformContext::default())
+        .await
+        .unwrap();
+
+        let detect_exceptions = detect_exceptions.into_task();
+
+        // Exception header followed by 3 non-stack-trace lines and no real
+        // stack frames.  The catch-all limit (2 continuation lines) must cause
+        // the detector to stop merging after the second continuation line.
+        let exception_header = "java.lang.RuntimeException: something went wrong";
+        let continuation_1 = "first continuation line without stack trace";
+        let continuation_2 = "second continuation line without stack trace";
+        let unrelated_line = "third line is past the catch-all limit";
+        let normal_log = "2026-07-06 10:00:00 INFO normal log message";
+
+        let lines = format!(
+            "{}\n{}\n{}\n{}\n{}",
+            exception_header, continuation_1, continuation_2, unrelated_line, normal_log
+        );
+
+        let mut counter = 0;
+        let input_events: Vec<Event> = lines
+            .split("\n")
+            .map(|line| {
+                let mut le = LogEvent::from(line);
+                le.insert("counter", counter);
+                counter += 1;
+                Event::Log(le)
+            })
+            .collect();
+
+        let in_stream = Box::pin(stream::iter(input_events));
+        let mut out_stream = detect_exceptions.transform_events(in_stream);
+
+        // Lines 0-2 (header + 2 continuations) are merged into one event.
+        let output_1 = out_stream.next().await.unwrap().into_log();
+        let expected_merged = format!(
+            "{}\n{}\n{}",
+            exception_header, continuation_1, continuation_2
+        );
+        assert_eq!(
+            output_1["message"],
+            expected_merged.into(),
+            "Only the header and 2 catch-all continuation lines should be merged"
+        );
+        assert_eq!(output_1["counter"], Value::from(0));
+
+        // Line 3 (past the limit) is emitted as its own event.
+        let output_2 = out_stream.next().await.unwrap().into_log();
+        assert_eq!(output_2["message"], unrelated_line.into());
+        assert_eq!(output_2["counter"], Value::from(3));
+
+        // Line 4 is emitted as its own event.
+        let output_3 = out_stream.next().await.unwrap().into_log();
+        assert_eq!(output_3["message"], normal_log.into());
+        assert_eq!(output_3["counter"], Value::from(4));
+    }
 }

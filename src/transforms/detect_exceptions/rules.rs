@@ -8,6 +8,8 @@ pub enum ExceptionState {
     /// Java states
     JavaStartException,
     JavaAfterException,
+    JavaContinuation,
+    JavaContinuationFinal,
     Java,
 
     /// Python states
@@ -77,38 +79,74 @@ fn java_rules() -> Vec<Rule<'static>> {
             JavaAfterException,
         ),
         rule(
-            vec![JavaAfterException],
+            vec![JavaAfterException, JavaContinuation, JavaContinuationFinal],
             r"^[\t ]*nested exception is:[\t ]*",
             JavaStartException,
         ),
-        rule(vec![JavaAfterException], r"^[\r\n]*$", JavaAfterException),
-        rule(vec![JavaAfterException, Java], "^[\t ]+(?:eval )?at ", Java),
         rule(
-            vec![JavaAfterException, Java],
+            vec![JavaAfterException, JavaContinuation, JavaContinuationFinal],
+            r"^[\r\n]*$",
+            JavaAfterException,
+        ),
+        rule(
+            vec![
+                JavaAfterException,
+                JavaContinuation,
+                JavaContinuationFinal,
+                Java,
+            ],
+            "^[\t ]+(?:eval )?at ",
+            Java,
+        ),
+        rule(
+            vec![
+                JavaAfterException,
+                JavaContinuation,
+                JavaContinuationFinal,
+                Java,
+            ],
             // C# nested exception.
             r"^[\t ]+--- End of inner exception stack trace ---$",
             Java,
         ),
         rule(
-            vec![JavaAfterException, Java],
+            vec![
+                JavaAfterException,
+                JavaContinuation,
+                JavaContinuationFinal,
+                Java,
+            ],
             // C# exception from async code.
             r"^--- End of stack trace from previous (?x:
            )location where exception was thrown ---$",
             Java,
         ),
         rule(
-            vec![JavaAfterException, Java],
+            vec![
+                JavaAfterException,
+                JavaContinuation,
+                JavaContinuationFinal,
+                Java,
+            ],
             r"^[\t ]*(?:Caused by|Suppressed):",
             JavaAfterException,
         ),
         rule(
-            vec![JavaAfterException, Java],
+            vec![
+                JavaAfterException,
+                JavaContinuation,
+                JavaContinuationFinal,
+                Java,
+            ],
             r"^[\t ]*... \d+ (?:more|common frames omitted)",
             Java,
         ),
-        // Catch-all for non-indented continuation lines between the exception
-        // header and the stack trace (e.g. multi-line error messages).
-        rule(vec![JavaAfterException], r"^.+$", JavaAfterException),
+        // Bounded catch-all for non-indented continuation lines between the
+        // exception header and the stack trace (e.g. multi-line error messages).
+        // At most 2 consecutive catch-all lines are allowed before falling back
+        // to StartState, preventing unbounded buffering when no stack trace follows.
+        rule(vec![JavaAfterException], r"^.+$", JavaContinuation),
+        rule(vec![JavaContinuation], r"^.+$", JavaContinuationFinal),
     ]
 }
 
