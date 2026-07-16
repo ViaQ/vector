@@ -1,3 +1,4 @@
+use aws_config::Region;
 use aws_sdk_sqs::Client as SqsClient;
 use vector_lib::configurable::configurable_component;
 
@@ -6,7 +7,7 @@ use super::{
     message_deduplication_id, message_group_id,
 };
 use crate::{
-    aws::{RegionOrEndpoint, create_client},
+    aws::{RegionOrEndpoint, create_client_without_transport_metrics},
     common::sqs::SqsClientBuilder,
     config::{
         AcknowledgementsConfig, DataType, GenerateConfig, Input, ProxyConfig, SinkConfig,
@@ -48,8 +49,11 @@ impl GenerateConfig for SqsSinkConfig {
 }
 
 impl SqsSinkConfig {
-    pub(super) async fn create_client(&self, proxy: &ProxyConfig) -> crate::Result<SqsClient> {
-        create_client::<SqsClientBuilder>(
+    pub(super) async fn create_client(
+        &self,
+        proxy: &ProxyConfig,
+    ) -> crate::Result<(SqsClient, Region)> {
+        create_client_without_transport_metrics::<SqsClientBuilder>(
             &SqsClientBuilder {},
             &self.base_config.auth,
             self.region.region(),
@@ -69,7 +73,7 @@ impl SinkConfig for SqsSinkConfig {
         &self,
         cx: SinkContext,
     ) -> crate::Result<(crate::sinks::VectorSink, crate::sinks::Healthcheck)> {
-        let client = self.create_client(&cx.proxy).await?;
+        let (client, resolved_region) = self.create_client(&cx.proxy).await?;
 
         let publisher = SqsMessagePublisher::new(client.clone(), self.queue_url.clone());
 
@@ -89,6 +93,7 @@ impl SinkConfig for SqsSinkConfig {
             )?,
             self.base_config.request,
             publisher,
+            resolved_region.to_string(),
         )?;
         Ok((
             crate::sinks::VectorSink::from_event_streamsink(sink),

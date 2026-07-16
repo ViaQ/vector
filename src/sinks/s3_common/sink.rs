@@ -10,6 +10,7 @@ pub struct S3Sink<Svc, RB, P> {
     request_builder: RB,
     partitioner: P,
     batcher_settings: BatcherSettings,
+    region: String,
 }
 
 impl<Svc, RB, P> S3Sink<Svc, RB, P> {
@@ -18,12 +19,14 @@ impl<Svc, RB, P> S3Sink<Svc, RB, P> {
         request_builder: RB,
         partitioner: P,
         batcher_settings: BatcherSettings,
+        region: String,
     ) -> Self {
         Self {
             partitioner,
             service,
             request_builder,
             batcher_settings,
+            region,
         }
     }
 }
@@ -60,6 +63,8 @@ where
                 }
             })
             .into_driver(self.service)
+            .protocol("https")
+            .label("region", self.region)
             .run()
             .await
     }

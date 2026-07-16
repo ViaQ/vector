@@ -11,7 +11,7 @@ use super::{
     config::{SnsClientBuilder, SnsSinkConfig, healthcheck},
 };
 use crate::{
-    aws::{AwsAuthentication, RegionOrEndpoint, create_client},
+    aws::{AwsAuthentication, RegionOrEndpoint, create_client_without_transport_metrics},
     common::sqs::SqsClientBuilder,
     config::{ProxyConfig, SinkConfig, SinkContext},
     test_util::{
@@ -29,7 +29,7 @@ async fn create_sns_test_client() -> SnsClient {
 
     let endpoint = sns_address();
     let proxy = ProxyConfig::default();
-    create_client::<SnsClientBuilder>(
+    let (client, _region) = create_client_without_transport_metrics::<SnsClientBuilder>(
         &SnsClientBuilder {},
         &auth,
         Some(Region::new("us-east-1")),
@@ -39,7 +39,8 @@ async fn create_sns_test_client() -> SnsClient {
         None,
     )
     .await
-    .unwrap()
+    .unwrap();
+    client
 }
 
 fn sqs_address() -> String {
@@ -51,7 +52,7 @@ async fn create_sqs_test_client() -> SqsClient {
 
     let endpoint = sqs_address();
     let proxy = ProxyConfig::default();
-    create_client::<SqsClientBuilder>(
+    let (client, _region) = create_client_without_transport_metrics::<SqsClientBuilder>(
         &SqsClientBuilder {},
         &auth,
         Some(Region::new("us-east-1")),
@@ -61,7 +62,8 @@ async fn create_sqs_test_client() -> SqsClient {
         None,
     )
     .await
-    .unwrap()
+    .unwrap();
+    client
 }
 
 #[tokio::test]

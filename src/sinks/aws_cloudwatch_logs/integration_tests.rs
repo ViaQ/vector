@@ -6,13 +6,17 @@ use aws_sdk_kms::Client as KMSClient;
 use chrono::Duration;
 use futures::{StreamExt, stream};
 use similar_asserts::assert_eq;
+use tracing::Instrument;
 use vector_lib::{codecs::TextSerializerConfig, lookup};
 
 use super::*;
 use crate::{
-    aws::{AwsAuthentication, ClientBuilder, RegionOrEndpoint, create_client},
+    aws::{
+        AwsAuthentication, ClientBuilder, RegionOrEndpoint, create_client_without_transport_metrics,
+    },
     config::{ProxyConfig, SinkConfig, SinkContext, log_schema},
     event::{Event, LogEvent, Value},
+    metrics::Controller,
     sinks::{aws_cloudwatch_logs::config::CloudwatchLogsClientBuilder, util::BatchConfig},
     template::Template,
     test_util::{
@@ -567,7 +571,7 @@ async fn cloudwatch_healthcheck() {
         tags: None,
     };
 
-    let client = config.create_client(&ProxyConfig::default()).await.unwrap();
+    let (client, _resolved_region) = config.create_client(&ProxyConfig::default()).await.unwrap();
     healthcheck(config, client).await.unwrap();
 }
 
@@ -577,7 +581,7 @@ async fn create_client_test() -> CloudwatchLogsClient {
     let endpoint = Some(cloudwatch_address());
     let proxy = ProxyConfig::default();
 
-    create_client::<CloudwatchLogsClientBuilder>(
+    let (client, _region) = create_client_without_transport_metrics::<CloudwatchLogsClientBuilder>(
         &CloudwatchLogsClientBuilder {},
         &auth,
         region,
@@ -587,7 +591,8 @@ async fn create_client_test() -> CloudwatchLogsClient {
         None,
     )
     .await
-    .unwrap()
+    .unwrap();
+    client
 }
 
 async fn create_kms_client_test() -> KMSClient {
@@ -596,7 +601,7 @@ async fn create_kms_client_test() -> KMSClient {
     let endpoint = Some(kms_address());
     let proxy = ProxyConfig::default();
 
-    create_client::<KMSClientBuilder>(
+    let (client, _region) = create_client_without_transport_metrics::<KMSClientBuilder>(
         &KMSClientBuilder {},
         &auth,
         region,
@@ -606,7 +611,8 @@ async fn create_kms_client_test() -> KMSClient {
         None,
     )
     .await
-    .unwrap()
+    .unwrap();
+    client
 }
 
 async fn ensure_group() {
@@ -620,4 +626,113 @@ async fn ensure_group() {
 
 fn gen_name() -> String {
     format!("test-{}", random_string(10).to_lowercase())
+}
+
+/// Regression test for https://github.com/vectordotdev/vector/issues/20356
+#[tokio::test]
+async fn cloudwatch_component_sent_bytes_total_has_component_labels() {
+    trace_init();
+
+    ensure_group().await;
+
+    let controller = Controller::get().unwrap();
+    controller.reset();
+
+    let stream_name = gen_name();
+    let config = CloudwatchLogsSinkConfig {
+        stream_name: Template::try_from(stream_name.as_str()).unwrap(),
+        group_name: Template::try_from(GROUP_NAME).unwrap(),
+        region: RegionOrEndpoint::with_both("us-east-1", cloudwatch_address().as_str()),
+        encoding: TextSerializerConfig::default().into(),
+        create_missing_group: true,
+        create_missing_stream: true,
+        retention: Default::default(),
+        compression: Default::default(),
+        batch: Default::default(),
+        request: Default::default(),
+        tls: Default::default(),
+        assume_role: None,
+        auth: Default::default(),
+        acknowledgements: Default::default(),
+        kms_key: None,
+        tags: None,
+    };
+
+    let (sink, _) = config.build(SinkContext::default()).await.unwrap();
+
+    let (_input_lines, events) = random_lines_with_stream(100, 11, None);
+
+    let component_span = tracing::error_span!(
+        "sink",
+        component_kind = "sink",
+        component_id = "test_cloudwatch",
+        component_type = "aws_cloudwatch_logs",
+    );
+
+    sink.run(events.map(Into::into))
+        .instrument(component_span)
+        .await
+        .expect("Running sink failed");
+
+    let metrics = controller.capture_metrics();
+
+    let bytes_total: Vec<_> = metrics
+        .iter()
+        .filter(|m| {
+            m.name() == "component_sent_bytes_total"
+                && match m.value() {
+                    vector_lib::event::MetricValue::Counter { value } => *value > 0.0,
+                    _ => true,
+                }
+        })
+        .collect();
+
+    assert!(
+        !bytes_total.is_empty(),
+        "Expected at least one component_sent_bytes_total metric to be emitted"
+    );
+
+    let has_component_id = bytes_total
+        .iter()
+        .any(|m| m.tags().and_then(|tags| tags.get("component_id")).is_some());
+
+    assert!(
+        has_component_id,
+        "component_sent_bytes_total was emitted but none of the {} instances \
+         carry a component_id label.  Found tags: {:?}",
+        bytes_total.len(),
+        bytes_total
+            .iter()
+            .map(|m| m.to_string())
+            .collect::<Vec<_>>()
+    );
+
+    let has_region = bytes_total
+        .iter()
+        .any(|m| m.tags().and_then(|tags| tags.get("region")).is_some());
+
+    assert!(
+        has_region,
+        "component_sent_bytes_total was emitted but none of the {} instances \
+         carry a region label.  Found tags: {:?}",
+        bytes_total.len(),
+        bytes_total
+            .iter()
+            .map(|m| m.to_string())
+            .collect::<Vec<_>>()
+    );
+
+    let missing_component_id = bytes_total
+        .iter()
+        .any(|m| m.tags().and_then(|tags| tags.get("component_id")).is_none());
+
+    assert!(
+        !missing_component_id,
+        "component_sent_bytes_total was emitted but at least one instance \
+         lacks a component_id label (transport-level AwsBytesSent leaked).  Found: {:?}",
+        bytes_total
+            .iter()
+            .map(|m| m.to_string())
+            .collect::<Vec<_>>()
+    );
 }

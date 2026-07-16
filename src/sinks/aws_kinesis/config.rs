@@ -88,6 +88,7 @@ pub fn build_sink<C, R, RR, E, RT>(
     batch_settings: BatcherSettings,
     client: C,
     retry_logic: RT,
+    region_str: String,
 ) -> crate::Result<VectorSink>
 where
     C: SendRecord + Clone + Send + Sync + 'static,
@@ -127,6 +128,7 @@ where
         service,
         request_builder,
         partition_key_field,
+        region: region_str,
         _phantom: PhantomData,
     };
     Ok(VectorSink::from_event_streamsink(sink))

@@ -177,9 +177,47 @@ pub async fn create_client<T>(
 where
     T: ClientBuilder,
 {
-    create_client_and_region::<T>(builder, auth, region, endpoint, proxy, tls_options, timeout)
-        .await
-        .map(|(client, _)| client)
+    build_client_inner::<T>(
+        builder,
+        auth,
+        region,
+        endpoint,
+        proxy,
+        tls_options,
+        timeout,
+        true,
+    )
+    .await
+    .map(|(client, _)| client)
+}
+
+/// Like [`create_client`], but suppresses transport-level `AwsBytesSent` emission.
+///
+/// Use this for sinks that report bytes through the [`Driver`] to avoid double-counting
+/// `component_sent_bytes_total`.
+pub async fn create_client_without_transport_metrics<T>(
+    builder: &T,
+    auth: &AwsAuthentication,
+    region: Option<Region>,
+    endpoint: Option<String>,
+    proxy: &ProxyConfig,
+    tls_options: Option<&TlsConfig>,
+    timeout: Option<&AwsTimeout>,
+) -> crate::Result<(T::Client, Region)>
+where
+    T: ClientBuilder,
+{
+    build_client_inner::<T>(
+        builder,
+        auth,
+        region,
+        endpoint,
+        proxy,
+        tls_options,
+        timeout,
+        false,
+    )
+    .await
 }
 
 /// Create the SDK client and resolve the region using the provided settings.
@@ -191,6 +229,33 @@ pub async fn create_client_and_region<T>(
     proxy: &ProxyConfig,
     tls_options: Option<&TlsConfig>,
     timeout: Option<&AwsTimeout>,
+) -> crate::Result<(T::Client, Region)>
+where
+    T: ClientBuilder,
+{
+    build_client_inner::<T>(
+        builder,
+        auth,
+        region,
+        endpoint,
+        proxy,
+        tls_options,
+        timeout,
+        true,
+    )
+    .await
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn build_client_inner<T>(
+    builder: &T,
+    auth: &AwsAuthentication,
+    region: Option<Region>,
+    endpoint: Option<String>,
+    proxy: &ProxyConfig,
+    tls_options: Option<&TlsConfig>,
+    timeout: Option<&AwsTimeout>,
+    emit_bytes_sent: bool,
 ) -> crate::Result<(T::Client, Region)>
 where
     T: ClientBuilder,
@@ -210,6 +275,7 @@ where
     let connector = AwsHttpClient {
         http: connector,
         region: region.clone(),
+        emit_bytes_sent,
     };
 
     // Build the configuration first.
@@ -324,6 +390,7 @@ pub async fn sign_request(
 struct AwsHttpClient<T> {
     http: T,
     region: Region,
+    emit_bytes_sent: bool,
 }
 
 impl<T> HttpClient for AwsHttpClient<T>
@@ -340,6 +407,7 @@ where
         SharedHttpConnector::new(AwsConnector {
             region: self.region.clone(),
             http: http_connector,
+            emit_bytes_sent: self.emit_bytes_sent,
         })
     }
 }
@@ -348,6 +416,7 @@ where
 struct AwsConnector<T> {
     http: T,
     region: Region,
+    emit_bytes_sent: bool,
 }
 
 impl<T> HttpConnector for AwsConnector<T>
@@ -355,6 +424,10 @@ where
     T: HttpConnector,
 {
     fn call(&self, req: HttpRequest) -> HttpConnectorFuture {
+        if !self.emit_bytes_sent {
+            return self.http.call(req);
+        }
+
         let bytes_sent = Arc::new(std::sync::atomic::AtomicUsize::new(0));
         let req = req.map(|body| {
             let bytes_sent = Arc::clone(&bytes_sent);

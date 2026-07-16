@@ -19,6 +19,7 @@ use flate2::read::MultiGzDecoder;
 use futures::{Stream, stream};
 use similar_asserts::assert_eq;
 use tokio_stream::StreamExt;
+use tracing::Instrument;
 use vector_lib::{
     codecs::{TextSerializerConfig, encoding::FramingConfig},
     config::proxy::ProxyConfig,
@@ -27,9 +28,10 @@ use vector_lib::{
 
 use super::S3SinkConfig;
 use crate::{
-    aws::{AwsAuthentication, RegionOrEndpoint, create_client},
+    aws::{AwsAuthentication, RegionOrEndpoint, create_client_without_transport_metrics},
     common::s3::S3ClientBuilder,
     config::SinkContext,
+    metrics::Controller,
     sinks::{
         aws_s3::config::default_filename_time_format,
         s3_common::config::{S3Options, S3ServerSideEncryption},
@@ -40,7 +42,7 @@ use crate::{
             AWS_SINK_TAGS, COMPONENT_ERROR_TAGS, run_and_assert_sink_compliance,
             run_and_assert_sink_error,
         },
-        random_lines_with_stream, random_string,
+        random_lines_with_stream, random_string, trace_init,
     },
 };
 
@@ -59,8 +61,8 @@ async fn s3_insert_message_into_with_flat_key_prefix() {
     let mut config = config(&bucket, 1000000);
     config.key_prefix = "test-prefix".to_string();
     let prefix = config.key_prefix.clone();
-    let service = config.create_service(&cx.globals.proxy).await.unwrap();
-    let sink = config.build_processor(service, cx).unwrap();
+    let (service, region) = config.create_service(&cx.globals.proxy).await.unwrap();
+    let sink = config.build_processor(service, cx, region).unwrap();
 
     let (lines, events, receiver) = make_events_batch(100, 10);
     run_and_assert_sink_compliance(sink, events, &AWS_SINK_TAGS).await;
@@ -93,8 +95,8 @@ async fn s3_insert_message_into_with_folder_key_prefix() {
     let mut config = config(&bucket, 1000000);
     config.key_prefix = "test-prefix/".to_string();
     let prefix = config.key_prefix.clone();
-    let service = config.create_service(&cx.globals.proxy).await.unwrap();
-    let sink = config.build_processor(service, cx).unwrap();
+    let (service, region) = config.create_service(&cx.globals.proxy).await.unwrap();
+    let sink = config.build_processor(service, cx, region).unwrap();
 
     let (lines, events, receiver) = make_events_batch(100, 10);
     run_and_assert_sink_compliance(sink, events, &AWS_SINK_TAGS).await;
@@ -130,8 +132,8 @@ async fn s3_insert_message_into_with_ssekms_key_id() {
     config.options.server_side_encryption = Some(S3ServerSideEncryption::AwsKms);
     config.options.ssekms_key_id = Some("alias/aws/s3".to_string());
 
-    let service = config.create_service(&cx.globals.proxy).await.unwrap();
-    let sink = config.build_processor(service, cx).unwrap();
+    let (service, region) = config.create_service(&cx.globals.proxy).await.unwrap();
+    let sink = config.build_processor(service, cx, region).unwrap();
 
     let (lines, events, receiver) = make_events_batch(100, 10);
     run_and_assert_sink_compliance(sink, events, &AWS_SINK_TAGS).await;
@@ -168,8 +170,8 @@ async fn s3_rotate_files_after_the_buffer_size_is_reached() {
         ..config(&bucket, 10)
     };
     let prefix = config.key_prefix.clone();
-    let service = config.create_service(&cx.globals.proxy).await.unwrap();
-    let sink = config.build_processor(service, cx).unwrap();
+    let (service, region) = config.create_service(&cx.globals.proxy).await.unwrap();
+    let sink = config.build_processor(service, cx, region).unwrap();
 
     let (lines, _events) = random_lines_with_stream(100, 30, None);
 
@@ -227,8 +229,8 @@ async fn s3_gzip() {
     };
 
     let prefix = config.key_prefix.clone();
-    let service = config.create_service(&cx.globals.proxy).await.unwrap();
-    let sink = config.build_processor(service, cx).unwrap();
+    let (service, region) = config.create_service(&cx.globals.proxy).await.unwrap();
+    let sink = config.build_processor(service, cx, region).unwrap();
 
     let (lines, events, receiver) = make_events_batch(100, batch_size * batch_multiplier);
     run_and_assert_sink_compliance(sink, events, &AWS_SINK_TAGS).await;
@@ -272,8 +274,8 @@ async fn s3_zstd() {
     };
 
     let prefix = config.key_prefix.clone();
-    let service = config.create_service(&cx.globals.proxy).await.unwrap();
-    let sink = config.build_processor(service, cx).unwrap();
+    let (service, region) = config.create_service(&cx.globals.proxy).await.unwrap();
+    let sink = config.build_processor(service, cx, region).unwrap();
 
     let (lines, events, receiver) = make_events_batch(100, batch_size * batch_multiplier);
     run_and_assert_sink_compliance(sink, events, &AWS_SINK_TAGS).await;
@@ -334,8 +336,8 @@ async fn s3_insert_message_into_object_lock() {
 
     let config = config(&bucket, 1000000);
     let prefix = config.key_prefix.clone();
-    let service = config.create_service(&cx.globals.proxy).await.unwrap();
-    let sink = config.build_processor(service, cx).unwrap();
+    let (service, region) = config.create_service(&cx.globals.proxy).await.unwrap();
+    let sink = config.build_processor(service, cx, region).unwrap();
 
     let (lines, events, receiver) = make_events_batch(100, 10);
     run_and_assert_sink_compliance(sink, events, &AWS_SINK_TAGS).await;
@@ -366,8 +368,8 @@ async fn acknowledges_failures() {
     // Break the bucket name
     config.bucket = format!("BREAK{}IT", config.bucket);
     let prefix = config.key_prefix.clone();
-    let service = config.create_service(&cx.globals.proxy).await.unwrap();
-    let sink = config.build_processor(service, cx).unwrap();
+    let (service, region) = config.create_service(&cx.globals.proxy).await.unwrap();
+    let sink = config.build_processor(service, cx, region).unwrap();
 
     let (_lines, events, receiver) = make_events_batch(1, 1);
     run_and_assert_sink_error(sink, events, &COMPONENT_ERROR_TAGS).await;
@@ -384,7 +386,7 @@ async fn s3_healthchecks() {
     create_bucket(&bucket, false).await;
 
     let config = config(&bucket, 1);
-    let service = config
+    let (service, _region) = config
         .create_service(&ProxyConfig::from_env())
         .await
         .unwrap();
@@ -398,7 +400,7 @@ async fn s3_healthchecks() {
 #[tokio::test]
 async fn s3_healthchecks_invalid_bucket() {
     let config = config("s3_healthchecks_invalid_bucket", 1);
-    let service = config
+    let (service, _region) = config
         .create_service(&ProxyConfig::from_env())
         .await
         .unwrap();
@@ -445,8 +447,8 @@ async fn s3_flush_on_exhaustion() {
         }
     };
     let prefix = config.key_prefix.clone();
-    let service = config.create_service(&cx.globals.proxy).await.unwrap();
-    let sink = config.build_processor(service, cx).unwrap();
+    let (service, region) = config.create_service(&cx.globals.proxy).await.unwrap();
+    let sink = config.build_processor(service, cx, region).unwrap();
 
     let (lines, _events) = random_lines_with_stream(100, 2, None); // only generate two events (less than batch size)
 
@@ -497,7 +499,7 @@ async fn client() -> S3Client {
     let tls_options = None;
     let force_path_style_value: bool = true;
 
-    create_client::<S3ClientBuilder>(
+    let (client, _region) = create_client_without_transport_metrics::<S3ClientBuilder>(
         &S3ClientBuilder {
             force_path_style: Some(force_path_style_value),
         },
@@ -509,7 +511,8 @@ async fn client() -> S3Client {
         None,
     )
     .await
-    .unwrap()
+    .unwrap();
+    client
 }
 
 fn config(bucket: &str, batch_size: usize) -> S3SinkConfig {
@@ -627,4 +630,93 @@ async fn get_zstd_lines(obj: GetObjectOutput) -> Vec<String> {
 
 async fn get_object_output_body(obj: GetObjectOutput) -> impl std::io::Read {
     obj.body.collect().await.unwrap().reader()
+}
+
+/// Regression test for https://github.com/vectordotdev/vector/issues/20356
+#[tokio::test]
+async fn s3_component_sent_bytes_total_has_component_labels() {
+    trace_init();
+
+    let controller = Controller::get().unwrap();
+
+    let cx = SinkContext::default();
+    let bucket = uuid::Uuid::new_v4().to_string();
+    create_bucket(&bucket, false).await;
+
+    controller.reset();
+
+    let config = config(&bucket, 1000000);
+    let (service, region) = config.create_service(&cx.globals.proxy).await.unwrap();
+    let sink = config.build_processor(service, cx, region).unwrap();
+
+    let (_lines, events, receiver) = make_events_batch(100, 10);
+
+    let component_span = tracing::error_span!(
+        "sink",
+        component_kind = "sink",
+        component_id = "test_s3",
+        component_type = "aws_s3",
+    );
+
+    sink.run(events)
+        .instrument(component_span)
+        .await
+        .expect("Running sink failed");
+    assert_eq!(receiver.await, BatchStatus::Delivered);
+
+    let metrics = controller.capture_metrics();
+
+    let bytes_total: Vec<_> = metrics
+        .iter()
+        .filter(|m| m.name() == "component_sent_bytes_total")
+        .collect();
+
+    assert!(
+        !bytes_total.is_empty(),
+        "Expected at least one component_sent_bytes_total metric to be emitted"
+    );
+
+    let has_component_id = bytes_total
+        .iter()
+        .any(|m| m.tags().and_then(|tags| tags.get("component_id")).is_some());
+
+    assert!(
+        has_component_id,
+        "component_sent_bytes_total was emitted but none of the {} instances \
+         carry a component_id label.  Found tags: {:?}",
+        bytes_total.len(),
+        bytes_total
+            .iter()
+            .map(|m| m.to_string())
+            .collect::<Vec<_>>()
+    );
+
+    let has_region = bytes_total
+        .iter()
+        .any(|m| m.tags().and_then(|tags| tags.get("region")).is_some());
+
+    assert!(
+        has_region,
+        "component_sent_bytes_total was emitted but none of the {} instances \
+         carry a region label.  Found tags: {:?}",
+        bytes_total.len(),
+        bytes_total
+            .iter()
+            .map(|m| m.to_string())
+            .collect::<Vec<_>>()
+    );
+
+    let missing_component_id = bytes_total
+        .iter()
+        .any(|m| m.tags().and_then(|tags| tags.get("component_id")).is_none());
+
+    assert!(
+        !missing_component_id,
+        "component_sent_bytes_total was emitted but at least one instance \
+         lacks a component_id label (transport-level AwsBytesSent leaked).  Found: {:?}",
+        bytes_total
+            .iter()
+            .map(|m| m.to_string())
+            .collect::<Vec<_>>()
+    );
 }

@@ -26,6 +26,7 @@ pub struct CloudwatchSink<S> {
     pub batcher_settings: BatcherSettings,
     pub(super) request_builder: CloudwatchRequestBuilder,
     pub service: S,
+    pub region: String,
 }
 
 impl<S> CloudwatchSink<S>
@@ -64,6 +65,8 @@ where
                 }
             })
             .into_driver(service)
+            .protocol("https")
+            .label("region", self.region)
             .run()
             .await
     }

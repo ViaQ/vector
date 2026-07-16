@@ -1,3 +1,4 @@
+use aws_config::Region;
 use aws_sdk_kinesis::operation::{
     describe_stream::DescribeStreamError, put_records::PutRecordsError,
 };
@@ -12,7 +13,7 @@ use super::{
     sink::BatchKinesisRequest,
 };
 use crate::{
-    aws::{ClientBuilder, create_client, is_retriable_error},
+    aws::{ClientBuilder, create_client_without_transport_metrics, is_retriable_error},
     config::{AcknowledgementsConfig, Input, ProxyConfig, SinkConfig, SinkContext},
     sinks::{
         Healthcheck, VectorSink,
@@ -100,8 +101,11 @@ impl KinesisStreamsSinkConfig {
         }
     }
 
-    pub async fn create_client(&self, proxy: &ProxyConfig) -> crate::Result<KinesisClient> {
-        create_client::<KinesisClientBuilder>(
+    pub async fn create_client(
+        &self,
+        proxy: &ProxyConfig,
+    ) -> crate::Result<(KinesisClient, Region)> {
+        create_client_without_transport_metrics::<KinesisClientBuilder>(
             &KinesisClientBuilder {},
             &self.base.auth,
             self.base.region.region(),
@@ -118,7 +122,7 @@ impl KinesisStreamsSinkConfig {
 #[typetag::serde(name = "aws_kinesis_streams")]
 impl SinkConfig for KinesisStreamsSinkConfig {
     async fn build(&self, cx: SinkContext) -> crate::Result<(VectorSink, Healthcheck)> {
-        let client = self.create_client(&cx.proxy).await?;
+        let (client, resolved_region) = self.create_client(&cx.proxy).await?;
         let healthcheck = self.clone().healthcheck(client.clone()).boxed();
 
         let batch_settings = self
@@ -142,6 +146,7 @@ impl SinkConfig for KinesisStreamsSinkConfig {
             KinesisRetryLogic {
                 retry_partial: self.base.request_retry_partial,
             },
+            resolved_region.to_string(),
         )?;
 
         Ok((sink, healthcheck))

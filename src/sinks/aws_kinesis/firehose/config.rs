@@ -1,3 +1,4 @@
+use aws_config::Region;
 use aws_sdk_firehose::operation::{
     describe_delivery_stream::DescribeDeliveryStreamError, put_record_batch::PutRecordBatchError,
 };
@@ -12,7 +13,7 @@ use super::{
     sink::BatchKinesisRequest,
 };
 use crate::{
-    aws::{ClientBuilder, create_client, is_retriable_error},
+    aws::{ClientBuilder, create_client_without_transport_metrics, is_retriable_error},
     config::{AcknowledgementsConfig, GenerateConfig, Input, ProxyConfig, SinkConfig, SinkContext},
     sinks::{
         Healthcheck, VectorSink,
@@ -101,8 +102,11 @@ impl KinesisFirehoseSinkConfig {
         }
     }
 
-    pub async fn create_client(&self, proxy: &ProxyConfig) -> crate::Result<KinesisClient> {
-        create_client::<KinesisFirehoseClientBuilder>(
+    pub async fn create_client(
+        &self,
+        proxy: &ProxyConfig,
+    ) -> crate::Result<(KinesisClient, Region)> {
+        create_client_without_transport_metrics::<KinesisFirehoseClientBuilder>(
             &KinesisFirehoseClientBuilder {},
             &self.base.auth,
             self.base.region.region(),
@@ -119,7 +123,7 @@ impl KinesisFirehoseSinkConfig {
 #[typetag::serde(name = "aws_kinesis_firehose")]
 impl SinkConfig for KinesisFirehoseSinkConfig {
     async fn build(&self, cx: SinkContext) -> crate::Result<(VectorSink, Healthcheck)> {
-        let client = self.create_client(&cx.proxy).await?;
+        let (client, resolved_region) = self.create_client(&cx.proxy).await?;
         let healthcheck = self.clone().healthcheck(client.clone()).boxed();
 
         let batch_settings = self
@@ -143,6 +147,7 @@ impl SinkConfig for KinesisFirehoseSinkConfig {
             KinesisRetryLogic {
                 retry_partial: self.base.request_retry_partial,
             },
+            resolved_region.to_string(),
         )?;
 
         Ok((sink, healthcheck))

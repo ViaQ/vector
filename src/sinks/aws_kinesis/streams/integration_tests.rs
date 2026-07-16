@@ -9,7 +9,7 @@ use vector_lib::{codecs::TextSerializerConfig, lookup::lookup_v2::ConfigValuePat
 
 use super::{config::KinesisClientBuilder, *};
 use crate::{
-    aws::{AwsAuthentication, RegionOrEndpoint, create_client},
+    aws::{AwsAuthentication, RegionOrEndpoint, create_client_without_transport_metrics},
     config::{ProxyConfig, SinkConfig, SinkContext},
     sinks::util::{BatchConfig, Compression},
     test_util::{
@@ -174,7 +174,7 @@ async fn client() -> aws_sdk_kinesis::Client {
     let auth = AwsAuthentication::test_auth();
     let proxy = ProxyConfig::default();
     let region = RegionOrEndpoint::with_both("us-east-1", kinesis_address());
-    create_client::<KinesisClientBuilder>(
+    let (client, _region) = create_client_without_transport_metrics::<KinesisClientBuilder>(
         &KinesisClientBuilder {},
         &auth,
         region.region(),
@@ -184,7 +184,8 @@ async fn client() -> aws_sdk_kinesis::Client {
         None,
     )
     .await
-    .unwrap()
+    .unwrap();
+    client
 }
 
 async fn ensure_stream(stream_name: String) {

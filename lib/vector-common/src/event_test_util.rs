@@ -19,6 +19,7 @@ pub fn contains_name_once(pattern: &str) -> Result<(), String> {
             .iter()
             .filter(|event| event_name_matches(event, pattern))
             .collect();
+
         match matches.len() {
             0 => Err(format!("Missing event {pattern:?}")),
             1 => Ok(()),
@@ -145,5 +146,11 @@ mod tests {
         record_internal_event("BufferEventsReceived");
 
         assert!(contains_name_once("EventsReceived").is_err());
+    }
+
+    #[test]
+    fn rejects_missing_event() {
+        clear_recorded_events();
+        assert!(contains_name_once("BytesSent").is_err());
     }
 }

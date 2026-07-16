@@ -10,6 +10,7 @@ where
     request_builder: SSRequestBuilder,
     service: SSService<C, E>,
     request: TowerRequestConfig,
+    region: String,
 }
 
 impl<C, E> SSSink<C, E>
@@ -21,11 +22,13 @@ where
         request_builder: SSRequestBuilder,
         request: TowerRequestConfig,
         publisher: C,
+        region: String,
     ) -> crate::Result<Self> {
         Ok(SSSink {
             request_builder,
             service: SSService::new(publisher),
             request,
+            region,
         })
     }
 
@@ -48,6 +51,8 @@ where
                 .ok()
             })
             .into_driver(service)
+            .protocol("https")
+            .label("region", self.region)
             .run()
             .await
     }
