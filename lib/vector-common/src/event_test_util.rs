@@ -13,26 +13,25 @@ thread_local! {
 /// Will return `Err` if `pattern` is not found in the event record, or is found multiple times.
 pub fn contains_name_once(pattern: &str) -> Result<(), String> {
     EVENTS_RECORDED.with(|events| {
-        let mut n_events = 0;
-        let mut names = String::new();
-        for event in &*events.borrow() {
-            if event.ends_with(pattern) {
-                if n_events > 0 {
-                    names.push_str(", ");
+        let events = events.borrow();
+        let matches: Vec<_> = events.iter().filter(|e| e.ends_with(pattern)).collect();
+
+        match matches.len() {
+            0 => Err(format!("Missing event `{pattern}`")),
+            1 => Ok(()),
+            n => {
+                let mut names = String::new();
+                for (i, event) in matches.iter().enumerate() {
+                    if i > 0 {
+                        names.push_str(", ");
+                    }
+                    _ = write!(names, "`{event}`");
                 }
-                n_events += 1;
-                _ = write!(names, "`{event}`");
+                Err(format!(
+                    "Multiple ({n}) events matching `{pattern}`: ({names}). Hint! Don't use the `assert_x_` \
+                     test helpers on round-trip tests (tests that run more than a single component)."
+                ))
             }
-        }
-        if n_events == 0 {
-            Err(format!("Missing event `{pattern}`"))
-        } else if n_events > 1 {
-            Err(format!(
-                "Multiple ({n_events}) events matching `{pattern}`: ({names}). Hint! Don't use the `assert_x_` \
-                 test helpers on round-trip tests (tests that run more than a single component)."
-            ))
-        } else {
-            Ok(())
         }
     })
 }
@@ -66,4 +65,15 @@ pub fn record_internal_event(event: &str) {
     let event = event.find(':').map_or(event, |colon| &event[..colon]);
 
     EVENTS_RECORDED.with(|er| er.borrow_mut().insert(event.trim().into()));
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rejects_missing_event() {
+        clear_recorded_events();
+        assert!(contains_name_once("BytesSent").is_err());
+    }
 }

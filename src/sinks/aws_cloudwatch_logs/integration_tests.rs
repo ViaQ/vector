@@ -7,12 +7,14 @@ use aws_sdk_kms::Client as KMSClient;
 use chrono::Duration;
 use futures::{stream, StreamExt};
 use similar_asserts::assert_eq;
+use tracing::Instrument;
 use vector_lib::codecs::TextSerializerConfig;
 use vector_lib::lookup;
 
 use super::*;
 use crate::aws::{create_client, ClientBuilder};
 use crate::aws::{AwsAuthentication, RegionOrEndpoint};
+use crate::metrics::Controller;
 use crate::sinks::aws_cloudwatch_logs::config::CloudwatchLogsClientBuilder;
 use crate::{
     config::{log_schema, ProxyConfig, SinkConfig, SinkContext},
@@ -624,4 +626,120 @@ async fn ensure_group() {
 
 fn gen_name() -> String {
     format!("test-{}", random_string(10).to_lowercase())
+}
+
+/// Regression test for https://github.com/vectordotdev/vector/issues/20356
+///
+/// `component_sent_bytes_total` must carry `component_id` / `component_kind` /
+/// `component_type` labels so dashboards can attribute byte throughput to
+/// individual sinks.  The aws_cloudwatch_logs sink emits this metric through
+/// `AwsBytesSent` in the shared HTTP connector, which uses a bare `counter!()`
+/// that only inherits span labels when a component span is active on the
+/// current thread.  Because the sink's internal `tower::buffer::Buffer` workers
+/// run in separately-spawned tasks, the component span is typically absent and
+/// the labels are lost.
+#[tokio::test]
+async fn cloudwatch_component_sent_bytes_total_has_component_labels() {
+    trace_init();
+
+    ensure_group().await;
+
+    let controller = Controller::get().unwrap();
+    controller.reset();
+
+    let stream_name = gen_name();
+    let config = CloudwatchLogsSinkConfig {
+        stream_name: Template::try_from(stream_name.as_str()).unwrap(),
+        group_name: Template::try_from(GROUP_NAME).unwrap(),
+        region: RegionOrEndpoint::with_both("us-east-1", cloudwatch_address().as_str()),
+        encoding: TextSerializerConfig::default().into(),
+        create_missing_group: true,
+        create_missing_stream: true,
+        retention: Default::default(),
+        compression: Default::default(),
+        batch: Default::default(),
+        request: Default::default(),
+        tls: Default::default(),
+        assume_role: None,
+        auth: Default::default(),
+        acknowledgements: Default::default(),
+        kms_key: None,
+        tags: None,
+    };
+
+    let (sink, _) = config.build(SinkContext::default()).await.unwrap();
+
+    let (_input_lines, events) = random_lines_with_stream(100, 11, None);
+
+    // Simulate what the topology does: wrap the sink task in a component span
+    // (see topology/running.rs spawn_sink).
+    let component_span = tracing::error_span!(
+        "sink",
+        component_kind = "sink",
+        component_id = "test_cloudwatch",
+        component_type = "aws_cloudwatch_logs",
+    );
+
+    sink.run(events.map(Into::into))
+        .instrument(component_span)
+        .await
+        .expect("Running sink failed");
+
+    let metrics = controller.capture_metrics();
+
+    let bytes_total: Vec<_> = metrics
+        .iter()
+        .filter(|m| m.name() == "component_sent_bytes_total")
+        .collect();
+
+    assert!(
+        !bytes_total.is_empty(),
+        "Expected at least one component_sent_bytes_total metric to be emitted"
+    );
+
+    let has_component_id = bytes_total
+        .iter()
+        .any(|m| m.tags().and_then(|tags| tags.get("component_id")).is_some());
+
+    assert!(
+        has_component_id,
+        "component_sent_bytes_total was emitted but none of the {} instances \
+         carry a component_id label.  Found: {:?}",
+        bytes_total.len(),
+        bytes_total
+            .iter()
+            .map(|m| m.to_string())
+            .collect::<Vec<_>>()
+    );
+
+    let has_region = bytes_total
+        .iter()
+        .any(|m| m.tags().and_then(|tags| tags.get("region")).is_some());
+
+    assert!(
+        has_region,
+        "component_sent_bytes_total was emitted but none of the {} instances \
+         carry a region label.  Found: {:?}",
+        bytes_total.len(),
+        bytes_total
+            .iter()
+            .map(|m| m.to_string())
+            .collect::<Vec<_>>()
+    );
+
+    let without_component_id: Vec<_> = bytes_total
+        .iter()
+        .filter(|m| m.tags().and_then(|tags| tags.get("component_id")).is_none())
+        .collect();
+
+    assert!(
+        without_component_id.is_empty(),
+        "Found {} component_sent_bytes_total metric(s) without component_id \
+         (transport-layer duplicates that should have been suppressed): {:?}",
+        without_component_id.len(),
+        without_component_id
+            .iter()
+            .map(|m| m.to_string())
+            .collect::<Vec<_>>()
+    );
 }
