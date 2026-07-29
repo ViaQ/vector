@@ -524,7 +524,6 @@ ocp-logging = [
   "transforms-filter",
   "transforms-remap",
   "transforms-log_to_metric",
-  "transforms-lua",
   "transforms-throttle",
   "transforms-reduce",
   "transforms-detect_exceptions",
