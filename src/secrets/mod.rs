@@ -12,6 +12,7 @@ use crate::{
 #[cfg(feature = "secrets-aws-secrets-manager")]
 mod aws_secrets_manager;
 mod directory;
+#[cfg(feature = "secrets-exec")]
 mod exec;
 mod file;
 mod test;
@@ -68,6 +69,7 @@ pub enum SecretBackends {
     Directory(directory::DirectoryBackend),
 
     /// Exec.
+    #[cfg(feature = "secrets-exec")]
     Exec(exec::ExecBackend),
 
     /// AWS Secrets Manager.
@@ -85,6 +87,7 @@ impl vector_lib::configurable::NamedComponent for SecretBackends {
         match self {
             Self::File(config) => config.get_component_name(),
             Self::Directory(config) => config.get_component_name(),
+            #[cfg(feature = "secrets-exec")]
             Self::Exec(config) => config.get_component_name(),
             #[cfg(feature = "secrets-aws-secrets-manager")]
             Self::AwsSecretsManager(config) => config.get_component_name(),
