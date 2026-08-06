@@ -6,16 +6,15 @@ The `rh-main` branch is empty except for this file.  The branches used by variou
 
 | Release | Branch      | Vector Version | Status |
 |---------|-------------|----------------|--------|
+| 6.6     | v0.54-rh    | v0.54          | Current |
 | 6.5     | v0.47.0-rh  | v0.47.0        | Current |
-| 6.4     | v0.47.0-rh  | v0.47.0        | Current |
+| 6.4     | v0.47.0-rh  | v0.47.0        | EOL     |
 | 6.3     | v0.47.0-rh  | v0.47.0        | EOL     |
 | 6.2     | v0.47.0-rh  | v0.47.0        | Current |
 | 6.1     | v0.37.1-rh  | v0.37.1        | EOL     |
 | 6.0     | v0.37.1-rh  | v0.37.1        | Current |
 | 5.9     | release-5.9 | v0.34.1        | EOL |
 | 5.8     | release-5.8 | v0.28.1        | EOL |
-| 5.7     | release-5.7 | v0.21.0        | EOL |
-| 5.6     | release-5.6 | v0.21.0        | EOL |
 
 This project varies from the upstream with the following features:
 
@@ -30,6 +29,12 @@ This project varies from the upstream with the following features:
 | LOG-6789 | [Resolve error when using AWS credentials file authentication](https://github.com/ViaQ/vector/pull/197) | 6.2           | [Accepted](https://github.com/vectordotdev/vector/pull/22831)    |
 | LOG-7013 | [Update cloudwatch logs max event size to match new AWS limit](https://github.com/ViaQ/vector/pull/201) | 6.2           | [Accepted](https://github.com/vectordotdev/vector/pull/22886)    |
 | LOG-7417 | [Fix loki event timestamp out of range panic ](https://github.com/ViaQ/vector/pull/217) | 0.37.1-rh     | [Cherry-pick](https://github.com/vectordotdev/vector/pull/20780) |
+| LOG-7168 | [Allow specification of a maximum line size to be applied after merging](https://github.com/ViaQ/vector/pull/216) | v0.47.0-rh | [Cherry-pick](https://github.com/vectordotdev/vector/pull/22582) |
+| LOG-7168 | [Support directory paths with path separators in secret keys](https://github.com/ViaQ/vector/pull/215) | v0.47.0-rh | [Accepted](https://github.com/vectordotdev/vector/pull/24824) |
+|          | [Add truncate option for oversized events](https://github.com/vectordotdev/vector/pull/25567) | v0.54-rh | [Pending](https://github.com/vectordotdev/vector/pull/25567) |
+| LOG-9375 | [Enhance the prometheus exporter with SAR auth strategy](https://github.com/ViaQ/vector/pull/265) | v0.54-rh | [Pending](https://github.com/vectordotdev/vector/pull/25412) |
+| LOG-9560 | [Fix regression for UDP socket recovery after error](https://github.com/ViaQ/vector/pull/281) | v0.54-rh | [Pending](https://github.com/vectordotdev/vector/pull/25844) |
+|          | [Fix AWS sinks to emit component_sent_bytes_total with component labels](https://github.com/ViaQ/vector/pull/285) | v0.54-rh | [Pending](https://github.com/vectordotdev/vector/pull/25915) |
 ## Issues
 
 Any issues can be filed at [Red Hat JIRA](https://issues.redhat.com). Please
