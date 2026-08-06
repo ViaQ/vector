@@ -10,6 +10,7 @@ use crate::{config::SecretBackend, signal};
 #[cfg(feature = "secrets-aws-secrets-manager")]
 mod aws_secrets_manager;
 mod directory;
+#[cfg(feature = "secrets-exec")]
 mod exec;
 mod file;
 mod test;
@@ -66,6 +67,7 @@ pub enum SecretBackends {
     Directory(directory::DirectoryBackend),
 
     /// Exec.
+    #[cfg(feature = "secrets-exec")]
     Exec(exec::ExecBackend),
 
     /// AWS Secrets Manager.

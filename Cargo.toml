@@ -602,6 +602,7 @@ codecs-syslog = ["vector-lib/syslog"]
 # Secrets
 secrets = ["secrets-aws-secrets-manager"]
 
+secrets-exec = []
 secrets-aws-secrets-manager = ["aws-core", "dep:aws-sdk-secretsmanager"]
 
 # Sources
