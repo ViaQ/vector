@@ -134,6 +134,7 @@ where
             self,
             ReaderError::Checksum { .. }
                 | ReaderError::Deserialization { .. }
+                | ReaderError::Decode { .. }
                 | ReaderError::PartialWrite
         )
     }
@@ -910,6 +911,7 @@ where
                     }
                 }
                 Err(e) if e.is_bad_read() => {
+                    warn!(error = %e, last_record_id = self.last_reader_record_id, "Corrupted record found during buffer initialization seek, skipping.");
                     // If we hit a bad read during initialization, we should only continue calling
                     // `next` if we have not advanced _past_ the writer in terms of file ID.
                     //

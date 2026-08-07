@@ -4,7 +4,9 @@ use tokio::time::timeout;
 use tracing::Instrument;
 
 use crate::{
-    test::{SizedRecord, acknowledge, install_tracing_helpers, with_temp_dir},
+    test::{
+        SelectiveDecodeRecord, SizedRecord, acknowledge, install_tracing_helpers, with_temp_dir,
+    },
     variants::disk_v2::tests::{create_default_buffer_v2, set_file_length},
 };
 
@@ -180,5 +182,51 @@ async fn reader_doesnt_block_when_ahead_of_last_record_in_current_data_file() {
     });
 
     let parent = trace_span!("reader_doesnt_block_when_ahead_of_last_record_in_current_data_file");
+    fut.instrument(parent.or_current()).await;
+}
+
+#[tokio::test]
+async fn reader_skips_decode_error_during_initialization_seek() {
+    let _a = install_tracing_helpers();
+
+    let fut = with_temp_dir(|dir| {
+        let data_dir = dir.to_path_buf();
+
+        async move {
+            let (mut writer, reader, ledger) = create_default_buffer_v2(data_dir.clone()).await;
+
+            writer
+                .write_record(SelectiveDecodeRecord(true))
+                .await
+                .expect("should not fail to write");
+            writer.flush().await.expect("flush should not fail");
+
+            writer
+                .write_record(SelectiveDecodeRecord(false))
+                .await
+                .expect("should not fail to write");
+            writer.flush().await.expect("flush should not fail");
+            writer.close();
+
+            unsafe { ledger.state().unsafe_set_reader_last_record_id(1) };
+            ledger.flush().expect("should not fail to flush ledger");
+
+            drop(reader);
+            drop(writer);
+            drop(ledger);
+
+            let reopen = timeout(
+                Duration::from_millis(500),
+                create_default_buffer_v2::<_, SelectiveDecodeRecord>(data_dir),
+            )
+            .await;
+            assert!(
+                reopen.is_ok(),
+                "buffer open should skip corrupted record and not crash-loop on decode error"
+            );
+        }
+    });
+
+    let parent = trace_span!("reader_skips_decode_error_during_initialization_seek");
     fut.instrument(parent.or_current()).await;
 }

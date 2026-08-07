@@ -11,6 +11,7 @@ use crate::{Bufferable, EventCount, encoding::FixedEncodable};
 
 impl Bufferable for SizedRecord {}
 impl Bufferable for UndecodableRecord {}
+impl Bufferable for SelectiveDecodeRecord {}
 impl Bufferable for MultiEventRecord {}
 
 macro_rules! message_wrapper {
@@ -232,6 +233,65 @@ impl FixedEncodable for UndecodableRecord {
         B: Buf,
     {
         Err(io::Error::other("failed to decode"))
+    }
+}
+
+/// Like [`UndecodableRecord`], but the decode failure is controlled by the encoded flag.
+///
+/// `SelectiveDecodeRecord(true)` always fails to decode; `SelectiveDecodeRecord(false)` decodes
+/// successfully. Used to simulate corrupt middle records while keeping the last on-disk record
+/// valid for writer initialization.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub(crate) struct SelectiveDecodeRecord(pub bool);
+
+impl AddBatchNotifier for SelectiveDecodeRecord {
+    fn add_batch_notifier(&mut self, batch: BatchNotifier) {
+        drop(batch);
+    }
+}
+
+impl ByteSizeOf for SelectiveDecodeRecord {
+    fn allocated_bytes(&self) -> usize {
+        0
+    }
+}
+
+impl EventCount for SelectiveDecodeRecord {
+    fn event_count(&self) -> usize {
+        1
+    }
+}
+
+impl FixedEncodable for SelectiveDecodeRecord {
+    type EncodeError = io::Error;
+    type DecodeError = io::Error;
+
+    fn encode<B>(self, buffer: &mut B) -> Result<(), Self::EncodeError>
+    where
+        B: BufMut,
+    {
+        if buffer.remaining_mut() < 1 {
+            return Err(io::Error::other("not enough capacity to encode record"));
+        }
+
+        buffer.put_u8(u8::from(self.0));
+        Ok(())
+    }
+
+    fn decode<B>(mut buffer: B) -> Result<Self, Self::DecodeError>
+    where
+        B: Buf,
+    {
+        if buffer.remaining() < 1 {
+            return Err(io::Error::other("not enough data to decode record"));
+        }
+
+        let fail_decode = buffer.get_u8() != 0;
+        if fail_decode {
+            return Err(io::Error::other("failed to decode"));
+        }
+
+        Ok(SelectiveDecodeRecord(false))
     }
 }
 
