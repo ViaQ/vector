@@ -578,6 +578,10 @@ ocp-logging = [
   "transforms-reduce",
   "transforms-detect_exceptions",
 
+  # Full VRL standard library.
+  # See vectordotdev/vector#25267.
+  "vrl/stdlib",
+
   "sinks-aws_cloudwatch_logs",
   "sinks-aws_s3",
   "sinks-azure_logs_ingestion",
