@@ -6,20 +6,21 @@
 //! queued on disk. Without that, a single rejected event makes the buffer report
 //! one queued event forever.
 
-use std::{error, fmt};
+use std::{error, fmt, num::NonZeroUsize, time::Duration};
 
 use bytes::{Buf, BufMut};
+use tokio::time::timeout;
 use vector_common::{
     byte_size_of::ByteSizeOf,
     finalization::{AddBatchNotifier, BatchNotifier},
 };
 
-use super::create_default_buffer_v2_with_usage;
+use super::{create_buffer_v2_with_data_file_count_limit, create_default_buffer_v2_with_usage};
 use crate::{
-    Bufferable, EventCount, WhenFull,
+    Bufferable, EventCount, MemoryBufferSize, WhenFull,
     encoding::FixedEncodable,
     test::{install_tracing_helpers, with_temp_dir},
-    topology::channel::{BufferSender, SenderAdapter},
+    topology::channel::{BufferSender, SenderAdapter, limited},
 };
 
 /// A bufferable carrying a self-declared `event_count` of `events`, whose
@@ -37,6 +38,7 @@ impl AddBatchNotifier for FilterableBatch {
         drop(batch);
     }
 }
+
 impl ByteSizeOf for FilterableBatch {
     fn allocated_bytes(&self) -> usize {
         0
@@ -80,6 +82,10 @@ impl FixedEncodable for FilterableBatch {
 }
 
 impl Bufferable for FilterableBatch {
+    fn is_fully_encodable(&self) -> bool {
+        self.post_filter == self.events
+    }
+
     fn filter_unencodable(self) -> Option<Self> {
         if self.post_filter == 0 {
             None
@@ -170,11 +176,188 @@ async fn filter_drops_are_reported_as_unintentional_buffer_drops() {
     .await;
 }
 
-// Note: A regression test that exercises the "full disk hands item to overflow
-// unfiltered" path is not included here because reliably driving the disk-v2
-// writer's `is_buffer_full()` to `true` under the minimum-size config takes
-// careful tuning of record/buffer sizes (the writer's `can_write_record` check
-// generally short-circuits writes *before* `total_buffer_size` reaches
-// `max_buffer_size`). The fix in `SenderAdapter::try_send` is a single
-// `is_buffer_full()` short-circuit before the filter runs; the existing
-// disk-v2 tests cover the full-buffer behaviour at the writer level.
+/// Under `WhenFull::Overflow`, an item the base stage cannot encode must reach the
+/// overflow stage *intact* while the base stage still has room.
+///
+/// This is the near-full half of the state-independence guarantee: the routing decision
+/// is made from the item alone, so it does not matter how full the base stage is.
+#[tokio::test]
+async fn unencodable_item_overflows_intact_when_base_has_room() {
+    let _a = install_tracing_helpers();
+
+    with_temp_dir(|dir| {
+        let data_dir = dir.to_path_buf();
+
+        async move {
+            let (writer, _reader, _ledger, _usage) =
+                create_default_buffer_v2_with_usage::<_, FilterableBatch>(data_dir).await;
+
+            let (overflow_tx, mut overflow_rx) = limited(
+                MemoryBufferSize::MaxEvents(NonZeroUsize::new(100).unwrap()),
+                None,
+                None,
+            );
+            let mut sender = BufferSender::with_overflow(
+                SenderAdapter::from(writer),
+                BufferSender::new(SenderAdapter::from(overflow_tx), WhenFull::Block),
+            );
+
+            // The disk stage is empty, so it has ample room. The item is wholly
+            // unencodable, so it must still be handed to the overflow stage rather than
+            // filtered away.
+            sender
+                .send(
+                    FilterableBatch {
+                        events: 5,
+                        post_filter: 0,
+                    },
+                    None,
+                )
+                .await
+                .expect("send should succeed");
+
+            let received = overflow_rx.next().await.expect("item must reach overflow");
+            assert_eq!(
+                received,
+                FilterableBatch {
+                    events: 5,
+                    post_filter: 0,
+                },
+                "overflow must receive the item intact, with no sub-items pruned",
+            );
+        }
+    })
+    .await;
+}
+
+/// Under `WhenFull::Overflow`, an item the base stage cannot encode must reach the
+/// overflow stage *intact* even when the disk-v2 base is at capacity.
+///
+/// This mirrors `unencodable_item_overflows_intact_when_base_has_room` with a full base.
+/// The `is_fully_encodable` routing in `BufferSender::send` fires before any capacity
+/// check, so the item takes the same encodability-driven path regardless of occupancy —
+/// precisely the state-independence invariant being asserted.
+#[tokio::test]
+async fn unencodable_item_overflows_intact_when_base_is_full() {
+    let _a = install_tracing_helpers();
+
+    with_temp_dir(|dir| {
+        let data_dir = dir.to_path_buf();
+
+        async move {
+            let filler = FilterableBatch {
+                events: 1,
+                post_filter: 1,
+            };
+            let (mut writer, _reader, _ledger) = create_buffer_v2_with_data_file_count_limit::<
+                _,
+                FilterableBatch,
+            >(&data_dir, 256, 2)
+            .await;
+
+            loop {
+                let result = writer
+                    .try_write_record(filler.clone())
+                    .await
+                    .expect("write should not fail");
+                if result.is_some() {
+                    break;
+                }
+                writer.flush().await.expect("flush should not fail");
+            }
+
+            let (overflow_tx, mut overflow_rx) = limited(
+                MemoryBufferSize::MaxEvents(NonZeroUsize::new(100).unwrap()),
+                None,
+                None,
+            );
+            let mut sender = BufferSender::with_overflow(
+                SenderAdapter::from(writer),
+                BufferSender::new(SenderAdapter::from(overflow_tx), WhenFull::Block),
+            );
+
+            sender
+                .send(
+                    FilterableBatch {
+                        events: 5,
+                        post_filter: 0,
+                    },
+                    None,
+                )
+                .await
+                .expect("send should succeed");
+
+            let received = overflow_rx.next().await.expect("item must reach overflow");
+            assert_eq!(
+                received,
+                FilterableBatch {
+                    events: 5,
+                    post_filter: 0,
+                },
+                "a full base stage must not change how an unencodable item is routed",
+            );
+        }
+    })
+    .await;
+}
+
+/// A base stage without a wire-format constraint must keep an unencodable item rather than
+/// pass it to the overflow stage.
+///
+/// The encodability check is a property of the *base* stage, not of the item alone. In a
+/// `memory -> disk` overflow topology the memory stage can hold an arbitrarily nested item
+/// safely, so diverting it past memory would hand an item the base could have kept to a
+/// stage that has no choice but to drop it. This is the mirror image of the
+/// `disk -> memory` cases above and guards against reintroducing that assumption.
+#[tokio::test]
+async fn unencodable_item_stays_in_base_when_base_has_no_encoding_constraint() {
+    let _a = install_tracing_helpers();
+
+    let (base_tx, mut base_rx) = limited::<FilterableBatch>(
+        MemoryBufferSize::MaxEvents(NonZeroUsize::new(100).unwrap()),
+        None,
+        None,
+    );
+    let (overflow_tx, mut overflow_rx) = limited(
+        MemoryBufferSize::MaxEvents(NonZeroUsize::new(100).unwrap()),
+        None,
+        None,
+    );
+
+    let mut sender = BufferSender::with_overflow(
+        SenderAdapter::from(base_tx),
+        BufferSender::new(SenderAdapter::from(overflow_tx), WhenFull::Block),
+    );
+
+    // The base is in-memory and empty, so it can hold this item despite the item being
+    // unencodable for a protobuf-backed stage.
+    sender
+        .send(
+            FilterableBatch {
+                events: 5,
+                post_filter: 0,
+            },
+            None,
+        )
+        .await
+        .expect("send should succeed");
+
+    let received = timeout(Duration::from_secs(5), base_rx.next())
+        .await
+        .expect("item must stay in the base stage rather than be diverted to overflow")
+        .expect("base stage should yield the item");
+    assert_eq!(
+        received,
+        FilterableBatch {
+            events: 5,
+            post_filter: 0,
+        },
+        "an unconstrained base stage must keep the item intact",
+    );
+    assert!(
+        timeout(Duration::from_millis(50), overflow_rx.next())
+            .await
+            .is_err(),
+        "the overflow stage must not be involved when the base can hold the item",
+    );
+}

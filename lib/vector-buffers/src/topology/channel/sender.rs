@@ -40,6 +40,22 @@ impl<T> SenderAdapter<T>
 where
     T: Bufferable,
 {
+    /// Whether this backend can only persist items satisfying [`Bufferable::is_fully_encodable`].
+    ///
+    /// In-memory stages hold the in-memory representation and have no wire format, so they can
+    /// accept any item regardless of its nesting depth. Disk stages encode to protobuf on write
+    /// and cannot.
+    ///
+    /// Callers use this to avoid assuming a stage is constrained: an item that one stage cannot
+    /// encode may be perfectly storable by another, so the check must be asked of the specific
+    /// stage rather than applied to every topology.
+    pub(crate) fn requires_encodable_items(&self) -> bool {
+        match self {
+            Self::InMemory(_) => false,
+            Self::DiskV2(_) => true,
+        }
+    }
+
     pub(crate) async fn send(&mut self, item: T) -> crate::Result<()> {
         match self {
             Self::InMemory(tx) => tx.send(item).await.map_err(Into::into),
@@ -81,37 +97,14 @@ where
             Self::DiskV2(writer) => {
                 let mut writer = writer.lock().await;
 
-                // If the disk buffer is already at its size limit, hand the item off
-                // to the caller unfiltered. The caller forwards it to the overflow
-                // stage in `WhenFull::Overflow` mode, and the overflow stage may be
-                // an in-memory buffer with no wire-format constraint — filtering
-                // here would needlessly drop sub-items that the overflow could
-                // accept. Holding the writer lock makes the check race-free against
-                // other writers (only writers grow the buffer; readers only shrink).
-                if writer.is_buffer_full() {
-                    return Ok(Some(item));
-                }
-
-                // KNOWN LIMITATION (accepted; tracked as a follow-up): past the
-                // steady-state-full check above, over-budget sub-items are filtered
-                // and dropped here even in `WhenFull::Overflow`, so a non-protobuf
-                // overflow stage (e.g. in-memory) never gets the chance to accept
-                // them. This surfaces two ways:
-                //   1. the item is partially over-budget and `try_write_record`
-                //      below then rejects the *remainder* for fullness — the
-                //      overflow receives the item minus the already-dropped events;
-                //   2. the item is fully over-budget — `filter_unencodable` returns
-                //      `None` and the whole item is dropped before any capacity
-                //      check, so nothing overflows.
-                // Routing unencodable items by `WhenFull` (drop in Block/DropNewest,
-                // overflow otherwise) is a `BufferSender`-level policy decision,
-                // whereas filtering lives here in the backend; reconciling the two
-                // is deferred. The window is narrow and atypical: it requires a
-                // disk-v2 stage in `Overflow` mode (disk is normally the terminal
-                // Block stage), a non-protobuf overflow target, an over-budget
-                // event (>32 nesting levels), and a downstream egress that could
-                // actually deliver it. In other topologies these events are dropped
-                // a stage later regardless.
+                // Filtering here is unconditional and independent of current occupancy.
+                // Whether an unencodable item should be dropped or handed to an overflow
+                // stage is a `WhenFull` policy decision, so it is made in `BufferSender`
+                // before the item ever reaches this backend: `WhenFull::Overflow` diverts
+                // items failing `is_fully_encodable` straight to the overflow stage, and
+                // anything arriving here is therefore expected to be persistable. Keeping
+                // the filter unconditional means a given item is treated the same at 99%
+                // full as at 100% full.
                 let pre_count = item.event_count() as u64;
                 let pre_size = item.size_of() as u64;
                 let Some(item) = item.filter_unencodable() else {
@@ -284,7 +277,25 @@ impl<T: Bufferable> BufferSender<T> {
                 }
             }
             WhenFull::Overflow => {
-                if let Some(item) = self.base.try_send(item).await? {
+                // An item the base stage can never encode is routed to the overflow stage
+                // intact, whatever the current occupancy. Deciding this here, rather than
+                // letting the backend filter it, is what makes the behaviour
+                // state-independent: previously an over-nested item was pruned while the
+                // disk had room and forwarded whole once the disk reported full, so the
+                // same item took different paths at 99% and 100%.
+                //
+                // The check is gated on the base stage actually having a wire-format
+                // constraint. A memory stage overflowing to disk can store an over-nested
+                // item perfectly well, so diverting it past memory would send an item the
+                // base could have kept to a stage that must drop it.
+                if self.base.requires_encodable_items() && !item.is_fully_encodable() {
+                    was_dropped = true;
+                    self.overflow
+                        .as_mut()
+                        .unwrap_or_else(|| unreachable!("overflow must exist"))
+                        .send(item, send_reference)
+                        .await?;
+                } else if let Some(item) = self.base.try_send(item).await? {
                     was_dropped = true;
                     self.overflow
                         .as_mut()

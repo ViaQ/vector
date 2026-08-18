@@ -141,6 +141,23 @@ pub trait Bufferable: InMemoryBufferable + Encodable {
             None
         }
     }
+
+    /// Returns whether every sub-item can be persisted by a backend with wire-format
+    /// constraints, without consuming or modifying the item.
+    ///
+    /// This is the non-destructive counterpart to [`Bufferable::filter_unencodable`], and
+    /// exists so routing policy can be decided *before* any filtering happens. In
+    /// particular `WhenFull::Overflow` needs to know that an item can never reach disk, so
+    /// it can hand the item to the overflow stage intact rather than pruning sub-items for
+    /// a write that would not have succeeded at any buffer occupancy.
+    ///
+    /// The default returns `true`, which is correct for any type without format limits.
+    /// Implementors overriding [`Bufferable::filter_unencodable`] must override this too,
+    /// and the two must agree: this returns `false` exactly when `filter_unencodable` would
+    /// drop at least one sub-item.
+    fn is_fully_encodable(&self) -> bool {
+        true
+    }
 }
 
 /// Hook for observing items as they are sent into a `BufferSender`.

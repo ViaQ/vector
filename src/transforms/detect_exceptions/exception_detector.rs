@@ -563,32 +563,37 @@ created by net/http.(*Server).Serve
             "
     }
 
-    const fn rails_exception() -> &'static str {
-        r#"
- ActionController::RoutingError (No route matches [GET] "/settings"):
-  
-  actionpack (5.1.4) lib/action_dispatch/middleware/debug_exceptions.rb:63:in `call'
-  actionpack (5.1.4) lib/action_dispatch/middleware/show_exceptions.rb:31:in `call'
-  railties (5.1.4) lib/rails/rack/logger.rb:36:in `call_app'
-  railties (5.1.4) lib/rails/rack/logger.rb:24:in `block in call'
-  activesupport (5.1.4) lib/active_support/tagged_logging.rb:69:in `block in tagged'
-  activesupport (5.1.4) lib/active_support/tagged_logging.rb:26:in `tagged'
-  activesupport (5.1.4) lib/active_support/tagged_logging.rb:69:in `tagged'
-  railties (5.1.4) lib/rails/rack/logger.rb:24:in `call'
-  actionpack (5.1.4) lib/action_dispatch/middleware/remote_ip.rb:79:in `call'
-  actionpack (5.1.4) lib/action_dispatch/middleware/request_id.rb:25:in `call'
-  rack (2.0.3) lib/rack/method_override.rb:22:in `call'
-  rack (2.0.3) lib/rack/runtime.rb:22:in `call'
-  activesupport (5.1.4) lib/active_support/cache/strategy/local_cache_middleware.rb:27:in `call'
-  actionpack (5.1.4) lib/action_dispatch/middleware/executor.rb:12:in `call'
-  rack (2.0.3) lib/rack/sendfile.rb:111:in `call'
-  railties (5.1.4) lib/rails/engine.rb:522:in `call'
-  puma (3.10.0) lib/puma/configuration.rb:225:in `call'
-  puma (3.10.0) lib/puma/server.rb:605:in `handle_request'
-  puma (3.10.0) lib/puma/server.rb:437:in `process_client'
-  puma (3.10.0) lib/puma/server.rb:301:in `block in run'
-  puma (3.10.0) lib/puma/thread_pool.rb:120:in `block in spawn_thread'
-            "#
+    fn rails_exception() -> &'static str {
+        // The blank line between the error header and the stack trace must contain
+        // exactly two spaces — the ruby rule `^  $` matches it to transition from
+        // RubyBeforeRailsTrace to Ruby. Using concat! so rustfmt cannot strip them.
+        concat!(
+            "\n",
+            " ActionController::RoutingError (No route matches [GET] \"/settings\"):\n",
+            "  \n",
+            "  actionpack (5.1.4) lib/action_dispatch/middleware/debug_exceptions.rb:63:in `call'\n",
+            "  actionpack (5.1.4) lib/action_dispatch/middleware/show_exceptions.rb:31:in `call'\n",
+            "  railties (5.1.4) lib/rails/rack/logger.rb:36:in `call_app'\n",
+            "  railties (5.1.4) lib/rails/rack/logger.rb:24:in `block in call'\n",
+            "  activesupport (5.1.4) lib/active_support/tagged_logging.rb:69:in `block in tagged'\n",
+            "  activesupport (5.1.4) lib/active_support/tagged_logging.rb:26:in `tagged'\n",
+            "  activesupport (5.1.4) lib/active_support/tagged_logging.rb:69:in `tagged'\n",
+            "  railties (5.1.4) lib/rails/rack/logger.rb:24:in `call'\n",
+            "  actionpack (5.1.4) lib/action_dispatch/middleware/remote_ip.rb:79:in `call'\n",
+            "  actionpack (5.1.4) lib/action_dispatch/middleware/request_id.rb:25:in `call'\n",
+            "  rack (2.0.3) lib/rack/method_override.rb:22:in `call'\n",
+            "  rack (2.0.3) lib/rack/runtime.rb:22:in `call'\n",
+            "  activesupport (5.1.4) lib/active_support/cache/strategy/local_cache_middleware.rb:27:in `call'\n",
+            "  actionpack (5.1.4) lib/action_dispatch/middleware/executor.rb:12:in `call'\n",
+            "  rack (2.0.3) lib/rack/sendfile.rb:111:in `call'\n",
+            "  railties (5.1.4) lib/rails/engine.rb:522:in `call'\n",
+            "  puma (3.10.0) lib/puma/configuration.rb:225:in `call'\n",
+            "  puma (3.10.0) lib/puma/server.rb:605:in `handle_request'\n",
+            "  puma (3.10.0) lib/puma/server.rb:437:in `process_client'\n",
+            "  puma (3.10.0) lib/puma/server.rb:301:in `block in run'\n",
+            "  puma (3.10.0) lib/puma/thread_pool.rb:120:in `block in spawn_thread'\n",
+            "            ",
+        )
     }
 
     #[test]
