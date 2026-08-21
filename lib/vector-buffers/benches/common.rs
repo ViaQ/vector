@@ -12,7 +12,7 @@ use vector_buffers::{
         builder::TopologyBuilder,
         channel::{BufferReceiver, BufferSender},
     },
-    BufferType, EventCount,
+    BufferType, Bufferable, EventCount,
 };
 use vector_common::byte_size_of::ByteSizeOf;
 use vector_common::finalization::{AddBatchNotifier, BatchNotifier, EventFinalizers, Finalizable};
@@ -55,6 +55,8 @@ impl<const N: usize> Finalizable for Message<N> {
         Default::default() // This benchmark doesn't need finalization
     }
 }
+
+impl<const N: usize> Bufferable for Message<N> {}
 
 #[derive(Debug)]
 pub struct EncodeError;

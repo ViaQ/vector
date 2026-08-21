@@ -9,7 +9,7 @@ use vector_common::finalization::{
 use crate::{
     encoding::FixedEncodable,
     variants::disk_v2::{record::RECORD_HEADER_LEN, tests::align16},
-    EventCount,
+    Bufferable, EventCount,
 };
 
 #[derive(Debug)]
@@ -107,6 +107,8 @@ impl ByteSizeOf for Record {
         0
     }
 }
+
+impl Bufferable for Record {}
 
 impl FixedEncodable for Record {
     type EncodeError = EncodeError;

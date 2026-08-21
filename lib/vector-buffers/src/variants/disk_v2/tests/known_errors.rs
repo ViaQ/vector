@@ -749,6 +749,8 @@ async fn reader_throws_error_when_record_is_undecodable_via_metadata() {
         }
     }
 
+    impl crate::Bufferable for ControllableRecord {}
+
     with_temp_dir(|dir| {
         let data_dir = dir.to_path_buf();
 
