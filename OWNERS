@@ -4,12 +4,11 @@ filters:
     approvers:
       - jcantrill
       - alanconway
+      - xperimental
     reviewers:
       - jcantrill
-      - alanconway
       - Clee2691
       - vparfonov
-      - cahartma
   "Dockerfile(?:\\.in)?$":
     labels:
       - midstream/Dockerfile
