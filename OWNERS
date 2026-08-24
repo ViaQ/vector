@@ -8,9 +8,7 @@ filters:
     reviewers:
       - jcantrill
       - Clee2691
-      - syedriko
       - vparfonov
-      - cahartma
   "Dockerfile(?:\\.in)?$":
     labels:
       - midstream/Dockerfile
