@@ -29,10 +29,14 @@ RUN strip --strip-all /opt/app-root/src/target/release/vector
 
 RUN cp /opt/app-root/src/target/release/vector /usr/bin
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal
+FROM registry.access.redhat.com/ubi9/ubi-micro
 
 COPY --from=builder /usr/bin/vector /usr/bin/
-RUN microdnf install -y systemd crypto-policies-scripts
+RUN microdnf install -y \
+      systemd \
+      openssl-libs \
+      crypto-policies-scripts \
+      ca-certificates
 
 # Copy PQ crypto-policies configuration from builder
 COPY --from=builder /etc/crypto-policies/ /etc/crypto-policies/
