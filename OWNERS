@@ -8,7 +8,5 @@ filters:
     reviewers:
       - jcantrill
       - Clee2691
-      - syedriko
       - vparfonov
-      - cahartma
 component: "Logging"
