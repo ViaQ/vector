@@ -6,10 +6,9 @@ use serde_with::serde_as;
 use snafu::Snafu;
 use std::task::Poll;
 use tokio::time::{self, Duration};
-use tokio_util::codec::FramedRead;
 use vector_lib::codecs::{
     decoding::{DeserializerConfig, FramingConfig},
-    StreamDecodingError,
+    DecoderFramedRead, StreamDecodingError,
 };
 use vector_lib::configurable::configurable_component;
 use vector_lib::internal_event::{
@@ -175,7 +174,7 @@ impl OutputFormat {
     }
 
     // Ensures that the `lines` list is non-empty if `Shuffle` is chosen
-    pub(self) fn validate(&self) -> Result<(), DemoLogsConfigError> {
+    pub(self) const fn validate(&self) -> Result<(), DemoLogsConfigError> {
         match self {
             Self::Shuffle { lines, .. } => {
                 if lines.is_empty() {
@@ -238,7 +237,7 @@ async fn demo_logs_source(
 
         let line = format.generate_line(n);
 
-        let mut stream = FramedRead::new(line.as_bytes(), decoder.clone());
+        let mut stream = DecoderFramedRead::new(line.as_bytes(), decoder.clone());
         while let Some(next) = stream.next().await {
             match next {
                 Ok((events, _byte_size)) => {

@@ -208,11 +208,7 @@ impl DetectExceptions {
             return Err("languages cannot be empty".into());
         }
 
-        let owned_target_path: OwnedTargetPath =
-            match parse_target_path(config.message_key.as_str()) {
-                Err(e) => return Err(e.into()),
-                Ok(value) => value,
-            };
+        let owned_target_path: OwnedTargetPath = parse_target_path(config.message_key.as_str())?;
 
         // Create the state machine once and share it across all accumulators
         let state_machine = Arc::new(exception_detector::get_state_machines(

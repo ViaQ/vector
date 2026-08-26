@@ -173,7 +173,9 @@ impl HttpServerAuthConfig {
                     warn!(message = "VRL compilation warning.", %warnings);
                 }
 
-                Ok(HttpServerAuthMatcher::Vrl { program })
+                Ok(HttpServerAuthMatcher::Vrl {
+                    program: Box::new(program),
+                })
             }
         }
     }
@@ -188,7 +190,7 @@ pub enum HttpServerAuthMatcher {
     /// Matcher for running VRL script for requests, to allow for custom validation
     Vrl {
         /// Compiled VRL script
-        program: Program,
+        program: Box<Program>,
     },
 }
 

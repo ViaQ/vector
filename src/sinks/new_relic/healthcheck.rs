@@ -7,12 +7,14 @@ use super::NewRelicCredentials;
 use crate::{http::HttpClient, sinks::HealthcheckError};
 
 #[derive(Serialize, Deserialize, Debug)]
+#[allow(dead_code)]
 struct NewRelicStatusModel {
     page: NewRelicStatusPage,
     components: Vec<NewRelicStatusComponent>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[allow(dead_code)]
 struct NewRelicStatusPage {
     id: String,
     name: String,
@@ -20,6 +22,7 @@ struct NewRelicStatusPage {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[allow(dead_code)]
 struct NewRelicStatusComponent {
     id: String,
     name: String,

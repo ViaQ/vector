@@ -43,6 +43,7 @@ pub enum MetricType {
 }
 
 #[derive(Default)]
+#[allow(dead_code)]
 pub struct MetricsQuery;
 
 #[cfg(feature = "sources-host_metrics")]

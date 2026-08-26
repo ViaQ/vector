@@ -104,10 +104,10 @@ mod tests {
     use super::Decoder;
     use bytes::Bytes;
     use futures::{stream, StreamExt};
-    use tokio_util::{codec::FramedRead, io::StreamReader};
+    use tokio_util::io::StreamReader;
     use vector_lib::codecs::{
         decoding::{Deserializer, Framer},
-        JsonDeserializer, NewlineDelimitedDecoder, StreamDecodingError,
+        DecoderFramedRead, JsonDeserializer, NewlineDelimitedDecoder, StreamDecodingError,
     };
     use vrl::value::Value;
 
@@ -124,7 +124,7 @@ mod tests {
             Framer::NewlineDelimited(NewlineDelimitedDecoder::new()),
             Deserializer::Json(JsonDeserializer::default()),
         );
-        let mut stream = FramedRead::new(reader, decoder);
+        let mut stream = DecoderFramedRead::new(reader, decoder);
 
         let next = stream.next().await.unwrap();
         let event = next.unwrap().0.pop().unwrap().into_log();

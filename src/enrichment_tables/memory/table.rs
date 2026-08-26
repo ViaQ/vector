@@ -479,7 +479,12 @@ mod tests {
                 ("ttl".into(), Value::from(0)),
                 ("value".into(), Value::from(5)),
             ])),
-            memory.find_table_row(Case::Sensitive, &[condition.clone()], None, None)
+            memory.find_table_row(
+                Case::Sensitive,
+                std::slice::from_ref(&condition),
+                None,
+                None
+            )
         );
 
         // Force scan
@@ -541,7 +546,12 @@ mod tests {
                 ("ttl".into(), Value::from(ttl / 2)),
                 ("value".into(), Value::from(5)),
             ])),
-            memory.find_table_row(Case::Sensitive, &[condition.clone()], None, None)
+            memory.find_table_row(
+                Case::Sensitive,
+                std::slice::from_ref(&condition),
+                None,
+                None
+            )
         );
 
         memory.handle_value(ObjectMap::from([("test_key".into(), Value::from(5))]));

@@ -4,10 +4,10 @@ use async_stream::stream;
 use bytes::Bytes;
 use chrono::Utc;
 use futures::{channel::mpsc, executor, SinkExt, StreamExt};
-use tokio_util::{codec::FramedRead, io::StreamReader};
+use tokio_util::io::StreamReader;
 use vector_lib::codecs::{
     decoding::{DeserializerConfig, FramingConfig},
-    StreamDecodingError,
+    DecoderFramedRead, StreamDecodingError,
 };
 use vector_lib::configurable::NamedComponent;
 use vector_lib::internal_event::{
@@ -133,7 +133,7 @@ async fn process_stream(
         }
     });
     let stream = StreamReader::new(stream);
-    let mut stream = FramedRead::new(stream, decoder).take_until(shutdown);
+    let mut stream = DecoderFramedRead::new(stream, decoder).take_until(shutdown);
     let mut stream = stream! {
         while let Some(result) = stream.next().await {
             match result {

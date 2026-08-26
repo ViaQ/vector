@@ -58,11 +58,12 @@ pub enum ElasticsearchAuthConfig {
 
 /// Elasticsearch Indexing mode.
 #[configurable_component]
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[serde(deny_unknown_fields, rename_all = "snake_case")]
 pub enum ElasticsearchMode {
     /// Ingests documents in bulk, using the bulk API `index` action.
     #[serde(alias = "normal")]
+    #[default]
     Bulk,
 
     /// Ingests documents in bulk, using the bulk API `create` action.
@@ -72,12 +73,6 @@ pub enum ElasticsearchMode {
     /// If the mode is set to `data_stream` and a `timestamp` field is present in a message,
     /// Vector renames this field to the expected `@timestamp` to comply with the Elastic Common Schema.
     DataStream,
-}
-
-impl Default for ElasticsearchMode {
-    fn default() -> Self {
-        Self::Bulk
-    }
 }
 
 /// Bulk API actions.
@@ -291,7 +286,7 @@ impl ElasticsearchCommonMode {
 
 /// Configuration for Elasticsearch API version.
 #[configurable_component]
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[cfg_attr(feature = "proptest", derive(proptest_derive::Arbitrary))]
 #[serde(deny_unknown_fields, rename_all = "snake_case")]
 pub enum ElasticsearchApiVersion {
@@ -304,6 +299,7 @@ pub enum ElasticsearchApiVersion {
     /// incorrect API calls.
     ///
     /// [es_version]: https://www.elastic.co/guide/en/elasticsearch/reference/current/cluster-state.html#cluster-state-api-path-params
+    #[default]
     Auto,
     /// Use the Elasticsearch 6.x API.
     V6,
@@ -311,12 +307,6 @@ pub enum ElasticsearchApiVersion {
     V7,
     /// Use the Elasticsearch 8.x API.
     V8,
-}
-
-impl Default for ElasticsearchApiVersion {
-    fn default() -> Self {
-        Self::Auto
-    }
 }
 
 #[derive(Debug, Snafu)]

@@ -328,15 +328,11 @@ pub(crate) fn generate_example(
         }
     };
 
-    let file = opts.file.as_ref();
-    if file.is_some() {
+    if let Some(file) = &opts.file {
         #[allow(clippy::print_stdout)]
-        match write_config(file.as_ref().unwrap(), &builder) {
+        match write_config(file, &builder) {
             Ok(_) => {
-                println!(
-                    "Config file written to {:?}",
-                    &file.as_ref().unwrap().join("\n")
-                )
+                println!("Config file written to {:?}", &file.join("\n"))
             }
             Err(e) => errs.push(format!("failed to write to file: {e}")),
         };

@@ -107,14 +107,14 @@ pub(crate) trait ComposeTestT {
         match compose_test.config.test {
             Some(ref test_arg) => {
                 args.push("--test".to_string());
-                args.push(test_arg.to_string());
+                args.push(test_arg.clone());
             }
             None => args.push("--lib".to_string()),
         }
 
         // Ensure the test_filter args are passed as well
         if let Some(ref filter) = compose_test.config.test_filter {
-            args.push(filter.to_string());
+            args.push(filter.clone());
         }
         args.extend(extra_args);
 
@@ -225,7 +225,9 @@ impl Compose {
         let original_path: PathBuf = [&test_dir, Path::new("compose.yaml")].iter().collect();
 
         match original_path.try_exists() {
-            Err(error) => Err(error).with_context(|| format!("Could not lookup {original_path:?}")),
+            Err(error) => {
+                Err(error).with_context(|| format!("Could not lookup {}", original_path.display()))
+            }
             Ok(false) => Ok(None),
             Ok(true) => {
                 let mut config = ComposeConfig::parse(&original_path)?;
@@ -326,7 +328,7 @@ fn config_env(config: &Environment) -> impl Iterator<Item = (String, String)> + 
         value.as_ref().map(|value| {
             (
                 format!("CONFIG_{}", var.replace('-', "_").to_uppercase()),
-                value.to_string(),
+                value.clone(),
             )
         })
     })
@@ -375,7 +377,7 @@ mod unix {
     fn add_read_permission(path: &Path) -> Result<()> {
         let metadata = path
             .metadata()
-            .with_context(|| format!("Could not get permissions on {path:?}"))?;
+            .with_context(|| format!("Could not get permissions on {}", path.display()))?;
 
         if metadata.is_file() {
             add_permission(path, &metadata, ALL_READ)
@@ -383,10 +385,11 @@ mod unix {
             if metadata.is_dir() {
                 add_permission(path, &metadata, ALL_READ_DIR)?;
                 for entry in fs::read_dir(path)
-                    .with_context(|| format!("Could not read directory {path:?}"))?
+                    .with_context(|| format!("Could not read directory {}", path.display()))?
                 {
-                    let entry = entry
-                        .with_context(|| format!("Could not read directory entry in {path:?}"))?;
+                    let entry = entry.with_context(|| {
+                        format!("Could not read directory entry in {}", path.display())
+                    })?;
                     add_read_permission(&entry.path())?;
                 }
             }
@@ -399,7 +402,7 @@ mod unix {
         let new_perms = Permissions::from_mode(perms.mode() | bits);
         if new_perms != perms {
             fs::set_permissions(path, new_perms)
-                .with_context(|| format!("Could not set permissions on {path:?}"))?;
+                .with_context(|| format!("Could not set permissions on {}", path.display()))?;
         }
         Ok(())
     }

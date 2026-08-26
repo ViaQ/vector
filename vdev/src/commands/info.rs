@@ -10,15 +10,15 @@ pub struct Cli {}
 
 impl Cli {
     pub fn exec(self) -> Result<()> {
-        println!("Container tool:  {:?}", *runner::CONTAINER_TOOL);
-        println!("Data path:       {:?}", platform::data_dir());
-        println!("Repository:      {:?}", app::path());
-        println!("Shell:           {:?}", *app::SHELL);
+        println!("Container tool:  {}", runner::CONTAINER_TOOL.display());
+        println!("Data path:       {}", platform::data_dir().display());
+        println!("Repository:      {}", app::path());
+        println!("Shell:           {}", app::SHELL.display());
 
         println!("\nConfig:");
         match config::path() {
             Ok(path) => {
-                println!("  Path:        {path:?}");
+                println!("  Path:        {}", path.display());
                 match config::load() {
                     Ok(config) => {
                         println!("  Repository:  {:?}", config.repo);

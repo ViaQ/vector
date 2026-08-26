@@ -82,6 +82,7 @@ pub(super) struct Inner {
 
 /// Metric Origin metadata for submission to Datadog.
 #[derive(Clone, Default, Debug, Deserialize, PartialEq, Serialize)]
+#[allow(clippy::struct_field_names)]
 pub struct DatadogMetricOriginMetadata {
     /// `OriginProduct`
     origin_product: Option<u32>,
@@ -356,7 +357,7 @@ impl EventMetadata {
                 inner.source_event_id = Some(uuid2);
             }
             _ => {} // Keep the existing value.
-        };
+        }
     }
 
     /// Update the finalizer(s) status.

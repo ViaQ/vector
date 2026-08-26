@@ -90,8 +90,8 @@ pub trait TowerRequestConfigDefaults {
     const RATE_LIMIT_DURATION_SECS: u64 = 1;
     const RATE_LIMIT_NUM: u64 = i64::MAX as u64; // i64 avoids TOML deserialize issue
     const RETRY_ATTEMPTS: usize = isize::MAX as usize; // isize avoids TOML deserialize issue
-    const RETRY_MAX_DURATION_SECS: NonZeroU64 = unsafe { NonZeroU64::new_unchecked(30) };
-    const RETRY_INITIAL_BACKOFF_SECS: NonZeroU64 = unsafe { NonZeroU64::new_unchecked(1) };
+    const RETRY_MAX_DURATION_SECS: NonZeroU64 = NonZeroU64::new(30).unwrap();
+    const RETRY_INITIAL_BACKOFF_SECS: NonZeroU64 = NonZeroU64::new(1).unwrap();
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -474,8 +474,8 @@ mod tests {
         const RATE_LIMIT_DURATION_SECS: u64 = 2;
         const RATE_LIMIT_NUM: u64 = 3;
         const RETRY_ATTEMPTS: usize = 4;
-        const RETRY_MAX_DURATION_SECS: NonZeroU64 = unsafe { NonZeroU64::new_unchecked(5) };
-        const RETRY_INITIAL_BACKOFF_SECS: NonZeroU64 = unsafe { NonZeroU64::new_unchecked(6) };
+        const RETRY_MAX_DURATION_SECS: NonZeroU64 = NonZeroU64::new(5).unwrap();
+        const RETRY_INITIAL_BACKOFF_SECS: NonZeroU64 = NonZeroU64::new(6).unwrap();
     }
 
     #[test]
@@ -538,7 +538,7 @@ mod tests {
                 let (req, _) = req.into_parts();
                 if delay.swap(false, AcqRel) {
                     // Error on first request
-                    future::err::<(), _>(std::io::Error::new(std::io::ErrorKind::Other, "")).boxed()
+                    future::err::<(), _>(std::io::Error::other("")).boxed()
                 } else {
                     sent_requests.lock().unwrap().push(req);
                     future::ok::<_, std::io::Error>(()).boxed()

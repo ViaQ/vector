@@ -20,7 +20,7 @@ use serde::{
 ///
 /// This can be set either to one of the below enum values or to a positive integer, which denotes
 /// a fixed concurrency limit.
-#[derive(Clone, Copy, Debug, Derivative, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, Derivative, Eq, PartialEq)]
 pub enum Concurrency {
     /// A fixed concurrency of 1.
     ///
@@ -30,6 +30,7 @@ pub enum Concurrency {
     /// Concurrency is managed by the [Adaptive Request Concurrency][arc] feature.
     ///
     /// [arc]: https://vector.dev/docs/about/under-the-hood/networking/arc/
+    #[default]
     Adaptive,
 
     /// A fixed amount of concurrency is allowed.
@@ -46,12 +47,6 @@ impl Serialize for Concurrency {
             Concurrency::Adaptive => serializer.serialize_str("adaptive"),
             Concurrency::Fixed(i) => serializer.serialize_u64(*i as u64),
         }
-    }
-}
-
-impl Default for Concurrency {
-    fn default() -> Self {
-        Self::Adaptive
     }
 }
 

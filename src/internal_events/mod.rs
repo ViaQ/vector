@@ -2,6 +2,7 @@
 pub mod prelude;
 
 mod adaptive_concurrency;
+#[cfg(feature = "transforms-aggregate")]
 mod aggregate;
 #[cfg(any(feature = "sources-amqp", feature = "sinks-amqp"))]
 mod amqp;
@@ -80,6 +81,7 @@ mod kafka;
 mod kubernetes_logs;
 #[cfg(feature = "transforms-log_to_metric")]
 mod log_to_metric;
+#[cfg(feature = "sources-heroku_logs")]
 mod logplex;
 #[cfg(feature = "sinks-loki")]
 mod loki;
@@ -111,6 +113,7 @@ mod redis;
 #[cfg(feature = "transforms-impl-reduce")]
 mod reduce;
 mod remap;
+#[cfg(feature = "transforms-impl-sample")]
 mod sample;
 #[cfg(feature = "sinks-sematext")]
 mod sematext_metrics;

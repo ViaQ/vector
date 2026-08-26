@@ -352,7 +352,7 @@ impl DeserializerConfig {
             DeserializerConfig::NativeJson(config) => Ok(Deserializer::NativeJson(config.build())),
             DeserializerConfig::Gelf(config) => Ok(Deserializer::Gelf(config.build())),
             DeserializerConfig::Influxdb(config) => Ok(Deserializer::Influxdb(config.build())),
-            DeserializerConfig::Vrl(config) => Ok(Deserializer::Vrl(config.build()?)),
+            DeserializerConfig::Vrl(config) => Ok(Deserializer::Vrl(Box::new(config.build()?))),
         }
     }
 
@@ -488,7 +488,7 @@ pub enum Deserializer {
     /// Uses a `InfluxdbDeserializer` for deserialization.
     Influxdb(InfluxdbDeserializer),
     /// Uses a `VrlDeserializer` for deserialization.
-    Vrl(VrlDeserializer),
+    Vrl(Box<VrlDeserializer>),
 }
 
 impl format::Deserializer for Deserializer {

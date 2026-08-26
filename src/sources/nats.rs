@@ -1,8 +1,10 @@
 use chrono::Utc;
 use futures::{pin_mut, StreamExt};
 use snafu::{ResultExt, Snafu};
-use tokio_util::codec::FramedRead;
-use vector_lib::codecs::decoding::{DeserializerConfig, FramingConfig, StreamDecodingError};
+use vector_lib::codecs::{
+    decoding::{DeserializerConfig, FramingConfig, StreamDecodingError},
+    DecoderFramedRead,
+};
 use vector_lib::configurable::configurable_component;
 use vector_lib::internal_event::{
     ByteSize, BytesReceived, CountByteSize, EventsReceived, InternalEventHandle as _, Protocol,
@@ -231,7 +233,7 @@ async fn nats_source(
     let bytes_received = register!(BytesReceived::from(Protocol::TCP));
     while let Some(msg) = stream.next().await {
         bytes_received.emit(ByteSize(msg.payload.len()));
-        let mut stream = FramedRead::new(msg.payload.as_ref(), decoder.clone());
+        let mut stream = DecoderFramedRead::new(msg.payload.as_ref(), decoder.clone());
         while let Some(next) = stream.next().await {
             match next {
                 Ok((events, _byte_size)) => {

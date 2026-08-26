@@ -2,10 +2,9 @@ use bytes::Bytes;
 use chrono::Utc;
 use futures::StreamExt;
 use snafu::{ResultExt, Snafu};
-use tokio_util::codec::FramedRead;
 use vector_lib::codecs::{
     decoding::{DeserializerConfig, FramingConfig},
-    StreamDecodingError,
+    DecoderFramedRead, StreamDecodingError,
 };
 use vector_lib::configurable::configurable_component;
 use vector_lib::internal_event::{
@@ -245,7 +244,7 @@ impl InputHandler {
 
         self.bytes_received.emit(ByteSize(line.len()));
 
-        let mut stream = FramedRead::new(line.as_ref(), self.decoder.clone());
+        let mut stream = DecoderFramedRead::new(line.as_ref(), self.decoder.clone());
         while let Some(next) = stream.next().await {
             match next {
                 Ok((events, _byte_size)) => {

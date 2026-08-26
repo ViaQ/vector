@@ -258,7 +258,7 @@ impl Prepare {
         let cure_reference_path = &self.repo_root.join("website").join("cue").join("reference");
         let versions_cue_path = cure_reference_path.join("versions.cue");
         if !versions_cue_path.is_file() {
-            return Err(anyhow!("{versions_cue_path:?} not found"));
+            return Err(anyhow!("{} not found", versions_cue_path.display()));
         }
 
         let vector_version = &self.new_vector_version;
@@ -307,7 +307,7 @@ impl Prepare {
             if line.trim().starts_with("weight: ") && !weight_updated {
                 // Extract the current weight value
                 let weight_str = line.trim().strip_prefix("weight: ").ok_or_else(|| anyhow!("Invalid weight format"))?;
-                let weight: i32 = weight_str.parse().map_err(|e| anyhow!("Failed to parse weight: {}", e))?;
+                let weight: i32 = weight_str.parse().map_err(|e| anyhow!("Failed to parse weight: {e}"))?;
                 // Increase by 1
                 let new_weight = weight + 1;
                 updated_lines.push(format!("weight: {new_weight}"));
@@ -368,7 +368,7 @@ impl Prepare {
         let vector_version = &self.new_vector_version;
         let release_cue_path = releases_path.join(format!("{vector_version}.cue"));
         if !release_cue_path.is_file() {
-            return Err(anyhow!("{release_cue_path:?} not found"));
+            return Err(anyhow!("{} not found", release_cue_path.display()));
         }
 
         let vrl_changelog = get_latest_vrl_tag_and_changelog()?;
@@ -422,7 +422,7 @@ impl Prepare {
         }
 
         fs::rename(&temp_file_path, &release_cue_path)?;
-        run_command(&format!("cue fmt {release_cue_path:?}"));
+        run_command(&format!("cue fmt {}", release_cue_path.display()));
         debug!("Successfully added VRL changelog to the release cue file.");
         Ok(())
     }

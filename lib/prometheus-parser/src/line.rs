@@ -112,7 +112,7 @@ impl Metric {
     /// ```
     ///
     /// We don't parse timestamp.
-    fn parse(input: &str) -> IResult<Self> {
+    fn parse(input: &str) -> IResult<'_, Self> {
         let input = trim_space(input);
         let (input, name) = parse_name(input)?;
         let (input, labels) = Self::parse_labels(input)?;
@@ -130,7 +130,7 @@ impl Metric {
     }
 
     /// Float value, and +Inf, -Int, Nan.
-    pub(crate) fn parse_value(input: &str) -> IResult<f64> {
+    pub(crate) fn parse_value(input: &str) -> IResult<'_, f64> {
         let input = trim_space(input);
         alt((
             value(f64::INFINITY, tag("+Inf")),
@@ -149,14 +149,14 @@ impl Metric {
         })
     }
 
-    fn parse_timestamp(input: &str) -> IResult<Option<i64>> {
+    fn parse_timestamp(input: &str) -> IResult<'_, Option<i64>> {
         let input = trim_space(input);
         opt(map(recognize(pair(opt(char('-')), digit1)), |s: &str| {
             s.parse().unwrap()
         }))(input)
     }
 
-    fn parse_name_value(input: &str) -> IResult<(String, String)> {
+    fn parse_name_value(input: &str) -> IResult<'_, (String, String)> {
         map(
             tuple((parse_name, match_char('='), Self::parse_escaped_string)),
             |(name, _, value)| (name, value),
@@ -167,7 +167,7 @@ impl Metric {
     // - Some((name, value)) => success
     // - None => list is properly ended with "}"
     // - Error => errors of parse_name_value
-    fn element_parser(input: &str) -> IResult<Option<(String, String)>> {
+    fn element_parser(input: &str) -> IResult<'_, Option<(String, String)>> {
         match Self::parse_name_value(input) {
             Ok((input, result)) => Ok((input, Some(result))),
             Err(nom::Err::Error(parse_name_value_error)) => match match_char('}')(input) {
@@ -179,7 +179,7 @@ impl Metric {
         }
     }
 
-    fn parse_labels_inner(mut input: &str) -> IResult<BTreeMap<String, String>> {
+    fn parse_labels_inner(mut input: &str) -> IResult<'_, BTreeMap<String, String>> {
         let sep = match_char(',');
 
         let mut result = BTreeMap::new();
@@ -214,7 +214,7 @@ impl Metric {
     }
 
     /// Parse `{label_name="value",...}`
-    fn parse_labels(input: &str) -> IResult<BTreeMap<String, String>> {
+    fn parse_labels(input: &str) -> IResult<'_, BTreeMap<String, String>> {
         let input = trim_space(input);
 
         match opt(char('{'))(input) {
@@ -227,7 +227,7 @@ impl Metric {
     /// Parse `'"' string_content '"'`. `string_content` can contain any unicode characters,
     /// backslash (`\`), double-quote (`"`), and line feed (`\n`) characters have to be
     /// escaped as `\\`, `\"`, and `\n`, respectively.
-    fn parse_escaped_string(input: &str) -> IResult<String> {
+    fn parse_escaped_string(input: &str) -> IResult<'_, String> {
         #[derive(Debug)]
         enum StringFragment<'a> {
             Literal(&'a str),
@@ -263,7 +263,7 @@ impl Metric {
             },
         );
 
-        fn match_quote(input: &str) -> IResult<char> {
+        fn match_quote(input: &str) -> IResult<'_, char> {
             char('"')(input).map_err(|_: NomError| {
                 ErrorKind::ExpectedChar {
                     expected: '"',
@@ -278,7 +278,7 @@ impl Metric {
 }
 
 impl Header {
-    fn space1(input: &str) -> IResult<()> {
+    fn space1(input: &str) -> IResult<'_, ()> {
         take_while1(|c| c == ' ' || c == '\t')(input)
             .map_err(|_: NomError| {
                 ErrorKind::ExpectedSpace {
@@ -290,7 +290,7 @@ impl Header {
     }
 
     /// `# TYPE <metric_name> <metric_type>`
-    fn parse(input: &str) -> IResult<Self> {
+    fn parse(input: &str) -> IResult<'_, Self> {
         let input = trim_space(input);
         let (input, _) = char('#')(input).map_err(|_: NomError| ErrorKind::ExpectedChar {
             expected: '#',
@@ -360,7 +360,7 @@ impl Line {
 }
 
 /// Name matches the regex `[a-zA-Z_][a-zA-Z0-9_]*`.
-fn parse_name(input: &str) -> IResult<String> {
+fn parse_name(input: &str) -> IResult<'_, String> {
     let input = trim_space(input);
     let (input, (a, b)) = pair(
         take_while1(|c: char| c.is_alphabetic() || c == '_'),

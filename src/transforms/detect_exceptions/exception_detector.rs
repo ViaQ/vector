@@ -227,7 +227,7 @@ impl ExceptionDetector {
         false
     }
 
-    pub fn reset(&mut self) {
+    pub const fn reset(&mut self) {
         self.current_state = ExceptionState::StartState;
     }
 }

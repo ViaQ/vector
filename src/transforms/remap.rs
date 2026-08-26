@@ -492,8 +492,7 @@ where
         let message = error
             .notes()
             .iter()
-            .filter(|note| matches!(note, Note::UserErrorMessage(_)))
-            .last()
+            .rfind(|note| matches!(note, Note::UserErrorMessage(_)))
             .map(|note| note.to_string())
             .unwrap_or_else(|| error.to_string());
         serde_json::json!({
@@ -1599,6 +1598,7 @@ mod tests {
         out.primary.into_events().next()
     }
 
+    #[allow(clippy::result_large_err)]
     fn transform_one_fallible(
         ft: &mut dyn SyncTransform,
         event: Event,

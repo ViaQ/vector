@@ -43,10 +43,11 @@ pub const DATA_STREAM_TIMESTAMP_KEY: &str = "@timestamp";
 /// correct AWS service to use when calculating the AWS v4 signature + disables features
 /// unsupported by serverless: Elasticsearch API version autodetection, health checks
 #[configurable_component]
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 #[serde(deny_unknown_fields, rename_all = "lowercase")]
 pub enum OpenSearchServiceType {
     /// Elasticsearch or OpenSearch Managed domain
+    #[default]
     Managed,
     /// OpenSearch Serverless collection
     Serverless,
@@ -58,12 +59,6 @@ impl OpenSearchServiceType {
             OpenSearchServiceType::Managed => "es",
             OpenSearchServiceType::Serverless => "aoss",
         }
-    }
-}
-
-impl Default for OpenSearchServiceType {
-    fn default() -> Self {
-        Self::Managed
     }
 }
 
@@ -549,11 +544,10 @@ impl SinkConfig for ElasticsearchConfig {
 
         let services = commons
             .iter()
-            .cloned()
             .map(|common| {
                 let endpoint = common.base_url.clone();
 
-                let http_request_builder = HttpRequestBuilder::new(&common, self);
+                let http_request_builder = HttpRequestBuilder::new(common, self);
                 let service = ElasticsearchService::new(client.clone(), http_request_builder);
 
                 (endpoint, service)

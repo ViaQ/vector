@@ -9,7 +9,6 @@ use hickory_proto::{
     op::{message::Message as TrustDnsMessage, Query},
     rr::{
         rdata::{
-            caa::Value,
             opt::{EdnsCode, EdnsOption},
             A, AAAA, NULL, OPT, SVCB,
         },
@@ -629,31 +628,13 @@ impl DnsMessageParser {
                 Ok((Some(txt_rdata), None))
             }
             RData::CAA(caa) => {
+                let value_str = std::str::from_utf8(caa.raw_value())
+                    .map_err(|source| DnsMessageParserError::Utf8ParsingError { source })?;
                 let caa_rdata = format!(
                     "{} {} \"{}\"",
                     caa.issuer_critical() as u8,
                     caa.tag().as_str(),
-                    match caa.value() {
-                        Value::Url(url) => {
-                            url.as_str().to_string()
-                        }
-                        Value::Issuer(option_name, vec_keyvalue) => {
-                            let mut final_issuer = String::new();
-                            if let Some(name) = option_name {
-                                final_issuer.push_str(&name.to_string_with_options(&self.options));
-                                for keyvalue in vec_keyvalue.iter() {
-                                    final_issuer.push_str("; ");
-                                    final_issuer.push_str(keyvalue.key());
-                                    final_issuer.push('=');
-                                    final_issuer.push_str(keyvalue.value());
-                                }
-                            }
-                            final_issuer.trim_end().to_string()
-                        }
-                        Value::Unknown(unknown) => std::str::from_utf8(unknown)
-                            .map_err(|source| DnsMessageParserError::Utf8ParsingError { source })?
-                            .to_string(),
-                    }
+                    value_str,
                 );
                 Ok((Some(caa_rdata), None))
             }

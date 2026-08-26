@@ -358,7 +358,7 @@ mod test {
     use futures::{stream, Stream};
     use pin_project::pin_project;
     use proptest::prelude::*;
-    use tokio::{pin, time::advance};
+    use tokio::time::advance;
     use vector_core::{partition::Partitioner, time::KeyedTimer};
 
     use crate::{

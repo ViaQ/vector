@@ -4,26 +4,30 @@ allow = [
   "Apache-2.0",
   "BSD-2-Clause",
   "BSD-3-Clause",
+  "BlueOak-1.0.0",
   "BSL-1.0",
   "CC0-1.0",
+  "CDLA-Permissive-2.0",
   "ISC",
   "MIT",
+  "MIT-0",
   "OpenSSL",
   "Unicode-3.0",
   "Unicode-DFS-2016",
-  "Zlib"
+  "Zlib",
 ]
 
 private = { ignore = true }
 
 exceptions = [
-    # MPL-2.0 are added case-by-case to make sure we are in compliance. To be in
-    # compliance we cannot be modifying the source files.
-    { allow = ["MPL-2.0"], name = "colored", version = "*" },
-    { allow = ["MPL-2.0"], name = "webpki-roots", version = "*" },
-    { allow = ["MPL-2.0"], name = "vector-config-common", version = "*" },
-    { allow = ["MPL-2.0"], name = "vector-config-macros", version = "*" },
-    { allow = ["MPL-2.0"], name = "vrl", version = "*" },
+  # MPL-2.0 are added case-by-case to make sure we are in compliance. To be in
+  # compliance we cannot be modifying the source files.
+  { allow = ["MPL-2.0"], name = "colored", version = "*" },
+  { allow = ["MPL-2.0"], name = "webpki-roots", version = "*" },
+  { allow = ["MPL-2.0"], name = "vector-common-macros", version = "*" },
+  { allow = ["MPL-2.0"], name = "vector-config-common", version = "*" },
+  { allow = ["MPL-2.0"], name = "vector-config-macros", version = "*" },
+  { allow = ["MPL-2.0"], name = "vrl", version = "*" },
 ]
 
 [[licenses.clarify]]
@@ -31,7 +35,7 @@ name = "ring"
 version = "*"
 expression = "MIT AND ISC AND OpenSSL"
 license-files = [
-    { path = "LICENSE", hash = 0xbd0eed23 }
+  { path = "LICENSE", hash = 0xbd0eed23 }
 ]
 
 [advisories]
@@ -40,30 +44,45 @@ ignore = [
   # There is not fix available yet.
   # https://github.com/vectordotdev/vector/issues/19262
   "RUSTSEC-2023-0071",
-  # Vulnerability in `tonic` crate: https://rustsec.org/advisories/RUSTSEC-2024-0376
-  # There is a fixed version (v0.12.3) but we are blocked from upgrading to `http` v1, which
-  # `tonic` v0.12 depends on. See https://github.com/vectordotdev/vector/issues/19179
-  "RUSTSEC-2024-0376",
-  # Advisory in rustls crate: https://rustsec.org/advisories/RUSTSEC-2024-0336 If a `close_notify`
-  # alert is received during a handshake, `complete_io` does not terminate.
-  # Vulnerable version only used in dev-dependencies
-  "RUSTSEC-2024-0336",
-  # idna accepts Punycode labels that do not produce any non-ASCII when decoded
-  # Need to update some direct dependencies before we can upgrade idna to fix
-  "RUSTSEC-2024-0421",
-  { id = "RUSTSEC-2021-0139", reason = " ansi_term is unmaintained" },
+
+  # --- Unmaintained crates (transitive, no action possible) ---
+  { id = "RUSTSEC-2021-0139", reason = "ansi_term is unmaintained" },
   { id = "RUSTSEC-2024-0388", reason = "derivative is unmaintained" },
   { id = "RUSTSEC-2024-0384", reason = "instant is unmaintained" },
   { id = "RUSTSEC-2020-0168", reason = "mach is unmaintained" },
-  { id = "RUSTSEC-2024-0370", reason = "proc-macro-error is unmaintained" },
-  { id = "RUSTSEC-2024-0320", reason = "yaml-rust is unmaintained" },
   { id = "RUSTSEC-2024-0436", reason = "paste is unmaintained" },
   { id = "RUSTSEC-2025-0012", reason = "backoff is unmaintained" },
-  { id = "RUSTSEC-2025-0014", reason = "humantime is unmaintained" },
+  { id = "RUSTSEC-2025-0134", reason = "rustls-pemfile is unmaintained, blocked by async-nats and http 1.0 upgrade" },
+  { id = "RUSTSEC-2026-0105", reason = "core2 is unmaintained, transitive via libflate/apache-avro" },
+  { id = "RUSTSEC-2026-0174", reason = "http-types is unmaintained, transitive via azure_core 0.17" },
+  { id = "RUSTSEC-2025-0119", reason = "number_prefix is unmaintained, transitive via indicatif" },
+  { id = "RUSTSEC-2026-0173", reason = "proc-macro-error2 is unmaintained, transitive via mlua_derive" },
+  { id = "RUSTSEC-2026-0058", reason = "tokio-io is unmaintained legacy Tokio 0.1 crate, transitive via futures-util" },
+
+  # --- Blocked by transitive dependencies (fix exists but upgrade not feasible) ---
+  { id = "RUSTSEC-2026-0257", reason = "webbrowser vulnerability, transitive via vrl, fix requires >=1.2.2" },
+  { id = "RUSTSEC-2026-0258", reason = "h2 0.3.x DoS, transitive via aws-smithy-http-client, blocked by AWS SDK" },
+  { id = "RUSTSEC-2026-0118", reason = "hickory-proto DoS, fix requires >=0.26.1 (major API change)" },
+  { id = "RUSTSEC-2026-0119", reason = "hickory-proto DoS, fix requires >=0.26.1 (major API change)" },
+  { id = "RUSTSEC-2024-0421", reason = "idna 0.2.x via trust-dns-proto/mongodb, fix requires >=1.0.3" },
+  { id = "RUSTSEC-2026-0002", reason = "lru 0.12.5 unsoundness, transitive via ratatui/aws-sdk-s3" },
+  { id = "RUSTSEC-2026-0253", reason = "lru 0.14.0 unsoundness, fix requires >=0.18.2" },
+  { id = "RUSTSEC-2025-0132", reason = "maxminddb unsoundness, fix requires >=0.27.0" },
+  { id = "RUSTSEC-2026-0194", reason = "quick-xml 0.31/0.37 DoS, transitive via azure_core/opendal, fix requires >=0.41.0" },
+  { id = "RUSTSEC-2026-0195", reason = "quick-xml 0.31/0.37 DoS, transitive via azure_core/opendal, fix requires >=0.41.0" },
+  { id = "RUSTSEC-2026-0097", reason = "rand 0.7/0.8 unsoundness, transitive via http-types/azure/apache-avro, fix requires >=0.9.3" },
+  { id = "RUSTSEC-2026-0235", reason = "rkyv 0.7 memory exposure, fix only in 0.8.x (major version upgrade)" },
+  { id = "RUSTSEC-2026-0178", reason = "tokio-postgres DoS, fix requires >=0.7.18" },
+
+  # rustls-webpki 0.101/0.102 — blocked by old rustls 0.21 (async-nats) and 0.22 (rumqttc)
+  { id = "RUSTSEC-2026-0049", reason = "rustls-webpki, blocked by rustls 0.21/0.22 dependency chain" },
+  { id = "RUSTSEC-2026-0098", reason = "rustls-webpki, blocked by rustls 0.21/0.22 dependency chain" },
+  { id = "RUSTSEC-2026-0099", reason = "rustls-webpki, blocked by rustls 0.21/0.22 dependency chain" },
+  { id = "RUSTSEC-2026-0104", reason = "rustls-webpki, blocked by rustls 0.21/0.22 dependency chain" },
 ]
 
 [bans]
 multiple-versions = "allow"
 deny = [
-    { name = "ring", wrappers = ["rustls", "sct", "rustls-webpki", "aws-config"] },
+  { name = "ring", wrappers = ["rustls", "sct", "rustls-webpki", "aws-config", "async-nats", "hickory-proto"] },
 ]

@@ -11,12 +11,10 @@ use pulsar::{
     Authentication, Consumer, Pulsar, SubType, TokioExecutor,
 };
 use std::path::Path;
-use tokio_util::codec::FramedRead;
-
 use vector_lib::{
     codecs::{
         decoding::{DeserializerConfig, FramingConfig},
-        StreamDecodingError,
+        DecoderFramedRead, StreamDecodingError,
     },
     config::{LegacyKey, LogNamespace, SourceAcknowledgementsConfig, SourceOutput},
     configurable::configurable_component,
@@ -390,7 +388,7 @@ async fn parse_message(
     let topic = msg.topic.clone();
     let producer_name = msg.payload.metadata.producer_name.clone();
 
-    let mut stream = FramedRead::new(msg.payload.data.as_ref(), decoder.clone());
+    let mut stream = DecoderFramedRead::new(msg.payload.data.as_ref(), decoder.clone());
     let stream = async_stream::stream! {
         while let Some(next) = stream.next().await {
             match next {

@@ -24,7 +24,7 @@ pub enum ReceiverAdapter<T: Bufferable> {
     InMemory(LimitedReceiver<T>),
 
     /// The disk v2 buffer.
-    DiskV2(disk_v2::BufferReader<T, ProductionFilesystem>),
+    DiskV2(Box<disk_v2::BufferReader<T, ProductionFilesystem>>),
 }
 
 impl<T: Bufferable> From<LimitedReceiver<T>> for ReceiverAdapter<T> {
@@ -35,7 +35,7 @@ impl<T: Bufferable> From<LimitedReceiver<T>> for ReceiverAdapter<T> {
 
 impl<T: Bufferable> From<disk_v2::BufferReader<T, ProductionFilesystem>> for ReceiverAdapter<T> {
     fn from(v: disk_v2::BufferReader<T, ProductionFilesystem>) -> Self {
-        Self::DiskV2(v)
+        Self::DiskV2(Box::new(v))
     }
 }
 
@@ -54,7 +54,6 @@ where
                             // If we've hit a recoverable error, we'll emit an event to indicate as much but we'll still
                             // keep trying to read the next available record.
                             emit(re);
-                            continue;
                         }
                         None => panic!("Reader encountered unrecoverable error: {e:?}"),
                     },
@@ -158,7 +157,7 @@ impl<T: Bufferable> BufferReceiver<T> {
 }
 
 enum StreamState<T: Bufferable> {
-    Idle(BufferReceiver<T>),
+    Idle(Box<BufferReceiver<T>>),
     Polling,
     Closed,
 }
@@ -171,7 +170,7 @@ pub struct BufferReceiverStream<T: Bufferable> {
 impl<T: Bufferable> BufferReceiverStream<T> {
     pub fn new(receiver: BufferReceiver<T>) -> Self {
         Self {
-            state: StreamState::Idle(receiver),
+            state: StreamState::Idle(Box::new(receiver)),
             recv_fut: ReusableBoxFuture::new(make_recv_future(None)),
         }
     }
@@ -188,14 +187,14 @@ impl<T: Bufferable> Stream for BufferReceiverStream<T> {
                     return Poll::Ready(None);
                 }
                 StreamState::Idle(receiver) => {
-                    self.recv_fut.set(make_recv_future(Some(receiver)));
+                    self.recv_fut.set(make_recv_future(Some(*receiver)));
                 }
                 StreamState::Polling => {
                     let (result, receiver) = ready!(self.recv_fut.poll(cx));
                     self.state = if result.is_none() {
                         StreamState::Closed
                     } else {
-                        StreamState::Idle(receiver)
+                        StreamState::Idle(Box::new(receiver))
                     };
 
                     return Poll::Ready(result);

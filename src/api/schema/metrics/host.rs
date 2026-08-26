@@ -259,6 +259,7 @@ impl DiskMetrics {
     }
 }
 
+#[allow(dead_code)]
 pub struct TCPMetrics(Vec<Metric>);
 
 #[Object]

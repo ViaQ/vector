@@ -5,10 +5,12 @@
 #![deny(warnings)]
 
 mod common;
+mod decoder_framed_read;
 pub mod decoding;
 pub mod encoding;
 pub mod gelf;
 
+pub use decoder_framed_read::DecoderFramedRead;
 pub use decoding::{
     BytesDecoder, BytesDecoderConfig, BytesDeserializer, BytesDeserializerConfig,
     CharacterDelimitedDecoder, CharacterDelimitedDecoderConfig, GelfDeserializer,

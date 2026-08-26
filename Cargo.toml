@@ -12,7 +12,7 @@ default-run = "vector"
 autobenches = false # our benchmarks are not runnable on their own either way
 # Minimum supported rust version
 # See docs/DEVELOPING.md for policy
-rust-version = "1.83"
+rust-version = "1.92"
 
 [[bin]]
 name = "vector"
@@ -455,8 +455,6 @@ wiremock = "0.6.3"
 zstd = { version = "0.13.0", default-features = false }
 
 [patch.crates-io]
-# The upgrade for `tokio-util` >= 0.6.9 is blocked on https://github.com/vectordotdev/vector/issues/11257.
-tokio-util = { git = "https://github.com/vectordotdev/tokio", branch = "tokio-util-0.7.13-framed-read-continue-on-error" }
 nix = { git = "https://github.com/vectordotdev/nix.git", branch = "memfd/gnu/musl" }
 # The `heim` crates depend on `ntapi` 0.3.7 on Windows, but that version has an
 # unaligned access bug fixed in the following revision.

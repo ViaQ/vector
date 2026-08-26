@@ -35,11 +35,10 @@ use tokio::{
     task::JoinSet,
     time::Sleep,
 };
-use tokio_util::codec::FramedRead;
 use tracing::{Instrument, Span};
 use vector_lib::codecs::{
     decoding::{DeserializerConfig, FramingConfig},
-    StreamDecodingError,
+    DecoderFramedRead, StreamDecodingError,
 };
 use vector_lib::lookup::{lookup_v2::OptionalValuePath, owned_value_path, path, OwnedValuePath};
 
@@ -1001,7 +1000,7 @@ fn parse_stream<'a>(
 
     let payload = Cursor::new(Bytes::copy_from_slice(payload));
 
-    let mut stream = FramedRead::with_capacity(payload, decoder, msg.payload_len());
+    let mut stream = DecoderFramedRead::with_capacity(payload, decoder, msg.payload_len());
     let (count, _) = stream.size_hint();
     let stream = stream! {
         while let Some(result) = stream.next().await {

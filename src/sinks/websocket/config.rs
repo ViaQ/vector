@@ -103,6 +103,7 @@ impl SinkConfig for WebSocketSinkConfig {
 }
 
 impl WebSocketSinkConfig {
+    #[allow(clippy::result_large_err)]
     fn build_connector(&self) -> Result<WebSocketConnector, WebSocketError> {
         let tls = MaybeTlsSettings::from_config(self.tls.as_ref(), false).context(ConnectSnafu)?;
         WebSocketConnector::new(self.uri.clone(), tls, self.auth.clone())

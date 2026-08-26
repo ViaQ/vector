@@ -69,6 +69,7 @@ pub struct WebSocketConnector {
 }
 
 impl WebSocketConnector {
+    #[allow(clippy::result_large_err)]
     pub fn new(
         uri: String,
         tls: MaybeTlsSettings,
@@ -86,6 +87,7 @@ impl WebSocketConnector {
         })
     }
 
+    #[allow(clippy::result_large_err)]
     fn extract_host_and_port(request: &WsRequest) -> Result<(String, u16), WsError> {
         let host = request
             .uri()
@@ -221,6 +223,7 @@ impl WebSocketSink {
         ws_stream.split()
     }
 
+    #[allow(clippy::result_large_err)]
     fn check_received_pong_time(&self, last_pong: Instant) -> Result<(), WsError> {
         if let Some(ping_timeout) = self.ping_timeout {
             if last_pong.elapsed() > Duration::from_secs(ping_timeout.into()) {

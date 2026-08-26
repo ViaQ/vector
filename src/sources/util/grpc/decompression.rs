@@ -36,6 +36,7 @@ enum CompressionScheme {
 }
 
 impl CompressionScheme {
+    #[allow(clippy::result_large_err)]
     fn from_encoding_header(req: &Request<Body>) -> Result<Option<Self>, Status> {
         req.headers()
             .get(GRPC_ENCODING_HEADER)
@@ -68,16 +69,16 @@ impl CompressionScheme {
     }
 }
 
+#[derive(Default)]
 enum State {
+    #[default]
     WaitingForHeader,
-    Forward { overall_len: usize },
-    Decompress { remaining: usize },
-}
-
-impl Default for State {
-    fn default() -> Self {
-        Self::WaitingForHeader
-    }
+    Forward {
+        overall_len: usize,
+    },
+    Decompress {
+        remaining: usize,
+    },
 }
 
 fn new_decompressor() -> GzDecoder<Vec<u8>> {

@@ -1113,7 +1113,7 @@ mod urlencoded_string {
         use serde::de::Error;
 
         serde::de::Deserialize::deserialize(deserializer).and_then(|s: &[u8]| {
-            let decoded = if s.iter().any(|c| *c == b'+') {
+            let decoded = if s.contains(&b'+') {
                 // AWS encodes spaces as `+` rather than `%20`, so we first need to handle this.
                 let s = s
                     .iter()

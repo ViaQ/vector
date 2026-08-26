@@ -1,11 +1,11 @@
 use metrics::{counter, gauge};
 use vector_lib::internal_event::InternalEvent;
-use vector_lib::{
-    internal_event::{error_stage, error_type},
-    json_size::JsonSize,
-};
+use vector_lib::internal_event::{error_stage, error_type};
+#[cfg(feature = "sources-kafka")]
+use vector_lib::json_size::JsonSize;
 use vrl::path::OwnedTargetPath;
 
+#[cfg(feature = "sources-kafka")]
 #[derive(Debug)]
 pub struct KafkaBytesReceived<'a> {
     pub byte_size: usize,
@@ -14,6 +14,7 @@ pub struct KafkaBytesReceived<'a> {
     pub partition: i32,
 }
 
+#[cfg(feature = "sources-kafka")]
 impl InternalEvent for KafkaBytesReceived<'_> {
     fn emit(self) {
         trace!(
@@ -33,6 +34,7 @@ impl InternalEvent for KafkaBytesReceived<'_> {
     }
 }
 
+#[cfg(feature = "sources-kafka")]
 #[derive(Debug)]
 pub struct KafkaEventsReceived<'a> {
     pub byte_size: JsonSize,
@@ -41,6 +43,7 @@ pub struct KafkaEventsReceived<'a> {
     pub partition: i32,
 }
 
+#[cfg(feature = "sources-kafka")]
 impl InternalEvent for KafkaEventsReceived<'_> {
     fn emit(self) {
         trace!(
@@ -65,11 +68,13 @@ impl InternalEvent for KafkaEventsReceived<'_> {
     }
 }
 
+#[cfg(feature = "sources-kafka")]
 #[derive(Debug)]
 pub struct KafkaOffsetUpdateError {
     pub error: rdkafka::error::KafkaError,
 }
 
+#[cfg(feature = "sources-kafka")]
 impl InternalEvent for KafkaOffsetUpdateError {
     fn emit(self) {
         error!(
@@ -90,11 +95,13 @@ impl InternalEvent for KafkaOffsetUpdateError {
     }
 }
 
+#[cfg(feature = "sources-kafka")]
 #[derive(Debug)]
 pub struct KafkaReadError {
     pub error: rdkafka::error::KafkaError,
 }
 
+#[cfg(feature = "sources-kafka")]
 impl InternalEvent for KafkaReadError {
     fn emit(self) {
         error!(

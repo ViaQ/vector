@@ -343,7 +343,7 @@ impl HostMetricsConfig {
     fn has_collector(&self, collector: Collector) -> bool {
         match &self.collectors {
             None => true,
-            Some(collectors) => collectors.iter().any(|&c| c == collector),
+            Some(collectors) => collectors.contains(&collector),
         }
     }
 }

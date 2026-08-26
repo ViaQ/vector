@@ -3,10 +3,10 @@ FROM registry.access.redhat.com/ubi9/ubi-minimal AS builder
 RUN INSTALL_PKGS=" \
       gcc-c++ \
       git \
-      llvm-toolset-19.1.7 \
+      llvm-toolset \
       make \
       openssl-devel \
-      rust-toolset-1.84.1 \
+      rust-toolset-1.92.0 \
       " && \
     microdnf install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS

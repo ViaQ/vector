@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use metrics::counter;
 use vector_lib::internal_event::InternalEvent;
 use vector_lib::internal_event::{error_stage, error_type};

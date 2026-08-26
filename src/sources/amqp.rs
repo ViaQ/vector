@@ -21,8 +21,10 @@ use futures_util::Stream;
 use lapin::{acker::Acker, message::Delivery, Channel};
 use snafu::Snafu;
 use std::{io::Cursor, pin::Pin};
-use tokio_util::codec::FramedRead;
-use vector_lib::codecs::decoding::{DeserializerConfig, FramingConfig};
+use vector_lib::codecs::{
+    decoding::{DeserializerConfig, FramingConfig},
+    DecoderFramedRead,
+};
 use vector_lib::configurable::configurable_component;
 use vector_lib::lookup::{lookup_v2::OptionalValuePath, metadata_path, owned_value_path, path};
 use vector_lib::{
@@ -311,7 +313,7 @@ async fn receive_event(
 ) -> Result<(), ()> {
     let payload = Cursor::new(Bytes::copy_from_slice(&msg.data));
     let decoder = config.decoder(log_namespace).map_err(|_e| ())?;
-    let mut stream = FramedRead::new(payload, decoder);
+    let mut stream = DecoderFramedRead::new(payload, decoder);
 
     // Extract timestamp from AMQP message
     let timestamp = msg

@@ -110,6 +110,7 @@ impl ShutdownSignal {
 type IsInternal = bool;
 
 #[derive(Debug, Default)]
+#[allow(clippy::struct_field_names)]
 pub struct SourceShutdownCoordinator {
     shutdown_begun_triggers: HashMap<ComponentKey, (IsInternal, Trigger)>,
     shutdown_force_triggers: HashMap<ComponentKey, Trigger>,

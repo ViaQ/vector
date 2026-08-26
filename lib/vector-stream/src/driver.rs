@@ -241,7 +241,7 @@ where
                     finalizers.update_status(EventStatus::Rejected);
                 }
             }
-        };
+        }
         drop(finalizers); // suppress "argument not consumed" warning
     }
 

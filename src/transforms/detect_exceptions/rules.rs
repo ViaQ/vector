@@ -57,7 +57,7 @@ const fn rule(
     from_states: Vec<ExceptionState>,
     pattern_str: &str,
     to_state: ExceptionState,
-) -> Rule {
+) -> Rule<'_> {
     Rule {
         from_states,
         pattern: pattern_str,

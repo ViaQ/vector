@@ -134,7 +134,7 @@ impl TableRegistry {
     pub fn table_ids(&self) -> Vec<String> {
         let locked = self.loading.lock().unwrap();
         match *locked {
-            Some(ref tables) => tables.iter().map(|(key, _)| key.clone()).collect(),
+            Some(ref tables) => tables.keys().cloned().collect(),
             None => Vec::new(),
         }
     }

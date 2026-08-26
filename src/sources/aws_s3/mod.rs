@@ -1,4 +1,4 @@
-use std::{convert::TryInto, io::ErrorKind};
+use std::convert::TryInto;
 
 use async_compression::tokio::bufread;
 use aws_smithy_types::byte_stream::ByteStream;
@@ -317,7 +317,7 @@ async fn s3_object_decoder(
                     yield next;
                 }
             }))
-            .map_err(|e| std::io::Error::new(ErrorKind::Other, e)),
+            .map_err(std::io::Error::other),
     ));
 
     let compression = match compression {

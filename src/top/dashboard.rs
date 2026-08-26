@@ -202,10 +202,12 @@ impl<'a> Widgets<'a> {
         for (_, r) in state.components.iter() {
             let mut data = vec![
                 r.key.id().to_string(),
-                (!r.has_displayable_outputs())
-                    .then_some("--")
-                    .unwrap_or_default()
-                    .to_string(),
+                if !r.has_displayable_outputs() {
+                    "--"
+                } else {
+                    ""
+                }
+                .to_string(),
                 r.kind.clone(),
                 r.component_type.clone(),
             ];

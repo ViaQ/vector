@@ -64,8 +64,8 @@ struct Component {
 }
 
 pub fn load_and_extract(filename: &Path) -> Result<Vec<String>> {
-    let config =
-        fs::read_to_string(filename).with_context(|| format!("failed to read {filename:?}"))?;
+    let config = fs::read_to_string(filename)
+        .with_context(|| format!("failed to read {}", filename.display()))?;
 
     let config: VectorConfig = match filename
         .extension()
@@ -73,11 +73,11 @@ pub fn load_and_extract(filename: &Path) -> Result<Vec<String>> {
         .map(str::to_lowercase)
         .as_deref()
     {
-        None => bail!("Invalid filename {filename:?}, no extension"),
+        None => bail!("Invalid filename {}, no extension", filename.display()),
         Some("json") => serde_json::from_str(&config)?,
         Some("toml") => toml::from_str(&config)?,
         Some("yaml" | "yml") => serde_yaml::from_str(&config)?,
-        Some(_) => bail!("Invalid filename {filename:?}, unknown extension"),
+        Some(_) => bail!("Invalid filename {}, unknown extension", filename.display()),
     };
 
     Ok(from_config(config))
