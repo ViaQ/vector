@@ -141,12 +141,25 @@ fn java_rules() -> Vec<Rule<'static>> {
             r"^[\t ]*... \d+ (?:more|common frames omitted)",
             Java,
         ),
-        // Bounded catch-all for non-indented continuation lines between the
-        // exception header and the stack trace (e.g. multi-line error messages).
-        // At most 2 consecutive catch-all lines are allowed before falling back
-        // to StartState, preventing unbounded buffering when no stack trace follows.
-        rule(vec![JavaAfterException], r"^.+$", JavaContinuation),
-        rule(vec![JavaContinuation], r"^.+$", JavaContinuationFinal),
+        // Targeted continuation patterns for non-indented lines between the
+        // exception header and stack trace (e.g. Oracle ORA errors, LOG-9565).
+        // These replace a former bounded catch-all (^.+$) that was greedily
+        // consuming independent log records (LOG-9963).
+        rule(
+            vec![JavaAfterException, JavaContinuation],
+            r"^[A-Z]+-?\d+",
+            JavaContinuation,
+        ),
+        rule(
+            vec![JavaAfterException, JavaContinuation],
+            r"^[\t ]*\(",
+            JavaContinuation,
+        ),
+        rule(
+            vec![JavaAfterException, JavaContinuation],
+            r"^[\t ]+\S",
+            JavaContinuation,
+        ),
     ]
 }
 

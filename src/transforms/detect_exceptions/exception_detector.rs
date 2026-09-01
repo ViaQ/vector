@@ -576,6 +576,7 @@ created by net/http.(*Server).Serve
             "
     }
 
+    #[rustfmt::skip]
     const fn rails_exception() -> &'static str {
         r#"
  ActionController::RoutingError (No route matches [GET] "/settings"):
