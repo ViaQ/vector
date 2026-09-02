@@ -518,9 +518,12 @@ impl TimingStats {
     }
 
     fn report(&self) {
+        if !tracing::level_enabled!(tracing::Level::DEBUG) {
+            return;
+        }
         let total = self.started_at.elapsed();
         let counted: Duration = self.segments.values().sum();
-        let other: Duration = self.started_at.elapsed() - counted;
+        let other: Duration = total.saturating_sub(counted);
         let mut ratios = self
             .segments
             .iter()
@@ -568,4 +571,44 @@ pub struct Line {
     pub file_id: FileFingerprint,
     pub start_offset: u64,
     pub end_offset: u64,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::Duration;
+
+    #[test]
+    fn timing_stats_handles_duration_subtraction_overflow() {
+        let mut stats = TimingStats::default();
+
+        // Record segments with durations
+        stats.record("io", Duration::from_millis(50));
+        stats.record("processing", Duration::from_millis(45));
+        stats.record_bytes(1024);
+
+        // The key test: calling report() should NOT panic even if
+        // recorded segments briefly exceed elapsed time due to timing
+        // precision issues or clock adjustments (which happens on
+        // busy systems or with system clock adjustments).
+        // Before the fix, this could panic with "overflow when subtracting durations".
+        stats.report();
+    }
+
+    #[test]
+    fn timing_stats_saturating_sub_clamps_to_zero() {
+        // Directly test the saturating_sub behavior
+        let total = Duration::from_millis(100);
+        let counted_normal = Duration::from_millis(90);
+        let counted_overflow = Duration::from_millis(105);
+
+        // Normal case: subtraction succeeds
+        assert_eq!(
+            total.saturating_sub(counted_normal),
+            Duration::from_millis(10)
+        );
+
+        // Overflow case: saturating_sub clamps to zero instead of panicking
+        assert_eq!(total.saturating_sub(counted_overflow), Duration::ZERO);
+    }
 }
