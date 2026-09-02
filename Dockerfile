@@ -33,13 +33,9 @@ COPY . /src
 RUN /src/scripts/environment/install-protoc.sh
 RUN make build
 
-FROM registry.access.redhat.com/ubi9/ubi-micro
+FROM registry.access.redhat.com/ubi9/ubi-minimal
 
-RUN microdnf install -y \
-      systemd \
-      openssl-libs \
-      crypto-policies-scripts \
-      ca-certificates && \
+RUN microdnf install -y systemd tar crypto-policies-scripts && \
     microdnf clean all
 
 # Copy PQ crypto-policies configuration from builder
