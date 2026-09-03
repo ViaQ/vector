@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/ubi-minimal AS builder
+FROM registry.access.redhat.com/ubi9/ubi:latest AS builder
 
 RUN INSTALL_PKGS=" \
       gcc-c++ \
@@ -8,12 +8,12 @@ RUN INSTALL_PKGS=" \
       openssl-devel \
       llvm-toolset \
       rust-toolset-1.92.0 \
-      crypto-policies-scripts \
       " && \
-    microdnf install -y $INSTALL_PKGS && \
-    rpm -V $INSTALL_PKGS
+    dnf install -y $INSTALL_PKGS && \
+    rpm -V $INSTALL_PKGS && \
+    dnf clean all
 
-# Enable post-quantum cryptography
+# Enable post-quantum cryptography in builder environment
 RUN update-crypto-policies --set DEFAULT:PQ
 
 COPY . /opt/app-root/src
@@ -27,15 +27,25 @@ RUN make build-offline
 # See: https://github.com/openshift/enhancements/pull/2021
 RUN strip --strip-all /opt/app-root/src/target/release/vector
 
-RUN cp /opt/app-root/src/target/release/vector /usr/bin
+# Install ubi-micro runtime packages into a staging root directory using DNF
+RUN mkdir -p /mnt/rootfs && \
+    dnf install -y --installroot /mnt/rootfs \
+      --releasever 9 \
+      --setopt=install_weak_deps=false \
+      --nodocs \
+      systemd \
+      openssl-libs \
+      crypto-policies-scripts \
+      ca-certificates && \
+    dnf --installroot /mnt/rootfs clean all
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal
+# Configure PQ crypto policy inside the staging root filesystem
+RUN chroot /mnt/rootfs update-crypto-policies --set DEFAULT:PQ
 
-COPY --from=builder /usr/bin/vector /usr/bin/
-RUN microdnf install -y systemd crypto-policies-scripts
+FROM registry.access.redhat.com/ubi9/ubi-micro
 
-# Copy PQ crypto-policies configuration from builder
-COPY --from=builder /etc/crypto-policies/ /etc/crypto-policies/
+COPY --from=builder /mnt/rootfs/ /
+COPY --from=builder /opt/app-root/src/target/release/vector /usr/bin/vector
 
 WORKDIR /usr/bin
 CMD ["/usr/bin/vector"]

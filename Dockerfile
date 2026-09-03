@@ -12,7 +12,6 @@ RUN INSTALL_PKGS=" \
       llvm \
       cyrus-sasl-devel \
       libtool \
-      crypto-policies-scripts \
       " && \
     dnf install -y $INSTALL_PKGS && \
     rpm -V $INSTALL_PKGS && \
@@ -33,14 +32,25 @@ COPY . /src
 RUN /src/scripts/environment/install-protoc.sh
 RUN make build
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal
+RUN mkdir -p /mnt/rootfs && \
+    dnf install -y --installroot /mnt/rootfs \
+      --releasever 9 \
+      --setopt install_weak_deps=false \
+      --nodocs \
+      systemd \
+      openssl-libs \
+      cyrus-sasl-lib \
+      crypto-policies-scripts \
+      ca-certificates && \
+    dnf --installroot /mnt/rootfs clean all
 
-RUN microdnf install -y systemd tar crypto-policies-scripts && \
-    microdnf clean all
+RUN chroot /mnt/rootfs update-crypto-policies --set DEFAULT:PQ
 
-# Copy PQ crypto-policies configuration from builder
-COPY --from=builder /etc/crypto-policies/ /etc/crypto-policies/
+FROM registry.access.redhat.com/ubi9/ubi-micro
 
-COPY --from=builder /src/target/release/vector /usr/bin
+COPY --from=builder /mnt/rootfs/ /
+
+COPY --from=builder /src/target/release/vector /usr/bin/vector
+
 WORKDIR /usr/bin
 CMD ["/usr/bin/vector"]
