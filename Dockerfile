@@ -31,7 +31,9 @@ RUN mkdir -p /src
 WORKDIR /src
 COPY . /src
 RUN /src/scripts/environment/install-protoc.sh
-RUN make build
+
+ARG FEATURES=ocp-logging
+RUN echo "FEATURES=${FEATURES}" && make build FEATURES=${FEATURES}
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal
 
