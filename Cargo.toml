@@ -514,7 +514,6 @@ ocp-logging = [
   "sources-kubernetes_logs",
   "sources-prometheus",
   "sources-internal_metrics",
-  "sources-demo_logs",
   "sources-http_server",
   "sources-syslog",
   "sources-opentelemetry",
@@ -533,10 +532,8 @@ ocp-logging = [
   "sinks-azure_logs_ingestion",
   "sinks-azure_monitor_logs",
   "sinks-elasticsearch",
-  "sinks-file",
   "sinks-kafka",
   "sinks-loki",
-  "sinks-console",
   "sinks-prometheus",
   "sinks-gcp",
   "sinks-splunk_hec",
@@ -548,6 +545,12 @@ ocp-logging = [
   "api-client",
 
   "unix"
+]
+ocp-logging-devel = [
+    "ocp-logging",
+    "sources-demo_logs",
+    "sinks-console",
+    "sinks-file"
 ]
 
 # Default features for *-unknown-linux-gnu and *-apple-darwin
