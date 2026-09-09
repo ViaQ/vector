@@ -18,10 +18,24 @@ RUN PROTOC=/opt/app-root/src/thirdparty/protoc/protoc-linux-$(arch) make build-o
 
 RUN cp /opt/app-root/src/target/release/vector /usr/bin
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal
+FROM registry.access.redhat.com/ubi9/ubi:latest AS packages
 
+# Install ubi-micro runtime packages into a staging root directory using DNF
+RUN mkdir -p /mnt/rootfs && \
+    dnf install -y --installroot=/mnt/rootfs \
+      --releasever=9 \
+      --setopt=install_weak_deps=false \
+      --nodocs \
+      systemd \
+      crypto-policies-scripts && \
+    dnf --installroot=/mnt/rootfs clean all
+
+FROM registry.access.redhat.com/ubi9/ubi-micro
+
+COPY --from=packages /mnt/rootfs/ /
 COPY --from=builder /usr/bin/vector /usr/bin/
-RUN microdnf install -y systemd
+# Copy PQ crypto-policies configuration from builder
+COPY --from=builder /etc/crypto-policies/ /etc/crypto-policies/
 
 WORKDIR /usr/bin
 CMD ["/usr/bin/vector"]
