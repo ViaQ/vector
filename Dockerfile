@@ -29,12 +29,26 @@ COPY . /src
 
 RUN PROTOC=/src/thirdparty/protoc/protoc-linux-$(arch) make build
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal
+FROM registry.access.redhat.com/ubi9/ubi:latest AS packages
 
-RUN microdnf install -y systemd tar && \
-    microdnf clean all
+# Install ubi-micro runtime packages into a staging root directory using DNF
+RUN mkdir -p /mnt/rootfs && \
+    dnf install -y --installroot=/mnt/rootfs \
+      --releasever=9 \
+      --setopt=install_weak_deps=false \
+      --nodocs \
+      systemd \
+      tar \
+      crypto-policies-scripts && \
+    dnf --installroot=/mnt/rootfs clean all
 
-COPY --from=builder /src/target/release/vector /usr/bin
+FROM registry.access.redhat.com/ubi9/ubi-micro
+
+COPY --from=packages /mnt/rootfs/ /
+# Copy PQ crypto-policies configuration from builder
+COPY --from=builder /etc/crypto-policies/ /etc/crypto-policies/
+COPY --from=builder /src/target/release/vector /usr/bin/
+
 WORKDIR /usr/bin
 CMD ["/usr/bin/vector"]
 
