@@ -106,6 +106,17 @@ fn java_rules() -> Vec<Rule<'static>> {
             r"^[\t ]*... \d+ (?:more|common frames omitted)",
             Java,
         ),
+        // Targeted continuation patterns for non-indented lines between the
+        // exception header and stack trace (e.g. Oracle ORA errors, LOG-9565).
+        // These replace a former generic catch-all (^.+$) that was reverted
+        // because it greedily consumed independent JSON log records (LOG-9963).
+        rule(
+            vec![JavaAfterException],
+            r"^[A-Z]+-?\d+",
+            JavaAfterException,
+        ),
+        rule(vec![JavaAfterException], r"^[\t ]*\(", JavaAfterException),
+        rule(vec![JavaAfterException], r"^[\t ]+\S", JavaAfterException),
     ]
 }
 

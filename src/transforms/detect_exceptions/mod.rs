@@ -393,4 +393,269 @@ Jul 09, 2015 3:23:29 PM com.google.devtools.search.cloud.feeder.MakeLog: Runtime
         assert_eq!(output_2["message"], java_simple_log.trim().into());
         assert_eq!(output_2["counter"], Value::from(6));
     }
+
+    #[tokio::test]
+    async fn test_exception_with_non_indented_continuation_lines() {
+        // LOG-9995: Oracle ORA errors have non-indented lines between the
+        // exception header and the stack trace. Targeted continuation patterns
+        // must group these correctly.
+        let detect_exceptions = toml::from_str::<DetectExceptionsConfig>(
+            r#"
+languages = ["Java"]
+"#,
+        )
+        .unwrap()
+        .build(&TransformContext::default())
+        .await
+        .unwrap();
+
+        let detect_exceptions = detect_exceptions.into_task();
+
+        let exception_with_continuation = "\
+java.sql.SQLException: Listener refused the connection with the following error:
+ORA-12521, TNS:listener does not currently know of instance requested in connect descriptor
+  (CONNECTION_ID=r6n2ZPL0TqS/BLDhIydj+A==)
+    at oracle.jdbc.driver.T4CConnection.handleLogonNetException(T4CConnection.java:893)
+    at oracle.jdbc.driver.T4CConnection.logon(T4CConnection.java:698)";
+        let regular_log = "2026-06-02 13:55:59.506 INFO normal log message";
+
+        let lines = format!("{}\n{}", exception_with_continuation, regular_log);
+
+        let mut counter = 0;
+        let input_events: Vec<Event> = lines
+            .split("\n")
+            .map(|line| {
+                let mut le = LogEvent::from(line);
+                le.insert("counter", counter);
+                counter += 1;
+                Event::Log(le)
+            })
+            .collect();
+
+        let in_stream = Box::pin(stream::iter(input_events));
+        let mut out_stream = detect_exceptions.transform_events(in_stream);
+
+        let output_1 = out_stream.next().await.unwrap().into_log();
+        assert_eq!(
+            output_1["message"],
+            exception_with_continuation.into(),
+            "All exception lines including non-indented continuations must be merged"
+        );
+        assert_eq!(output_1["counter"], Value::from(0));
+
+        let output_2 = out_stream.next().await.unwrap().into_log();
+        assert_eq!(output_2["message"], regular_log.into());
+        assert_eq!(output_2["counter"], Value::from(5));
+    }
+
+    #[tokio::test]
+    async fn test_json_messages_with_exception_keywords_not_merged() {
+        // LOG-9963: When parse_json runs before detect_exceptions, the message
+        // field contains parsed string values. If a message contains an
+        // exception keyword, subsequent independent messages must NOT be merged.
+        let detect_exceptions = toml::from_str::<DetectExceptionsConfig>(
+            r#"
+languages = ["All"]
+"#,
+        )
+        .unwrap()
+        .build(&TransformContext::default())
+        .await
+        .unwrap();
+
+        let detect_exceptions = detect_exceptions.into_task();
+
+        let msg1 = "SecretConfigException: Failed to load configuration from vault";
+        let msg2 = "Processing request for user 12345";
+        let msg3 = "Response sent in 42ms";
+
+        let mut counter = 0;
+        let input_events: Vec<Event> = [msg1, msg2, msg3]
+            .iter()
+            .map(|line| {
+                let mut le = LogEvent::from(*line);
+                le.insert("counter", counter);
+                counter += 1;
+                Event::Log(le)
+            })
+            .collect();
+
+        let in_stream = Box::pin(stream::iter(input_events));
+        let mut out_stream = detect_exceptions.transform_events(in_stream);
+
+        let output_1 = out_stream.next().await.unwrap().into_log();
+        assert_eq!(output_1["message"], msg1.into());
+        assert_eq!(output_1["counter"], Value::from(0));
+
+        let output_2 = out_stream.next().await.unwrap().into_log();
+        assert_eq!(output_2["message"], msg2.into());
+        assert_eq!(output_2["counter"], Value::from(1));
+
+        let output_3 = out_stream.next().await.unwrap().into_log();
+        assert_eq!(output_3["message"], msg3.into());
+        assert_eq!(output_3["counter"], Value::from(2));
+    }
+
+    #[tokio::test]
+    async fn test_raw_json_log_lines_not_merged() {
+        // LOG-9963: When detect_exceptions runs WITHOUT parse_json, the message
+        // field contains the entire raw JSON line. Exception keywords embedded
+        // inside JSON field values must not trigger merging of subsequent
+        // independent JSON records.
+        let detect_exceptions = toml::from_str::<DetectExceptionsConfig>(
+            r#"
+languages = ["All"]
+"#,
+        )
+        .unwrap()
+        .build(&TransformContext::default())
+        .await
+        .unwrap();
+
+        let detect_exceptions = detect_exceptions.into_task();
+
+        let json1 = r#"{"timestamp":"2026-08-28T10:00:00Z","level":"ERROR","message":"SecretConfigException: Failed to load config","stackTrace":"java.lang.Throwable\n\tat com.example.Config.load(Config.java:42)"}"#;
+        let json2 = r#"{"timestamp":"2026-08-28T10:00:01Z","level":"INFO","message":"Processing request for user 12345"}"#;
+        let json3 = r#"{"timestamp":"2026-08-28T10:00:02Z","level":"INFO","message":"Response sent in 42ms"}"#;
+
+        let mut counter = 0;
+        let input_events: Vec<Event> = [json1, json2, json3]
+            .iter()
+            .map(|line| {
+                let mut le = LogEvent::from(*line);
+                le.insert("counter", counter);
+                counter += 1;
+                Event::Log(le)
+            })
+            .collect();
+
+        let in_stream = Box::pin(stream::iter(input_events));
+        let mut out_stream = detect_exceptions.transform_events(in_stream);
+
+        let output_1 = out_stream.next().await.unwrap().into_log();
+        assert_eq!(output_1["message"], json1.into());
+        assert_eq!(output_1["counter"], Value::from(0));
+
+        let output_2 = out_stream.next().await.unwrap().into_log();
+        assert_eq!(output_2["message"], json2.into());
+        assert_eq!(output_2["counter"], Value::from(1));
+
+        let output_3 = out_stream.next().await.unwrap().into_log();
+        assert_eq!(output_3["message"], json3.into());
+        assert_eq!(output_3["counter"], Value::from(2));
+    }
+
+    #[tokio::test]
+    async fn test_consecutive_exception_keyword_messages_not_merged() {
+        // LOG-9963: Multiple independent messages each containing exception
+        // keywords must be emitted as separate events, not merged.
+        let detect_exceptions = toml::from_str::<DetectExceptionsConfig>(
+            r#"
+languages = ["All"]
+"#,
+        )
+        .unwrap()
+        .build(&TransformContext::default())
+        .await
+        .unwrap();
+
+        let detect_exceptions = detect_exceptions.into_task();
+
+        let msg1 = "ConnectTimeoutException: connection to host timed out";
+        let msg2 = "RestException: upstream returned 503";
+        let msg3 = "IllegalArgumentException: parameter must not be null";
+        let msg4 = "Normal log message without exception keywords";
+
+        let mut counter = 0;
+        let input_events: Vec<Event> = [msg1, msg2, msg3, msg4]
+            .iter()
+            .map(|line| {
+                let mut le = LogEvent::from(*line);
+                le.insert("counter", counter);
+                counter += 1;
+                Event::Log(le)
+            })
+            .collect();
+
+        let in_stream = Box::pin(stream::iter(input_events));
+        let mut out_stream = detect_exceptions.transform_events(in_stream);
+
+        let output_1 = out_stream.next().await.unwrap().into_log();
+        assert_eq!(output_1["message"], msg1.into());
+        assert_eq!(output_1["counter"], Value::from(0));
+
+        let output_2 = out_stream.next().await.unwrap().into_log();
+        assert_eq!(output_2["message"], msg2.into());
+        assert_eq!(output_2["counter"], Value::from(1));
+
+        let output_3 = out_stream.next().await.unwrap().into_log();
+        assert_eq!(output_3["message"], msg3.into());
+        assert_eq!(output_3["counter"], Value::from(2));
+
+        let output_4 = out_stream.next().await.unwrap().into_log();
+        assert_eq!(output_4["message"], msg4.into());
+        assert_eq!(output_4["counter"], Value::from(3));
+    }
+
+    #[tokio::test]
+    async fn test_real_exception_still_grouped_after_json_fix() {
+        // Verify that removing the catch-all does not break grouping of
+        // real multi-line exceptions (standard indented stack traces).
+        let detect_exceptions = toml::from_str::<DetectExceptionsConfig>(
+            r#"
+languages = ["Java"]
+"#,
+        )
+        .unwrap()
+        .build(&TransformContext::default())
+        .await
+        .unwrap();
+
+        let detect_exceptions = detect_exceptions.into_task();
+
+        let exception = "\
+java.lang.NullPointerException: null
+    at com.example.MyClass.myMethod(MyClass.java:42)
+    at com.example.Main.main(Main.java:10)";
+        let normal_log_1 = "Application started successfully";
+        let exception_keyword_log = "JobException: scheduled task failed";
+        let normal_log_2 = "Shutting down gracefully";
+
+        let lines = format!(
+            "{}\n{}\n{}\n{}",
+            exception, normal_log_1, exception_keyword_log, normal_log_2
+        );
+
+        let mut counter = 0;
+        let input_events: Vec<Event> = lines
+            .split("\n")
+            .map(|line| {
+                let mut le = LogEvent::from(line);
+                le.insert("counter", counter);
+                counter += 1;
+                Event::Log(le)
+            })
+            .collect();
+
+        let in_stream = Box::pin(stream::iter(input_events));
+        let mut out_stream = detect_exceptions.transform_events(in_stream);
+
+        // The real exception (3 lines) must still be grouped.
+        let output_1 = out_stream.next().await.unwrap().into_log();
+        assert_eq!(output_1["message"], exception.into());
+        assert_eq!(output_1["counter"], Value::from(0));
+
+        // Each subsequent line is its own event.
+        let output_2 = out_stream.next().await.unwrap().into_log();
+        assert_eq!(output_2["message"], normal_log_1.into());
+        assert_eq!(output_2["counter"], Value::from(3));
+
+        let output_3 = out_stream.next().await.unwrap().into_log();
+        assert_eq!(output_3["message"], exception_keyword_log.into());
+        assert_eq!(output_3["counter"], Value::from(4));
+
+        let output_4 = out_stream.next().await.unwrap().into_log();
+        assert_eq!(output_4["message"], normal_log_2.into());
+        assert_eq!(output_4["counter"], Value::from(5));
+    }
 }

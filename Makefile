@@ -752,7 +752,7 @@ clippy-fix:
 
 .PHONY: fmt
 fmt:
-	${MAYBE_ENVIRONMENT_EXEC} $(VDEV) fmt
+	cargo fmt --all
 
 .PHONY: build-licenses
 build-licenses:
