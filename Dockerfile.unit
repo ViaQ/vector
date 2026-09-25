@@ -32,7 +32,9 @@ COPY . /src
 RUN /src/scripts/environment/install-protoc.sh
 
 # Initialize git repository for build scripts that need git metadata
+# Remove minimal .git from build context first to avoid reinit issues
 RUN cd /src && \
+    rm -rf .git && \
     git init && \
     git config user.email "ci@redhat.com" && \
     git config user.name "CI" && \

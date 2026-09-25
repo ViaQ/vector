@@ -1,4 +1,11 @@
-use std::{collections::HashSet, env, fs::File, io::Write, path::Path, process::Command};
+use std::{
+    collections::HashSet,
+    env,
+    fs::File,
+    io::{Read, Write},
+    path::Path,
+    process::Command,
+};
 
 struct TrackedEnv {
     tracked: HashSet<String>,
@@ -91,17 +98,49 @@ impl BuildConstants {
     }
 }
 
-fn git_short_hash() -> std::io::Result<String> {
-    let output_result = Command::new("git")
+fn git_short_hash() -> Option<String> {
+    // 1. Try running git command (normal case - local builds with full .git)
+    if let Ok(output) = Command::new("git")
         .args(["rev-parse", "--short", "HEAD"])
-        .output();
-
-    output_result.map(|output| {
-        let mut hash = String::from_utf8(output.stdout).expect("valid UTF-8");
+        .output()
+        && output.status.success()
+        && let Ok(mut hash) = String::from_utf8(output.stdout)
+    {
         hash.retain(|c| !c.is_ascii_whitespace());
+        if !hash.is_empty() {
+            return Some(hash);
+        }
+    }
 
-        hash
-    })
+    // 2. Try GIT_COMMIT environment variable (set by Makefile)
+    if let Ok(commit) = env::var("GIT_COMMIT") {
+        let trimmed = commit.trim().to_string();
+        if !trimmed.is_empty() {
+            return Some(trimmed);
+        }
+    }
+
+    // 3. Fallback: read directly from .git files (Docker builds with minimal .git)
+    if let Ok(mut head_file) = File::open(".git/HEAD") {
+        let mut head_content = String::new();
+        if head_file.read_to_string(&mut head_content).is_ok() {
+            // Parse "ref: refs/heads/branch-name"
+            if let Some(ref_path) = head_content.trim().strip_prefix("ref: ") {
+                let commit_file_path = format!(".git/{}", ref_path);
+                if let Ok(mut commit_file) = File::open(&commit_file_path) {
+                    let mut commit_sha = String::new();
+                    if commit_file.read_to_string(&mut commit_sha).is_ok() {
+                        let short_hash = commit_sha.trim().chars().take(10).collect::<String>();
+                        if !short_hash.is_empty() {
+                            return Some(short_hash);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    None
 }
 
 fn main() {
@@ -192,18 +231,11 @@ fn main() {
 
     // Get the git short hash of the HEAD.
     // Note that if Vector is compiled within a container, proper git permissions must be set for
-    // the repo directory.
+    // the repo directory, or GIT_COMMIT environment variable should be passed (recommended for Docker builds).
     // In CI build workflows this will have been pre-configured by running the command
     // "git config --global --add safe.directory /git/vectordotdev/vector", from the vdev package
     // subcommands.
-    let git_short_hash = git_short_hash()
-        .map_err(|e| {
-            #[allow(clippy::print_stderr)]
-            {
-                eprintln!("Unable to determine git short hash from rev-parse command: {e}");
-            }
-        })
-        .expect("git hash detection failed");
+    let git_short_hash = git_short_hash();
 
     // Gather up the constants and write them out to our build constants file.
     let mut constants = BuildConstants::new();
@@ -249,7 +281,7 @@ fn main() {
         "Special build description, related to versioned releases.",
         build_desc,
     );
-    constants.add_required_constant(
+    constants.add_optional_constant(
         "GIT_SHORT_HASH",
         "The short hash of the Git HEAD",
         git_short_hash,

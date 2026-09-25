@@ -16,6 +16,7 @@ impl InternalEvent for VectorStarted {
             version = built_info::PKG_VERSION,
             arch = built_info::TARGET_ARCH,
             revision = built_info::VECTOR_BUILD_DESC.unwrap_or(""),
+            git_commit = built_info::GIT_SHORT_HASH,
         );
         counter!("started_total").increment(1);
     }
