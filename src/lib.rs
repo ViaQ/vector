@@ -165,7 +165,7 @@ pub fn vector_version() -> impl std::fmt::Display {
             format!(
                 "{}-custom-{}",
                 built_info::PKG_VERSION,
-                built_info::GIT_SHORT_HASH
+                built_info::GIT_SHORT_HASH.unwrap_or("unknown")
             )
         }
         _ => built_info::PKG_VERSION.to_string(),

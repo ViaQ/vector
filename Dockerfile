@@ -27,7 +27,24 @@ RUN mkdir -p /src
 WORKDIR /src
 COPY . /src
 
-RUN PROTOC=/src/thirdparty/protoc/protoc-linux-$(arch) make build
+ARG GIT_COMMIT
+RUN export GIT_COMMIT="${GIT_COMMIT:-}"; \
+    if [ -z "${GIT_COMMIT}" ] && [ -f .git/HEAD ]; then \
+      HEAD_CONTENT=$(cat .git/HEAD | tr -d '\n'); \
+      case "${HEAD_CONTENT}" in \
+        ref:*) \
+          REF_PATH="${HEAD_CONTENT#ref: }"; \
+          if [ -f ".git/${REF_PATH}" ]; then \
+            GIT_COMMIT=$(cut -c1-10 ".git/${REF_PATH}"); \
+          elif [ -f .git/packed-refs ]; then \
+            GIT_COMMIT=$(grep " ${REF_PATH}$" .git/packed-refs | cut -c1-10 || true); \
+          fi ;; \
+        *) \
+          GIT_COMMIT=$(echo "${HEAD_CONTENT}" | cut -c1-10) ;; \
+      esac; \
+      export GIT_COMMIT; \
+    fi && \
+    PROTOC=/src/thirdparty/protoc/protoc-linux-$(arch) make build
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal
 
