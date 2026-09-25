@@ -195,6 +195,7 @@ check-bans:
 .PHONY: build
 build: check-build-tools
 build: export CFLAGS += -g0 -O3
+build: export GIT_COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null)
 build: ## Build the project in release mode (Supports `ENVIRONMENT=true`)
 	if [ "$(shell arch)" = "ppc64le" ]; then export CARGO_PROFILE_RELEASE_OPT_LEVEL=2; fi
 	${MAYBE_ENVIRONMENT_EXEC} cargo build --release --no-default-features --features ${FEATURES}
@@ -203,6 +204,7 @@ build: ## Build the project in release mode (Supports `ENVIRONMENT=true`)
 .PHONY: build-offline
 build-offline: check-build-tools
 build-offline: export CFLAGS += -g0 -O3
+build-offline: export GIT_COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null)
 build-offline: ## Build the project in release mode (Supports `ENVIRONMENT=true`)
 	if [ "$(shell arch)" = "ppc64le" ]; then export CARGO_PROFILE_RELEASE_OPT_LEVEL=2; fi
 	${MAYBE_ENVIRONMENT_EXEC} cargo build --release --no-default-features --features ${FEATURES} --offline
@@ -624,6 +626,25 @@ package-rpm-aarch64: package-aarch64-unknown-linux-gnu ## Build the aarch64 rpm 
 .PHONY: package-rpm-armv7hl-gnu
 package-rpm-armv7hl-gnu: package-armv7-unknown-linux-gnueabihf ## Build the armv7hl-unknown-linux-gnueabihf rpm package
 	$(CONTAINER_TOOL) run -v  $(PWD):/git/vectordotdev/vector/ -e TARGET=armv7-unknown-linux-gnueabihf -e ARCH=armv7hl -e VECTOR_VERSION $(ENVIRONMENT_UPSTREAM) cargo vdev package rpm
+
+##@ Docker
+
+# Detect platform for Docker builds
+ifeq ($(shell uname),Darwin)
+    DOCKER_PLATFORM := --platform linux/amd64
+else
+    DOCKER_PLATFORM :=
+endif
+
+IMAGE_NAME ?= quay.io/openshift-logging/vector
+IMAGE_TAG ?= $(shell git rev-parse --abbrev-ref HEAD)
+
+.PHONY: image
+image: ## Build container image for local development (auto-detects platform)
+	podman build $(DOCKER_PLATFORM) \
+		-t $(IMAGE_NAME):$(IMAGE_TAG) \
+		-t $(IMAGE_NAME):latest \
+		-f Dockerfile .
 
 ##@ Releasing
 

@@ -15,4 +15,9 @@
 !thirdparty
 !patch
 !.cargo
+# Include minimal .git metadata for build.rs to detect git commit SHA
+# (~208KB total - needed for docker builds to include git_commit in startup log)
+!.git/HEAD
+!.git/refs/heads
+!.git/packed-refs
 !deny.toml
