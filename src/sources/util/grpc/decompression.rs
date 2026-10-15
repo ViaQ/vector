@@ -1,6 +1,6 @@
 use std::{
     cmp,
-    io::Write,
+    io::{self, Write},
     mem,
     pin::Pin,
     task::{Context, Poll},
@@ -23,6 +23,7 @@ use vector_lib::internal_event::{
 };
 
 use crate::internal_events::{GrpcError, GrpcInvalidCompressionSchemeError};
+use crate::sources::util::decompression::max_decompressed_size;
 
 // Every gRPC message has a five byte header:
 // - a compressed flag (u8, 0/1 for compressed/decompressed)
@@ -81,12 +82,51 @@ enum State {
     },
 }
 
-fn new_decompressor() -> GzDecoder<Vec<u8>> {
+/// A Write sink that appends to a Vec but refuses to grow past max_len.
+struct LimitedWriter {
+    buf: Vec<u8>,
+    max_len: usize,
+}
+
+impl LimitedWriter {
+    const fn new(buf: Vec<u8>, max_len: usize) -> Self {
+        Self { buf, max_len }
+    }
+
+    fn into_inner(self) -> Vec<u8> {
+        self.buf
+    }
+}
+
+impl Write for LimitedWriter {
+    fn write(&mut self, data: &[u8]) -> io::Result<usize> {
+        if self.buf.len().saturating_add(data.len()) > self.max_len {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "decompressed message exceeds the maximum allowed size",
+            ));
+        }
+        self.buf.extend_from_slice(data);
+        Ok(data.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
+fn new_decompressor() -> GzDecoder<LimitedWriter> {
     // Create the backing buffer for the decompressor and set the compression flag to false (0) and pre-allocate
     // the space for the length prefix, which we'll fill out once we've finalized the decompressor.
     let buf = vec![0; GRPC_MESSAGE_HEADER_LEN];
+    let limit = max_decompressed_size();
 
-    GzDecoder::new(buf)
+    // The gzip output buffer already holds the 5-byte header, so the sink may grow to the
+    // header plus the decompressed cap; anything larger errors mid-decompression.
+    GzDecoder::new(LimitedWriter::new(
+        buf,
+        GRPC_MESSAGE_HEADER_LEN.saturating_add(limit),
+    ))
 }
 
 async fn drive_body_decompression(
@@ -134,6 +174,25 @@ async fn drive_body_decompression(
                     // decompressor incrementally because there's no good reason to make both the internal buffer and
                     // the decompressor buffer expand if we don't have to.
                     if is_compressed {
+                        // Reject a compressed payload whose declared wire size could not
+                        // legitimately decompress within the cap. This prevents buffering
+                        // a large compressed payload before decompression.
+                        let limit = max_decompressed_size();
+                        // Use zlib's worst-case expansion (13.5% + 11 bytes) as a conservative
+                        // bound for gzip compressed frame size.
+                        let compressed_frame_limit = (limit as u64)
+                            .saturating_mul(1135)
+                            .saturating_div(1000)
+                            .saturating_add(11)
+                            .saturating_add(22)
+                            as usize; // Add gzip frame overhead slack
+
+                        if message_len > compressed_frame_limit {
+                            return Err(Status::out_of_range(
+                                "compressed message length exceeds the maximum allowed size",
+                            ));
+                        }
+
                         // We skip the header in the buffer because it doesn't matter to the decompressor and we
                         // recreate it anyways.
                         buf.advance(GRPC_MESSAGE_HEADER_LEN);
@@ -142,6 +201,15 @@ async fn drive_body_decompression(
                             remaining: message_len,
                         };
                     } else {
+                        // Reject an identity (uncompressed) message larger than the cap before
+                        // buffering it.
+                        let limit = max_decompressed_size();
+                        if message_len > limit {
+                            return Err(Status::out_of_range(
+                                "message length exceeds the maximum allowed size",
+                            ));
+                        }
+
                         let overall_len = GRPC_MESSAGE_HEADER_LEN + message_len;
                         state = State::Forward { overall_len };
                     }
@@ -174,8 +242,14 @@ async fn drive_body_decompression(
                             // asynchronously since we already have the data, and that's the only asynchronous part.
                             let to_take = cmp::min(available, *remaining);
                             let decompressor = decompressor.get_or_insert_with(new_decompressor);
-                            if decompressor.write_all(&buf[..to_take]).is_err() {
-                                return Err(Status::internal("failed to write to decompressor"));
+                            if let Err(error) = decompressor.write_all(&buf[..to_take]) {
+                                if error.kind() == io::ErrorKind::InvalidData {
+                                    return Err(Status::out_of_range(error.to_string()));
+                                } else {
+                                    return Err(Status::internal(
+                                        "failed to write to decompressor",
+                                    ));
+                                }
                             }
 
                             *remaining -= to_take;
@@ -191,13 +265,14 @@ async fn drive_body_decompression(
                             .expect("consumed decompressor when no decompressor was present")
                             .finish();
 
-                        // The only I/O errors that occur during `finish` should be I/O errors from writing to the internal
-                        // buffer, but `Vec<T>` is infallible in this regard, so this should be impossible without having
-                        // first panicked due to memory exhaustion.
-                        let mut buf = result.map_err(|_| {
-                            Status::internal(
-                                "reached impossible error during decompressor finalization",
-                            )
+                        // Decompression can fail here either because the payload exceeded the size
+                        // cap (an oversized-request client fault) or during finalization for malformed input.
+                        let mut buf = result.map(LimitedWriter::into_inner).map_err(|error| {
+                            if error.kind() == io::ErrorKind::InvalidData {
+                                Status::out_of_range(error.to_string())
+                            } else {
+                                Status::internal("error during decompressor finalization")
+                            }
                         })?;
                         bytes_received += buf.len();
 
