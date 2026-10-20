@@ -171,6 +171,10 @@ pub struct TlsConfig {
     /// The curves are specified as a colon-separated list of curve names.
     ///
     /// Common curve names include: prime256v1, secp384r1, secp521r1, X25519, X448.
+    ///
+    /// Groups that are unavailable to the active OpenSSL providers (the post-quantum
+    /// hybrid groups under the FIPS provider, for example) are dropped with a warning
+    /// rather than causing a startup failure.
     #[configurable(metadata(docs::examples = "prime256v1:secp384r1"))]
     pub curves: Option<String>,
 }
@@ -362,9 +366,12 @@ impl TlsSettings {
             }
         }
 
-        // Configure curves if specified
+        // Configure curves if specified. Group preferences are a preference
+        // rather than a requirement, so groups unavailable to the active
+        // OpenSSL providers (the post-quantum hybrid groups under the FIPS
+        // provider, for example) are dropped instead of failing the context.
         if let Some(ref curves) = self.curves {
-            context.set_groups_list(curves).context(SetCurvesSnafu)?;
+            set_groups_list_leniently(context, curves)?;
         }
 
         Ok(())
@@ -402,6 +409,58 @@ fn intern_alpn_protocols(protocols: &[u8]) -> &'static [u8] {
     let leaked: &'static [u8] = Box::leak(protocols.to_vec().into_boxed_slice());
     interned.insert(protocols.to_vec(), leaked);
     leaked
+}
+
+/// Applies a colon-separated TLS groups list to `context`, dropping the
+/// groups that are unavailable to the active OpenSSL providers instead of
+/// failing.
+///
+/// `SSL_CTX_set1_groups_list` is all-or-nothing: it fails when any group in
+/// the list is not offered by the active providers, so a single
+/// configured-but-unavailable group would keep the whole component from
+/// starting. TLS group lists are a preference, so on failure each group is
+/// probed individually and only the available ones are kept, falling back to
+/// the provider defaults when none are.
+fn set_groups_list_leniently(context: &mut SslContextBuilder, curves: &str) -> Result<()> {
+    if context.set_groups_list(curves).is_ok() {
+        return Ok(());
+    }
+
+    let mut available = Vec::new();
+    let mut unavailable = Vec::new();
+    for group in curves.split(':') {
+        // Skip empty entries so a stray separator cannot fail every probe.
+        if group.is_empty() {
+            continue;
+        }
+        if context.set_groups_list(group).is_ok() {
+            available.push(group);
+        } else {
+            unavailable.push(group);
+        }
+    }
+
+    if available.is_empty() {
+        warn!(
+            "None of the configured TLS groups {} are available to the active OpenSSL \
+             providers, falling back to the provider default groups.",
+            curves
+        );
+        return Ok(());
+    }
+
+    if !unavailable.is_empty() {
+        warn!(
+            "Dropping TLS groups unavailable to the active OpenSSL providers: {}, \
+             continuing with: {}.",
+            unavailable.join(":"),
+            available.join(":")
+        );
+    }
+
+    context
+        .set_groups_list(&available.join(":"))
+        .context(SetCurvesSnafu)
 }
 
 impl TlsConfig {
@@ -1020,5 +1079,61 @@ mod test {
         settings
             .apply_context(&mut builder)
             .expect("Failed to apply context with curves");
+    }
+
+    #[test]
+    fn from_options_with_curves_unavailable_to_providers() {
+        use openssl::ssl::SslConnector;
+
+        let options = TlsConfig {
+            curves: Some("prime256v1:NOTAREALGROUP:secp384r1".to_string()),
+            ..Default::default()
+        };
+        let settings = TlsSettings::from_options(Some(&options)).expect("Failed to parse curves");
+
+        // A group unavailable to the active OpenSSL providers (the
+        // post-quantum hybrid groups under the FIPS provider, for example)
+        // must be dropped rather than fail the context.
+        let mut builder =
+            SslConnector::builder(SslMethod::tls()).expect("Failed to create SSL builder");
+        settings
+            .apply_context(&mut builder)
+            .expect("Failed to apply context with unavailable curves");
+    }
+
+    #[test]
+    fn from_options_with_no_curves_available_to_providers() {
+        use openssl::ssl::SslConnector;
+
+        let options = TlsConfig {
+            curves: Some("NOTAREALGROUP:ALSONOTREALGROUP".to_string()),
+            ..Default::default()
+        };
+        let settings = TlsSettings::from_options(Some(&options)).expect("Failed to parse curves");
+
+        // When no configured group is available the provider defaults are
+        // kept rather than failing the context.
+        let mut builder =
+            SslConnector::builder(SslMethod::tls()).expect("Failed to create SSL builder");
+        settings
+            .apply_context(&mut builder)
+            .expect("Failed to apply context without any available curves");
+    }
+
+    #[test]
+    fn acceptor_with_curves_unavailable_to_providers() {
+        let options = TlsConfig {
+            crt_file: Some(TEST_PEM_CRT_PATH.into()),
+            key_file: Some(TEST_PEM_KEY_PATH.into()),
+            curves: Some("prime256v1:NOTAREALGROUP:secp384r1".to_string()),
+            ..Default::default()
+        };
+        let settings =
+            TlsSettings::from_options_base(Some(&options), true).expect("Failed to parse options");
+
+        // The server-side acceptor must tolerate unavailable groups too.
+        settings
+            .acceptor()
+            .expect("Failed to build acceptor with unavailable curves");
     }
 }
