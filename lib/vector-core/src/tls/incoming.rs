@@ -42,7 +42,10 @@ impl TlsSettings {
                     SslMethod::tls(),
                     &self.min_tls_version,
                     &self.ciphersuites,
-                    &self.curves,
+                    // Curves are applied by `apply_context_base` below, which
+                    // drops groups unavailable to the active OpenSSL
+                    // providers instead of failing the acceptor.
+                    &None,
                 )
                 .map_err(|e| match e {
                     openssl::ssl::ErrorEx::OpenSslError { error_stack } => {
