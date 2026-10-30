@@ -504,6 +504,10 @@ zstd = { version = "0.13.0", default-features = false }
 ntapi = { git = "https://github.com/MSxDOS/ntapi.git", rev = "24fc1e47677fc9f6e38e5f154e6011dc9b270da6" }
 openssl = { path = "patch/openssl" }
 hyper = { path = "patch/hyper" }
+# rustls-webpki 0.102.8 fork with the emSign distrusted-SPKI rejection backported
+# from upstream 0.103.16 (bz#2561996). The 0.101/0.102 lines have no upstream
+# fixed release; this covers the copy reachable through tonic/OTLP TLS.
+rustls-webpki = { path = "patch/rustls-webpki-0.102" }
 
 [features]
 ocp-logging = [
