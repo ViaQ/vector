@@ -1,25 +1,12 @@
 #![allow(dead_code)] // TODO requires optional feature compilation
 
-use std::borrow::Cow;
-
 use metrics::counter;
 use vector_lib::NamedInternalEvent;
 use vector_lib::internal_event::{
     ComponentEventsDropped, InternalEvent, UNINTENTIONAL, error_stage, error_type,
 };
 
-fn truncate_string_at(s: &str, maxlen: usize) -> Cow<'_, str> {
-    let ellipsis: &str = "[...]";
-    if s.len() >= maxlen {
-        let mut len = maxlen - ellipsis.len();
-        while !s.is_char_boundary(len) {
-            len -= 1;
-        }
-        format!("{}{}", &s[..len], ellipsis).into()
-    } else {
-        s.into()
-    }
-}
+pub use vector_lib::file_source_common::truncate_string_at;
 
 #[derive(Debug, NamedInternalEvent)]
 pub struct ParserMatchError<'a> {

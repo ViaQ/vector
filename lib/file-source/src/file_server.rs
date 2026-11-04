@@ -8,9 +8,11 @@ use std::{
 
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
+use codecs::OversizedAction;
 use file_source_common::{
     FileFingerprint, FileSourceInternalEvents, Fingerprinter, ReadFrom,
     checkpointer::{Checkpointer, CheckpointsView},
+    truncate_bytes_for_size,
 };
 use futures::{
     Future, Sink, SinkExt,
@@ -50,6 +52,7 @@ where
     pub read_from: ReadFrom,
     pub ignore_before: Option<DateTime<Utc>>,
     pub max_line_bytes: usize,
+    pub max_line_bytes_action: OversizedAction,
     pub line_delimiter: Bytes,
     pub data_dir: PathBuf,
     pub glob_minimum_cooldown: Duration,
@@ -294,13 +297,45 @@ where
                     discarded_for_size_and_truncated,
                 }) = watcher.read_line().await
                 {
-                    discarded_for_size_and_truncated.iter().for_each(|buf| {
-                        self.emitter.emit_file_line_too_long(
-                            &buf.clone(),
-                            self.max_line_bytes,
-                            buf.len(),
-                        )
-                    });
+                    for discarded in discarded_for_size_and_truncated {
+                        match self.max_line_bytes_action {
+                            OversizedAction::Drop => {
+                                self.emitter.emit_file_line_too_long(
+                                    &discarded.sample,
+                                    self.max_line_bytes,
+                                    discarded.original_size,
+                                );
+                            }
+                            OversizedAction::Truncate => {
+                                let file_path =
+                                    watcher.path.to_str().expect("not a valid path").to_owned();
+                                // Truncate bytes directly without lossy UTF-8 conversion
+                                let truncated_bytes =
+                                    truncate_bytes_for_size(&discarded.sample, self.max_line_bytes);
+                                let truncated_len = truncated_bytes.len();
+                                self.emitter.emit_file_line_truncated(
+                                    discarded.original_size,
+                                    truncated_len,
+                                    self.max_line_bytes,
+                                    file_path.clone(),
+                                );
+                                lines.push(Line {
+                                    text: Bytes::from(truncated_bytes),
+                                    filename: file_path,
+                                    file_id,
+                                    // start_offset: line starts at current_position - original_size.
+                                    // Note: original_size is the line content (before the delimiter was
+                                    // consumed), so this correctly points to the start of the oversized
+                                    // line. The delimiter is tracked separately in `position` updates.
+                                    start_offset: watcher
+                                        .get_file_position()
+                                        .saturating_sub(discarded.original_size as u64),
+                                    end_offset: watcher.get_file_position(),
+                                });
+                                bytes_read += truncated_len;
+                            }
+                        }
+                    }
 
                     let sz = line.bytes.len();
                     trace!(
@@ -469,6 +504,7 @@ where
             read_from,
             self.ignore_before,
             self.max_line_bytes,
+            self.max_line_bytes_action,
             self.line_delimiter.clone(),
         )
         .await

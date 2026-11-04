@@ -10,7 +10,7 @@ use tokio::sync::oneshot;
 use tracing::{Instrument, Span};
 use vector_lib::{
     EstimatedJsonEncodedSizeOf,
-    codecs::{BytesDeserializer, BytesDeserializerConfig},
+    codecs::{BytesDeserializer, BytesDeserializerConfig, OversizedAction},
     config::{LegacyKey, LogNamespace},
     configurable::configurable_component,
     file_source::{
@@ -115,6 +115,11 @@ pub struct FileConfig {
     #[serde(default = "default_max_line_bytes")]
     #[configurable(metadata(docs::type_unit = "bytes"))]
     pub max_line_bytes: usize,
+
+    /// Action to take when a line exceeds `max_line_bytes`.
+    #[serde(default)]
+    #[configurable(derived)]
+    pub max_line_bytes_action: OversizedAction,
 
     /// Overrides the name of the log field used to add the current hostname to each event.
     ///
@@ -365,6 +370,7 @@ impl Default for FileConfig {
             read_from: default_read_from(),
             ignore_older_secs: None,
             max_line_bytes: default_max_line_bytes(),
+            max_line_bytes_action: OversizedAction::default(),
             fingerprint: FingerprintConfig::default(),
             ignore_not_found: false,
             host_key: None,
@@ -541,6 +547,7 @@ pub fn file_source(
         read_from,
         ignore_before,
         max_line_bytes: config.max_line_bytes,
+        max_line_bytes_action: config.max_line_bytes_action,
         line_delimiter: line_delimiter_as_bytes,
         data_dir,
         glob_minimum_cooldown,

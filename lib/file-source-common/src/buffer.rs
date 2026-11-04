@@ -5,9 +5,17 @@ use bstr::Finder;
 use bytes::BytesMut;
 use tokio::io::{AsyncBufRead, AsyncBufReadExt};
 
+#[derive(Debug)]
+pub struct DiscardedLine {
+    /// The true original size of the oversized line (all bytes before the delimiter).
+    pub original_size: usize,
+    /// The sample retained for error reporting or truncation (up to `retain_cap` bytes).
+    pub sample: BytesMut,
+}
+
 pub struct ReadResult {
     pub successfully_read: Option<usize>,
-    pub discarded_for_size_and_truncated: Vec<BytesMut>,
+    pub discarded_for_size_and_truncated: Vec<DiscardedLine>,
 }
 
 /// Read up to `max_size` bytes from `reader`, splitting by `delim`
@@ -39,6 +47,7 @@ pub async fn read_until_with_max_size<'a, R: AsyncBufRead + ?Sized + Unpin>(
     delim: &'a [u8],
     buf: &'a mut BytesMut,
     max_size: usize,
+    retain_cap: usize,
 ) -> io::Result<ReadResult> {
     let mut total_read = 0;
     let mut discarding = false;
@@ -179,11 +188,17 @@ pub async fn read_until_with_max_size<'a, R: AsyncBufRead + ?Sized + Unpin>(
         total_read += used;
 
         if !discarding && buf.len() > max_size {
-            // keep only the first <1k bytes to make sure we can actually emit a usable error
-            let length_to_keep = min(1000, max_size);
-            let mut truncated: BytesMut = BytesMut::zeroed(length_to_keep);
-            truncated.copy_from_slice(&buf[0..length_to_keep]);
-            discarded_for_size_and_truncated.push(truncated);
+            // Keep only up to `retain_cap` bytes so we can emit a usable error message
+            // (`Drop`) or a truncated line (`Truncate`) without holding the whole oversized
+            // line in memory. But track the true original size for accurate telemetry.
+            let original_size = buf.len();
+            let length_to_keep = min(retain_cap, buf.len());
+            let mut sample: BytesMut = BytesMut::zeroed(length_to_keep);
+            sample.copy_from_slice(&buf[0..length_to_keep]);
+            discarded_for_size_and_truncated.push(DiscardedLine {
+                original_size,
+                sample,
+            });
             discarding = true;
         }
 
@@ -298,6 +313,7 @@ mod test {
                 &mut position,
                 &delimiter,
                 &mut buffer,
+                max_size.get() as usize,
                 max_size.get() as usize,
             )
             .await
@@ -430,6 +446,7 @@ mod test {
                 delimiter,
                 &mut buffer,
                 max_size,
+                max_size,
             )
             .await
             .unwrap();
@@ -476,5 +493,45 @@ mod test {
     #[tokio::test]
     async fn test_five_byte_delimiter_boundary() {
         test_delimiter_boundary_split_helper(b"<<>>>", 5).await;
+    }
+
+    #[tokio::test]
+    async fn retain_cap_controls_how_much_of_an_oversized_line_is_kept() {
+        // Regression test: the retained sample for an oversized line must be
+        // governed by the caller-supplied `retain_cap`, not a hardcoded
+        // constant. This is what lets `max_line_bytes_action = "truncate"`
+        // retain up to `max_line_bytes`, instead of being capped far below it.
+        let max_size = 10;
+        let retain_cap = 25;
+        let line: &[u8] = b"this line is definitely too long";
+        // A trailing short line ensures the call has something valid to
+        // return after resolving the oversized line's discard.
+        let mut data = Vec::new();
+        data.extend_from_slice(line);
+        data.extend_from_slice(b"\nok\n");
+
+        let cursor = Cursor::new(data);
+        let mut reader = BufReader::new(cursor);
+        let mut position: u64 = 0;
+        let mut buf = BytesMut::new();
+
+        let result = read_until_with_max_size(
+            Box::pin(&mut reader),
+            &mut position,
+            b"\n",
+            &mut buf,
+            max_size,
+            retain_cap,
+        )
+        .await
+        .unwrap();
+
+        assert!(result.successfully_read.is_some());
+        assert_eq!(buf.as_ref(), b"ok");
+        assert_eq!(result.discarded_for_size_and_truncated.len(), 1);
+        let discarded = &result.discarded_for_size_and_truncated[0];
+        assert_eq!(discarded.original_size, line.len());
+        assert_eq!(discarded.sample.len(), retain_cap);
+        assert_eq!(&discarded.sample[..], &line[..retain_cap]);
     }
 }
