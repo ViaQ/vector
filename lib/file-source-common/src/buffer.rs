@@ -5,9 +5,22 @@ use bstr::Finder;
 use bytes::BytesMut;
 use tokio::io::{AsyncBufRead, AsyncBufReadExt};
 
+#[derive(Debug)]
+pub struct DiscardedLine {
+    /// The true original size of the oversized line (all bytes before the delimiter).
+    pub original_size: usize,
+    /// The sample retained for error reporting or truncation (up to `retain_cap` bytes).
+    pub sample: BytesMut,
+    /// Offset of the line's first byte in the file.
+    pub start_position: FilePosition,
+    /// Offset one past the line's delimiter, used for file checkpointing.
+    /// If the line is still being read, this tracks provisional progress.
+    pub end_position: FilePosition,
+}
+
 pub struct ReadResult {
     pub successfully_read: Option<usize>,
-    pub discarded_for_size_and_truncated: Vec<BytesMut>,
+    pub discarded_for_size_and_truncated: Vec<DiscardedLine>,
 }
 
 /// Read up to `max_size` bytes from `reader`, splitting by `delim`
@@ -39,18 +52,22 @@ pub async fn read_until_with_max_size<'a, R: AsyncBufRead + ?Sized + Unpin>(
     delim: &'a [u8],
     buf: &'a mut BytesMut,
     max_size: usize,
+    retain_cap: usize,
 ) -> io::Result<ReadResult> {
     let mut total_read = 0;
     let mut discarding = false;
     let delim_finder = Finder::new(delim);
     let delim_len = delim.len();
-    let mut discarded_for_size_and_truncated = Vec::new();
+    let mut discarded_for_size_and_truncated: Vec<DiscardedLine> = Vec::new();
     let mut reader = Box::new(reader);
-
-    // Used to track partial delimiter matches across buffer boundaries.
-    // Data is read in chunks from the reader (see `fill_buf` below).
-    // A multi-byte delimiter may be split across the "old" and "new" buffers.
-    // Any potential partial delimiter that was found in the "old" buffer is stored in this variable.
+    // Tracks line length (excluding delimiters). Continues counting even after
+    // `buf` stops growing when an oversized line is being discarded.
+    let mut line_bytes = buf.len();
+    // Start offset of the current line, accounting for any bytes carried over in `buf`.
+    let line_start_position = position.saturating_sub(line_bytes as u64);
+    // Index of the active oversized-line record whose size is still being tracked.
+    let mut pending_discard: Option<usize> = None;
+    // Buffers potential multi-byte delimiters that straddle reader chunk boundaries.
     let mut partial_delim: BytesMut = BytesMut::with_capacity(delim_len);
 
     loop {
@@ -79,6 +96,17 @@ pub async fn read_until_with_max_size<'a, R: AsyncBufRead + ?Sized + Unpin>(
                 total_read += expected_suffix_len;
                 partial_delim.clear();
 
+                if discarding {
+                    if let Some(idx) = pending_discard.take() {
+                        discarded_for_size_and_truncated[idx].end_position = *position;
+                    }
+                    buf.clear();
+                    return Ok(ReadResult {
+                        successfully_read: None,
+                        discarded_for_size_and_truncated,
+                    });
+                }
+
                 // Found a complete delimiter, return the current buffer so we can proceed with the
                 // next record after this delimiter in the next call.
                 return Ok(ReadResult {
@@ -91,6 +119,7 @@ pub async fn read_until_with_max_size<'a, R: AsyncBufRead + ?Sized + Unpin>(
                 if !discarding {
                     buf.extend_from_slice(&partial_delim);
                 }
+                line_bytes += partial_delim.len();
                 partial_delim.clear();
                 // Continue processing current available buffer
             }
@@ -102,6 +131,7 @@ pub async fn read_until_with_max_size<'a, R: AsyncBufRead + ?Sized + Unpin>(
                     if !discarding {
                         buf.extend_from_slice(&available[..i]);
                     }
+                    line_bytes += i;
                     (true, i + delim_len)
                 }
                 None => {
@@ -158,6 +188,7 @@ pub async fn read_until_with_max_size<'a, R: AsyncBufRead + ?Sized + Unpin>(
                     if !discarding && bytes_to_copy > 0 {
                         buf.extend_from_slice(&available[..bytes_to_copy]);
                     }
+                    line_bytes += bytes_to_copy;
 
                     // If we found a potential partial delimiter, save it for the next iteration
                     if partial_match_len > 0 {
@@ -179,12 +210,29 @@ pub async fn read_until_with_max_size<'a, R: AsyncBufRead + ?Sized + Unpin>(
         total_read += used;
 
         if !discarding && buf.len() > max_size {
-            // keep only the first <1k bytes to make sure we can actually emit a usable error
-            let length_to_keep = min(1000, max_size);
-            let mut truncated: BytesMut = BytesMut::zeroed(length_to_keep);
-            truncated.copy_from_slice(&buf[0..length_to_keep]);
-            discarded_for_size_and_truncated.push(truncated);
+            // Keep only up to `retain_cap` bytes so we can emit a usable error message
+            // (`Drop`) or a truncated line (`Truncate`) without holding the whole oversized
+            // line in memory. But track the true original size for accurate telemetry.
+            let length_to_keep = min(retain_cap, buf.len());
+            let mut sample: BytesMut = BytesMut::zeroed(length_to_keep);
+            sample.copy_from_slice(&buf[0..length_to_keep]);
+            discarded_for_size_and_truncated.push(DiscardedLine {
+                original_size: line_bytes,
+                sample,
+                start_position: line_start_position,
+                end_position: *position,
+            });
+            pending_discard = Some(discarded_for_size_and_truncated.len() - 1);
             discarding = true;
+        }
+
+        // Continuously update the active discarded line's size and positions
+        // to ensure accurate tracking across reader chunk boundaries.
+        if let Some(idx) = pending_discard {
+            let pending = &mut discarded_for_size_and_truncated[idx];
+            pending.original_size = line_bytes;
+            pending.start_position = line_start_position;
+            pending.end_position = *position;
         }
 
         if done {
@@ -194,14 +242,19 @@ pub async fn read_until_with_max_size<'a, R: AsyncBufRead + ?Sized + Unpin>(
                     discarded_for_size_and_truncated,
                 });
             } else {
-                discarding = false;
                 buf.clear();
+                return Ok(ReadResult {
+                    successfully_read: None,
+                    discarded_for_size_and_truncated,
+                });
             }
         } else if used == 0 && at_eof {
-            // We've hit EOF but haven't seen a delimiter. This can happen when:
-            // 1. The file ends without a trailing delimiter
-            // 2. We're observing an incomplete write
-            //
+            // Drop provisional oversized lines if we hit EOF before a delimiter.
+            // This prevents double-counting and caller spinning; bytes remain in `buf`.
+            if let Some(idx) = pending_discard.take() {
+                discarded_for_size_and_truncated.remove(idx);
+            }
+
             // Return None to signal the caller to retry later.
             return Ok(ReadResult {
                 successfully_read: None,
@@ -220,7 +273,44 @@ mod test {
     use tokio::io::BufReader;
 
     use super::read_until_with_max_size;
-    use crate::buffer::ReadResult;
+    use crate::buffer::DiscardedLine;
+
+    /// Drives `read_until_with_max_size` until a valid line or EOF is reached,
+    /// collecting any oversized-line records yielded along the way.
+    /// Returns `true` if a valid line was produced.
+    async fn read_one_line<R: tokio::io::AsyncBufRead + ?Sized + Unpin>(
+        reader: &mut R,
+        position: &mut u64,
+        delim: &[u8],
+        buf: &mut BytesMut,
+        max_size: usize,
+        retain_cap: usize,
+    ) -> (bool, Vec<DiscardedLine>) {
+        let mut discarded = Vec::new();
+        loop {
+            let result = read_until_with_max_size(
+                Box::pin(&mut *reader),
+                position,
+                delim,
+                buf,
+                max_size,
+                retain_cap,
+            )
+            .await
+            .unwrap();
+
+            let yielded_discard = !result.discarded_for_size_and_truncated.is_empty();
+            discarded.extend(result.discarded_for_size_and_truncated);
+
+            if result.successfully_read.is_some() {
+                return (true, discarded);
+            }
+            // No line and nothing discarded means the reader is genuinely stuck at EOF.
+            if !yielded_discard {
+                return (false, discarded);
+            }
+        }
+    }
 
     async fn qc_inner(chunks: Vec<Vec<u8>>, delim: u8, max_size: NonZeroU8) -> TestResult {
         // The `global_data` is the view of `chunks` as a single contiguous
@@ -293,47 +383,41 @@ mod test {
         for (idx, chunk) in chunks.iter().enumerate() {
             let mut reader = BufReader::new(Cursor::new(&chunk));
 
-            match read_until_with_max_size(
-                Box::pin(&mut reader),
+            let position_before = position;
+            let (read_line, _discarded) = read_one_line(
+                &mut reader,
                 &mut position,
                 &delimiter,
                 &mut buffer,
                 max_size.get() as usize,
+                max_size.get() as usize,
             )
-            .await
-            .unwrap()
-            {
-                ReadResult {
-                    successfully_read: None,
-                    discarded_for_size_and_truncated: _,
-                } => {
-                    // Subject only returns None if this is the last chunk _and_
-                    // the chunk did not contain a delimiter _or_ the delimiter
-                    // was outside the max_size range _or_ the current chunk is empty.
-                    let has_valid_delimiter = facts
-                        .iter()
-                        .any(|details| (details.chunk_index == idx) && details.within_max_size);
-                    assert!(chunk.is_empty() || !has_valid_delimiter)
-                }
-                ReadResult {
-                    successfully_read: Some(total_read),
-                    discarded_for_size_and_truncated: _,
-                } => {
-                    // Now that the function has returned we confirm that the
-                    // returned details match our `first_delim` and also that
-                    // the `buffer` is populated correctly.
-                    assert!(first_delim.is_some());
-                    assert_eq!(
-                        first_delim.clone().unwrap().global_index + 1,
-                        position as usize
-                    );
-                    assert_eq!(first_delim.clone().unwrap().interior_index + 1, total_read);
-                    assert_eq!(
-                        buffer.get(..),
-                        global_data.get(first_delim.unwrap().byte_range)
-                    );
-                    break;
-                }
+            .await;
+            let consumed = (position - position_before) as usize;
+
+            if !read_line {
+                // Subject only fails to produce a line if this is the last chunk _and_
+                // the chunk did not contain a delimiter _or_ the delimiter
+                // was outside the max_size range _or_ the current chunk is empty.
+                let has_valid_delimiter = facts
+                    .iter()
+                    .any(|details| (details.chunk_index == idx) && details.within_max_size);
+                assert!(chunk.is_empty() || !has_valid_delimiter)
+            } else {
+                // Now that the function has returned we confirm that the
+                // returned details match our `first_delim` and also that
+                // the `buffer` is populated correctly.
+                assert!(first_delim.is_some());
+                assert_eq!(
+                    first_delim.clone().unwrap().global_index + 1,
+                    position as usize
+                );
+                assert_eq!(first_delim.clone().unwrap().interior_index + 1, consumed);
+                assert_eq!(
+                    buffer.get(..),
+                    global_data.get(first_delim.unwrap().byte_range)
+                );
+                break;
             }
         }
 
@@ -430,6 +514,7 @@ mod test {
                 delimiter,
                 &mut buffer,
                 max_size,
+                max_size,
             )
             .await
             .unwrap();
@@ -476,5 +561,202 @@ mod test {
     #[tokio::test]
     async fn test_five_byte_delimiter_boundary() {
         test_delimiter_boundary_split_helper(b"<<>>>", 5).await;
+    }
+
+    #[tokio::test]
+    async fn retain_cap_controls_how_much_of_an_oversized_line_is_kept() {
+        // Regression test: the retained sample for an oversized line must be
+        // governed by the caller-supplied `retain_cap`, not a hardcoded
+        // constant. This is what lets `max_line_bytes_action = "truncate"`
+        // retain up to `max_line_bytes`, instead of being capped far below it.
+        let max_size = 10;
+        let retain_cap = 25;
+        let line: &[u8] = b"this line is definitely too long";
+        // A trailing short line ensures the call has something valid to
+        // return after resolving the oversized line's discard.
+        let mut data = Vec::new();
+        data.extend_from_slice(line);
+        data.extend_from_slice(b"\nok\n");
+
+        let cursor = Cursor::new(data);
+        let mut reader = BufReader::new(cursor);
+        let mut position: u64 = 0;
+        let mut buf = BytesMut::new();
+
+        let (read_line, discarded) = read_one_line(
+            &mut reader,
+            &mut position,
+            b"\n",
+            &mut buf,
+            max_size,
+            retain_cap,
+        )
+        .await;
+
+        assert!(read_line);
+        assert_eq!(buf.as_ref(), b"ok");
+        assert_eq!(discarded.len(), 1);
+        let discarded = &discarded[0];
+        assert_eq!(discarded.original_size, line.len());
+        assert_eq!(discarded.sample.len(), retain_cap);
+        assert_eq!(&discarded.sample[..], &line[..retain_cap]);
+        // The oversized line occupies [0, line.len()) and its delimiter one byte
+        // more, so reading resumes at line.len() + 1.
+        assert_eq!(discarded.start_position, 0);
+        assert_eq!(discarded.end_position, line.len() as u64 + 1);
+        assert_eq!(position, line.len() as u64 + 4);
+    }
+
+    #[tokio::test]
+    async fn each_oversized_line_is_returned_on_its_own() {
+        // Regression test: records must not accumulate until a valid line or EOF ends the
+        // call. Each retains up to `retain_cap` bytes, so a long run of oversized lines
+        // would otherwise hold all of them in memory at once.
+        let max_size = 4;
+        let retain_cap = 4;
+        let data = b"first oversized\nsecond oversized\nok\n";
+
+        let cursor = Cursor::new(data.to_vec());
+        let mut reader = BufReader::new(cursor);
+        let mut position: u64 = 0;
+        let mut buf = BytesMut::new();
+
+        // Call 1 resolves the first oversized line and nothing else.
+        let first = read_until_with_max_size(
+            Box::pin(&mut reader),
+            &mut position,
+            b"\n",
+            &mut buf,
+            max_size,
+            retain_cap,
+        )
+        .await
+        .unwrap();
+        assert!(first.successfully_read.is_none());
+        assert_eq!(first.discarded_for_size_and_truncated.len(), 1);
+        assert_eq!(position, 16);
+
+        // Call 2 resolves the second, still without a valid line.
+        let second = read_until_with_max_size(
+            Box::pin(&mut reader),
+            &mut position,
+            b"\n",
+            &mut buf,
+            max_size,
+            retain_cap,
+        )
+        .await
+        .unwrap();
+        assert!(second.successfully_read.is_none());
+        assert_eq!(second.discarded_for_size_and_truncated.len(), 1);
+        assert_eq!(position, 33);
+
+        // Call 3 produces the valid line, carrying no records.
+        let third = read_until_with_max_size(
+            Box::pin(&mut reader),
+            &mut position,
+            b"\n",
+            &mut buf,
+            max_size,
+            retain_cap,
+        )
+        .await
+        .unwrap();
+        assert!(third.successfully_read.is_some());
+        assert!(third.discarded_for_size_and_truncated.is_empty());
+        assert_eq!(buf.as_ref(), b"ok");
+        assert_eq!(position, data.len() as u64);
+    }
+
+    #[tokio::test]
+    async fn original_size_counts_a_line_spanning_multiple_reader_buffers() {
+        // Regression test: an oversized line longer than the reader's buffer
+        // capacity reaches `read_until_with_max_size` across several `fill_buf`
+        // chunks. Once the overflow is detected we stop appending to `buf`, so
+        // `buf.len()` is no longer a measure of the line. `original_size` must
+        // still report every byte of the line up to (but excluding) the
+        // delimiter, because it drives both the truncation telemetry and the
+        // `start_offset` calculation in `FileServer::run`.
+        let max_size = 10;
+        let retain_cap = 12;
+        let line: &[u8] = b"this line is definitely too long to fit in one chunk";
+        let mut data = Vec::new();
+        data.extend_from_slice(line);
+        data.extend_from_slice(b"\nok\n");
+
+        let cursor = Cursor::new(data);
+        // A capacity far below the line length forces multiple reader buffers.
+        let mut reader = BufReader::with_capacity(8, cursor);
+        let mut position: u64 = 0;
+        let mut buf = BytesMut::new();
+
+        let (read_line, discarded) = read_one_line(
+            &mut reader,
+            &mut position,
+            b"\n",
+            &mut buf,
+            max_size,
+            retain_cap,
+        )
+        .await;
+
+        assert!(read_line);
+        assert_eq!(buf.as_ref(), b"ok");
+        assert_eq!(discarded.len(), 1);
+        let discarded = &discarded[0];
+        assert_eq!(
+            discarded.original_size,
+            line.len(),
+            "original_size must cover the whole line, not just the bytes \
+             buffered when the overflow was first detected"
+        );
+        // Truncation behavior is unchanged: the sample is still capped at
+        // `retain_cap` and holds the head of the line.
+        assert_eq!(discarded.sample.len(), retain_cap);
+        assert_eq!(&discarded.sample[..], &line[..retain_cap]);
+    }
+
+    #[tokio::test]
+    async fn original_size_excludes_a_multi_byte_delimiter_split_across_buffers() {
+        // The delimiter is split across reader buffers, so its trailing bytes
+        // are resolved on the following iteration. Those bytes are delimiter,
+        // not line content, and must not inflate `original_size`.
+        let max_size = 4;
+        let retain_cap = 6;
+        // 15 content bytes, then "\r\n" straddling the 8-byte buffer boundary
+        // at offset 16.
+        let line: &[u8] = b"oversized line\r";
+        let mut data = Vec::new();
+        data.extend_from_slice(line);
+        data.extend_from_slice(b"\r\nok\r\n");
+        // `line` deliberately ends in '\r' so a partial delimiter match is
+        // carried across a boundary and then turns out to be plain data.
+        let expected_len = line.len();
+
+        let cursor = Cursor::new(data);
+        let mut reader = BufReader::with_capacity(8, cursor);
+        let mut position: u64 = 0;
+        let mut buf = BytesMut::new();
+
+        let (read_line, discarded) = read_one_line(
+            &mut reader,
+            &mut position,
+            b"\r\n",
+            &mut buf,
+            max_size,
+            retain_cap,
+        )
+        .await;
+
+        assert!(read_line);
+        assert_eq!(buf.as_ref(), b"ok");
+        assert_eq!(discarded.len(), 1);
+        let discarded = &discarded[0];
+        assert_eq!(discarded.original_size, expected_len);
+        // The delimiter straddles a buffer boundary, so its second byte is consumed on a
+        // later iteration than the rest of the line. The end position has to account for
+        // it: content is [0, 15), delimiter is [15, 17), so reading resumes at 17.
+        assert_eq!(discarded.start_position, 0);
+        assert_eq!(discarded.end_position, expected_len as u64 + 2);
     }
 }

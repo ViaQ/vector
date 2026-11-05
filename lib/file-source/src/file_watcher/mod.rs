@@ -1,7 +1,9 @@
 use async_compression::tokio::bufread::GzipDecoder;
 use bytes::{Bytes, BytesMut};
 use chrono::{DateTime, Utc};
+use codecs::OversizedAction;
 use std::{
+    cmp::min,
     io::{self, SeekFrom},
     path::PathBuf,
     time::Duration,
@@ -19,6 +21,18 @@ use file_source_common::{
     buffer::{ReadResult, read_until_with_max_size},
 };
 
+/// How many bytes of an oversized line's content to retain, given the configured
+/// `max_line_bytes` and the action to take when a line exceeds it.
+///
+/// `Drop` only ever needs a small sample for its diagnostic error message.
+/// `Truncate` never needs more than `max_line_bytes`, since the output is capped there.
+fn retain_cap_for(max_line_bytes_action: OversizedAction, max_line_bytes: usize) -> usize {
+    match max_line_bytes_action {
+        OversizedAction::Drop => min(1000, max_line_bytes),
+        OversizedAction::Truncate => max_line_bytes,
+    }
+}
+
 #[cfg(test)]
 mod tests;
 
@@ -33,10 +47,12 @@ pub struct RawLine {
     pub bytes: Bytes,
 }
 
+use file_source_common::buffer::DiscardedLine;
+
 #[derive(Debug)]
 pub struct RawLineResult {
     pub raw_line: Option<RawLine>,
-    pub discarded_for_size_and_truncated: Vec<BytesMut>,
+    pub discarded_for_size_and_truncated: Vec<DiscardedLine>,
 }
 
 /// The `FileWatcher` struct defines the polling based state machine which reads
@@ -59,6 +75,9 @@ pub struct FileWatcher {
     last_read_success: Instant,
     last_seen: Instant,
     max_line_bytes: usize,
+    /// How many bytes of an oversized line's content to retain, derived once
+    /// from `max_line_bytes` and the configured `OversizedAction`.
+    retain_cap: usize,
     line_delimiter: Bytes,
     buf: BytesMut,
 }
@@ -74,6 +93,7 @@ impl FileWatcher {
         read_from: ReadFrom,
         ignore_before: Option<DateTime<Utc>>,
         max_line_bytes: usize,
+        max_line_bytes_action: OversizedAction,
         line_delimiter: Bytes,
     ) -> Result<FileWatcher, std::io::Error> {
         let f = File::open(&path).await?;
@@ -168,6 +188,7 @@ impl FileWatcher {
             last_read_success: ts,
             last_seen: ts,
             max_line_bytes,
+            retain_cap: retain_cap_for(max_line_bytes_action, max_line_bytes),
             line_delimiter,
             buf: BytesMut::new(),
         })
@@ -240,6 +261,7 @@ impl FileWatcher {
             self.line_delimiter.as_ref(),
             &mut self.buf,
             self.max_line_bytes,
+            self.retain_cap,
         )
         .await
         {
@@ -253,6 +275,19 @@ impl FileWatcher {
                         offset: initial_position,
                         bytes: self.buf.split().freeze(),
                     }),
+                    discarded_for_size_and_truncated,
+                })
+            }
+            Ok(ReadResult {
+                successfully_read: None,
+                discarded_for_size_and_truncated,
+            }) if !discarded_for_size_and_truncated.is_empty() => {
+                // Yielding an oversized line is file activity, not EOF. Track it as a
+                // success to prevent false 10-second cooldowns or premature file death.
+                self.track_read_success();
+                self.reached_eof = false;
+                Ok(RawLineResult {
+                    raw_line: None,
                     discarded_for_size_and_truncated,
                 })
             }
