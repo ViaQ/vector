@@ -11,10 +11,39 @@ mod metadata_ext;
 
 use vector_config::configurable_component;
 
+/// The marker appended to a message that has been shortened to fit a size limit, so that
+/// downstream consumers can tell the message is incomplete.
+pub const TRUNCATION_MARKER: &str = "..TRUNCATED";
+
+/// Shortens `bytes` so that it ends with [`TRUNCATION_MARKER`] and occupies at most
+/// `max_bytes` in total, without ever splitting a UTF-8 character.
+///
+/// Unlike [`truncate_bytes_for_size`], the marker is appended even if `bytes`
+/// is smaller than `max_bytes`. This is intended for data that was already
+/// cut short by a reader, ensuring downstream consumers know it is incomplete.
+pub fn mark_truncated_bytes(bytes: &[u8], max_bytes: usize) -> Vec<u8> {
+    if max_bytes < TRUNCATION_MARKER.len() {
+        // Not enough room for the marker at all: hard-truncate at nearest UTF-8 boundary.
+        let mut len = max_bytes.min(bytes.len());
+        while len > 0 && !is_utf8_boundary(bytes, len) {
+            len -= 1;
+        }
+        return bytes[..len].to_vec();
+    }
+    let mut len = (max_bytes - TRUNCATION_MARKER.len()).min(bytes.len());
+    while len > 0 && !is_utf8_boundary(bytes, len) {
+        len -= 1;
+    }
+    let mut result = Vec::with_capacity(len + TRUNCATION_MARKER.len());
+    result.extend_from_slice(&bytes[..len]);
+    result.extend_from_slice(TRUNCATION_MARKER.as_bytes());
+    result
+}
+
 /// Truncates bytes to at most `max_bytes` bytes, appending `b"..TRUNCATED"`, without ever
 /// splitting a UTF-8 character. Works directly on byte slices for efficiency.
 pub fn truncate_bytes_for_size(bytes: &[u8], max_bytes: usize) -> Vec<u8> {
-    const TRUNCATED_SUFFIX: &[u8] = b"..TRUNCATED";
+    const TRUNCATED_SUFFIX: &[u8] = TRUNCATION_MARKER.as_bytes();
 
     if bytes.len() <= max_bytes {
         return bytes.to_vec();

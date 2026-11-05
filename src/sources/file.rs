@@ -18,7 +18,8 @@ use vector_lib::{
         paths_provider::{Glob, MatchOptions},
     },
     file_source_common::{
-        Checkpointer, FileFingerprint, FingerprintStrategy, Fingerprinter, ReadFrom, ReadFromConfig,
+        Checkpointer, FileFingerprint, FingerprintStrategy, Fingerprinter, ReadFrom,
+        ReadFromConfig, mark_truncated_bytes,
     },
     finalizer::OrderedFinalizer,
     lookup::{OwnedValuePath, lookup_v2::OptionalValuePath, owned_value_path, path},
@@ -537,6 +538,16 @@ pub fn file_source(
         None => Bytes::from(config.line_delimiter.clone()),
     };
 
+    // Width of a code unit in the configured charset, in bytes. `max_line_bytes` truncation
+    // happens in the file server, which cuts raw bytes at an arbitrary offset with no
+    // knowledge of the encoding; this lets us snap that cut back to a code-unit boundary
+    // before decoding. Only the UTF-16 variants have units wider than a byte — every other
+    // charset encoding_rs supports is ASCII-compatible and safe to cut anywhere.
+    let encoding_alignment = match encoding_charset {
+        Some(e) if matches!(e.name(), "UTF-16LE" | "UTF-16BE") => 2,
+        _ => 1,
+    };
+
     let checkpointer = Checkpointer::new(&data_dir);
     let strategy = config.fingerprint.clone().into();
 
@@ -604,6 +615,7 @@ pub fn file_source(
 
     let checkpoints = checkpointer.view();
     let include_file_metric_tag = config.internal_metrics.include_file_tag;
+    let max_line_bytes = config.max_line_bytes;
     Box::pin(async move {
         info!(message = "Starting file server.", include = ?include, exclude = ?exclude);
 
@@ -620,11 +632,20 @@ pub fn file_source(
                     file: &line.filename,
                     include_file_metric_tag,
                 });
+                if encoding_alignment > 1 {
+                    let aligned_len = line.text.len() - (line.text.len() % encoding_alignment);
+                    line.text.truncate(aligned_len);
+                }
+
                 // transcode each line from the file's encoding charset to utf8
                 line.text = match encoding_decoder.as_mut() {
                     Some(d) => d.decode_to_utf8(line.text),
                     None => line.text,
                 };
+
+                if line.is_truncated {
+                    line.text = Bytes::from(mark_truncated_bytes(&line.text, max_line_bytes));
+                }
                 line
             });
 
@@ -756,6 +777,7 @@ fn wrap_with_line_agg(
                 end_offset: lastline_context.map_or(initial_end, |(_, _, lastline_end_offset)| {
                     lastline_end_offset
                 }),
+                is_truncated: false,
             },
         ),
     )
@@ -1893,6 +1915,42 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn file_max_line_bytes_truncate_with_no_following_line() {
+        // Regression test: an oversized line that is not followed by another
+        // complete line is reported by `read_line` as a discard record carried
+        // alongside `raw_line: None`. `FileServer::run` must still act on that
+        // record; otherwise the truncated line is silently lost.
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("file");
+        let config = file::FileConfig {
+            // Watch only this file. A `*` glob would also pick up the
+            // checkpoint file that `data_dir` puts in this directory, whose
+            // lines are themselves oversized at this `max_line_bytes`.
+            include: vec![path.clone()],
+            max_line_bytes: 10,
+            max_line_bytes_action: OversizedAction::Truncate,
+            ..test_default_file_config(&dir)
+        };
+
+        let received = run_file_source(&config, false, NoAcks, LogNamespace::Legacy, async {
+            let mut file = File::create(&path).unwrap();
+
+            writeln!(&mut file, "short").unwrap();
+            // Oversized, newline-terminated, and nothing follows it. The read
+            // that consumes it reaches EOF before finding another line.
+            writeln!(&mut file, "this line is too long").unwrap();
+
+            file.flush().unwrap();
+            sleep(Duration::from_secs(1)).await;
+        })
+        .await;
+
+        let received = extract_messages_value(received);
+
+        assert_eq!(received, vec!["short".into(), "this line ".into()]);
+    }
+
+    #[tokio::test]
     async fn test_multi_line_aggregation_legacy() {
         let dir = tempdir().unwrap();
         let config = file::FileConfig {
@@ -2283,6 +2341,104 @@ mod tests {
                 "and when i byte".into(),
                 "i become little-endian".into(),
             ]
+        );
+    }
+
+    #[tokio::test]
+    async fn test_non_utf8_encoded_file_truncated() {
+        // Regression test: truncation cuts raw, still-encoded bytes. With an odd
+        // `max_line_bytes` a UTF-16LE line gets cut mid-code-unit, and because the
+        // transcoder is one streaming decoder shared across all lines, the unpaired byte
+        // used to shift every following line into garbage. Each line must decode on its
+        // own terms, truncated or not.
+        let dir = tempdir().unwrap();
+        let config = file::FileConfig {
+            include: vec![PathBuf::from("tests/data/utf-16le.log")],
+            encoding: Some(EncodingConfig { charset: UTF_16LE }),
+            // Odd on purpose: UTF-16LE code units are 2 bytes wide, so this cut never
+            // lands on a boundary by itself.
+            max_line_bytes: 27,
+            max_line_bytes_action: OversizedAction::Truncate,
+            ..test_default_file_config(&dir)
+        };
+
+        let received = run_file_source(
+            &config,
+            false,
+            NoAcks,
+            LogNamespace::Legacy,
+            sleep(Duration::from_secs(1)),
+        )
+        .await;
+
+        let received = extract_messages_value(received);
+
+        // Lines over 27 bytes keep their first 13 characters (26 bytes, the last whole
+        // code unit at or below the limit) and then carry the marker, which is appended
+        // after decoding so it reads as ASCII rather than UTF-16 gibberish. The first line
+        // is a character shorter because its 26 bytes include the file's 2-byte BOM, which
+        // is stripped after decoding. "i can unicode" is 26 bytes, fits, and is untouched.
+        assert_eq!(
+            received,
+            vec![
+                "hello i am a..TRUNCATED".into(),
+                "i can unicode".into(),
+                "but i do so i..TRUNCATED".into(),
+                "and when i by..TRUNCATED".into(),
+                "i become litt..TRUNCATED".into(),
+            ]
+        );
+
+        // Every emitted line stays within the configured limit. Note it is not *exactly*
+        // max_line_bytes here: the budget was already spent in UTF-16, where each of these
+        // characters cost two bytes, so the decoded UTF-8 comes out well under.
+        for line in &received {
+            let len = line.as_bytes().map(|b| b.len()).unwrap();
+            assert!(
+                len <= 27,
+                "line {line:?} is {len} bytes, over max_line_bytes"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn file_max_line_bytes_truncate_marks_and_honours_the_limit() {
+        // A truncated UTF-8 line must end with the marker, and the marker has to be carved
+        // out of `max_line_bytes` rather than pushed on top of it, so the emitted event is
+        // exactly `max_line_bytes`.
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("file");
+        let max_line_bytes = 30;
+        let config = file::FileConfig {
+            include: vec![path.clone()],
+            max_line_bytes,
+            max_line_bytes_action: OversizedAction::Truncate,
+            ..test_default_file_config(&dir)
+        };
+
+        let received = run_file_source(&config, false, NoAcks, LogNamespace::Legacy, async {
+            let mut file = File::create(&path).unwrap();
+            writeln!(&mut file, "{}", "a".repeat(100)).unwrap();
+            writeln!(&mut file, "short").unwrap();
+            file.flush().unwrap();
+            sleep(Duration::from_secs(1)).await;
+        })
+        .await;
+
+        let received = extract_messages_value(received);
+
+        // 19 bytes of content + the 11 byte marker == 30 == max_line_bytes.
+        assert_eq!(
+            received,
+            vec![
+                format!("{}..TRUNCATED", "a".repeat(19)).into(),
+                "short".into(),
+            ]
+        );
+        assert_eq!(
+            received[0].as_bytes().unwrap().len(),
+            max_line_bytes,
+            "a truncated line must be exactly max_line_bytes, marker included"
         );
     }
 

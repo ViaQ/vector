@@ -281,6 +281,19 @@ impl FileWatcher {
             Ok(ReadResult {
                 successfully_read: None,
                 discarded_for_size_and_truncated,
+            }) if !discarded_for_size_and_truncated.is_empty() => {
+                // Yielding an oversized line is file activity, not EOF. Track it as a
+                // success to prevent false 10-second cooldowns or premature file death.
+                self.track_read_success();
+                self.reached_eof = false;
+                Ok(RawLineResult {
+                    raw_line: None,
+                    discarded_for_size_and_truncated,
+                })
+            }
+            Ok(ReadResult {
+                successfully_read: None,
+                discarded_for_size_and_truncated,
             }) => {
                 if !self.file_findable() {
                     self.set_dead();

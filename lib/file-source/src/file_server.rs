@@ -293,10 +293,13 @@ where
                 let start = time::Instant::now();
                 let mut bytes_read: usize = 0;
                 while let Ok(RawLineResult {
-                    raw_line: Some(line),
+                    raw_line,
                     discarded_for_size_and_truncated,
                 }) = watcher.read_line().await
                 {
+                    // Process discards before checking `raw_line`. The reader yields oversized
+                    // lines immediately, even if no valid line or EOF follows.
+                    let consumed_oversized_line = !discarded_for_size_and_truncated.is_empty();
                     for discarded in discarded_for_size_and_truncated {
                         match self.max_line_bytes_action {
                             OversizedAction::Drop => {
@@ -323,19 +326,29 @@ where
                                     text: Bytes::from(truncated_bytes),
                                     filename: file_path,
                                     file_id,
-                                    // start_offset: line starts at current_position - original_size.
-                                    // Note: original_size is the line content (before the delimiter was
-                                    // consumed), so this correctly points to the start of the oversized
-                                    // line. The delimiter is tracked separately in `position` updates.
-                                    start_offset: watcher
-                                        .get_file_position()
-                                        .saturating_sub(discarded.original_size as u64),
-                                    end_offset: watcher.get_file_position(),
+                                    // Use exact positions recorded by the reader. `watcher.get_file_position()`
+                                    // is inaccurate here because it has already advanced past the delimiter.
+                                    start_offset: discarded.start_position,
+                                    end_offset: discarded.end_position,
+                                    is_truncated: true,
                                 });
                                 bytes_read += truncated_len;
                             }
                         }
                     }
+
+                    let Some(line) = raw_line else {
+                        if consumed_oversized_line {
+                            // Enforce the read budget even without a valid line. This prevents a
+                            // long run of oversized lines from starving other files in the pool.
+                            if bytes_read > self.max_read_bytes {
+                                maxed_out_reading_single_file = true;
+                                break;
+                            }
+                            continue;
+                        }
+                        break;
+                    };
 
                     let sz = line.bytes.len();
                     trace!(
@@ -353,6 +366,7 @@ where
                         file_id,
                         start_offset: line.offset,
                         end_offset: watcher.get_file_position(),
+                        is_truncated: false,
                     });
 
                     if bytes_read > self.max_read_bytes {
@@ -632,4 +646,5 @@ pub struct Line {
     pub file_id: FileFingerprint,
     pub start_offset: u64,
     pub end_offset: u64,
+    pub is_truncated: bool,
 }
