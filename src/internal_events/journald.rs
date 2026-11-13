@@ -120,3 +120,22 @@ impl InternalEvent for JournaldCheckpointFileOpenError {
         .increment(1);
     }
 }
+
+#[derive(Debug, NamedInternalEvent)]
+pub struct JournaldMessageTruncated {
+    pub original_size: usize,
+    pub truncated_size: usize,
+    pub configured_limit: usize,
+}
+
+impl InternalEvent for JournaldMessageTruncated {
+    fn emit(self) {
+        info!(
+            message = "Message truncated to max_message_bytes.",
+            original_size = self.original_size,
+            truncated_size = self.truncated_size,
+            configured_limit = self.configured_limit,
+        );
+        counter!("journald_message_truncated_total").increment(1);
+    }
+}

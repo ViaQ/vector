@@ -27,7 +27,7 @@ use tokio::{
 use tokio_util::codec::FramedRead;
 use vector_lib::{
     EstimatedJsonEncodedSizeOf,
-    codecs::{CharacterDelimitedDecoder, decoding::BoxedFramingError},
+    codecs::{CharacterDelimitedDecoder, OversizedAction, decoding::BoxedFramingError},
     config::{LegacyKey, LogNamespace},
     configurable::configurable_component,
     finalizer::OrderedFinalizer,
@@ -51,8 +51,8 @@ use crate::{
     event::{BatchNotifier, BatchStatus, BatchStatusReceiver, LogEvent},
     internal_events::{
         EventsReceived, JournaldCheckpointFileOpenError, JournaldCheckpointSetError,
-        JournaldInvalidRecordError, JournaldReadError, JournaldStartJournalctlError,
-        StreamClosedError,
+        JournaldInvalidRecordError, JournaldMessageTruncated, JournaldReadError,
+        JournaldStartJournalctlError, StreamClosedError,
     },
     serde::bool_or_struct,
     shutdown::ShutdownSignal,
@@ -228,10 +228,26 @@ pub struct JournaldConfig {
     /// [get_cursor]: https://www.freedesktop.org/software/systemd/man/latest/sd_journal_get_cursor.html
     #[serde(default = "crate::serde::default_false")]
     emit_cursor: bool,
+
+    /// The maximum size of a MESSAGE field before it is discarded.
+    ///
+    /// This protects against malformed messages or tailing incorrect sources.
+    #[serde(default = "default_max_message_bytes")]
+    #[configurable(metadata(docs::type_unit = "bytes"))]
+    pub max_message_bytes: usize,
+
+    /// Action to take when a message exceeds `max_message_bytes`.
+    #[serde(default)]
+    #[configurable(derived)]
+    pub max_message_bytes_action: OversizedAction,
 }
 
 const fn default_batch_size() -> usize {
     16
+}
+
+const fn default_max_message_bytes() -> usize {
+    102400 // 100 KiB, matching file source default
 }
 
 fn matches_examples() -> HashMap<String, Vec<String>> {
@@ -328,6 +344,8 @@ impl Default for JournaldConfig {
             remap_priority: false,
             log_namespace: None,
             emit_cursor: false,
+            max_message_bytes: default_max_message_bytes(),
+            max_message_bytes_action: OversizedAction::default(),
         }
     }
 }
@@ -408,6 +426,8 @@ impl SourceConfig for JournaldConfig {
                 starter,
                 log_namespace,
                 emit_cursor: self.emit_cursor,
+                max_message_bytes: self.max_message_bytes,
+                max_message_bytes_action: self.max_message_bytes_action,
             }
             .run_shutdown(cx.shutdown),
         ))
@@ -439,6 +459,8 @@ struct JournaldSource {
     starter: StartJournalctl,
     log_namespace: LogNamespace,
     emit_cursor: bool,
+    max_message_bytes: usize,
+    max_message_bytes_action: OversizedAction,
 }
 
 impl JournaldSource {
@@ -637,15 +659,42 @@ impl<'a> Batch<'a> {
                         ) {
                             self.record_size += bytes.len();
 
-                            let mut event = create_log_event_from_record(
-                                record,
-                                &self.batch,
-                                self.source.log_namespace,
-                            );
+                            // Apply message truncation if needed.
+                            let should_skip = if let Some(message) = record.get_mut(MESSAGE) {
+                                let original_size = message.len();
+                                if let Some(result) = truncate_message_if_needed(
+                                    message,
+                                    self.source.max_message_bytes,
+                                    self.source.max_message_bytes_action,
+                                ) {
+                                    if result.was_truncated {
+                                        emit!(JournaldMessageTruncated {
+                                            original_size,
+                                            truncated_size: result.message.len(),
+                                            configured_limit: self.source.max_message_bytes,
+                                        });
+                                    }
+                                    *message = result.message;
+                                    false
+                                } else {
+                                    // Drop the entire record if truncation action is Drop.
+                                    true
+                                }
+                            } else {
+                                false
+                            };
 
-                            enrich_log_event(&mut event, self.source.log_namespace);
+                            if !should_skip {
+                                let mut event = create_log_event_from_record(
+                                    record,
+                                    &self.batch,
+                                    self.source.log_namespace,
+                                );
 
-                            self.events.push(event);
+                                enrich_log_event(&mut event, self.source.log_namespace);
+
+                                self.events.push(event);
+                            }
                         }
                     }
                     Err(error) => {
@@ -941,6 +990,65 @@ fn create_log_event_from_record(
             log
         }
     }
+}
+
+#[derive(Debug)]
+struct TruncationResult {
+    message: String,
+    was_truncated: bool,
+}
+
+fn truncate_message_if_needed(
+    message: &str,
+    max_bytes: usize,
+    action: OversizedAction,
+) -> Option<TruncationResult> {
+    let msg_bytes = message.as_bytes();
+    if msg_bytes.len() <= max_bytes {
+        return Some(TruncationResult {
+            message: message.to_string(),
+            was_truncated: false,
+        });
+    }
+
+    match action {
+        OversizedAction::Drop => None,
+        OversizedAction::Truncate => {
+            const TRUNCATION_MARKER: &str = "..TRUNCATED";
+            let truncated = if max_bytes < TRUNCATION_MARKER.len() {
+                // Not enough room for the marker: hard-truncate at nearest UTF-8 boundary.
+                let mut len = max_bytes.min(msg_bytes.len());
+                while len > 0 && !is_utf8_char_boundary(msg_bytes, len) {
+                    len -= 1;
+                }
+                String::from_utf8_lossy(&msg_bytes[..len]).to_string()
+            } else {
+                // Truncate to leave room for marker.
+                let mut len = (max_bytes - TRUNCATION_MARKER.len()).min(msg_bytes.len());
+                while len > 0 && !is_utf8_char_boundary(msg_bytes, len) {
+                    len -= 1;
+                }
+                let mut result = String::with_capacity(len + TRUNCATION_MARKER.len());
+                result.push_str(&String::from_utf8_lossy(&msg_bytes[..len]));
+                result.push_str(TRUNCATION_MARKER);
+                result
+            };
+            Some(TruncationResult {
+                message: truncated.clone(),
+                was_truncated: true,
+            })
+        }
+    }
+}
+
+fn is_utf8_char_boundary(bytes: &[u8], index: usize) -> bool {
+    if index == 0 || index == bytes.len() {
+        return true;
+    }
+    bytes
+        .get(index)
+        .map(|&b| (b & 0xC0) != 0x80)
+        .unwrap_or(true)
 }
 
 /// Map the given unit name into a valid systemd unit
@@ -1821,5 +1929,64 @@ mod tests {
         let config = JournaldConfig::default();
 
         matches_schema(&config, LogNamespace::Legacy)
+    }
+
+    #[test]
+    fn truncate_message_drop_action() {
+        let msg = "a".repeat(200);
+        let result = truncate_message_if_needed(&msg, 100, OversizedAction::Drop);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn truncate_message_truncate_action() {
+        let msg = "a".repeat(200);
+        let result = truncate_message_if_needed(&msg, 100, OversizedAction::Truncate).unwrap();
+        assert_eq!(result.message.len(), 100);
+        assert!(result.was_truncated);
+        assert!(result.message.ends_with("..TRUNCATED"));
+        assert_eq!(result.message, format!("{}..TRUNCATED", "a".repeat(89)));
+    }
+
+    #[test]
+    fn truncate_message_no_truncation_needed() {
+        let msg = "short message";
+        let result = truncate_message_if_needed(msg, 100, OversizedAction::Drop).unwrap();
+        assert_eq!(result.message, msg);
+        assert!(!result.was_truncated);
+    }
+
+    #[test]
+    fn truncate_message_utf8_boundary() {
+        let msg = "hello 世界 world";
+        let msg_bytes = msg.as_bytes();
+        let max_bytes = msg_bytes.len() - 5;
+        let result = truncate_message_if_needed(msg, max_bytes, OversizedAction::Truncate).unwrap();
+        assert!(result.was_truncated);
+        assert!(
+            result
+                .message
+                .is_char_boundary(result.message.len() - "..TRUNCATED".len())
+        );
+        assert!(result.message.ends_with("..TRUNCATED"));
+    }
+
+    #[test]
+    fn truncate_message_marker_exactly_fits() {
+        let msg = "a".repeat(20);
+        let result =
+            truncate_message_if_needed(&msg, "..TRUNCATED".len(), OversizedAction::Truncate)
+                .unwrap();
+        assert_eq!(result.message, "..TRUNCATED");
+        assert!(result.was_truncated);
+    }
+
+    #[test]
+    fn truncate_message_marker_too_large() {
+        let msg = "a".repeat(20);
+        let result = truncate_message_if_needed(&msg, 5, OversizedAction::Truncate).unwrap();
+        assert_eq!(result.message.len(), 5);
+        assert!(result.was_truncated);
+        assert!(!result.message.ends_with("..TRUNCATED"));
     }
 }
