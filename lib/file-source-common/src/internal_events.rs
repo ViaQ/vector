@@ -35,4 +35,12 @@ pub trait FileSourceInternalEvents: Send + Sync + Clone + 'static {
         configured_limit: usize,
         encountered_size_so_far: usize,
     );
+
+    fn emit_file_line_truncated(
+        &self,
+        original_size: usize,
+        truncated_size: usize,
+        configured_limit: usize,
+        file: String,
+    );
 }

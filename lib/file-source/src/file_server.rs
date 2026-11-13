@@ -8,9 +8,11 @@ use std::{
 
 use bytes::Bytes;
 use chrono::{DateTime, Utc};
+use codecs::OversizedAction;
 use file_source_common::{
     FileFingerprint, FileSourceInternalEvents, Fingerprinter, ReadFrom,
     checkpointer::{Checkpointer, CheckpointsView},
+    truncate_bytes_for_size,
 };
 use futures::{
     Future, Sink, SinkExt,
@@ -50,6 +52,7 @@ where
     pub read_from: ReadFrom,
     pub ignore_before: Option<DateTime<Utc>>,
     pub max_line_bytes: usize,
+    pub max_line_bytes_action: OversizedAction,
     pub line_delimiter: Bytes,
     pub data_dir: PathBuf,
     pub glob_minimum_cooldown: Duration,
@@ -290,17 +293,62 @@ where
                 let start = time::Instant::now();
                 let mut bytes_read: usize = 0;
                 while let Ok(RawLineResult {
-                    raw_line: Some(line),
+                    raw_line,
                     discarded_for_size_and_truncated,
                 }) = watcher.read_line().await
                 {
-                    discarded_for_size_and_truncated.iter().for_each(|buf| {
-                        self.emitter.emit_file_line_too_long(
-                            &buf.clone(),
-                            self.max_line_bytes,
-                            buf.len(),
-                        )
-                    });
+                    // Process discards before checking `raw_line`. The reader yields oversized
+                    // lines immediately, even if no valid line or EOF follows.
+                    let consumed_oversized_line = !discarded_for_size_and_truncated.is_empty();
+                    for discarded in discarded_for_size_and_truncated {
+                        match self.max_line_bytes_action {
+                            OversizedAction::Drop => {
+                                self.emitter.emit_file_line_too_long(
+                                    &discarded.sample,
+                                    self.max_line_bytes,
+                                    discarded.original_size,
+                                );
+                            }
+                            OversizedAction::Truncate => {
+                                let file_path =
+                                    watcher.path.to_str().expect("not a valid path").to_owned();
+                                // Truncate bytes directly without lossy UTF-8 conversion
+                                let truncated_bytes =
+                                    truncate_bytes_for_size(&discarded.sample, self.max_line_bytes);
+                                let truncated_len = truncated_bytes.len();
+                                self.emitter.emit_file_line_truncated(
+                                    discarded.original_size,
+                                    truncated_len,
+                                    self.max_line_bytes,
+                                    file_path.clone(),
+                                );
+                                lines.push(Line {
+                                    text: Bytes::from(truncated_bytes),
+                                    filename: file_path,
+                                    file_id,
+                                    // Use exact positions recorded by the reader. `watcher.get_file_position()`
+                                    // is inaccurate here because it has already advanced past the delimiter.
+                                    start_offset: discarded.start_position,
+                                    end_offset: discarded.end_position,
+                                    is_truncated: true,
+                                });
+                                bytes_read += truncated_len;
+                            }
+                        }
+                    }
+
+                    let Some(line) = raw_line else {
+                        if consumed_oversized_line {
+                            // Enforce the read budget even without a valid line. This prevents a
+                            // long run of oversized lines from starving other files in the pool.
+                            if bytes_read > self.max_read_bytes {
+                                maxed_out_reading_single_file = true;
+                                break;
+                            }
+                            continue;
+                        }
+                        break;
+                    };
 
                     let sz = line.bytes.len();
                     trace!(
@@ -318,6 +366,7 @@ where
                         file_id,
                         start_offset: line.offset,
                         end_offset: watcher.get_file_position(),
+                        is_truncated: false,
                     });
 
                     if bytes_read > self.max_read_bytes {
@@ -469,6 +518,7 @@ where
             read_from,
             self.ignore_before,
             self.max_line_bytes,
+            self.max_line_bytes_action,
             self.line_delimiter.clone(),
         )
         .await
@@ -596,4 +646,5 @@ pub struct Line {
     pub file_id: FileFingerprint,
     pub start_offset: u64,
     pub end_offset: u64,
+    pub is_truncated: bool,
 }
