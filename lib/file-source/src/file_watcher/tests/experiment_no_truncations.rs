@@ -1,6 +1,7 @@
 use std::{fs, io::Write};
 
 use bytes::Bytes;
+use codecs::OversizedAction;
 use file_source_common::ReadFrom;
 use quickcheck::{QuickCheck, TestResult};
 
@@ -21,6 +22,7 @@ async fn experiment_no_truncations(actions: Vec<FileWatcherAction>) {
         ReadFrom::Beginning,
         None,
         100_000,
+        OversizedAction::Drop,
         Bytes::from("\n"),
     )
     .await
