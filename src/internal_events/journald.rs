@@ -2,7 +2,7 @@ use metrics::counter;
 use vector_lib::{
     NamedInternalEvent,
     codecs::decoding::BoxedFramingError,
-    internal_event::{InternalEvent, error_stage, error_type},
+    internal_event::{ComponentEventsDropped, INTENTIONAL, InternalEvent, error_stage, error_type},
 };
 
 #[derive(Debug, NamedInternalEvent)]
@@ -137,5 +137,35 @@ impl InternalEvent for JournaldMessageTruncated {
             configured_limit = self.configured_limit,
         );
         counter!("journald_message_truncated_total").increment(1);
+    }
+}
+
+#[derive(Debug, NamedInternalEvent)]
+pub struct JournaldMessageDropped {
+    pub original_size: usize,
+    pub configured_limit: usize,
+}
+
+impl InternalEvent for JournaldMessageDropped {
+    fn emit(self) {
+        error!(
+            message = "Message exceeds max_message_bytes; discarding.",
+            original_size = self.original_size,
+            configured_limit = self.configured_limit,
+            error_type = error_type::CONDITION_FAILED,
+            stage = error_stage::RECEIVING,
+        );
+        counter!(
+            "component_errors_total",
+            "error_code" => "message_exceeds_max_message_bytes",
+            "error_type" => error_type::CONDITION_FAILED,
+            "stage" => error_stage::RECEIVING,
+        )
+        .increment(1);
+        counter!("journald_message_dropped_total").increment(1);
+        emit!(ComponentEventsDropped::<INTENTIONAL> {
+            count: 1,
+            reason: "Message exceeds max_message_bytes; discarding.",
+        });
     }
 }

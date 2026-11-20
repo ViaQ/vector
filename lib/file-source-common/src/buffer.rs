@@ -21,6 +21,9 @@ pub struct DiscardedLine {
 pub struct ReadResult {
     pub successfully_read: Option<usize>,
     pub discarded_for_size_and_truncated: Vec<DiscardedLine>,
+    /// `true` if `buf` is only the capped prefix of a still-oversized, undelimited
+    /// line. Callers must not surface `buf` as a raw line while this is `true`.
+    pub oversized_in_progress: bool,
 }
 
 /// Read up to `max_size` bytes from `reader`, splitting by `delim`
@@ -104,6 +107,7 @@ pub async fn read_until_with_max_size<'a, R: AsyncBufRead + ?Sized + Unpin>(
                     return Ok(ReadResult {
                         successfully_read: None,
                         discarded_for_size_and_truncated,
+                        oversized_in_progress: false,
                     });
                 }
 
@@ -112,6 +116,7 @@ pub async fn read_until_with_max_size<'a, R: AsyncBufRead + ?Sized + Unpin>(
                 return Ok(ReadResult {
                     successfully_read: Some(total_read),
                     discarded_for_size_and_truncated,
+                    oversized_in_progress: false,
                 });
             } else {
                 // Not a complete delimiter after all.
@@ -226,12 +231,11 @@ pub async fn read_until_with_max_size<'a, R: AsyncBufRead + ?Sized + Unpin>(
             discarding = true;
         }
 
-        // Continuously update the active discarded line's size and positions
-        // to ensure accurate tracking across reader chunk boundaries.
+        // Keep size/end position current across chunk boundaries. `start_position`
+        // is fixed at creation and never changes.
         if let Some(idx) = pending_discard {
             let pending = &mut discarded_for_size_and_truncated[idx];
             pending.original_size = line_bytes;
-            pending.start_position = line_start_position;
             pending.end_position = *position;
         }
 
@@ -240,17 +244,22 @@ pub async fn read_until_with_max_size<'a, R: AsyncBufRead + ?Sized + Unpin>(
                 return Ok(ReadResult {
                     successfully_read: Some(total_read),
                     discarded_for_size_and_truncated,
+                    oversized_in_progress: false,
                 });
             } else {
                 buf.clear();
                 return Ok(ReadResult {
                     successfully_read: None,
                     discarded_for_size_and_truncated,
+                    oversized_in_progress: false,
                 });
             }
         } else if used == 0 && at_eof {
-            // Drop provisional oversized lines if we hit EOF before a delimiter.
-            // This prevents double-counting and caller spinning; bytes remain in `buf`.
+            // Drop the provisional discard record on EOF-before-delimiter to avoid
+            // double-counting on retry; `buf` stays put so `line_start_position` still
+            // computes correctly once the writer finishes the line. Flag that `buf` is
+            // an oversized-line prefix so callers don't treat it as a real line.
+            let oversized_in_progress = pending_discard.is_some();
             if let Some(idx) = pending_discard.take() {
                 discarded_for_size_and_truncated.remove(idx);
             }
@@ -259,6 +268,7 @@ pub async fn read_until_with_max_size<'a, R: AsyncBufRead + ?Sized + Unpin>(
             return Ok(ReadResult {
                 successfully_read: None,
                 discarded_for_size_and_truncated,
+                oversized_in_progress,
             });
         }
     }

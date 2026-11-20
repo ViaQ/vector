@@ -12,7 +12,6 @@ use codecs::OversizedAction;
 use file_source_common::{
     FileFingerprint, FileSourceInternalEvents, Fingerprinter, ReadFrom,
     checkpointer::{Checkpointer, CheckpointsView},
-    truncate_bytes_for_size,
 };
 use futures::{
     Future, Sink, SinkExt,
@@ -301,6 +300,9 @@ where
                     // lines immediately, even if no valid line or EOF follows.
                     let consumed_oversized_line = !discarded_for_size_and_truncated.is_empty();
                     for discarded in discarded_for_size_and_truncated {
+                        // Budget by actual disk bytes read, not the kept/truncated amount,
+                        // or oversized lines could starve the rest of the file pool.
+                        bytes_read += discarded.original_size;
                         match self.max_line_bytes_action {
                             OversizedAction::Drop => {
                                 self.emitter.emit_file_line_too_long(
@@ -312,10 +314,9 @@ where
                             OversizedAction::Truncate => {
                                 let file_path =
                                     watcher.path.to_str().expect("not a valid path").to_owned();
-                                // Truncate bytes directly without lossy UTF-8 conversion
-                                let truncated_bytes =
-                                    truncate_bytes_for_size(&discarded.sample, self.max_line_bytes);
-                                let truncated_len = truncated_bytes.len();
+                                // Already capped to `max_line_bytes` by the reader; the
+                                // `..TRUNCATED` marker is applied later in `file.rs` post-decode.
+                                let truncated_len = discarded.sample.len();
                                 self.emitter.emit_file_line_truncated(
                                     discarded.original_size,
                                     truncated_len,
@@ -323,7 +324,7 @@ where
                                     file_path.clone(),
                                 );
                                 lines.push(Line {
-                                    text: Bytes::from(truncated_bytes),
+                                    text: Bytes::from(discarded.sample),
                                     filename: file_path,
                                     file_id,
                                     // Use exact positions recorded by the reader. `watcher.get_file_position()`
@@ -332,7 +333,6 @@ where
                                     end_offset: discarded.end_position,
                                     is_truncated: true,
                                 });
-                                bytes_read += truncated_len;
                             }
                         }
                     }

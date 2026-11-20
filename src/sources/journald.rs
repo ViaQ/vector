@@ -30,6 +30,7 @@ use vector_lib::{
     codecs::{CharacterDelimitedDecoder, OversizedAction, decoding::BoxedFramingError},
     config::{LegacyKey, LogNamespace},
     configurable::configurable_component,
+    file_source_common::truncate_for_size,
     finalizer::OrderedFinalizer,
     internal_event::{
         ByteSize, BytesReceived, CountByteSize, InternalEventHandle as _, Protocol, Registered,
@@ -51,8 +52,8 @@ use crate::{
     event::{BatchNotifier, BatchStatus, BatchStatusReceiver, LogEvent},
     internal_events::{
         EventsReceived, JournaldCheckpointFileOpenError, JournaldCheckpointSetError,
-        JournaldInvalidRecordError, JournaldMessageTruncated, JournaldReadError,
-        JournaldStartJournalctlError, StreamClosedError,
+        JournaldInvalidRecordError, JournaldMessageDropped, JournaldMessageTruncated,
+        JournaldReadError, JournaldStartJournalctlError, StreamClosedError,
     },
     serde::bool_or_struct,
     shutdown::ShutdownSignal,
@@ -232,6 +233,7 @@ pub struct JournaldConfig {
     /// The maximum size of a MESSAGE field before it is discarded.
     ///
     /// This protects against malformed messages or tailing incorrect sources.
+    /// Effectively unlimited by default, preserving pre-existing behavior.
     #[serde(default = "default_max_message_bytes")]
     #[configurable(metadata(docs::type_unit = "bytes"))]
     pub max_message_bytes: usize,
@@ -247,7 +249,9 @@ const fn default_batch_size() -> usize {
 }
 
 const fn default_max_message_bytes() -> usize {
-    102400 // 100 KiB, matching file source default
+    // No limit by default, so upgrading doesn't silently start dropping/truncating
+    // messages. `i64::MAX`, not `usize::MAX`: TOML integers are signed 64-bit.
+    i64::MAX as usize
 }
 
 fn matches_examples() -> HashMap<String, Vec<String>> {
@@ -662,23 +666,28 @@ impl<'a> Batch<'a> {
                             // Apply message truncation if needed.
                             let should_skip = if let Some(message) = record.get_mut(MESSAGE) {
                                 let original_size = message.len();
-                                if let Some(result) = truncate_message_if_needed(
+                                match truncate_message_if_needed(
                                     message,
                                     self.source.max_message_bytes,
                                     self.source.max_message_bytes_action,
                                 ) {
-                                    if result.was_truncated {
+                                    MessageSizeOutcome::Unchanged => false,
+                                    MessageSizeOutcome::Truncated { truncated_size } => {
                                         emit!(JournaldMessageTruncated {
                                             original_size,
-                                            truncated_size: result.message.len(),
+                                            truncated_size,
                                             configured_limit: self.source.max_message_bytes,
                                         });
+                                        false
                                     }
-                                    *message = result.message;
-                                    false
-                                } else {
-                                    // Drop the entire record if truncation action is Drop.
-                                    true
+                                    MessageSizeOutcome::Dropped => {
+                                        // Drop the entire record if truncation action is Drop.
+                                        emit!(JournaldMessageDropped {
+                                            original_size,
+                                            configured_limit: self.source.max_message_bytes,
+                                        });
+                                        true
+                                    }
                                 }
                             } else {
                                 false
@@ -992,63 +1001,37 @@ fn create_log_event_from_record(
     }
 }
 
-#[derive(Debug)]
-struct TruncationResult {
-    message: String,
-    was_truncated: bool,
+#[derive(Debug, PartialEq, Eq)]
+enum MessageSizeOutcome {
+    /// The message was within `max_bytes`; left untouched.
+    Unchanged,
+    /// The message was truncated in place to fit `max_bytes`.
+    Truncated { truncated_size: usize },
+    /// The message exceeded `max_bytes` and `max_message_bytes_action` is `Drop`.
+    Dropped,
 }
 
+/// Enforces `max_bytes` on `message` in place; avoids allocating in the common
+/// within-limits case.
 fn truncate_message_if_needed(
-    message: &str,
+    message: &mut String,
     max_bytes: usize,
     action: OversizedAction,
-) -> Option<TruncationResult> {
-    let msg_bytes = message.as_bytes();
-    if msg_bytes.len() <= max_bytes {
-        return Some(TruncationResult {
-            message: message.to_string(),
-            was_truncated: false,
-        });
+) -> MessageSizeOutcome {
+    if message.len() <= max_bytes {
+        return MessageSizeOutcome::Unchanged;
     }
 
     match action {
-        OversizedAction::Drop => None,
+        OversizedAction::Drop => MessageSizeOutcome::Dropped,
         OversizedAction::Truncate => {
-            const TRUNCATION_MARKER: &str = "..TRUNCATED";
-            let truncated = if max_bytes < TRUNCATION_MARKER.len() {
-                // Not enough room for the marker: hard-truncate at nearest UTF-8 boundary.
-                let mut len = max_bytes.min(msg_bytes.len());
-                while len > 0 && !is_utf8_char_boundary(msg_bytes, len) {
-                    len -= 1;
-                }
-                String::from_utf8_lossy(&msg_bytes[..len]).to_string()
-            } else {
-                // Truncate to leave room for marker.
-                let mut len = (max_bytes - TRUNCATION_MARKER.len()).min(msg_bytes.len());
-                while len > 0 && !is_utf8_char_boundary(msg_bytes, len) {
-                    len -= 1;
-                }
-                let mut result = String::with_capacity(len + TRUNCATION_MARKER.len());
-                result.push_str(&String::from_utf8_lossy(&msg_bytes[..len]));
-                result.push_str(TRUNCATION_MARKER);
-                result
-            };
-            Some(TruncationResult {
-                message: truncated.clone(),
-                was_truncated: true,
-            })
+            // Shares the file source's truncation + marker logic instead of duplicating it.
+            *message = truncate_for_size(message, max_bytes);
+            MessageSizeOutcome::Truncated {
+                truncated_size: message.len(),
+            }
         }
     }
-}
-
-fn is_utf8_char_boundary(bytes: &[u8], index: usize) -> bool {
-    if index == 0 || index == bytes.len() {
-        return true;
-    }
-    bytes
-        .get(index)
-        .map(|&b| (b & 0xC0) != 0x80)
-        .unwrap_or(true)
 }
 
 /// Map the given unit name into a valid systemd unit
@@ -1933,60 +1916,60 @@ mod tests {
 
     #[test]
     fn truncate_message_drop_action() {
-        let msg = "a".repeat(200);
-        let result = truncate_message_if_needed(&msg, 100, OversizedAction::Drop);
-        assert!(result.is_none());
+        let mut msg = "a".repeat(200);
+        let result = truncate_message_if_needed(&mut msg, 100, OversizedAction::Drop);
+        assert_eq!(result, MessageSizeOutcome::Dropped);
     }
 
     #[test]
     fn truncate_message_truncate_action() {
-        let msg = "a".repeat(200);
-        let result = truncate_message_if_needed(&msg, 100, OversizedAction::Truncate).unwrap();
-        assert_eq!(result.message.len(), 100);
-        assert!(result.was_truncated);
-        assert!(result.message.ends_with("..TRUNCATED"));
-        assert_eq!(result.message, format!("{}..TRUNCATED", "a".repeat(89)));
+        let mut msg = "a".repeat(200);
+        let result = truncate_message_if_needed(&mut msg, 100, OversizedAction::Truncate);
+        assert_eq!(
+            result,
+            MessageSizeOutcome::Truncated {
+                truncated_size: 100
+            }
+        );
+        assert_eq!(msg.len(), 100);
+        assert!(msg.ends_with("..TRUNCATED"));
+        assert_eq!(msg, format!("{}..TRUNCATED", "a".repeat(89)));
     }
 
     #[test]
     fn truncate_message_no_truncation_needed() {
-        let msg = "short message";
-        let result = truncate_message_if_needed(msg, 100, OversizedAction::Drop).unwrap();
-        assert_eq!(result.message, msg);
-        assert!(!result.was_truncated);
+        let mut msg = "short message".to_string();
+        let original = msg.clone();
+        let result = truncate_message_if_needed(&mut msg, 100, OversizedAction::Drop);
+        assert_eq!(result, MessageSizeOutcome::Unchanged);
+        assert_eq!(msg, original);
     }
 
     #[test]
     fn truncate_message_utf8_boundary() {
-        let msg = "hello 世界 world";
-        let msg_bytes = msg.as_bytes();
-        let max_bytes = msg_bytes.len() - 5;
-        let result = truncate_message_if_needed(msg, max_bytes, OversizedAction::Truncate).unwrap();
-        assert!(result.was_truncated);
-        assert!(
-            result
-                .message
-                .is_char_boundary(result.message.len() - "..TRUNCATED".len())
-        );
-        assert!(result.message.ends_with("..TRUNCATED"));
+        let mut msg = "hello 世界 world".to_string();
+        let max_bytes = msg.len() - 5;
+        let result = truncate_message_if_needed(&mut msg, max_bytes, OversizedAction::Truncate);
+        assert!(matches!(result, MessageSizeOutcome::Truncated { .. }));
+        assert!(msg.is_char_boundary(msg.len() - "..TRUNCATED".len()));
+        assert!(msg.ends_with("..TRUNCATED"));
     }
 
     #[test]
     fn truncate_message_marker_exactly_fits() {
-        let msg = "a".repeat(20);
+        let mut msg = "a".repeat(20);
         let result =
-            truncate_message_if_needed(&msg, "..TRUNCATED".len(), OversizedAction::Truncate)
-                .unwrap();
-        assert_eq!(result.message, "..TRUNCATED");
-        assert!(result.was_truncated);
+            truncate_message_if_needed(&mut msg, "..TRUNCATED".len(), OversizedAction::Truncate);
+        assert!(matches!(result, MessageSizeOutcome::Truncated { .. }));
+        assert_eq!(msg, "..TRUNCATED");
     }
 
     #[test]
     fn truncate_message_marker_too_large() {
-        let msg = "a".repeat(20);
-        let result = truncate_message_if_needed(&msg, 5, OversizedAction::Truncate).unwrap();
-        assert_eq!(result.message.len(), 5);
-        assert!(result.was_truncated);
-        assert!(!result.message.ends_with("..TRUNCATED"));
+        let mut msg = "a".repeat(20);
+        let result = truncate_message_if_needed(&mut msg, 5, OversizedAction::Truncate);
+        assert_eq!(result, MessageSizeOutcome::Truncated { truncated_size: 5 });
+        assert_eq!(msg.len(), 5);
+        assert!(!msg.ends_with("..TRUNCATED"));
     }
 }

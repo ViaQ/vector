@@ -637,10 +637,22 @@ pub fn file_source(
                     line.text.truncate(aligned_len);
                 }
 
-                // transcode each line from the file's encoding charset to utf8
-                line.text = match encoding_decoder.as_mut() {
-                    Some(d) => d.decode_to_utf8(line.text),
-                    None => line.text,
+                // Transcode each line from the file's encoding charset to utf8. A
+                // truncated line's bytes can end mid-character for any multi-byte
+                // charset (the `encoding_alignment` cut above only keeps UTF-16's
+                // fixed-width code units intact); the shared `encoding_decoder` would
+                // otherwise buffer that dangling partial sequence and silently
+                // prepend it to the next line's decode, corrupting it. Truncated
+                // lines get a throwaway decoder instead, so that partial state is
+                // simply dropped with the line rather than carried forward.
+                line.text = match (
+                    line.is_truncated,
+                    encoding_charset,
+                    encoding_decoder.as_mut(),
+                ) {
+                    (true, Some(charset), _) => Decoder::new(charset).decode_to_utf8(line.text),
+                    (false, _, Some(d)) => d.decode_to_utf8(line.text),
+                    _ => line.text,
                 };
 
                 if line.is_truncated {
@@ -863,7 +875,7 @@ mod tests {
         io::{Seek, Write},
     };
 
-    use encoding_rs::UTF_16LE;
+    use encoding_rs::{UTF_8, UTF_16LE};
     use similar_asserts::assert_eq;
     use tempfile::tempdir;
     use tokio::time::{Duration, sleep, timeout};
@@ -2402,6 +2414,47 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn file_max_line_bytes_truncate_multibyte_does_not_corrupt_next_line() {
+        // Regression test: a truncated line's raw bytes can end mid-character for any
+        // variable-width multi-byte charset, not just the UTF-16 variants that
+        // `encoding_alignment` keeps code-unit aligned. If the truncated line were decoded
+        // with the same shared, stateful decoder used for every other line, the dangling
+        // partial sequence left in its streaming state would get silently prepended to the
+        // *next* line's decode, corrupting it with a replacement character.
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("file");
+
+        // "é" is 2 bytes in UTF-8 (0xC3 0xA9). Ten of them is 20 bytes; capping at 19
+        // bytes keeps 9 whole characters and one lone leading byte (0xC3) of the 10th,
+        // an incomplete sequence that a streaming decoder would hold onto.
+        let oversized = "é".repeat(10);
+        let max_line_bytes = oversized.len() - 1;
+        let config = file::FileConfig {
+            include: vec![path.clone()],
+            encoding: Some(EncodingConfig { charset: UTF_8 }),
+            max_line_bytes,
+            max_line_bytes_action: OversizedAction::Truncate,
+            ..test_default_file_config(&dir)
+        };
+
+        let received = run_file_source(&config, false, NoAcks, LogNamespace::Legacy, async {
+            let mut file = File::create(&path).unwrap();
+            writeln!(&mut file, "{oversized}").unwrap();
+            writeln!(&mut file, "next line").unwrap();
+            file.flush().unwrap();
+            sleep(Duration::from_secs(1)).await;
+        })
+        .await;
+
+        let received = extract_messages_value(received);
+
+        assert_eq!(received.len(), 2);
+        // The line after the truncated one must decode cleanly, with no leaked
+        // replacement character from the previous line's dangling partial sequence.
+        assert_eq!(received[1], "next line".into());
+    }
+
+    #[tokio::test]
     async fn file_max_line_bytes_truncate_marks_and_honours_the_limit() {
         // A truncated UTF-8 line must end with the marker, and the marker has to be carved
         // out of `max_line_bytes` rather than pushed on top of it, so the emitted event is
@@ -2439,6 +2492,45 @@ mod tests {
             received[0].as_bytes().unwrap().len(),
             max_line_bytes,
             "a truncated line must be exactly max_line_bytes, marker included"
+        );
+    }
+
+    #[tokio::test]
+    async fn file_deleted_mid_oversized_line_does_not_bypass_max_line_bytes() {
+        // Regression test: an oversized line can still be undelimited when EOF hits
+        // (writer slow/crashed mid-line). If the file is deleted before it's completed,
+        // the deleted-file fallback must not emit that buffered prefix raw, bypassing
+        // `max_line_bytes_action`.
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("file");
+        let max_line_bytes = 10;
+        let config = file::FileConfig {
+            include: vec![path.clone()],
+            max_line_bytes,
+            max_line_bytes_action: OversizedAction::Truncate,
+            ..test_default_file_config(&dir)
+        };
+
+        let received = run_file_source(&config, false, NoAcks, LogNamespace::Legacy, async {
+            let mut file = File::create(&path).unwrap();
+            // Complete line first, so there's legitimate activity for compliance checks.
+            writeln!(&mut file, "short").unwrap();
+            // Oversized, deliberately left undelimited.
+            write!(&mut file, "{}", "a".repeat(100)).unwrap();
+            file.flush().unwrap();
+            sleep(Duration::from_secs(1)).await;
+
+            fs::remove_file(&path).expect("could not remove file");
+            sleep(Duration::from_secs(1)).await;
+        })
+        .await;
+
+        let received = extract_messages_value(received);
+
+        assert_eq!(
+            received,
+            vec!["short".into()],
+            "the incomplete oversized line must never surface, truncated or not"
         );
     }
 

@@ -80,6 +80,8 @@ pub struct FileWatcher {
     retain_cap: usize,
     line_delimiter: Bytes,
     buf: BytesMut,
+    /// `true` when `buf` is an oversized-line prefix, not a real undelimited line.
+    oversized_line_pending: bool,
 }
 
 impl FileWatcher {
@@ -191,6 +193,7 @@ impl FileWatcher {
             retain_cap: retain_cap_for(max_line_bytes_action, max_line_bytes),
             line_delimiter,
             buf: BytesMut::new(),
+            oversized_line_pending: false,
         })
     }
 
@@ -268,7 +271,9 @@ impl FileWatcher {
             Ok(ReadResult {
                 successfully_read: Some(_),
                 discarded_for_size_and_truncated,
+                oversized_in_progress,
             }) => {
+                self.oversized_line_pending = oversized_in_progress;
                 self.track_read_success();
                 Ok(RawLineResult {
                     raw_line: Some(RawLine {
@@ -281,7 +286,9 @@ impl FileWatcher {
             Ok(ReadResult {
                 successfully_read: None,
                 discarded_for_size_and_truncated,
+                oversized_in_progress,
             }) if !discarded_for_size_and_truncated.is_empty() => {
+                self.oversized_line_pending = oversized_in_progress;
                 // Yielding an oversized line is file activity, not EOF. Track it as a
                 // success to prevent false 10-second cooldowns or premature file death.
                 self.track_read_success();
@@ -294,9 +301,20 @@ impl FileWatcher {
             Ok(ReadResult {
                 successfully_read: None,
                 discarded_for_size_and_truncated,
+                oversized_in_progress,
             }) => {
+                self.oversized_line_pending = oversized_in_progress;
                 if !self.file_findable() {
                     self.set_dead();
+                    if self.oversized_line_pending {
+                        // Not a real fragment; emitting it would bypass `max_line_bytes_action`.
+                        self.buf.clear();
+                        self.reached_eof = true;
+                        return Ok(RawLineResult {
+                            raw_line: None,
+                            discarded_for_size_and_truncated,
+                        });
+                    }
                     // File has been deleted, so return what we have in the buffer, even though it
                     // didn't end with a newline. This is not a perfect signal for when we should
                     // give up waiting for a newline, but it's decent.
