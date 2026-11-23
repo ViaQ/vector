@@ -270,7 +270,10 @@ impl FileWatcher {
                 successfully_read: None,
                 discarded_for_size_and_truncated,
             }) => {
-                if !self.file_findable() {
+                // A file can drop out of the scan while it is still on disk.
+                // kubernetes_logs does this until namespace metadata is cached.
+                // That is not a delete, and the offset has to survive it.
+                if !self.file_findable() && !self.same_file_on_disk() {
                     self.set_dead();
                     // File has been deleted, so return what we have in the buffer, even though it
                     // didn't end with a newline. This is not a perfect signal for when we should
@@ -416,5 +419,41 @@ mod identity_tests {
         assert!(!watcher.should_read());
         watcher.set_file_findable(true);
         assert!(watcher.should_read());
+    }
+
+    #[test]
+    fn eof_while_unlisted_keeps_the_watcher_if_the_file_remains() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("0.log");
+        std::fs::write(&path, b"hello\n").unwrap();
+        let mut watcher = open_watcher(&path);
+
+        let line = watcher.read_line().unwrap();
+        assert!(line.raw_line.is_some());
+        let eof = watcher.read_line().unwrap();
+        assert!(eof.raw_line.is_none());
+        assert!(!watcher.dead());
+
+        watcher.set_file_findable(false);
+        let again = watcher.read_line().unwrap();
+        assert!(again.raw_line.is_none());
+        assert!(!watcher.dead());
+        assert_eq!(watcher.get_file_position(), 6);
+    }
+
+    #[test]
+    fn eof_while_unlisted_drops_the_watcher_when_the_file_is_gone() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("0.log");
+        std::fs::write(&path, b"hello\n").unwrap();
+        let mut watcher = open_watcher(&path);
+
+        let _ = watcher.read_line().unwrap();
+        let _ = watcher.read_line().unwrap();
+        watcher.set_file_findable(false);
+        std::fs::remove_file(&path).unwrap();
+
+        let _ = watcher.read_line().unwrap();
+        assert!(watcher.dead());
     }
 }
