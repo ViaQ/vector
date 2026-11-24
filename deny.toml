@@ -62,8 +62,6 @@ ignore = [
   # --- Blocked by transitive dependencies (fix exists but upgrade not feasible) ---
   { id = "RUSTSEC-2026-0257", reason = "webbrowser vulnerability, transitive via vrl, fix requires >=1.2.2" },
   { id = "RUSTSEC-2026-0258", reason = "h2 0.3.x DoS, transitive via aws-smithy-http-client, blocked by AWS SDK" },
-  { id = "RUSTSEC-2026-0118", reason = "hickory-proto DoS, fix requires >=0.26.1 (major API change)" },
-  { id = "RUSTSEC-2026-0119", reason = "hickory-proto DoS, fix requires >=0.26.1 (major API change)" },
   { id = "RUSTSEC-2024-0421", reason = "idna 0.2.x via trust-dns-proto/mongodb, fix requires >=1.0.3" },
   { id = "RUSTSEC-2026-0002", reason = "lru 0.12.5 unsoundness, transitive via ratatui/aws-sdk-s3" },
   { id = "RUSTSEC-2026-0253", reason = "lru 0.14.0 unsoundness, fix requires >=0.18.2" },
