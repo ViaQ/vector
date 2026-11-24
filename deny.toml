@@ -83,6 +83,13 @@ ignore = [
 
 [bans]
 multiple-versions = "allow"
+# `ring` is banned unconditionally: its bundled crypto is not an attested
+# FIPS-certified module, so it must not be compiled into the release binary
+# (compliance scan finding: "rust binary uses bundled crypto that is not an
+# attested FIPS-certified module (ring)"). All crypto goes through the system
+# OpenSSL. `make check-bans` runs with FEATURES=ocp-logging, which is the
+# feature set the release binary is built with; ring must not re-enter through
+# any dependency.
 deny = [
-  { name = "ring", wrappers = ["rustls", "sct", "rustls-webpki", "aws-config", "async-nats", "hickory-proto"] },
+  { name = "ring" },
 ]

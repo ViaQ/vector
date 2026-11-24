@@ -25,7 +25,10 @@ graphql_client = { version = "0.14.0", default-features = false, features = ["gr
 
 # HTTP / WebSockets
 reqwest = { version = "0.11.26", default-features = false, features = ["json"] }
-tokio-tungstenite = { version = "0.20.1", default-features = false, features = ["connect", "rustls"] }
+# NOTE: `native-tls` instead of `rustls` to keep ring (non-FIPS) out of the
+# binary; this restores the de-ring change from April 2024 that a rebase of
+# upstream v0.46.1 regressed.
+tokio-tungstenite = { version = "0.20.1", default-features = false, features = ["connect", "native-tls"] }
 
 # External libs
 chrono.workspace = true

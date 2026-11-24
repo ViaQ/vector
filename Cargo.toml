@@ -168,7 +168,11 @@ snafu = { version = "0.7.5", default-features = false, features = ["futures", "s
 tempfile = "3.19.1"
 tokio = { version = "1.44.2", default-features = false, features = ["full"] }
 toml = { version = "0.8.22", default-features = false, features = ["display", "parse"] }
-tonic = { version = "0.11", default-features = false, features = ["transport", "codegen", "prost", "tls", "tls-roots", "gzip"] }
+# NOTE: the `tls`/`tls-roots` features are intentionally omitted: they pull in
+# rustls/ring, which is not an attested FIPS-certified crypto module. All gRPC
+# TLS in this fork is handled by our OpenSSL-based connectors (MaybeTlsSettings
+# for servers, hyper-openssl for clients), so tonic's own rustls TLS is unused.
+tonic = { version = "0.11", default-features = false, features = ["transport", "codegen", "prost", "gzip"] }
 tonic-build = { version = "0.11", default-features = false, features = ["transport", "prost"] }
 uuid = { version = "1.16.0", features = ["v4", "v7", "serde"] }
 vector-lib = { path = "lib/vector-lib", default-features = false, features = ["vrl"] }
@@ -227,7 +231,11 @@ metrics-tracing-context.workspace = true
 
 # AWS - Official SDK
 aws-runtime = { version = "1.5.6", optional = true }
-aws-config = { version = "1.6.1", default-features = false, features = ["behavior-version-latest", "credentials-process", "sso", "rt-tokio"], optional = true }
+# NOTE: the `sso` feature is intentionally omitted: it requires `ring`, which
+# is not an attested FIPS-certified crypto module. The operator only generates
+# web-identity (IRSA) profiles for AWS outputs, so SSO credential support is
+# not needed. See deny.toml for the unconditional `ring` ban.
+aws-config = { version = "1.6.1", default-features = false, features = ["behavior-version-latest", "credentials-process", "rt-tokio"], optional = true }
 aws-credential-types = { version = "1.2.3", default-features = false, features = ["hardcoded-credentials"], optional = true }
 aws-sdk-cloudwatch = { version = "1.70.0", default-features = false, features = ["behavior-version-latest", "rt-tokio"], optional = true }
 aws-sdk-cloudwatchlogs = { version = "1.76.0", default-features = false, features = ["behavior-version-latest", "rt-tokio"], optional = true }
@@ -429,7 +437,12 @@ openssl-src = { version = "300", default-features = false, features = ["force-en
 [dev-dependencies]
 approx = "0.5.1"
 assert_cmd = { version = "2.0.17", default-features = false }
-aws-smithy-runtime = { version = "1.8.3", default-features = false, features = ["tls-rustls"] }
+# NOTE: the dev-dependency on `aws-smithy-runtime` with the `tls-rustls`
+# feature (inherited from upstream #19312) was removed: it pulled ring into the
+# dev/test graph and tripped the unconditional ring ban in deny.toml. Tests
+# that need an AWS HTTP client use the production OpenSSL-based connector
+# (aws_smithy_runtime::client::http::hyper_014::HyperClientBuilder is already
+# available through the normal aws-smithy-runtime dependency).
 azure_core = { version = "0.17", default-features = false, features = ["enable_reqwest", "azurite_workaround"] }
 azure_identity = { version = "0.17", default-features = false, features = ["enable_reqwest"] }
 azure_storage_blobs = { version = "0.17", default-features = false, features = ["azurite_workaround"] }
