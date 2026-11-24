@@ -1656,12 +1656,18 @@ mod tests {
 
     #[test]
     fn test_format_rdata_for_txt_type() {
-        let rdata = RData::TXT(TXT::try_new(vec![
-            "abc\"def".as_bytes(),
-            "gh\\i".as_bytes(),
-            "".as_bytes(),
-            "j".as_bytes(),
-        ].into_iter()).unwrap());
+        let rdata = RData::TXT(
+            TXT::try_new(
+                vec![
+                    "abc\"def".as_bytes(),
+                    "gh\\i".as_bytes(),
+                    "".as_bytes(),
+                    "j".as_bytes(),
+                ]
+                .into_iter(),
+            )
+            .unwrap(),
+        );
         let rdata_text = format_rdata(&rdata);
         assert!(rdata_text.is_ok());
         if let Ok((parsed, raw_rdata)) = rdata_text {
@@ -1832,14 +1838,17 @@ mod tests {
 
     #[test]
     fn test_format_rdata_for_nsec3_type() {
-        let rdata = RData::DNSSEC(DNSSECRData::NSEC3(NSEC3::try_new(
-            Nsec3HashAlgorithm::SHA1,
-            true,
-            2,
-            vec![1, 2, 3, 4, 5],
-            vec![6, 7, 8, 9, 0],
-            vec![RecordType::A, RecordType::AAAA].into_iter(),
-        ).unwrap()));
+        let rdata = RData::DNSSEC(DNSSECRData::NSEC3(
+            NSEC3::try_new(
+                Nsec3HashAlgorithm::SHA1,
+                true,
+                2,
+                vec![1, 2, 3, 4, 5],
+                vec![6, 7, 8, 9, 0],
+                vec![RecordType::A, RecordType::AAAA],
+            )
+            .unwrap(),
+        ));
         let rdata_text = format_rdata(&rdata);
         assert!(rdata_text.is_ok());
         if let Ok((parsed, raw_rdata)) = rdata_text {
@@ -1850,12 +1859,9 @@ mod tests {
 
     #[test]
     fn test_format_rdata_for_nsec3param_type() {
-        let rdata = RData::DNSSEC(DNSSECRData::NSEC3PARAM(NSEC3PARAM::try_new(
-            Nsec3HashAlgorithm::SHA1,
-            true,
-            2,
-            vec![1, 2, 3, 4, 5],
-        ).unwrap()));
+        let rdata = RData::DNSSEC(DNSSECRData::NSEC3PARAM(
+            NSEC3PARAM::try_new(Nsec3HashAlgorithm::SHA1, true, 2, vec![1, 2, 3, 4, 5]).unwrap(),
+        ));
         let rdata_text = format_rdata(&rdata);
         assert!(rdata_text.is_ok());
         if let Ok((parsed, raw_rdata)) = rdata_text {
