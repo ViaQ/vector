@@ -18,7 +18,11 @@ use tokio::{
     net::{TcpListener, TcpStream},
 };
 use tokio_openssl::SslStream;
-use tonic::transport::{server::Connected, Certificate};
+// NOTE: we only use the `Connected` trait here to attach connection metadata
+// to gRPC server streams. tonic's `Certificate` type is deliberately not used:
+// it is gated behind tonic's `tls` feature, which pulls in rustls/ring (not an
+// attested FIPS-certified module). The raw PEM bytes are preserved instead.
+use tonic::transport::server::Connected;
 
 use super::{
     CreateAcceptorSnafu, HandshakeSnafu, IncomingListenerSnafu, MaybeTlsSettings, MaybeTlsStream,
@@ -451,7 +455,8 @@ impl From<X509> for CertificateMetadata {
 #[derive(Clone)]
 pub struct MaybeTlsConnectInfo {
     pub remote_addr: SocketAddr,
-    pub peer_certs: Option<Vec<Certificate>>,
+    /// Peer certificate chain as PEM-encoded bytes (`X509::to_pem`).
+    pub peer_certs: Option<Vec<Vec<u8>>>,
 }
 
 impl Connected for MaybeTlsIncomingStream<TcpStream> {
@@ -463,12 +468,7 @@ impl Connected for MaybeTlsIncomingStream<TcpStream> {
             peer_certs: self
                 .ssl_stream()
                 .and_then(|s| s.ssl().peer_cert_chain())
-                .map(|s| {
-                    s.into_iter()
-                        .filter_map(|c| c.to_pem().ok())
-                        .map(Certificate::from_pem)
-                        .collect()
-                }),
+                .map(|s| s.into_iter().filter_map(|c| c.to_pem().ok()).collect()),
         }
     }
 }
