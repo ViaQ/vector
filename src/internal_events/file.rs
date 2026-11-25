@@ -526,6 +526,27 @@ mod source {
         }
     }
 
+    #[derive(Debug, NamedInternalEvent)]
+    pub struct FileLineTruncated {
+        pub original_size: usize,
+        pub truncated_size: usize,
+        pub configured_limit: usize,
+        pub file: String,
+    }
+
+    impl InternalEvent for FileLineTruncated {
+        fn emit(self) {
+            info!(
+                message = "Line truncated to max_line_bytes.",
+                original_size = self.original_size,
+                truncated_size = self.truncated_size,
+                configured_limit = self.configured_limit,
+                file = %self.file,
+            );
+            counter!("file_line_truncated_total",).increment(1);
+        }
+    }
+
     #[derive(Clone)]
     pub struct FileSourceInternalEventsEmitter {
         pub include_file_metric_tag: bool,
@@ -619,6 +640,21 @@ mod source {
                 truncated_bytes,
                 configured_limit,
                 encountered_size_so_far
+            });
+        }
+
+        fn emit_file_line_truncated(
+            &self,
+            original_size: usize,
+            truncated_size: usize,
+            configured_limit: usize,
+            file: String,
+        ) {
+            emit!(FileLineTruncated {
+                original_size,
+                truncated_size,
+                configured_limit,
+                file,
             });
         }
     }

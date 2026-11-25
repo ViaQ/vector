@@ -865,6 +865,10 @@ impl Source {
             // The maximum number of bytes a line can contain before being discarded. This
             // protects against malformed lines or tailing incorrect files.
             max_line_bytes: resolved_max_line_bytes,
+            // kubernetes_logs does not expose per-line max_line_bytes_action as a config
+            // option (distinct from `max_merged_line_action`, which governs merged partial
+            // events); always drop oversized raw lines, matching the file source's default.
+            max_line_bytes_action: OversizedAction::Drop,
             // Delimiter bytes that is used to read the file line-by-line
             line_delimiter: Bytes::from("\n"),
             // The directory where to keep the checkpoints.

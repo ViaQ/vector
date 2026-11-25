@@ -697,5 +697,7 @@ mod test {
         fn emit_file_line_too_long(&self, _: &BytesMut, _: usize, _: usize) {
             panic!()
         }
+
+        fn emit_file_line_truncated(&self, _: usize, _: usize, _: usize, _: String) {}
     }
 }
