@@ -46,6 +46,10 @@ pub struct RawLineResult {
 pub struct FileWatcher {
     pub path: PathBuf,
     findable: bool,
+    /// Set when the path provider has stopped listing this file but the same
+    /// inode is still on disk. Reads wait until the file is listed again so
+    /// the stored offset is not thrown away.
+    paused: bool,
     reader: Box<dyn BufRead>,
     file_position: FilePosition,
     devno: u64,
@@ -149,6 +153,7 @@ impl FileWatcher {
         Ok(FileWatcher {
             path,
             findable: true,
+            paused: false,
             reader,
             file_position,
             devno,
@@ -190,7 +195,27 @@ impl FileWatcher {
     pub fn set_file_findable(&mut self, f: bool) {
         self.findable = f;
         if f {
+            // Listed again. Continue from the stored offset.
+            self.paused = false;
             self.last_seen = Instant::now();
+        }
+    }
+
+    pub fn set_paused(&mut self, paused: bool) {
+        self.paused = paused;
+    }
+
+    /// True when `path` still refers to the file this watcher opened.
+    ///
+    /// A missing path or a new inode means the file was removed or rotated.
+    /// The same inode means the bytes we already read are still there.
+    pub fn same_file_on_disk(&self) -> bool {
+        let Ok(file) = File::open(&self.path) else {
+            return false;
+        };
+        match (file.portable_dev(), file.portable_ino()) {
+            (Ok(dev), Ok(ino)) => dev == self.devno && ino == self.inode,
+            _ => false,
         }
     }
 
@@ -245,7 +270,10 @@ impl FileWatcher {
                 successfully_read: None,
                 discarded_for_size_and_truncated,
             }) => {
-                if !self.file_findable() {
+                // A file can drop out of the scan while it is still on disk.
+                // kubernetes_logs does this until namespace metadata is cached.
+                // That is not a delete, and the offset has to survive it.
+                if !self.file_findable() && !self.same_file_on_disk() {
                     self.set_dead();
                     // File has been deleted, so return what we have in the buffer, even though it
                     // didn't end with a newline. This is not a perfect signal for when we should
@@ -301,6 +329,9 @@ impl FileWatcher {
 
     #[inline]
     pub fn should_read(&self) -> bool {
+        if self.paused {
+            return false;
+        }
         self.last_read_success.elapsed() < Duration::from_secs(10)
             || self.last_read_attempt.elapsed() > Duration::from_secs(10)
     }
@@ -325,4 +356,104 @@ fn is_gzipped(r: &mut io::BufReader<fs::File>) -> io::Result<bool> {
 
 fn null_reader() -> impl BufRead {
     io::Cursor::new(Vec::new())
+}
+
+#[cfg(test)]
+mod identity_tests {
+    use bytes::Bytes;
+
+    use super::FileWatcher;
+    use crate::ReadFrom;
+
+    fn open_watcher(path: &std::path::Path) -> FileWatcher {
+        FileWatcher::new(
+            path.to_path_buf(),
+            ReadFrom::Beginning,
+            None,
+            1024,
+            Bytes::from_static(b"\n"),
+        )
+        .expect("watcher")
+    }
+
+    #[test]
+    fn append_keeps_the_same_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("0.log");
+        std::fs::write(&path, b"hello\n").unwrap();
+        let watcher = open_watcher(&path);
+        std::fs::write(&path, b"hello\nworld\n").unwrap();
+        assert!(watcher.same_file_on_disk());
+    }
+
+    #[test]
+    fn rotation_is_a_different_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("0.log");
+        std::fs::write(&path, b"hello\n").unwrap();
+        let watcher = open_watcher(&path);
+        // The rotated name keeps the old inode, so the new 0.log cannot reuse it.
+        std::fs::rename(&path, dir.path().join("0.log.1")).unwrap();
+        std::fs::write(&path, b"other\n").unwrap();
+        assert!(!watcher.same_file_on_disk());
+    }
+
+    #[test]
+    fn deleted_file_is_gone() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("0.log");
+        std::fs::write(&path, b"hello\n").unwrap();
+        let watcher = open_watcher(&path);
+        std::fs::remove_file(&path).unwrap();
+        assert!(!watcher.same_file_on_disk());
+    }
+
+    #[test]
+    fn pause_stops_reads_until_the_file_is_listed_again() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("0.log");
+        std::fs::write(&path, b"hello\n").unwrap();
+        let mut watcher = open_watcher(&path);
+        assert!(watcher.should_read());
+        watcher.set_paused(true);
+        assert!(!watcher.should_read());
+        watcher.set_file_findable(true);
+        assert!(watcher.should_read());
+    }
+
+    #[test]
+    fn eof_while_unlisted_keeps_the_watcher_if_the_file_remains() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("0.log");
+        std::fs::write(&path, b"hello\n").unwrap();
+        let mut watcher = open_watcher(&path);
+
+        let line = watcher.read_line().unwrap();
+        assert!(line.raw_line.is_some());
+        let eof = watcher.read_line().unwrap();
+        assert!(eof.raw_line.is_none());
+        assert!(!watcher.dead());
+
+        watcher.set_file_findable(false);
+        let again = watcher.read_line().unwrap();
+        assert!(again.raw_line.is_none());
+        assert!(!watcher.dead());
+        assert_eq!(watcher.get_file_position(), 6);
+    }
+
+    #[test]
+    fn eof_while_unlisted_drops_the_watcher_when_the_file_is_gone() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("0.log");
+        std::fs::write(&path, b"hello\n").unwrap();
+        let mut watcher = open_watcher(&path);
+
+        let _ = watcher.read_line().unwrap();
+        let _ = watcher.read_line().unwrap();
+        watcher.set_file_findable(false);
+        std::fs::remove_file(&path).unwrap();
+
+        let _ = watcher.read_line().unwrap();
+        assert!(watcher.dead());
+    }
 }

@@ -329,8 +329,22 @@ where
             }
 
             for (_, watcher) in &mut fp_map {
-                if !watcher.file_findable() && watcher.last_seen().elapsed() > self.rotate_wait {
-                    watcher.set_dead();
+                let missing_for = watcher.last_seen().elapsed();
+                // Stat only once the file has been missing long enough to look rotated.
+                // kubernetes_logs drops pods while namespace metadata is absent, and
+                // that is not a rotation.
+                let same_file = !watcher.file_findable()
+                    && missing_for > self.rotate_wait
+                    && watcher.same_file_on_disk();
+                match missing_file_action(
+                    watcher.file_findable(),
+                    missing_for,
+                    self.rotate_wait,
+                    same_file,
+                ) {
+                    MissingFileAction::Keep => {}
+                    MissingFileAction::Pause => watcher.set_paused(true),
+                    MissingFileAction::Drop => watcher.set_dead(),
                 }
             }
 
@@ -542,6 +556,33 @@ impl TimingStats {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum MissingFileAction {
+    Keep,
+    Pause,
+    Drop,
+}
+
+/// Decide what to do with a watched file the path provider did not return.
+///
+/// `Pause` holds the watcher and its checkpoint when the same file is still
+/// on disk. `Drop` is a real rotation or deletion: the path is gone, or a
+/// different inode is there now.
+fn missing_file_action(
+    findable: bool,
+    missing_for: Duration,
+    rotate_wait: Duration,
+    same_file_still_there: bool,
+) -> MissingFileAction {
+    if findable || missing_for <= rotate_wait {
+        MissingFileAction::Keep
+    } else if same_file_still_there {
+        MissingFileAction::Pause
+    } else {
+        MissingFileAction::Drop
+    }
+}
+
 fn scale(bytes: u64) -> String {
     let units = ["", "k", "m", "g"];
     let mut bytes = bytes as f32;
@@ -577,6 +618,38 @@ pub struct Line {
 mod tests {
     use super::*;
     use std::time::Duration;
+
+    #[test]
+    fn missing_file_keeps_a_listed_file() {
+        assert_eq!(
+            missing_file_action(true, Duration::from_secs(30), Duration::from_secs(5), false),
+            MissingFileAction::Keep
+        );
+    }
+
+    #[test]
+    fn missing_file_waits_out_rotate_grace() {
+        assert_eq!(
+            missing_file_action(false, Duration::from_secs(5), Duration::from_secs(5), true),
+            MissingFileAction::Keep
+        );
+    }
+
+    #[test]
+    fn missing_file_pauses_when_the_same_inode_remains() {
+        assert_eq!(
+            missing_file_action(false, Duration::from_secs(6), Duration::from_secs(5), true),
+            MissingFileAction::Pause
+        );
+    }
+
+    #[test]
+    fn missing_file_drops_when_the_file_was_replaced() {
+        assert_eq!(
+            missing_file_action(false, Duration::from_secs(6), Duration::from_secs(5), false),
+            MissingFileAction::Drop
+        );
+    }
 
     #[test]
     fn timing_stats_handles_duration_subtraction_overflow() {

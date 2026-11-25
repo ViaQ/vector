@@ -17,6 +17,7 @@ use super::{
 };
 
 const TMP_FILE_NAME: &str = "checkpoints.new.json";
+const PARTIAL_FILE_NAME: &str = "checkpoints.partial.json";
 pub const CHECKPOINT_FILE_NAME: &str = "checkpoints.json";
 
 /// This enum represents the file format of checkpoints persisted to disk. Right
@@ -219,6 +220,10 @@ impl Checkpointer {
         Arc::clone(&self.checkpoints)
     }
 
+    fn partial_file_path(&self) -> PathBuf {
+        self.stable_file_path.with_file_name(PARTIAL_FILE_NAME)
+    }
+
     /// Encode a fingerprint to a file name, including legacy Unknown values
     ///
     /// For each of the non-legacy variants, prepend an identifier byte that
@@ -308,19 +313,19 @@ impl Checkpointer {
         // Fetch last written state.
         let mut last = self.last.lock().expect("Data poisoned.");
         if last.as_ref() != Some(&current) {
-            // Write the new checkpoints to a tmp file and flush it fully to
-            // disk. If vector dies anywhere during this section, the existing
-            // stable file will still be in its current valid state and we'll be
-            // able to recover.
-            let mut f = io::BufWriter::new(fs::File::create(&self.tmp_file_path)?);
+            // Do not open checkpoints.new.json directly. Creating that file
+            // truncates it, and a kill mid-write is what leaves the partial
+            // checkpoints.new.json files behind on the node. Write the new
+            // contents aside, then rename twice. A crash before the first
+            // rename leaves the previous files untouched.
+            let partial_path = self.partial_file_path();
+            let mut f = io::BufWriter::new(fs::File::create(&partial_path)?);
             serde_json::to_writer(&mut f, &current)?;
             f.into_inner()?.sync_all()?;
 
-            // Once the temp file is fully flushed, rename the tmp file to replace
-            // the previous stable file. This is an atomic operation on POSIX
-            // systems (and the stdlib claims to provide equivalent behavior on
-            // Windows), which should prevent scenarios where we don't have at least
-            // one full valid file to recover from.
+            fs::rename(&partial_path, &self.tmp_file_path)?;
+            // Atomic on POSIX. The stable file is only replaced once the new
+            // contents are fully on disk.
             fs::rename(&self.tmp_file_path, &self.stable_file_path)?;
 
             *last = Some(current);
@@ -345,6 +350,10 @@ impl Checkpointer {
     /// format but falling back to the legacy system when those files are found
     /// instead.
     pub fn read_checkpoints(&mut self, ignore_before: Option<DateTime<Utc>>) {
+        // Leftover from a write that died before the first rename. It is never
+        // a finished checkpoint.
+        remove_checkpoint_file(&self.partial_file_path());
+
         // First try reading from the tmp file location. If this works, it means
         // that the previous process was interrupted in the process of
         // checkpointing and the tmp file should contain more recent data that
@@ -366,6 +375,8 @@ impl Checkpointer {
             }
             Err(error) => {
                 error!(message = "Unable to recover checkpoint data from interrupted process.", %error);
+                // Truncated checkpoints.new.json. Keep checkpoints.json.
+                remove_checkpoint_file(&self.tmp_file_path);
             }
         }
 
@@ -424,6 +435,16 @@ impl Checkpointer {
     }
 }
 
+fn remove_checkpoint_file(path: &Path) {
+    match fs::remove_file(path) {
+        Ok(()) => {}
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+        Err(error) => {
+            warn!(message = "Failed to remove checkpoint file.", path = ?path, %error);
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use chrono::{Duration, Utc};
@@ -433,7 +454,7 @@ mod test {
     use super::{
         super::{FingerprintStrategy, Fingerprinter},
         Checkpoint, Checkpointer, FileFingerprint, FilePosition, CHECKPOINT_FILE_NAME,
-        TMP_FILE_NAME,
+        PARTIAL_FILE_NAME, TMP_FILE_NAME,
     };
 
     #[test]
@@ -531,6 +552,65 @@ mod test {
                 assert_eq!(chkptr.get_checkpoint(fingerprint), Some(position));
             }
         }
+    }
+
+    #[test]
+    fn test_truncated_checkpoint_keeps_the_previous_offset() {
+        let fingerprint = FileFingerprint::DevInode(1, 2);
+        let position: FilePosition = 4096;
+        let data_dir = tempdir().unwrap();
+
+        {
+            let mut chkptr = Checkpointer::new(data_dir.path());
+            chkptr.update_checkpoint(fingerprint, position);
+            chkptr.write_checkpoints().unwrap();
+        }
+
+        // What a kill looks like while checkpoints.new.json is being written.
+        let truncated = data_dir.path().join(TMP_FILE_NAME);
+        std::fs::write(
+            &truncated,
+            b"{\"version\":\"1\",\"checkpoints\":[{\"fingerprint\"",
+        )
+        .unwrap();
+
+        let mut chkptr = Checkpointer::new(data_dir.path());
+        chkptr.read_checkpoints(None);
+        assert_eq!(chkptr.get_checkpoint(fingerprint), Some(position));
+        assert!(!truncated.exists());
+        assert!(!data_dir.path().join(PARTIAL_FILE_NAME).exists());
+    }
+
+    #[test]
+    fn test_finished_new_checkpoint_is_preferred() {
+        use std::collections::BTreeSet;
+
+        let fingerprint = FileFingerprint::DevInode(1, 2);
+        let data_dir = tempdir().unwrap();
+
+        {
+            let mut chkptr = Checkpointer::new(data_dir.path());
+            chkptr.update_checkpoint(fingerprint, 10);
+            chkptr.write_checkpoints().unwrap();
+        }
+
+        // A write that finished the temp file and then died before the rename
+        // onto checkpoints.json. That file is newer and has to win.
+        let mut checkpoints = BTreeSet::new();
+        checkpoints.insert(Checkpoint {
+            fingerprint,
+            position: 99,
+            modified: Utc::now(),
+        });
+        let tmp = data_dir.path().join(TMP_FILE_NAME);
+        let mut file = std::fs::File::create(&tmp).unwrap();
+        serde_json::to_writer(&mut file, &super::State::V1 { checkpoints }).unwrap();
+        file.sync_all().unwrap();
+
+        let mut chkptr = Checkpointer::new(data_dir.path());
+        chkptr.read_checkpoints(None);
+        assert_eq!(chkptr.get_checkpoint(fingerprint), Some(99));
+        assert!(!tmp.exists());
     }
 
     #[test]
