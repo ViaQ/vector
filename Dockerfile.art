@@ -2,11 +2,15 @@ FROM registry.access.redhat.com/ubi9/ubi-minimal AS builder
 
 RUN INSTALL_PKGS=" \
       gcc-c++ \
+      gcc \
       git \
       make \
       unzip \
       openssl-devel \
-      llvm-toolset \
+      llvm-libs-21.1.8-2.el9 \
+      llvm-21.1.8-2.el9 \
+      clang-libs-21.1.8-2.el9 \
+      clang-21.1.8-2.el9 \
       rust-toolset-1.92.0 \
       crypto-policies-scripts \
       " && \
