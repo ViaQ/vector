@@ -1,0 +1,2605 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//! [Workload Identity Federation] (or External Account) credentials.
+//!
+//! Workload identity federation allows applications running outside of Google Cloud
+//! to access Google Cloud resources without using a [Service Account Key]. Instead of
+//! a long-lived credential (like a service account key), you can exchange a credential
+//! from your workload's identity provider for a short-lived Google Cloud access token.
+//! As per [best practices], Workload Identity Federation is the recommended method of
+//! authentication if your workload is using an external identity provider.
+//!
+//! Refer to [Obtain short-lived tokens for Workforce Identity Federation] for
+//! creating configurations that can be used with this library for loading credentials
+//! using various external toke provider sources such as file, URL, or an executable.
+//!
+//! ## Example: Creating credentials from a JSON object
+//!
+//! ```
+//! # use google_cloud_auth::credentials::external_account;
+//! # use http::Extensions;
+//! #
+//! # async fn sample() -> anyhow::Result<()> {
+//! let project_id = "your-gcp-project-id";
+//! let pool_id = "your-workload-identity-pool-id";
+//! let provider_id = "your-provider-id";
+//!
+//! let audience = format!(
+//!     "//iam.googleapis.com/projects/{}/locations/global/workloadIdentityPools/{}/providers/{}",
+//!     project_id, pool_id, provider_id
+//! );
+//!
+//! // This is an example of a configuration for a file-sourced credential.
+//! // The actual configuration will depend on your identity provider.
+//! let external_account_config = serde_json::json!({
+//!     "type": "external_account",
+//!     "audience": audience,
+//!     "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+//!     "token_url": "https://sts.googleapis.com/v1/token",
+//!     "credential_source": {
+//!         "file": "/path/to/your/oidc/token.jwt"
+//!     }
+//! });
+//!
+//! let credentials = external_account::Builder::new(external_account_config)
+//!     .build()
+//!     .unwrap();
+//! let headers = credentials.headers(Extensions::new()).await?;
+//! println!("Headers: {headers:?}");
+//! # Ok(()) }
+//! ```
+//!
+//! ## Example: Creating credentials with custom retry behavior
+//!
+//! ```
+//! # use google_cloud_auth::credentials::external_account;
+//! # use http::Extensions;
+//! # use std::time::Duration;
+//! # async fn sample() -> anyhow::Result<()> {
+//! use google_cloud_gax::retry_policy::{AlwaysRetry, RetryPolicyExt};
+//! use google_cloud_gax::exponential_backoff::ExponentialBackoff;
+//! # let project_id = "your-gcp-project-id";
+//! # let pool_id = "your-workload-identity-pool-id";
+//! # let provider_id = "your-provider-id";
+//! #
+//! # let audience = format!(
+//! #     "//iam.googleapis.com/projects/{}/locations/global/workloadIdentityPools/{}/providers/{}",
+//! #     project_id, pool_id, provider_id
+//! # );
+//! #
+//! # let external_account_config = serde_json::json!({
+//! #     "type": "external_account",
+//! #     "audience": audience,
+//! #     "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+//! #     "token_url": "https://sts.googleapis.com/v1/token",
+//! #     "credential_source": {
+//! #         "file": "/path/to/your/oidc/token.jwt"
+//! #     }
+//! # });
+//! let backoff = ExponentialBackoff::default();
+//! let credentials = external_account::Builder::new(external_account_config)
+//!     .with_retry_policy(AlwaysRetry.with_attempt_limit(3))
+//!     .with_backoff_policy(backoff)
+//!     .build()
+//!     .unwrap();
+//! let headers = credentials.headers(Extensions::new()).await?;
+//! println!("Headers: {headers:?}");
+//! # Ok(()) }
+//! ```
+//!
+//! [Workload Identity Federation]: https://cloud.google.com/iam/docs/workload-identity-federation
+//! [AIP-4117]: https://google.aip.dev/auth/4117
+//! [Service Account Key]: https://cloud.google.com/iam/docs/service-account-creds#key-types
+//! [best practices]: https://cloud.google.com/docs/authentication#auth-decision-tree
+//! [Obtain short-lived tokens for Workforce Identity Federation]: https://cloud.google.com/iam/docs/workforce-obtaining-short-lived-credentials#use_configuration_files_for_sign-in
+
+use super::dynamic::CredentialsProvider;
+use super::external_account_sources::aws_sourced::AwsSourcedCredentials;
+use super::external_account_sources::executable_sourced::ExecutableSourcedCredentials;
+use super::external_account_sources::file_sourced::FileSourcedCredentials;
+use super::external_account_sources::url_sourced::UrlSourcedCredentials;
+use super::impersonated;
+use super::internal::sts_exchange::{ClientAuthentication, ExchangeTokenRequest, STSHandler};
+use super::{CacheableResource, Credentials};
+use crate::access_boundary::{CredentialsWithAccessBoundary, external_account_lookup_url};
+use crate::build_errors::Error as BuilderError;
+use crate::constants::{DEFAULT_SCOPE, STS_TOKEN_URL};
+use crate::credentials::dynamic::AccessTokenCredentialsProvider;
+use crate::credentials::external_account_sources::programmatic_sourced::ProgrammaticSourcedCredentials;
+use crate::credentials::subject_token::dynamic;
+use crate::credentials::{AccessToken, AccessTokenCredentials};
+use crate::errors::non_retryable;
+use crate::headers_util::AuthHeadersBuilder;
+use crate::retry::Builder as RetryTokenProviderBuilder;
+use crate::token::{CachedTokenProvider, Token, TokenProvider};
+use crate::token_cache::TokenCache;
+use crate::{BuildResult, Result};
+use google_cloud_gax::backoff_policy::BackoffPolicyArg;
+use google_cloud_gax::retry_policy::RetryPolicyArg;
+use google_cloud_gax::retry_throttler::RetryThrottlerArg;
+use http::{Extensions, HeaderMap};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::time::{Duration, Instant};
+
+const IAM_SCOPE: &str = "https://www.googleapis.com/auth/iam";
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
+pub(crate) struct CredentialSourceFormat {
+    #[serde(rename = "type")]
+    pub format_type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subject_token_field_name: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, Default)]
+pub(crate) struct ExecutableConfig {
+    pub command: String,
+    pub timeout_millis: Option<u32>,
+    pub output_file: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(untagged)]
+enum CredentialSourceFile {
+    // Most specific variants first for untagged enum
+    Aws {
+        environment_id: String,
+        region_url: Option<String>,
+        url: Option<String>,
+        regional_cred_verification_url: Option<String>,
+        imdsv2_session_token_url: Option<String>,
+    },
+    Executable {
+        executable: ExecutableConfig,
+    },
+    Url {
+        url: String,
+        headers: Option<HashMap<String, String>>,
+        format: Option<CredentialSourceFormat>,
+    },
+    File {
+        file: String,
+        format: Option<CredentialSourceFormat>,
+    },
+}
+
+/// Check if the audience parameter matches the pattern for a valid workforce pool.
+/// Example: https://iam.googleapis.com/locations/global/workforcePools/pool/providers/provider
+fn is_valid_workforce_pool_audience(audience: &str) -> bool {
+    let path = audience
+        .strip_prefix("//iam.googleapis.com/")
+        .unwrap_or(audience);
+
+    let mut s = path.split('/');
+    matches!((s.next(), s.next(), s.next(), s.next(), s.next(), s.next(), s.next()), (
+            Some("locations"),
+            Some(_location),
+            Some("workforcePools"),
+            Some(pool),
+            Some("providers"),
+            Some(provider),
+            None,
+        ) if !pool.is_empty() && !provider.is_empty())
+}
+
+/// A representation of a [external account config file].
+///
+/// [external account config file]: https://google.aip.dev/auth/4117#configuration-file-generation-and-usage
+#[derive(Serialize, Deserialize, Debug, Clone)]
+struct ExternalAccountFile {
+    audience: String,
+    subject_token_type: String,
+    service_account_impersonation_url: Option<String>,
+    token_url: String,
+    client_id: Option<String>,
+    client_secret: Option<String>,
+    scopes: Option<Vec<String>>,
+    credential_source: CredentialSourceFile,
+    workforce_pool_user_project: Option<String>,
+}
+
+impl From<ExternalAccountFile> for ExternalAccountConfig {
+    fn from(config: ExternalAccountFile) -> Self {
+        let mut scope = config.scopes.unwrap_or_default();
+        if scope.is_empty() {
+            scope.push(DEFAULT_SCOPE.to_string());
+        }
+        Self {
+            audience: config.audience.clone(),
+            client_id: config.client_id,
+            client_secret: config.client_secret,
+            subject_token_type: config.subject_token_type,
+            token_url: config.token_url,
+            service_account_impersonation_url: config.service_account_impersonation_url,
+            credential_source: CredentialSource::from_file(
+                config.credential_source,
+                &config.audience,
+            ),
+            scopes: scope,
+            workforce_pool_user_project: config.workforce_pool_user_project,
+        }
+    }
+}
+
+impl CredentialSource {
+    fn from_file(source: CredentialSourceFile, audience: &str) -> Self {
+        match source {
+            CredentialSourceFile::Url {
+                url,
+                headers,
+                format,
+            } => Self::Url(UrlSourcedCredentials::new(url, headers, format)),
+            CredentialSourceFile::Executable { executable } => {
+                Self::Executable(ExecutableSourcedCredentials::new(executable))
+            }
+            CredentialSourceFile::File { file, format } => {
+                Self::File(FileSourcedCredentials::new(file, format))
+            }
+            CredentialSourceFile::Aws {
+                region_url,
+                url,
+                regional_cred_verification_url,
+                imdsv2_session_token_url,
+                ..
+            } => Self::Aws(AwsSourcedCredentials::new(
+                region_url,
+                url,
+                regional_cred_verification_url,
+                imdsv2_session_token_url,
+                audience.to_string(),
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct ExternalAccountConfig {
+    audience: String,
+    subject_token_type: String,
+    token_url: String,
+    service_account_impersonation_url: Option<String>,
+    client_id: Option<String>,
+    client_secret: Option<String>,
+    scopes: Vec<String>,
+    credential_source: CredentialSource,
+    workforce_pool_user_project: Option<String>,
+}
+
+#[derive(Debug, Default)]
+struct ExternalAccountConfigBuilder {
+    audience: Option<String>,
+    subject_token_type: Option<String>,
+    token_url: Option<String>,
+    service_account_impersonation_url: Option<String>,
+    client_id: Option<String>,
+    client_secret: Option<String>,
+    scopes: Option<Vec<String>>,
+    credential_source: Option<CredentialSource>,
+    workforce_pool_user_project: Option<String>,
+}
+
+impl ExternalAccountConfigBuilder {
+    fn with_audience<S: Into<String>>(mut self, audience: S) -> Self {
+        self.audience = Some(audience.into());
+        self
+    }
+
+    fn with_subject_token_type<S: Into<String>>(mut self, subject_token_type: S) -> Self {
+        self.subject_token_type = Some(subject_token_type.into());
+        self
+    }
+
+    fn with_token_url<S: Into<String>>(mut self, token_url: S) -> Self {
+        self.token_url = Some(token_url.into());
+        self
+    }
+
+    fn with_service_account_impersonation_url<S: Into<String>>(mut self, url: S) -> Self {
+        self.service_account_impersonation_url = Some(url.into());
+        self
+    }
+
+    fn with_client_id<S: Into<String>>(mut self, client_id: S) -> Self {
+        self.client_id = Some(client_id.into());
+        self
+    }
+
+    fn with_client_secret<S: Into<String>>(mut self, client_secret: S) -> Self {
+        self.client_secret = Some(client_secret.into());
+        self
+    }
+
+    fn with_scopes(mut self, scopes: Vec<String>) -> Self {
+        self.scopes = Some(scopes);
+        self
+    }
+
+    fn with_credential_source(mut self, source: CredentialSource) -> Self {
+        self.credential_source = Some(source);
+        self
+    }
+
+    fn with_workforce_pool_user_project<S: Into<String>>(mut self, project: S) -> Self {
+        self.workforce_pool_user_project = Some(project.into());
+        self
+    }
+
+    fn build(self) -> BuildResult<ExternalAccountConfig> {
+        let audience = self
+            .audience
+            .clone()
+            .ok_or(BuilderError::missing_field("audience"))?;
+
+        if self.workforce_pool_user_project.is_some()
+            && !is_valid_workforce_pool_audience(&audience)
+        {
+            return Err(BuilderError::parsing(
+                "workforce_pool_user_project should not be set for non-workforce pool credentials",
+            ));
+        }
+
+        Ok(ExternalAccountConfig {
+            audience,
+            subject_token_type: self
+                .subject_token_type
+                .ok_or(BuilderError::missing_field("subject_token_type"))?,
+            token_url: self
+                .token_url
+                .ok_or(BuilderError::missing_field("token_url"))?,
+            scopes: self.scopes.ok_or(BuilderError::missing_field("scopes"))?,
+            credential_source: self
+                .credential_source
+                .ok_or(BuilderError::missing_field("credential_source"))?,
+            service_account_impersonation_url: self.service_account_impersonation_url,
+            client_id: self.client_id,
+            client_secret: self.client_secret,
+            workforce_pool_user_project: self.workforce_pool_user_project,
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
+enum CredentialSource {
+    Url(UrlSourcedCredentials),
+    Executable(ExecutableSourcedCredentials),
+    File(FileSourcedCredentials),
+    Aws(AwsSourcedCredentials),
+    Programmatic(ProgrammaticSourcedCredentials),
+}
+
+impl ExternalAccountConfig {
+    fn make_credentials(
+        self,
+        quota_project_id: Option<String>,
+        retry_builder: RetryTokenProviderBuilder,
+    ) -> ExternalAccountCredentials<TokenCache> {
+        let config = self.clone();
+        match self.credential_source {
+            CredentialSource::Url(source) => {
+                Self::make_credentials_from_source(source, config, quota_project_id, retry_builder)
+            }
+            CredentialSource::Executable(source) => {
+                Self::make_credentials_from_source(source, config, quota_project_id, retry_builder)
+            }
+            CredentialSource::Programmatic(source) => {
+                Self::make_credentials_from_source(source, config, quota_project_id, retry_builder)
+            }
+            CredentialSource::File(source) => {
+                Self::make_credentials_from_source(source, config, quota_project_id, retry_builder)
+            }
+            CredentialSource::Aws(source) => {
+                Self::make_credentials_from_source(source, config, quota_project_id, retry_builder)
+            }
+        }
+    }
+
+    fn make_credentials_from_source<T>(
+        subject_token_provider: T,
+        config: ExternalAccountConfig,
+        quota_project_id: Option<String>,
+        retry_builder: RetryTokenProviderBuilder,
+    ) -> ExternalAccountCredentials<TokenCache>
+    where
+        T: dynamic::SubjectTokenProvider + 'static,
+    {
+        let token_provider = ExternalAccountTokenProvider {
+            subject_token_provider,
+            config,
+        };
+        let token_provider_with_retry = retry_builder.build(token_provider);
+        let cache = TokenCache::new(token_provider_with_retry);
+        ExternalAccountCredentials {
+            token_provider: cache,
+            quota_project_id,
+        }
+    }
+}
+
+#[derive(Debug)]
+struct ExternalAccountTokenProvider<T>
+where
+    T: dynamic::SubjectTokenProvider,
+{
+    subject_token_provider: T,
+    config: ExternalAccountConfig,
+}
+
+#[async_trait::async_trait]
+impl<T> TokenProvider for ExternalAccountTokenProvider<T>
+where
+    T: dynamic::SubjectTokenProvider,
+{
+    async fn token(&self) -> Result<Token> {
+        let subject_token = self.subject_token_provider.subject_token().await?;
+
+        let audience = self.config.audience.clone();
+        let subject_token_type = self.config.subject_token_type.clone();
+        let user_scopes = self.config.scopes.clone();
+        let url = self.config.token_url.clone();
+
+        let extra_options =
+            if self.config.client_id.is_none() && self.config.client_secret.is_none() {
+                let workforce_pool_user_project = self.config.workforce_pool_user_project.clone();
+                workforce_pool_user_project.map(|project| {
+                    let mut options = HashMap::new();
+                    options.insert("userProject".to_string(), project);
+                    options
+                })
+            } else {
+                None
+            };
+
+        // User provides the scopes to be set on the final token they receive. The scopes they
+        // provide does not necessarily have to include the IAM scope or cloud-platform scope
+        // which are needed to make the call to `iamcredentials` endpoint. So when minting the
+        // STS token, we use the user provided or IAM scope depending on whether the STS provided
+        // token is to be used with impersonation or directly.
+        let sts_scope = if self.config.service_account_impersonation_url.is_some() {
+            vec![IAM_SCOPE.to_string()]
+        } else {
+            user_scopes.clone()
+        };
+
+        let req = ExchangeTokenRequest {
+            url,
+            audience: Some(audience),
+            subject_token: subject_token.token,
+            subject_token_type,
+            scope: sts_scope,
+            authentication: ClientAuthentication {
+                client_id: self.config.client_id.clone(),
+                client_secret: self.config.client_secret.clone(),
+            },
+            extra_options,
+            ..ExchangeTokenRequest::default()
+        };
+
+        let token_res = STSHandler::exchange_token(req).await?;
+
+        if let Some(impersonation_url) = &self.config.service_account_impersonation_url {
+            let mut headers = HeaderMap::new();
+            headers.insert(
+                http::header::AUTHORIZATION,
+                http::HeaderValue::from_str(&format!("Bearer {}", token_res.access_token))
+                    .map_err(non_retryable)?,
+            );
+
+            return impersonated::generate_access_token(
+                headers,
+                None,
+                user_scopes,
+                impersonated::DEFAULT_LIFETIME,
+                impersonation_url,
+            )
+            .await;
+        }
+
+        let token = Token {
+            token: token_res.access_token,
+            token_type: token_res.token_type,
+            expires_at: Some(Instant::now() + Duration::from_secs(token_res.expires_in)),
+            metadata: None,
+        };
+        Ok(token)
+    }
+}
+
+#[derive(Debug)]
+pub(crate) struct ExternalAccountCredentials<T>
+where
+    T: CachedTokenProvider,
+{
+    token_provider: T,
+    quota_project_id: Option<String>,
+}
+
+/// A builder for external account [Credentials] instances.
+///
+/// # Example
+/// ```
+/// # use google_cloud_auth::credentials::external_account::Builder;
+/// # async fn sample() -> anyhow::Result<()> {
+/// let project_id = project_id();
+/// let workload_identity_pool_id = workload_identity_pool();
+/// let provider_id = workload_identity_provider();
+/// let provider_name = format!(
+///     "//iam.googleapis.com/projects/{project_id}/locations/global/workloadIdentityPools/{workload_identity_pool_id}/providers/{provider_id}"
+/// );
+/// let config = serde_json::json!({
+///     "type": "external_account",
+///     "audience": provider_name,
+///     "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+///     "token_url": "https://sts.googleapis.com/v1beta/token",
+///     "credential_source": {
+///         "url": format!("http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource={provider_name}"),
+///         "headers": {
+///           "Metadata": "True"
+///         },
+///         "format": {
+///           "type": "json",
+///           "subject_token_field_name": "access_token"
+///         }
+///     }
+/// });
+/// let credentials = Builder::new(config)
+///     .with_quota_project_id("quota_project")
+///     .build()?;
+/// # Ok(()) }
+///
+/// # fn project_id() -> String {
+/// #     "test-only".to_string()
+/// # }
+/// # fn workload_identity_pool() -> String {
+/// #     "test-only".to_string()
+/// # }
+/// # fn workload_identity_provider() -> String {
+/// #     "test-only".to_string()
+/// # }
+/// ```
+pub struct Builder {
+    external_account_config: Value,
+    quota_project_id: Option<String>,
+    scopes: Option<Vec<String>>,
+    retry_builder: RetryTokenProviderBuilder,
+    iam_endpoint_override: Option<String>,
+}
+
+impl Builder {
+    /// Creates a new builder using [external_account_credentials] JSON value.
+    ///
+    /// [external_account_credentials]: https://google.aip.dev/auth/4117#configuration-file-generation-and-usage
+    pub fn new(external_account_config: Value) -> Self {
+        Self {
+            external_account_config,
+            quota_project_id: None,
+            scopes: None,
+            retry_builder: RetryTokenProviderBuilder::default(),
+            iam_endpoint_override: None,
+        }
+    }
+
+    /// Sets the [quota project] for this credentials.
+    ///
+    /// In some services, you can use a service account in
+    /// one project for authentication and authorization, and charge
+    /// the usage to a different project. This requires that the
+    /// service account has `serviceusage.services.use` permissions on the quota project.
+    ///
+    /// [quota project]: https://cloud.google.com/docs/quotas/quota-project
+    pub fn with_quota_project_id<S: Into<String>>(mut self, quota_project_id: S) -> Self {
+        self.quota_project_id = Some(quota_project_id.into());
+        self
+    }
+
+    /// Overrides the [scopes] for this credentials.
+    ///
+    /// [scopes]: https://developers.google.com/identity/protocols/oauth2/scopes
+    pub fn with_scopes<I, S>(mut self, scopes: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.scopes = Some(scopes.into_iter().map(|s| s.into()).collect());
+        self
+    }
+
+    /// Configure the retry policy for fetching tokens.
+    ///
+    /// The retry policy controls how to handle retries, and sets limits on
+    /// the number of attempts or the total time spent retrying.
+    ///
+    /// ```
+    /// # use google_cloud_auth::credentials::external_account::Builder;
+    /// # async fn sample() -> anyhow::Result<()> {
+    /// use google_cloud_gax::retry_policy::{AlwaysRetry, RetryPolicyExt};
+    /// let config = serde_json::json!({
+    ///     "type": "external_account",
+    ///     "audience": "audience",
+    ///     "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+    ///     "token_url": "https://sts.googleapis.com/v1beta/token",
+    ///     "credential_source": { "file": "/path/to/your/oidc/token.jwt" }
+    /// });
+    /// let credentials = Builder::new(config)
+    ///     .with_retry_policy(AlwaysRetry.with_attempt_limit(3))
+    ///     .build()?;
+    /// # Ok(()) }
+    /// ```
+    pub fn with_retry_policy<V: Into<RetryPolicyArg>>(mut self, v: V) -> Self {
+        self.retry_builder = self.retry_builder.with_retry_policy(v.into());
+        self
+    }
+
+    /// Configure the retry backoff policy.
+    ///
+    /// The backoff policy controls how long to wait in between retry attempts.
+    ///
+    /// ```
+    /// # use google_cloud_auth::credentials::external_account::Builder;
+    /// # use std::time::Duration;
+    /// # async fn sample() -> anyhow::Result<()> {
+    /// use google_cloud_gax::exponential_backoff::ExponentialBackoff;
+    /// let config = serde_json::json!({
+    ///     "type": "external_account",
+    ///     "audience": "audience",
+    ///     "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+    ///     "token_url": "https://sts.googleapis.com/v1beta/token",
+    ///     "credential_source": { "file": "/path/to/your/oidc/token.jwt" }
+    /// });
+    /// let policy = ExponentialBackoff::default();
+    /// let credentials = Builder::new(config)
+    ///     .with_backoff_policy(policy)
+    ///     .build()?;
+    /// # Ok(()) }
+    /// ```
+    pub fn with_backoff_policy<V: Into<BackoffPolicyArg>>(mut self, v: V) -> Self {
+        self.retry_builder = self.retry_builder.with_backoff_policy(v.into());
+        self
+    }
+
+    /// Configure the retry throttler.
+    ///
+    /// Advanced applications may want to configure a retry throttler to
+    /// [Address Cascading Failures] and when [Handling Overload] conditions.
+    /// The authentication library throttles its retry loop, using a policy to
+    /// control the throttling algorithm. Use this method to fine tune or
+    /// customize the default retry throttler.
+    ///
+    /// [Handling Overload]: https://sre.google/sre-book/handling-overload/
+    /// [Address Cascading Failures]: https://sre.google/sre-book/addressing-cascading-failures/
+    ///
+    /// ```
+    /// # use google_cloud_auth::credentials::external_account::Builder;
+    /// # async fn sample() -> anyhow::Result<()> {
+    /// use google_cloud_gax::retry_throttler::AdaptiveThrottler;
+    /// let config = serde_json::json!({
+    ///     "type": "external_account",
+    ///     "audience": "audience",
+    ///     "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+    ///     "token_url": "https://sts.googleapis.com/v1beta/token",
+    ///     "credential_source": { "file": "/path/to/your/oidc/token.jwt" }
+    /// });
+    /// let credentials = Builder::new(config)
+    ///     .with_retry_throttler(AdaptiveThrottler::default())
+    ///     .build()?;
+    /// # Ok(()) }
+    /// ```
+    pub fn with_retry_throttler<V: Into<RetryThrottlerArg>>(mut self, v: V) -> Self {
+        self.retry_builder = self.retry_builder.with_retry_throttler(v.into());
+        self
+    }
+
+    #[cfg(all(test, google_cloud_unstable_trusted_boundaries))]
+    fn maybe_iam_endpoint_override(mut self, iam_endpoint_override: Option<String>) -> Self {
+        self.iam_endpoint_override = iam_endpoint_override;
+        self
+    }
+
+    /// Returns a [Credentials] instance with the configured settings.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [BuilderError] if the `external_account_config`
+    /// provided to [`Builder::new`] cannot be successfully deserialized into the
+    /// expected format for an external account configuration. This typically happens if the
+    /// JSON value is malformed or missing required fields.
+    ///
+    /// For more information, on the expected format, consult the relevant
+    /// section in the [external_account_credentials] guide.
+    ///
+    /// [external_account_credentials]: https://google.aip.dev/auth/4117#configuration-file-generation-and-usage
+    pub fn build(self) -> BuildResult<Credentials> {
+        Ok(self.build_credentials()?.into())
+    }
+
+    /// Returns an [AccessTokenCredentials] instance with the configured settings.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [BuilderError] if the `external_account_config`
+    /// provided to [`Builder::new`] cannot be successfully deserialized into the
+    /// expected format for an external account configuration. This typically happens if the
+    /// JSON value is malformed or missing required fields.
+    ///
+    /// For more information, on the expected format, consult the relevant
+    /// section in the [external_account_credentials] guide.
+    ///
+    /// [external_account_credentials]: https://google.aip.dev/auth/4117#configuration-file-generation-and-usage
+    pub fn build_access_token_credentials(self) -> BuildResult<AccessTokenCredentials> {
+        Ok(self.build_credentials()?.into())
+    }
+
+    fn build_credentials(
+        self,
+    ) -> BuildResult<CredentialsWithAccessBoundary<ExternalAccountCredentials<TokenCache>>> {
+        let mut file: ExternalAccountFile =
+            serde_json::from_value(self.external_account_config).map_err(BuilderError::parsing)?;
+
+        if let Some(scopes) = self.scopes {
+            file.scopes = Some(scopes);
+        }
+
+        if file.workforce_pool_user_project.is_some()
+            && !is_valid_workforce_pool_audience(&file.audience)
+        {
+            return Err(BuilderError::parsing(
+                "workforce_pool_user_project should not be set for non-workforce pool credentials",
+            ));
+        }
+
+        let config: ExternalAccountConfig = file.into();
+
+        let access_boundary_url =
+            external_account_lookup_url(&config.audience, self.iam_endpoint_override.as_deref());
+
+        let creds = config.make_credentials(self.quota_project_id, self.retry_builder);
+
+        Ok(CredentialsWithAccessBoundary::new(
+            creds,
+            access_boundary_url,
+        ))
+    }
+}
+
+/// A builder for external account [Credentials] that uses a user provided subject
+/// token provider.
+///
+/// This builder is designed for advanced use cases where the subject token is
+/// provided directly by the application through a custom implementation of the
+/// [SubjectTokenProvider] trait.
+///
+/// # Example
+///
+/// ```
+/// # use google_cloud_auth::credentials::external_account::ProgrammaticBuilder;
+/// # use google_cloud_auth::credentials::subject_token::{SubjectTokenProvider, SubjectToken, Builder as SubjectTokenBuilder};
+/// # use google_cloud_auth::errors::SubjectTokenProviderError;
+/// # use std::error::Error;
+/// # use std::fmt;
+/// # use std::sync::Arc;
+/// #
+/// # #[derive(Debug)]
+/// # struct MyTokenProvider;
+/// #
+/// # #[derive(Debug)]
+/// # struct MyProviderError;
+/// # impl fmt::Display for MyProviderError { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "MyProviderError") } }
+/// # impl Error for MyProviderError {}
+/// # impl SubjectTokenProviderError for MyProviderError { fn is_transient(&self) -> bool { false } }
+/// #
+/// # impl SubjectTokenProvider for MyTokenProvider {
+/// #     type Error = MyProviderError;
+/// #     async fn subject_token(&self) -> Result<SubjectToken, Self::Error> {
+/// #         Ok(SubjectTokenBuilder::new("my-programmatic-token".to_string()).build())
+/// #     }
+/// # }
+/// #
+/// # async fn sample() -> anyhow::Result<()> {
+/// let provider = Arc::new(MyTokenProvider);
+///
+/// let credentials = ProgrammaticBuilder::new(provider)
+///     .with_audience("//iam.googleapis.com/projects/123/locations/global/workloadIdentityPools/my-pool/providers/my-provider".to_string())
+///     .with_subject_token_type("urn:ietf:params:oauth:token-type:jwt".to_string())
+///     .with_token_url("https://sts.googleapis.com/v1beta/token".to_string())
+///     .with_quota_project_id("my-quota-project")
+///     .with_scopes(vec!["https://www.googleapis.com/auth/devstorage.read_only".to_string()])
+///     .build()
+///     .unwrap();
+/// # Ok(()) }
+/// ```
+/// [SubjectTokenProvider]: crate::credentials::subject_token::SubjectTokenProvider
+pub struct ProgrammaticBuilder {
+    quota_project_id: Option<String>,
+    config: ExternalAccountConfigBuilder,
+    retry_builder: RetryTokenProviderBuilder,
+}
+
+impl ProgrammaticBuilder {
+    /// Creates a new builder that uses the provided [SubjectTokenProvider] to
+    /// fetch the third-party subject token.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use google_cloud_auth::credentials::external_account::ProgrammaticBuilder;
+    /// # use google_cloud_auth::credentials::subject_token::{SubjectTokenProvider, SubjectToken, Builder as SubjectTokenBuilder};
+    /// # use google_cloud_auth::errors::SubjectTokenProviderError;
+    /// # use std::error::Error;
+    /// # use std::fmt;
+    /// # use std::sync::Arc;
+    /// #
+    /// # #[derive(Debug)]
+    /// # struct MyTokenProvider;
+    /// #
+    /// # #[derive(Debug)]
+    /// # struct MyProviderError;
+    /// # impl fmt::Display for MyProviderError { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "MyProviderError") } }
+    /// # impl Error for MyProviderError {}
+    /// # impl SubjectTokenProviderError for MyProviderError { fn is_transient(&self) -> bool { false } }
+    /// #
+    /// # impl SubjectTokenProvider for MyTokenProvider {
+    /// #     type Error = MyProviderError;
+    /// #     async fn subject_token(&self) -> Result<SubjectToken, Self::Error> {
+    /// #         Ok(SubjectTokenBuilder::new("my-programmatic-token".to_string()).build())
+    /// #     }
+    /// # }
+    /// let provider = Arc::new(MyTokenProvider);
+    /// let builder = ProgrammaticBuilder::new(provider);
+    /// ```
+    /// [SubjectTokenProvider]: crate::credentials::subject_token::SubjectTokenProvider
+    pub fn new(subject_token_provider: Arc<dyn dynamic::SubjectTokenProvider>) -> Self {
+        let config = ExternalAccountConfigBuilder::default().with_credential_source(
+            CredentialSource::Programmatic(ProgrammaticSourcedCredentials::new(
+                subject_token_provider,
+            )),
+        );
+        Self {
+            quota_project_id: None,
+            config,
+            retry_builder: RetryTokenProviderBuilder::default(),
+        }
+    }
+
+    /// Sets the optional [quota project] for this credentials.
+    ///
+    /// In some services, you can use a service account in
+    /// one project for authentication and authorization, and charge
+    /// the usage to a different project. This requires that the
+    /// service account has `serviceusage.services.use` permissions on the quota project.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use google_cloud_auth::credentials::external_account::ProgrammaticBuilder;
+    /// # use google_cloud_auth::credentials::subject_token::{SubjectTokenProvider, SubjectToken, Builder as SubjectTokenBuilder};
+    /// # use google_cloud_auth::errors::SubjectTokenProviderError;
+    /// # use std::error::Error;
+    /// # use std::fmt;
+    /// # use std::sync::Arc;
+    /// #
+    /// # #[derive(Debug)]
+    /// # struct MyTokenProvider;
+    /// #
+    /// # #[derive(Debug)]
+    /// # struct MyProviderError;
+    /// # impl fmt::Display for MyProviderError { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "MyProviderError") } }
+    /// # impl Error for MyProviderError {}
+    /// # impl SubjectTokenProviderError for MyProviderError { fn is_transient(&self) -> bool { false } }
+    /// #
+    /// # impl SubjectTokenProvider for MyTokenProvider {
+    /// #     type Error = MyProviderError;
+    /// #     async fn subject_token(&self) -> Result<SubjectToken, Self::Error> {
+    /// #         Ok(SubjectTokenBuilder::new("my-programmatic-token".to_string()).build())
+    /// #     }
+    /// # }
+    /// # let provider = Arc::new(MyTokenProvider);
+    /// let builder = ProgrammaticBuilder::new(provider)
+    ///     .with_quota_project_id("my-quota-project");
+    /// ```
+    ///
+    /// [quota project]: https://cloud.google.com/docs/quotas/quota-project
+    pub fn with_quota_project_id<S: Into<String>>(mut self, quota_project_id: S) -> Self {
+        self.quota_project_id = Some(quota_project_id.into());
+        self
+    }
+
+    /// Overrides the optional [scopes] for this credentials. If this method is not
+    /// called, a default scope will be used.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use google_cloud_auth::credentials::external_account::ProgrammaticBuilder;
+    /// # use google_cloud_auth::credentials::subject_token::{SubjectTokenProvider, SubjectToken, Builder as SubjectTokenBuilder};
+    /// # use google_cloud_auth::errors::SubjectTokenProviderError;
+    /// # use std::error::Error;
+    /// # use std::fmt;
+    /// # use std::sync::Arc;
+    /// #
+    /// # #[derive(Debug)]
+    /// # struct MyTokenProvider;
+    /// #
+    /// # #[derive(Debug)]
+    /// # struct MyProviderError;
+    /// # impl fmt::Display for MyProviderError { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "MyProviderError") } }
+    /// # impl Error for MyProviderError {}
+    /// # impl SubjectTokenProviderError for MyProviderError { fn is_transient(&self) -> bool { false } }
+    /// #
+    /// # impl SubjectTokenProvider for MyTokenProvider {
+    /// #     type Error = MyProviderError;
+    /// #     async fn subject_token(&self) -> Result<SubjectToken, Self::Error> {
+    /// #         Ok(SubjectTokenBuilder::new("my-programmatic-token".to_string()).build())
+    /// #     }
+    /// # }
+    /// # let provider = Arc::new(MyTokenProvider);
+    /// let builder = ProgrammaticBuilder::new(provider)
+    ///     .with_scopes(vec!["scope1", "scope2"]);
+    /// ```
+    ///
+    /// [scopes]: https://developers.google.com/identity/protocols/oauth2/scopes
+    pub fn with_scopes<I, S>(mut self, scopes: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.config = self.config.with_scopes(
+            scopes
+                .into_iter()
+                .map(|s| s.into())
+                .collect::<Vec<String>>(),
+        );
+        self
+    }
+
+    /// Sets the required audience for the token exchange.
+    ///
+    /// This is the resource name for the workload identity pool and the provider
+    /// identifier in that pool.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use google_cloud_auth::credentials::external_account::ProgrammaticBuilder;
+    /// # use google_cloud_auth::credentials::subject_token::{SubjectTokenProvider, SubjectToken, Builder as SubjectTokenBuilder};
+    /// # use google_cloud_auth::errors::SubjectTokenProviderError;
+    /// # use std::error::Error;
+    /// # use std::fmt;
+    /// # use std::sync::Arc;
+    /// #
+    /// # #[derive(Debug)]
+    /// # struct MyTokenProvider;
+    /// #
+    /// # #[derive(Debug)]
+    /// # struct MyProviderError;
+    /// # impl fmt::Display for MyProviderError { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "MyProviderError") } }
+    /// # impl Error for MyProviderError {}
+    /// # impl SubjectTokenProviderError for MyProviderError { fn is_transient(&self) -> bool { false } }
+    /// #
+    /// # impl SubjectTokenProvider for MyTokenProvider {
+    /// #     type Error = MyProviderError;
+    /// #     async fn subject_token(&self) -> Result<SubjectToken, Self::Error> {
+    /// #         Ok(SubjectTokenBuilder::new("my-programmatic-token".to_string()).build())
+    /// #     }
+    /// # }
+    /// # let provider = Arc::new(MyTokenProvider);
+    /// let builder = ProgrammaticBuilder::new(provider)
+    ///     .with_audience("my-audience");
+    /// ```
+    pub fn with_audience<S: Into<String>>(mut self, audience: S) -> Self {
+        self.config = self.config.with_audience(audience);
+        self
+    }
+
+    /// Sets the required subject token type.
+    ///
+    /// This is the STS subject token type based on the OAuth 2.0 token exchange spec.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use google_cloud_auth::credentials::external_account::ProgrammaticBuilder;
+    /// # use google_cloud_auth::credentials::subject_token::{SubjectTokenProvider, SubjectToken, Builder as SubjectTokenBuilder};
+    /// # use google_cloud_auth::errors::SubjectTokenProviderError;
+    /// # use std::error::Error;
+    /// # use std::fmt;
+    /// # use std::sync::Arc;
+    /// #
+    /// # #[derive(Debug)]
+    /// # struct MyTokenProvider;
+    /// #
+    /// # #[derive(Debug)]
+    /// # struct MyProviderError;
+    /// # impl fmt::Display for MyProviderError { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "MyProviderError") } }
+    /// # impl Error for MyProviderError {}
+    /// # impl SubjectTokenProviderError for MyProviderError { fn is_transient(&self) -> bool { false } }
+    /// #
+    /// # impl SubjectTokenProvider for MyTokenProvider {
+    /// #     type Error = MyProviderError;
+    /// #     async fn subject_token(&self) -> Result<SubjectToken, Self::Error> {
+    /// #         Ok(SubjectTokenBuilder::new("my-programmatic-token".to_string()).build())
+    /// #     }
+    /// # }
+    /// # let provider = Arc::new(MyTokenProvider);
+    /// let builder = ProgrammaticBuilder::new(provider)
+    ///     .with_subject_token_type("my-token-type");
+    /// ```
+    pub fn with_subject_token_type<S: Into<String>>(mut self, subject_token_type: S) -> Self {
+        self.config = self.config.with_subject_token_type(subject_token_type);
+        self
+    }
+
+    /// Sets the optional token URL for the STS token exchange. If not provided,
+    /// `https://sts.googleapis.com/v1/token` is used.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use google_cloud_auth::credentials::external_account::ProgrammaticBuilder;
+    /// # use google_cloud_auth::credentials::subject_token::{SubjectTokenProvider, SubjectToken, Builder as SubjectTokenBuilder};
+    /// # use google_cloud_auth::errors::SubjectTokenProviderError;
+    /// # use std::error::Error;
+    /// # use std::fmt;
+    /// # use std::sync::Arc;
+    /// #
+    /// # #[derive(Debug)]
+    /// # struct MyTokenProvider;
+    /// #
+    /// # #[derive(Debug)]
+    /// # struct MyProviderError;
+    /// # impl fmt::Display for MyProviderError { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "MyProviderError") } }
+    /// # impl Error for MyProviderError {}
+    /// # impl SubjectTokenProviderError for MyProviderError { fn is_transient(&self) -> bool { false } }
+    /// #
+    /// # impl SubjectTokenProvider for MyTokenProvider {
+    /// #     type Error = MyProviderError;
+    /// #     async fn subject_token(&self) -> Result<SubjectToken, Self::Error> {
+    /// #         Ok(SubjectTokenBuilder::new("my-programmatic-token".to_string()).build())
+    /// #     }
+    /// # }
+    /// # let provider = Arc::new(MyTokenProvider);
+    /// let builder = ProgrammaticBuilder::new(provider)
+    ///     .with_token_url("http://my-token-url.com");
+    /// ```
+    pub fn with_token_url<S: Into<String>>(mut self, token_url: S) -> Self {
+        self.config = self.config.with_token_url(token_url);
+        self
+    }
+
+    /// Sets the optional client ID for client authentication.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use google_cloud_auth::credentials::external_account::ProgrammaticBuilder;
+    /// # use google_cloud_auth::credentials::subject_token::{SubjectTokenProvider, SubjectToken, Builder as SubjectTokenBuilder};
+    /// # use google_cloud_auth::errors::SubjectTokenProviderError;
+    /// # use std::error::Error;
+    /// # use std::fmt;
+    /// # use std::sync::Arc;
+    /// #
+    /// # #[derive(Debug)]
+    /// # struct MyTokenProvider;
+    /// #
+    /// # #[derive(Debug)]
+    /// # struct MyProviderError;
+    /// # impl fmt::Display for MyProviderError { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "MyProviderError") } }
+    /// # impl Error for MyProviderError {}
+    /// # impl SubjectTokenProviderError for MyProviderError { fn is_transient(&self) -> bool { false } }
+    /// #
+    /// # impl SubjectTokenProvider for MyTokenProvider {
+    /// #     type Error = MyProviderError;
+    /// #     async fn subject_token(&self) -> Result<SubjectToken, Self::Error> {
+    /// #         Ok(SubjectTokenBuilder::new("my-programmatic-token".to_string()).build())
+    /// #     }
+    /// # }
+    /// # let provider = Arc::new(MyTokenProvider);
+    /// let builder = ProgrammaticBuilder::new(provider)
+    ///     .with_client_id("my-client-id");
+    /// ```
+    pub fn with_client_id<S: Into<String>>(mut self, client_id: S) -> Self {
+        self.config = self.config.with_client_id(client_id.into());
+        self
+    }
+
+    /// Sets the optional client secret for client authentication.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use google_cloud_auth::credentials::external_account::ProgrammaticBuilder;
+    /// # use google_cloud_auth::credentials::subject_token::{SubjectTokenProvider, SubjectToken, Builder as SubjectTokenBuilder};
+    /// # use google_cloud_auth::errors::SubjectTokenProviderError;
+    /// # use std::error::Error;
+    /// # use std::fmt;
+    /// # use std::sync::Arc;
+    /// #
+    /// # #[derive(Debug)]
+    /// # struct MyTokenProvider;
+    /// #
+    /// # #[derive(Debug)]
+    /// # struct MyProviderError;
+    /// # impl fmt::Display for MyProviderError { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "MyProviderError") } }
+    /// # impl Error for MyProviderError {}
+    /// # impl SubjectTokenProviderError for MyProviderError { fn is_transient(&self) -> bool { false } }
+    /// #
+    /// # impl SubjectTokenProvider for MyTokenProvider {
+    /// #     type Error = MyProviderError;
+    /// #     async fn subject_token(&self) -> Result<SubjectToken, Self::Error> {
+    /// #         Ok(SubjectTokenBuilder::new("my-programmatic-token".to_string()).build())
+    /// #     }
+    /// # }
+    /// # let provider = Arc::new(MyTokenProvider);
+    /// let builder = ProgrammaticBuilder::new(provider)
+    ///     .with_client_secret("my-client-secret");
+    /// ```
+    pub fn with_client_secret<S: Into<String>>(mut self, client_secret: S) -> Self {
+        self.config = self.config.with_client_secret(client_secret.into());
+        self
+    }
+
+    /// Sets the optional target principal.
+    ///
+    /// Target principal is the email of the service account to impersonate.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use google_cloud_auth::credentials::external_account::ProgrammaticBuilder;
+    /// # use google_cloud_auth::credentials::subject_token::{SubjectTokenProvider, SubjectToken, Builder as SubjectTokenBuilder};
+    /// # use google_cloud_auth::errors::SubjectTokenProviderError;
+    /// # use std::error::Error;
+    /// # use std::fmt;
+    /// # use std::sync::Arc;
+    /// #
+    /// # #[derive(Debug)]
+    /// # struct MyTokenProvider;
+    /// #
+    /// # #[derive(Debug)]
+    /// # struct MyProviderError;
+    /// # impl fmt::Display for MyProviderError { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "MyProviderError") } }
+    /// # impl Error for MyProviderError {}
+    /// # impl SubjectTokenProviderError for MyProviderError { fn is_transient(&self) -> bool { false } }
+    /// #
+    /// # impl SubjectTokenProvider for MyTokenProvider {
+    /// #     type Error = MyProviderError;
+    /// #     async fn subject_token(&self) -> Result<SubjectToken, Self::Error> {
+    /// #         Ok(SubjectTokenBuilder::new("my-programmatic-token".to_string()).build())
+    /// #     }
+    /// # }
+    /// # let provider = Arc::new(MyTokenProvider);
+    /// let builder = ProgrammaticBuilder::new(provider)
+    ///     .with_target_principal("test-principal");
+    /// ```
+    pub fn with_target_principal<S: Into<String>>(mut self, target_principal: S) -> Self {
+        let url = format!(
+            "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/{}:generateAccessToken",
+            target_principal.into()
+        );
+        self.config = self.config.with_service_account_impersonation_url(url);
+        self
+    }
+
+    /// Sets the optional workforce pool user project.
+    ///
+    /// This is the project ID used for quota and billing in the workforce pool context.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use google_cloud_auth::credentials::external_account::ProgrammaticBuilder;
+    /// # use google_cloud_auth::credentials::subject_token::{SubjectTokenProvider, SubjectToken, Builder as SubjectTokenBuilder};
+    /// # use google_cloud_auth::errors::SubjectTokenProviderError;
+    /// # use std::error::Error;
+    /// # use std::fmt;
+    /// # use std::sync::Arc;
+    /// #
+    /// # #[derive(Debug)]
+    /// # struct MyTokenProvider;
+    /// #
+    /// # #[derive(Debug)]
+    /// # struct MyProviderError;
+    /// # impl fmt::Display for MyProviderError { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "MyProviderError") } }
+    /// # impl Error for MyProviderError {}
+    /// # impl SubjectTokenProviderError for MyProviderError { fn is_transient(&self) -> bool { false } }
+    /// #
+    /// # impl SubjectTokenProvider for MyTokenProvider {
+    /// #     type Error = MyProviderError;
+    /// #     async fn subject_token(&self) -> Result<SubjectToken, Self::Error> {
+    /// #         Ok(SubjectTokenBuilder::new("my-programmatic-token".to_string()).build())
+    /// #     }
+    /// # }
+    /// # let provider = Arc::new(MyTokenProvider);
+    /// let builder = ProgrammaticBuilder::new(provider)
+    ///     .with_workforce_pool_user_project("my-project-id");
+    /// ```
+    pub fn with_workforce_pool_user_project<S: Into<String>>(mut self, project: S) -> Self {
+        self.config = self.config.with_workforce_pool_user_project(project);
+        self
+    }
+
+    /// Configure the retry policy for fetching tokens.
+    ///
+    /// The retry policy controls how to handle retries, and sets limits on
+    /// the number of attempts or the total time spent retrying.
+    ///
+    /// ```
+    /// # use google_cloud_auth::credentials::external_account::ProgrammaticBuilder;
+    /// # use google_cloud_auth::credentials::subject_token::{SubjectTokenProvider, SubjectToken, Builder as SubjectTokenBuilder};
+    /// # use google_cloud_auth::errors::SubjectTokenProviderError;
+    /// # use std::error::Error;
+    /// # use std::fmt;
+    /// # use std::sync::Arc;
+    /// #
+    /// # #[derive(Debug)]
+    /// # struct MyTokenProvider;
+    /// #
+    /// # #[derive(Debug)]
+    /// # struct MyProviderError;
+    /// # impl fmt::Display for MyProviderError { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "MyProviderError") } }
+    /// # impl Error for MyProviderError {}
+    /// # impl SubjectTokenProviderError for MyProviderError { fn is_transient(&self) -> bool { false } }
+    /// #
+    /// # impl SubjectTokenProvider for MyTokenProvider {
+    /// #     type Error = MyProviderError;
+    /// #     async fn subject_token(&self) -> Result<SubjectToken, Self::Error> {
+    /// #         Ok(SubjectTokenBuilder::new("my-programmatic-token".to_string()).build())
+    /// #     }
+    /// # }
+    /// #
+    /// # async fn sample() -> anyhow::Result<()> {
+    /// use google_cloud_gax::retry_policy::{AlwaysRetry, RetryPolicyExt};
+    /// let provider = Arc::new(MyTokenProvider);
+    /// let credentials = ProgrammaticBuilder::new(provider)
+    ///     .with_audience("test-audience")
+    ///     .with_subject_token_type("test-token-type")
+    ///     .with_retry_policy(AlwaysRetry.with_attempt_limit(3))
+    ///     .build()?;
+    /// # Ok(()) }
+    /// ```
+    pub fn with_retry_policy<V: Into<RetryPolicyArg>>(mut self, v: V) -> Self {
+        self.retry_builder = self.retry_builder.with_retry_policy(v.into());
+        self
+    }
+
+    /// Configure the retry backoff policy.
+    ///
+    /// The backoff policy controls how long to wait in between retry attempts.
+    ///
+    /// ```
+    /// # use google_cloud_auth::credentials::external_account::ProgrammaticBuilder;
+    /// # use google_cloud_auth::credentials::subject_token::{SubjectTokenProvider, SubjectToken, Builder as SubjectTokenBuilder};
+    /// # use google_cloud_auth::errors::SubjectTokenProviderError;
+    /// # use std::error::Error;
+    /// # use std::fmt;
+    /// # use std::sync::Arc;
+    /// #
+    /// # #[derive(Debug)]
+    /// # struct MyTokenProvider;
+    /// #
+    /// # #[derive(Debug)]
+    /// # struct MyProviderError;
+    /// # impl fmt::Display for MyProviderError { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "MyProviderError") } }
+    /// # impl Error for MyProviderError {}
+    /// # impl SubjectTokenProviderError for MyProviderError { fn is_transient(&self) -> bool { false } }
+    /// #
+    /// # impl SubjectTokenProvider for MyTokenProvider {
+    /// #     type Error = MyProviderError;
+    /// #     async fn subject_token(&self) -> Result<SubjectToken, Self::Error> {
+    /// #         Ok(SubjectTokenBuilder::new("my-programmatic-token".to_string()).build())
+    /// #     }
+    /// # }
+    /// #
+    /// # async fn sample() -> anyhow::Result<()> {
+    /// use google_cloud_gax::exponential_backoff::ExponentialBackoff;
+    /// let provider = Arc::new(MyTokenProvider);
+    /// let policy = ExponentialBackoff::default();
+    /// let credentials = ProgrammaticBuilder::new(provider)
+    ///     .with_audience("test-audience")
+    ///     .with_subject_token_type("test-token-type")
+    ///     .with_backoff_policy(policy)
+    ///     .build()?;
+    /// # Ok(()) }
+    /// ```
+    pub fn with_backoff_policy<V: Into<BackoffPolicyArg>>(mut self, v: V) -> Self {
+        self.retry_builder = self.retry_builder.with_backoff_policy(v.into());
+        self
+    }
+
+    /// Configure the retry throttler.
+    ///
+    /// Advanced applications may want to configure a retry throttler to
+    /// [Address Cascading Failures] and when [Handling Overload] conditions.
+    /// The authentication library throttles its retry loop, using a policy to
+    /// control the throttling algorithm. Use this method to fine tune or
+    /// customize the default retry throttler.
+    ///
+    /// [Handling Overload]: https://sre.google/sre-book/handling-overload/
+    /// [Address Cascading Failures]: https://sre.google/sre-book/addressing-cascading-failures/
+    ///
+    /// ```
+    /// # use google_cloud_auth::credentials::external_account::ProgrammaticBuilder;
+    /// # use google_cloud_auth::credentials::subject_token::{SubjectTokenProvider, SubjectToken, Builder as SubjectTokenBuilder};
+    /// # use google_cloud_auth::errors::SubjectTokenProviderError;
+    /// # use std::error::Error;
+    /// # use std::fmt;
+    /// # use std::sync::Arc;
+    /// #
+    /// # #[derive(Debug)]
+    /// # struct MyTokenProvider;
+    /// #
+    /// # #[derive(Debug)]
+    /// # struct MyProviderError;
+    /// # impl fmt::Display for MyProviderError { fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "MyProviderError") } }
+    /// # impl Error for MyProviderError {}
+    /// # impl SubjectTokenProviderError for MyProviderError { fn is_transient(&self) -> bool { false } }
+    /// #
+    /// # impl SubjectTokenProvider for MyTokenProvider {
+    /// #     type Error = MyProviderError;
+    /// #     async fn subject_token(&self) -> Result<SubjectToken, Self::Error> {
+    /// #         Ok(SubjectTokenBuilder::new("my-programmatic-token".to_string()).build())
+    /// #     }
+    /// # }
+    /// #
+    /// # async fn sample() -> anyhow::Result<()> {
+    /// use google_cloud_gax::retry_throttler::AdaptiveThrottler;
+    /// let provider = Arc::new(MyTokenProvider);
+    /// let credentials = ProgrammaticBuilder::new(provider)
+    ///     .with_audience("test-audience")
+    ///     .with_subject_token_type("test-token-type")
+    ///     .with_retry_throttler(AdaptiveThrottler::default())
+    ///     .build()?;
+    /// # Ok(()) }
+    /// ```
+    pub fn with_retry_throttler<V: Into<RetryThrottlerArg>>(mut self, v: V) -> Self {
+        self.retry_builder = self.retry_builder.with_retry_throttler(v.into());
+        self
+    }
+
+    /// Returns a [Credentials] instance with the configured settings.
+    ///
+    /// # Errors
+    ///
+    /// Returns a [BuilderError] if any of the required fields (such as
+    /// `audience` or `subject_token_type`) have not been set.
+    pub fn build(self) -> BuildResult<Credentials> {
+        let (config, quota_project_id, retry_builder) = self.build_components()?;
+        let creds = config.make_credentials(quota_project_id, retry_builder);
+        Ok(Credentials {
+            inner: Arc::new(creds),
+        })
+    }
+
+    /// Consumes the builder and returns its configured components.
+    fn build_components(
+        self,
+    ) -> BuildResult<(
+        ExternalAccountConfig,
+        Option<String>,
+        RetryTokenProviderBuilder,
+    )> {
+        let Self {
+            quota_project_id,
+            config,
+            retry_builder,
+        } = self;
+
+        let mut config_builder = config;
+        if config_builder.scopes.is_none() {
+            config_builder = config_builder.with_scopes(vec![DEFAULT_SCOPE.to_string()]);
+        }
+        if config_builder.token_url.is_none() {
+            config_builder = config_builder.with_token_url(STS_TOKEN_URL.to_string());
+        }
+        let final_config = config_builder.build()?;
+
+        Ok((final_config, quota_project_id, retry_builder))
+    }
+}
+
+#[async_trait::async_trait]
+impl<T> CredentialsProvider for ExternalAccountCredentials<T>
+where
+    T: CachedTokenProvider,
+{
+    async fn headers(&self, extensions: Extensions) -> Result<CacheableResource<HeaderMap>> {
+        let token = self.token_provider.token(extensions).await?;
+
+        AuthHeadersBuilder::new(&token)
+            .maybe_quota_project_id(self.quota_project_id.as_deref())
+            .build()
+    }
+}
+
+#[async_trait::async_trait]
+impl<T> AccessTokenCredentialsProvider for ExternalAccountCredentials<T>
+where
+    T: CachedTokenProvider,
+{
+    async fn access_token(&self) -> Result<AccessToken> {
+        let token = self.token_provider.token(Extensions::new()).await?;
+        token.into()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::constants::{
+        ACCESS_TOKEN_TYPE, DEFAULT_SCOPE, JWT_TOKEN_TYPE, TOKEN_EXCHANGE_GRANT_TYPE,
+    };
+    use crate::credentials::subject_token::{
+        Builder as SubjectTokenBuilder, SubjectToken, SubjectTokenProvider,
+    };
+    use crate::credentials::tests::{
+        find_source_error, get_mock_auth_retry_policy, get_mock_backoff_policy,
+        get_mock_retry_throttler, get_token_from_headers,
+    };
+    use crate::errors::{CredentialsError, SubjectTokenProviderError};
+    use httptest::{
+        Expectation, Server, cycle,
+        matchers::{all_of, contains, request, url_decoded},
+        responders::{json_encoded, status_code},
+    };
+    use serde_json::*;
+    use std::collections::HashMap;
+    use std::error::Error;
+    use std::fmt;
+    use test_case::test_case;
+    use time::OffsetDateTime;
+
+    #[derive(Debug)]
+    struct TestProviderError;
+    impl fmt::Display for TestProviderError {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            write!(f, "TestProviderError")
+        }
+    }
+    impl Error for TestProviderError {}
+    impl SubjectTokenProviderError for TestProviderError {
+        fn is_transient(&self) -> bool {
+            false
+        }
+    }
+
+    #[derive(Debug)]
+    struct TestSubjectTokenProvider;
+    impl SubjectTokenProvider for TestSubjectTokenProvider {
+        type Error = TestProviderError;
+        async fn subject_token(&self) -> std::result::Result<SubjectToken, Self::Error> {
+            Ok(SubjectTokenBuilder::new("test-subject-token".to_string()).build())
+        }
+    }
+
+    #[tokio::test]
+    async fn create_external_account_builder() {
+        let contents = json!({
+            "type": "external_account",
+            "audience": "audience",
+            "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+            "token_url": "https://sts.googleapis.com/v1beta/token",
+            "credential_source": {
+                "url": "https://example.com/token",
+                "format": {
+                  "type": "json",
+                  "subject_token_field_name": "access_token"
+                }
+            }
+        });
+
+        let creds = Builder::new(contents)
+            .with_quota_project_id("test_project")
+            .with_scopes(["a", "b"])
+            .build()
+            .unwrap();
+
+        // Use the debug output to verify the right kind of credentials are created.
+        let fmt = format!("{creds:?}");
+        assert!(fmt.contains("ExternalAccountCredentials"));
+    }
+
+    #[tokio::test]
+    async fn create_external_account_detect_url_sourced() {
+        let contents = json!({
+            "type": "external_account",
+            "audience": "audience",
+            "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+            "token_url": "https://sts.googleapis.com/v1beta/token",
+            "credential_source": {
+                "url": "https://example.com/token",
+                "headers": {
+                  "Metadata": "True"
+                },
+                "format": {
+                  "type": "json",
+                  "subject_token_field_name": "access_token"
+                }
+            }
+        });
+
+        let file: ExternalAccountFile =
+            serde_json::from_value(contents).expect("failed to parse external account config");
+        let config: ExternalAccountConfig = file.into();
+        let source = config.credential_source;
+
+        match source {
+            CredentialSource::Url(source) => {
+                assert_eq!(source.url, "https://example.com/token");
+                assert_eq!(
+                    source.headers,
+                    HashMap::from([("Metadata".to_string(), "True".to_string()),]),
+                );
+                assert_eq!(source.format, "json");
+                assert_eq!(source.subject_token_field_name, "access_token");
+            }
+            _ => {
+                unreachable!("expected Url Sourced credential")
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn create_external_account_detect_executable_sourced() {
+        let contents = json!({
+            "type": "external_account",
+            "audience": "audience",
+            "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+            "token_url": "https://sts.googleapis.com/v1beta/token",
+            "credential_source": {
+                "executable": {
+                    "command": "cat /some/file",
+                    "output_file": "/some/file",
+                    "timeout_millis": 5000
+                }
+            }
+        });
+
+        let file: ExternalAccountFile =
+            serde_json::from_value(contents).expect("failed to parse external account config");
+        let config: ExternalAccountConfig = file.into();
+        let source = config.credential_source;
+
+        match source {
+            CredentialSource::Executable(source) => {
+                assert_eq!(source.command, "cat");
+                assert_eq!(source.args, vec!["/some/file"]);
+                assert_eq!(source.output_file.as_deref(), Some("/some/file"));
+                assert_eq!(source.timeout, Duration::from_secs(5));
+            }
+            _ => {
+                unreachable!("expected Executable Sourced credential")
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn create_external_account_detect_file_sourced() {
+        let contents = json!({
+            "type": "external_account",
+            "audience": "audience",
+            "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+            "token_url": "https://sts.googleapis.com/v1beta/token",
+            "credential_source": {
+                "file": "/foo/bar",
+                "format": {
+                    "type": "json",
+                    "subject_token_field_name": "token"
+                }
+            }
+        });
+
+        let file: ExternalAccountFile =
+            serde_json::from_value(contents).expect("failed to parse external account config");
+        let config: ExternalAccountConfig = file.into();
+        let source = config.credential_source;
+
+        match source {
+            CredentialSource::File(source) => {
+                assert_eq!(source.file, "/foo/bar");
+                assert_eq!(source.format, "json");
+                assert_eq!(source.subject_token_field_name, "token");
+            }
+            _ => {
+                unreachable!("expected File Sourced credential")
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_external_account_with_impersonation_success() {
+        let subject_token_server = Server::run();
+        let sts_server = Server::run();
+        let impersonation_server = Server::run();
+
+        let impersonation_path = "/projects/-/serviceAccounts/sa@test.com:generateAccessToken";
+        let contents = json!({
+            "type": "external_account",
+            "audience": "audience",
+            "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+            "token_url": sts_server.url("/token").to_string(),
+            "service_account_impersonation_url": impersonation_server.url(impersonation_path).to_string(),
+            "credential_source": {
+                "url": subject_token_server.url("/subject_token").to_string(),
+                "format": {
+                  "type": "json",
+                  "subject_token_field_name": "access_token"
+                }
+            }
+        });
+
+        subject_token_server.expect(
+            Expectation::matching(request::method_path("GET", "/subject_token")).respond_with(
+                json_encoded(json!({
+                    "access_token": "subject_token",
+                })),
+            ),
+        );
+
+        sts_server.expect(
+            Expectation::matching(all_of![
+                request::method_path("POST", "/token"),
+                request::body(url_decoded(contains((
+                    "grant_type",
+                    TOKEN_EXCHANGE_GRANT_TYPE
+                )))),
+                request::body(url_decoded(contains(("subject_token", "subject_token")))),
+                request::body(url_decoded(contains((
+                    "requested_token_type",
+                    ACCESS_TOKEN_TYPE
+                )))),
+                request::body(url_decoded(contains((
+                    "subject_token_type",
+                    JWT_TOKEN_TYPE
+                )))),
+                request::body(url_decoded(contains(("audience", "audience")))),
+                request::body(url_decoded(contains(("scope", IAM_SCOPE)))),
+            ])
+            .respond_with(json_encoded(json!({
+                "access_token": "sts-token",
+                "issued_token_type": "urn:ietf:params:oauth:token-type:access_token",
+                "token_type": "Bearer",
+                "expires_in": 3600,
+            }))),
+        );
+
+        let expire_time = (OffsetDateTime::now_utc() + time::Duration::hours(1))
+            .format(&time::format_description::well_known::Rfc3339)
+            .unwrap();
+        impersonation_server.expect(
+            Expectation::matching(all_of![
+                request::method_path("POST", impersonation_path),
+                request::headers(contains(("authorization", "Bearer sts-token"))),
+            ])
+            .respond_with(json_encoded(json!({
+                "accessToken": "final-impersonated-token",
+                "expireTime": expire_time
+            }))),
+        );
+
+        let creds = Builder::new(contents).build().unwrap();
+        let headers = creds.headers(Extensions::new()).await.unwrap();
+        match headers {
+            CacheableResource::New { data, .. } => {
+                let token = data.get("authorization").unwrap().to_str().unwrap();
+                assert_eq!(token, "Bearer final-impersonated-token");
+            }
+            CacheableResource::NotModified => panic!("Expected new headers"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_external_account_without_impersonation_success() {
+        let subject_token_server = Server::run();
+        let sts_server = Server::run();
+
+        let contents = json!({
+            "type": "external_account",
+            "audience": "audience",
+            "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+            "token_url": sts_server.url("/token").to_string(),
+            "credential_source": {
+                "url": subject_token_server.url("/subject_token").to_string(),
+                "format": {
+                  "type": "json",
+                  "subject_token_field_name": "access_token"
+                }
+            }
+        });
+
+        subject_token_server.expect(
+            Expectation::matching(request::method_path("GET", "/subject_token")).respond_with(
+                json_encoded(json!({
+                    "access_token": "subject_token",
+                })),
+            ),
+        );
+
+        sts_server.expect(
+            Expectation::matching(all_of![
+                request::method_path("POST", "/token"),
+                request::body(url_decoded(contains((
+                    "grant_type",
+                    TOKEN_EXCHANGE_GRANT_TYPE
+                )))),
+                request::body(url_decoded(contains(("subject_token", "subject_token")))),
+                request::body(url_decoded(contains((
+                    "requested_token_type",
+                    ACCESS_TOKEN_TYPE
+                )))),
+                request::body(url_decoded(contains((
+                    "subject_token_type",
+                    JWT_TOKEN_TYPE
+                )))),
+                request::body(url_decoded(contains(("audience", "audience")))),
+                request::body(url_decoded(contains(("scope", DEFAULT_SCOPE)))),
+            ])
+            .respond_with(json_encoded(json!({
+                "access_token": "sts-only-token",
+                "issued_token_type": "urn:ietf:params:oauth:token-type:access_token",
+                "token_type": "Bearer",
+                "expires_in": 3600,
+            }))),
+        );
+
+        let creds = Builder::new(contents).build().unwrap();
+        let headers = creds.headers(Extensions::new()).await.unwrap();
+        match headers {
+            CacheableResource::New { data, .. } => {
+                let token = data.get("authorization").unwrap().to_str().unwrap();
+                assert_eq!(token, "Bearer sts-only-token");
+            }
+            CacheableResource::NotModified => panic!("Expected new headers"),
+        }
+    }
+
+    #[tokio::test]
+    async fn test_external_account_access_token_credentials_success() {
+        let server = Server::run();
+
+        let contents = json!({
+            "type": "external_account",
+            "audience": "audience",
+            "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+            "token_url": server.url("/token").to_string(),
+            "credential_source": {
+                "url": server.url("/subject_token").to_string(),
+                "format": {
+                  "type": "json",
+                  "subject_token_field_name": "access_token"
+                }
+            }
+        });
+
+        server.expect(
+            Expectation::matching(request::method_path("GET", "/subject_token")).respond_with(
+                json_encoded(json!({
+                    "access_token": "subject_token",
+                })),
+            ),
+        );
+
+        server.expect(
+            Expectation::matching(all_of![
+                request::method_path("POST", "/token"),
+                request::body(url_decoded(contains((
+                    "grant_type",
+                    TOKEN_EXCHANGE_GRANT_TYPE
+                )))),
+                request::body(url_decoded(contains(("subject_token", "subject_token")))),
+                request::body(url_decoded(contains((
+                    "requested_token_type",
+                    ACCESS_TOKEN_TYPE
+                )))),
+                request::body(url_decoded(contains((
+                    "subject_token_type",
+                    JWT_TOKEN_TYPE
+                )))),
+                request::body(url_decoded(contains(("audience", "audience")))),
+                request::body(url_decoded(contains(("scope", DEFAULT_SCOPE)))),
+            ])
+            .respond_with(json_encoded(json!({
+                "access_token": "sts-only-token",
+                "issued_token_type": "urn:ietf:params:oauth:token-type:access_token",
+                "token_type": "Bearer",
+                "expires_in": 3600,
+            }))),
+        );
+
+        let creds = Builder::new(contents)
+            .build_access_token_credentials()
+            .unwrap();
+        let access_token = creds.access_token().await.unwrap();
+        assert_eq!(access_token.token, "sts-only-token");
+    }
+
+    #[tokio::test]
+    async fn test_impersonation_flow_sts_call_fails() {
+        let subject_token_server = Server::run();
+        let sts_server = Server::run();
+        let impersonation_server = Server::run();
+
+        let impersonation_path = "/projects/-/serviceAccounts/sa@test.com:generateAccessToken";
+        let contents = json!({
+            "type": "external_account",
+            "audience": "audience",
+            "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+            "token_url": sts_server.url("/token").to_string(),
+            "service_account_impersonation_url": impersonation_server.url(impersonation_path).to_string(),
+            "credential_source": {
+                "url": subject_token_server.url("/subject_token").to_string(),
+                "format": {
+                  "type": "json",
+                  "subject_token_field_name": "access_token"
+                }
+            }
+        });
+
+        subject_token_server.expect(
+            Expectation::matching(request::method_path("GET", "/subject_token")).respond_with(
+                json_encoded(json!({
+                    "access_token": "subject_token",
+                })),
+            ),
+        );
+
+        sts_server.expect(
+            Expectation::matching(request::method_path("POST", "/token"))
+                .respond_with(status_code(500)),
+        );
+
+        let creds = Builder::new(contents).build().unwrap();
+        let err = creds.headers(Extensions::new()).await.unwrap_err();
+        let original_err = find_source_error::<CredentialsError>(&err).unwrap();
+        assert!(
+            original_err
+                .to_string()
+                .contains("failed to exchange token")
+        );
+        assert!(original_err.is_transient());
+    }
+
+    #[tokio::test]
+    async fn test_impersonation_flow_iam_call_fails() {
+        let subject_token_server = Server::run();
+        let sts_server = Server::run();
+        let impersonation_server = Server::run();
+
+        let impersonation_path = "/projects/-/serviceAccounts/sa@test.com:generateAccessToken";
+        let contents = json!({
+            "type": "external_account",
+            "audience": "audience",
+            "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+            "token_url": sts_server.url("/token").to_string(),
+            "service_account_impersonation_url": impersonation_server.url(impersonation_path).to_string(),
+            "credential_source": {
+                "url": subject_token_server.url("/subject_token").to_string(),
+                "format": {
+                  "type": "json",
+                  "subject_token_field_name": "access_token"
+                }
+            }
+        });
+
+        subject_token_server.expect(
+            Expectation::matching(request::method_path("GET", "/subject_token")).respond_with(
+                json_encoded(json!({
+                    "access_token": "subject_token",
+                })),
+            ),
+        );
+
+        sts_server.expect(
+            Expectation::matching(request::method_path("POST", "/token")).respond_with(
+                json_encoded(json!({
+                    "access_token": "sts-token",
+                    "issued_token_type": "urn:ietf:params:oauth:token-type:access_token",
+                    "token_type": "Bearer",
+                    "expires_in": 3600,
+                })),
+            ),
+        );
+
+        impersonation_server.expect(
+            Expectation::matching(request::method_path("POST", impersonation_path))
+                .respond_with(status_code(403)),
+        );
+
+        let creds = Builder::new(contents).build().unwrap();
+        let err = creds.headers(Extensions::new()).await.unwrap_err();
+        let original_err = find_source_error::<CredentialsError>(&err).unwrap();
+        assert!(original_err.to_string().contains("failed to fetch token"));
+        assert!(!original_err.is_transient());
+    }
+
+    #[test_case(Some(vec!["scope1", "scope2"]), Some("http://custom.com/token") ; "with custom scopes and token_url")]
+    #[test_case(None, Some("http://custom.com/token") ; "with default scopes and custom token_url")]
+    #[test_case(Some(vec!["scope1", "scope2"]), None ; "with custom scopes and default token_url")]
+    #[test_case(None, None ; "with default scopes and default token_url")]
+    #[tokio::test]
+    async fn create_programmatic_builder(scopes: Option<Vec<&str>>, token_url: Option<&str>) {
+        let provider = Arc::new(TestSubjectTokenProvider);
+        let mut builder = ProgrammaticBuilder::new(provider)
+            .with_audience("test-audience")
+            .with_subject_token_type("test-token-type")
+            .with_client_id("test-client-id")
+            .with_client_secret("test-client-secret")
+            .with_target_principal("test-principal");
+
+        let expected_scopes = if let Some(scopes) = scopes.clone() {
+            scopes.iter().map(|s| s.to_string()).collect()
+        } else {
+            vec![DEFAULT_SCOPE.to_string()]
+        };
+
+        let expected_token_url = token_url.unwrap_or(STS_TOKEN_URL).to_string();
+
+        if let Some(scopes) = scopes {
+            builder = builder.with_scopes(scopes);
+        }
+        if let Some(token_url) = token_url {
+            builder = builder.with_token_url(token_url);
+        }
+
+        let (config, _, _) = builder.build_components().unwrap();
+
+        assert_eq!(config.audience, "test-audience");
+        assert_eq!(config.subject_token_type, "test-token-type");
+        assert_eq!(config.client_id, Some("test-client-id".to_string()));
+        assert_eq!(config.client_secret, Some("test-client-secret".to_string()));
+        assert_eq!(config.scopes, expected_scopes);
+        assert_eq!(config.token_url, expected_token_url);
+        assert_eq!(
+            config.service_account_impersonation_url,
+            Some("https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/test-principal:generateAccessToken".to_string())
+        );
+    }
+
+    #[tokio::test]
+    async fn create_programmatic_builder_with_quota_project_id() {
+        let provider = Arc::new(TestSubjectTokenProvider);
+        let builder = ProgrammaticBuilder::new(provider)
+            .with_audience("test-audience")
+            .with_subject_token_type("test-token-type")
+            .with_token_url(STS_TOKEN_URL)
+            .with_quota_project_id("test-quota-project");
+
+        let creds = builder.build().unwrap();
+
+        let fmt = format!("{creds:?}");
+        assert!(
+            fmt.contains("ExternalAccountCredentials"),
+            "Expected 'ExternalAccountCredentials', got: {fmt}"
+        );
+        assert!(
+            fmt.contains("test-quota-project"),
+            "Expected 'test-quota-project', got: {fmt}"
+        );
+    }
+
+    #[tokio::test]
+    async fn programmatic_builder_returns_correct_headers() {
+        let provider = Arc::new(TestSubjectTokenProvider);
+        let sts_server = Server::run();
+        let builder = ProgrammaticBuilder::new(provider)
+            .with_audience("test-audience")
+            .with_subject_token_type("test-token-type")
+            .with_token_url(sts_server.url("/token").to_string())
+            .with_quota_project_id("test-quota-project");
+
+        let creds = builder.build().unwrap();
+
+        sts_server.expect(
+            Expectation::matching(all_of![
+                request::method_path("POST", "/token"),
+                request::body(url_decoded(contains((
+                    "grant_type",
+                    TOKEN_EXCHANGE_GRANT_TYPE
+                )))),
+                request::body(url_decoded(contains((
+                    "subject_token",
+                    "test-subject-token"
+                )))),
+                request::body(url_decoded(contains((
+                    "requested_token_type",
+                    ACCESS_TOKEN_TYPE
+                )))),
+                request::body(url_decoded(contains((
+                    "subject_token_type",
+                    "test-token-type"
+                )))),
+                request::body(url_decoded(contains(("audience", "test-audience")))),
+                request::body(url_decoded(contains(("scope", DEFAULT_SCOPE)))),
+            ])
+            .respond_with(json_encoded(json!({
+                "access_token": "sts-only-token",
+                "issued_token_type": "urn:ietf:params:oauth:token-type:access_token",
+                "token_type": "Bearer",
+                "expires_in": 3600,
+            }))),
+        );
+
+        let headers = creds.headers(Extensions::new()).await.unwrap();
+        match headers {
+            CacheableResource::New { data, .. } => {
+                let token = data.get("authorization").unwrap().to_str().unwrap();
+                assert_eq!(token, "Bearer sts-only-token");
+                let quota_project = data.get("x-goog-user-project").unwrap().to_str().unwrap();
+                assert_eq!(quota_project, "test-quota-project");
+            }
+            CacheableResource::NotModified => panic!("Expected new headers"),
+        }
+    }
+
+    #[tokio::test]
+    async fn create_programmatic_builder_fails_on_missing_required_field() {
+        let provider = Arc::new(TestSubjectTokenProvider);
+        let result = ProgrammaticBuilder::new(provider)
+            .with_subject_token_type("test-token-type")
+            // Missing .with_audience(...)
+            .with_token_url("http://test.com/token")
+            .build();
+
+        assert!(result.is_err(), "{result:?}");
+        let error_string = result.unwrap_err().to_string();
+        assert!(
+            error_string.contains("missing required field: audience"),
+            "Expected error about missing 'audience', got: {error_string}"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_external_account_retries_on_transient_failures() {
+        let mut subject_token_server = Server::run();
+        let mut sts_server = Server::run();
+
+        let contents = json!({
+            "type": "external_account",
+            "audience": "audience",
+            "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+            "token_url": sts_server.url("/token").to_string(),
+            "credential_source": {
+                "url": subject_token_server.url("/subject_token").to_string(),
+            }
+        });
+
+        subject_token_server.expect(
+            Expectation::matching(request::method_path("GET", "/subject_token"))
+                .times(3)
+                .respond_with(json_encoded(json!({
+                    "access_token": "subject_token",
+                }))),
+        );
+
+        sts_server.expect(
+            Expectation::matching(request::method_path("POST", "/token"))
+                .times(3)
+                .respond_with(status_code(503)),
+        );
+
+        let creds = Builder::new(contents)
+            .with_retry_policy(get_mock_auth_retry_policy(3))
+            .with_backoff_policy(get_mock_backoff_policy())
+            .with_retry_throttler(get_mock_retry_throttler())
+            .build()
+            .unwrap();
+
+        let err = creds.headers(Extensions::new()).await.unwrap_err();
+        assert!(err.is_transient(), "{err:?}");
+        sts_server.verify_and_clear();
+        subject_token_server.verify_and_clear();
+    }
+
+    #[tokio::test]
+    async fn test_external_account_does_not_retry_on_non_transient_failures() {
+        let subject_token_server = Server::run();
+        let mut sts_server = Server::run();
+
+        let contents = json!({
+            "type": "external_account",
+            "audience": "audience",
+            "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+            "token_url": sts_server.url("/token").to_string(),
+            "credential_source": {
+                "url": subject_token_server.url("/subject_token").to_string(),
+            }
+        });
+
+        subject_token_server.expect(
+            Expectation::matching(request::method_path("GET", "/subject_token")).respond_with(
+                json_encoded(json!({
+                    "access_token": "subject_token",
+                })),
+            ),
+        );
+
+        sts_server.expect(
+            Expectation::matching(request::method_path("POST", "/token"))
+                .times(1)
+                .respond_with(status_code(401)),
+        );
+
+        let creds = Builder::new(contents)
+            .with_retry_policy(get_mock_auth_retry_policy(1))
+            .with_backoff_policy(get_mock_backoff_policy())
+            .with_retry_throttler(get_mock_retry_throttler())
+            .build()
+            .unwrap();
+
+        let err = creds.headers(Extensions::new()).await.unwrap_err();
+        assert!(!err.is_transient());
+        sts_server.verify_and_clear();
+    }
+
+    #[tokio::test]
+    async fn test_external_account_retries_for_success() {
+        let mut subject_token_server = Server::run();
+        let mut sts_server = Server::run();
+
+        let contents = json!({
+            "type": "external_account",
+            "audience": "audience",
+            "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+            "token_url": sts_server.url("/token").to_string(),
+            "credential_source": {
+                "url": subject_token_server.url("/subject_token").to_string(),
+            }
+        });
+
+        subject_token_server.expect(
+            Expectation::matching(request::method_path("GET", "/subject_token"))
+                .times(3)
+                .respond_with(json_encoded(json!({
+                    "access_token": "subject_token",
+                }))),
+        );
+
+        sts_server.expect(
+            Expectation::matching(request::method_path("POST", "/token"))
+                .times(3)
+                .respond_with(cycle![
+                    status_code(503).body("try-again"),
+                    status_code(503).body("try-again"),
+                    json_encoded(json!({
+                        "access_token": "sts-only-token",
+                        "issued_token_type": "urn:ietf:params:oauth:token-type:access_token",
+                        "token_type": "Bearer",
+                        "expires_in": 3600,
+                    }))
+                ]),
+        );
+
+        let creds = Builder::new(contents)
+            .with_retry_policy(get_mock_auth_retry_policy(3))
+            .with_backoff_policy(get_mock_backoff_policy())
+            .with_retry_throttler(get_mock_retry_throttler())
+            .build()
+            .unwrap();
+
+        let headers = creds.headers(Extensions::new()).await.unwrap();
+        match headers {
+            CacheableResource::New { data, .. } => {
+                let token = data.get("authorization").unwrap().to_str().unwrap();
+                assert_eq!(token, "Bearer sts-only-token");
+            }
+            CacheableResource::NotModified => panic!("Expected new headers"),
+        }
+        sts_server.verify_and_clear();
+        subject_token_server.verify_and_clear();
+    }
+
+    #[tokio::test]
+    async fn test_programmatic_builder_retries_on_transient_failures() {
+        let provider = Arc::new(TestSubjectTokenProvider);
+        let mut sts_server = Server::run();
+
+        sts_server.expect(
+            Expectation::matching(request::method_path("POST", "/token"))
+                .times(3)
+                .respond_with(status_code(503)),
+        );
+
+        let creds = ProgrammaticBuilder::new(provider)
+            .with_audience("test-audience")
+            .with_subject_token_type("test-token-type")
+            .with_token_url(sts_server.url("/token").to_string())
+            .with_retry_policy(get_mock_auth_retry_policy(3))
+            .with_backoff_policy(get_mock_backoff_policy())
+            .with_retry_throttler(get_mock_retry_throttler())
+            .build()
+            .unwrap();
+
+        let err = creds.headers(Extensions::new()).await.unwrap_err();
+        assert!(err.is_transient(), "{err:?}");
+        sts_server.verify_and_clear();
+    }
+
+    #[tokio::test]
+    async fn test_programmatic_builder_does_not_retry_on_non_transient_failures() {
+        let provider = Arc::new(TestSubjectTokenProvider);
+        let mut sts_server = Server::run();
+
+        sts_server.expect(
+            Expectation::matching(request::method_path("POST", "/token"))
+                .times(1)
+                .respond_with(status_code(401)),
+        );
+
+        let creds = ProgrammaticBuilder::new(provider)
+            .with_audience("test-audience")
+            .with_subject_token_type("test-token-type")
+            .with_token_url(sts_server.url("/token").to_string())
+            .with_retry_policy(get_mock_auth_retry_policy(1))
+            .with_backoff_policy(get_mock_backoff_policy())
+            .with_retry_throttler(get_mock_retry_throttler())
+            .build()
+            .unwrap();
+
+        let err = creds.headers(Extensions::new()).await.unwrap_err();
+        assert!(!err.is_transient());
+        sts_server.verify_and_clear();
+    }
+
+    #[tokio::test]
+    async fn test_programmatic_builder_retries_for_success() {
+        let provider = Arc::new(TestSubjectTokenProvider);
+        let mut sts_server = Server::run();
+
+        sts_server.expect(
+            Expectation::matching(request::method_path("POST", "/token"))
+                .times(3)
+                .respond_with(cycle![
+                    status_code(503).body("try-again"),
+                    status_code(503).body("try-again"),
+                    json_encoded(json!({
+                        "access_token": "sts-only-token",
+                        "issued_token_type": "urn:ietf:params:oauth:token-type:access_token",
+                        "token_type": "Bearer",
+                        "expires_in": 3600,
+                    }))
+                ]),
+        );
+
+        let creds = ProgrammaticBuilder::new(provider)
+            .with_audience("test-audience")
+            .with_subject_token_type("test-token-type")
+            .with_token_url(sts_server.url("/token").to_string())
+            .with_retry_policy(get_mock_auth_retry_policy(3))
+            .with_backoff_policy(get_mock_backoff_policy())
+            .with_retry_throttler(get_mock_retry_throttler())
+            .build()
+            .unwrap();
+
+        let headers = creds.headers(Extensions::new()).await.unwrap();
+        match headers {
+            CacheableResource::New { data, .. } => {
+                let token = data.get("authorization").unwrap().to_str().unwrap();
+                assert_eq!(token, "Bearer sts-only-token");
+            }
+            CacheableResource::NotModified => panic!("Expected new headers"),
+        }
+        sts_server.verify_and_clear();
+    }
+
+    #[test_case(
+        "//iam.googleapis.com/projects/12345/locations/global/workloadIdentityPools/my-pool/providers/my-provider",
+        "/v1/projects/12345/locations/global/workloadIdentityPools/my-pool/allowedLocations";
+        "workload_identity_pool"
+    )]
+    #[test_case(
+        "//iam.googleapis.com/locations/global/workforcePools/my-pool/providers/my-provider",
+        "/v1/locations/global/workforcePools/my-pool/allowedLocations";
+        "workforce_pool"
+    )]
+    #[tokio::test]
+    #[cfg(google_cloud_unstable_trusted_boundaries)]
+    async fn e2e_access_boundary(audience: &str, iam_path: &str) -> anyhow::Result<()> {
+        use crate::credentials::tests::get_access_boundary_from_headers;
+
+        let audience = audience.to_string();
+        let iam_path = iam_path.to_string();
+
+        let server = Server::run();
+
+        server.expect(
+            Expectation::matching(request::method_path("GET", "/subject_token")).respond_with(
+                json_encoded(json!({
+                    "access_token": "subject_token",
+                })),
+            ),
+        );
+
+        server.expect(
+            Expectation::matching(all_of![
+                request::method_path("POST", "/token"),
+                request::body(url_decoded(contains(("subject_token", "subject_token")))),
+                request::body(url_decoded(contains(("audience", audience.clone())))),
+            ])
+            .respond_with(json_encoded(json!({
+                "access_token": "sts-only-token",
+                "issued_token_type": "urn:ietf:params:oauth:token-type:access_token",
+                "token_type": "Bearer",
+                "expires_in": 3600,
+            }))),
+        );
+
+        server.expect(
+            Expectation::matching(all_of![request::method_path("GET", iam_path.clone()),])
+                .respond_with(json_encoded(json!({
+                    "locations": ["us-central1"],
+                    "encodedLocations": "0x1234"
+                }))),
+        );
+
+        let contents = json!({
+            "type": "external_account",
+            "audience": audience.to_string(),
+            "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+            "token_url": server.url("/token").to_string(),
+            "credential_source": {
+                "url": server.url("/subject_token").to_string(),
+                "format": {
+                  "type": "json",
+                  "subject_token_field_name": "access_token"
+                }
+            }
+        });
+
+        let iam_endpoint = server.url("").to_string().trim_end_matches('/').to_string();
+
+        let creds = Builder::new(contents)
+            .maybe_iam_endpoint_override(Some(iam_endpoint))
+            .build_credentials()?;
+
+        // wait for the access boundary background thread to update
+        creds.wait_for_boundary().await;
+
+        let headers = creds.headers(Extensions::new()).await?;
+        let token = get_token_from_headers(headers.clone());
+        let access_boundary = get_access_boundary_from_headers(headers);
+
+        assert!(token.is_some(), "should have some token");
+        assert_eq!(access_boundary.as_deref(), Some("0x1234"));
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_kubernetes_wif_direct_identity_parsing() {
+        let contents = json!({
+            "audience": "//iam.googleapis.com/projects/123456789/locations/global/workloadIdentityPools/pool-name/providers/k8s-cluster",
+            "credential_source": {
+                "file": "/var/run/service-account/token"
+            },
+            "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+            "token_url": "https://sts.googleapis.com/v1/token",
+            "type": "external_account"
+        });
+
+        let file: ExternalAccountFile = serde_json::from_value(contents)
+            .expect("failed to parse kubernetes WIF direct identity config");
+        let config: ExternalAccountConfig = file.into();
+
+        match config.credential_source {
+            CredentialSource::File(source) => {
+                assert_eq!(source.file, "/var/run/service-account/token");
+                assert_eq!(source.format, "text"); // Default format
+                assert_eq!(source.subject_token_field_name, ""); // Default empty
+            }
+            _ => {
+                unreachable!("expected File sourced credential")
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_kubernetes_wif_impersonation_parsing() {
+        let contents = json!({
+            "audience": "//iam.googleapis.com/projects/123456789/locations/global/workloadIdentityPools/pool-name/providers/k8s-cluster",
+            "credential_source": {
+                "file": "/var/run/service-account/token",
+                "format": {
+                    "type": "text"
+                }
+            },
+            "service_account_impersonation_url": "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/test-sa@test-project.iam.gserviceaccount.com:generateAccessToken",
+            "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+            "token_url": "https://sts.googleapis.com/v1/token",
+            "type": "external_account",
+            "universe_domain": "googleapis.com"
+        });
+
+        let file: ExternalAccountFile = serde_json::from_value(contents)
+            .expect("failed to parse kubernetes WIF impersonation config");
+        let config: ExternalAccountConfig = file.into();
+
+        match config.credential_source {
+            CredentialSource::File(source) => {
+                assert_eq!(source.file, "/var/run/service-account/token");
+                assert_eq!(source.format, "text");
+                assert_eq!(source.subject_token_field_name, ""); // Empty for text format
+            }
+            _ => {
+                unreachable!("expected File sourced credential")
+            }
+        }
+
+        assert_eq!(
+            config.service_account_impersonation_url,
+            Some("https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/test-sa@test-project.iam.gserviceaccount.com:generateAccessToken".to_string())
+        );
+    }
+
+    #[tokio::test]
+    async fn test_aws_parsing() {
+        let contents = json!({
+            "audience": "audience",
+            "credential_source": {
+                "environment_id": "aws1",
+                "region_url": "http://169.254.169.254/latest/meta-data/placement/availability-zone",
+                "url": "http://169.254.169.254/latest/meta-data/iam/security-credentials/",
+                "regional_cred_verification_url": "https://sts.{region}.amazonaws.com?Action=GetCallerIdentity&Version=2011-06-15",
+                "imdsv2_session_token_url": "http://169.254.169.254/latest/api/token"
+            },
+            "subject_token_type": "urn:ietf:params:aws:token-type:aws4_request",
+            "token_url": "https://sts.googleapis.com/v1/token",
+            "type": "external_account"
+        });
+
+        let file: ExternalAccountFile =
+            serde_json::from_value(contents).expect("failed to parse AWS config");
+        let config: ExternalAccountConfig = file.into();
+
+        match config.credential_source {
+            CredentialSource::Aws(source) => {
+                assert_eq!(
+                    source.region_url,
+                    Some(
+                        "http://169.254.169.254/latest/meta-data/placement/availability-zone"
+                            .to_string()
+                    )
+                );
+                assert_eq!(
+                    source.regional_cred_verification_url,
+                    Some(
+                        "https://sts.{region}.amazonaws.com?Action=GetCallerIdentity&Version=2011-06-15"
+                            .to_string()
+                    )
+                );
+                assert_eq!(
+                    source.imdsv2_session_token_url,
+                    Some("http://169.254.169.254/latest/api/token".to_string())
+                );
+            }
+            _ => {
+                unreachable!("expected Aws sourced credential")
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn builder_workforce_pool_user_project_fails_without_workforce_pool_audience() {
+        let contents = json!({
+            "type": "external_account",
+            "audience": "not-a-workforce-pool",
+            "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+            "token_url": "http://test.com/token",
+            "credential_source": {
+                "url": "http://test.com/subject_token",
+            },
+            "workforce_pool_user_project": "test-project"
+        });
+
+        let result = Builder::new(contents).build();
+
+        assert!(result.is_err(), "{result:?}");
+        let err = result.unwrap_err();
+        assert!(err.is_parsing(), "{err:?}");
+    }
+
+    #[tokio::test]
+    async fn sts_handler_ignores_workforce_pool_user_project_with_client_auth()
+    -> std::result::Result<(), Box<dyn std::error::Error>> {
+        let subject_token_server = Server::run();
+        let sts_server = Server::run();
+
+        let contents = json!({
+            "type": "external_account",
+            "audience": "//iam.googleapis.com/locations/global/workforcePools/pool/providers/provider",
+            "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+            "token_url": sts_server.url("/token").to_string(),
+            "client_id": "client-id",
+            "credential_source": {
+                "url": subject_token_server.url("/subject_token").to_string(),
+            },
+            "workforce_pool_user_project": "test-project"
+        });
+
+        subject_token_server.expect(
+            Expectation::matching(request::method_path("GET", "/subject_token")).respond_with(
+                json_encoded(json!({
+                    "access_token": "subject_token",
+                })),
+            ),
+        );
+
+        sts_server.expect(
+            Expectation::matching(all_of![request::method_path("POST", "/token"),]).respond_with(
+                json_encoded(json!({
+                    "access_token": "sts-only-token",
+                    "issued_token_type": "urn:ietf:params:oauth:token-type:access_token",
+                    "token_type": "Bearer",
+                    "expires_in": 3600,
+                })),
+            ),
+        );
+
+        let creds = Builder::new(contents).build()?;
+        let headers = creds.headers(Extensions::new()).await?;
+        let token = get_token_from_headers(headers);
+        assert_eq!(token.as_deref(), Some("sts-only-token"));
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn sts_handler_receives_workforce_pool_user_project()
+    -> std::result::Result<(), Box<dyn std::error::Error>> {
+        let subject_token_server = Server::run();
+        let sts_server = Server::run();
+
+        let contents = json!({
+            "type": "external_account",
+            "audience": "//iam.googleapis.com/locations/global/workforcePools/pool/providers/provider",
+            "subject_token_type": "urn:ietf:params:oauth:token-type:jwt",
+            "token_url": sts_server.url("/token").to_string(),
+            "credential_source": {
+                "url": subject_token_server.url("/subject_token").to_string(),
+            },
+            "workforce_pool_user_project": "test-project-123"
+        });
+
+        subject_token_server.expect(
+            Expectation::matching(request::method_path("GET", "/subject_token")).respond_with(
+                json_encoded(json!({
+                    "access_token": "subject_token",
+                })),
+            ),
+        );
+
+        sts_server.expect(
+            Expectation::matching(all_of![
+                request::method_path("POST", "/token"),
+                request::body(url_decoded(contains((
+                    "options",
+                    "{\"userProject\":\"test-project-123\"}"
+                )))),
+            ])
+            .respond_with(json_encoded(json!({
+                "access_token": "sts-only-token",
+                "issued_token_type": "urn:ietf:params:oauth:token-type:access_token",
+                "token_type": "Bearer",
+                "expires_in": 3600,
+            }))),
+        );
+
+        let creds = Builder::new(contents).build()?;
+        let headers = creds.headers(Extensions::new()).await?;
+        let token = get_token_from_headers(headers);
+        assert_eq!(token.as_deref(), Some("sts-only-token"));
+
+        Ok(())
+    }
+}
