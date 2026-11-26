@@ -508,6 +508,12 @@ hyper = { path = "patch/hyper" }
 # from upstream 0.103.16 (bz#2561996). The 0.101/0.102 lines have no upstream
 # fixed release; this covers the copy reachable through tonic/OTLP TLS.
 rustls-webpki = { path = "patch/rustls-webpki-0.102" }
+# google-cloud-auth 1.8.0 fork: drops the aws-lc-rs dependency (bundled,
+# FIPS-non-attested crypto) used for GCP service-account JWT signing and for
+# its rustls-based HTTP transport. Signing now goes through this fork's
+# patched `openssl` crate, and the transport uses reqwest's native-tls
+# (system OpenSSL) feature instead of rustls. See LOG-10744.
+google-cloud-auth = { path = "patch/google-cloud-auth" }
 
 [features]
 ocp-logging = [
